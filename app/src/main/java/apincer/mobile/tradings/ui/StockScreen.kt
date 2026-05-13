@@ -1,57 +1,21 @@
 package apincer.mobile.tradings.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.QueryStats
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -65,12 +29,14 @@ import apincer.mobile.tradings.domain.TradeSignal
 import apincer.mobile.tradings.domain.TradingZone
 import java.util.Locale
 
-enum class Screen(val label: String, val icon: ImageVector) {
+enum class Screen(val label: String, val icon: ImageVector, val inBottomBar: Boolean = true) {
     HOME("Home", Icons.Default.Dashboard),
     PORTFOLIO("Portfolio", Icons.Default.AccountBalance),
+    FOCUS("Focus", Icons.Default.Star),
     WATCHLIST("Watchlist", Icons.Default.QueryStats),
     STATS("History", Icons.Default.History),
-    LEARN("Academy", Icons.Default.School)
+    EDUCATION("Academy", Icons.Default.School, false),
+    ABOUT("About", Icons.Default.Info, false)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,7 +49,7 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
     Scaffold(
         bottomBar = {
             NavigationBar {
-                Screen.entries.forEach { screen ->
+                Screen.entries.filter { it.inBottomBar }.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
                         label = { Text(screen.label) },
@@ -105,11 +71,54 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
             Box(modifier = Modifier.weight(1f)) {
                 when (val state = uiState) {
                     is StockUiState.Success -> {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            TextButton(onClick = { viewModel.resetToInitial() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Back")
+                        Column(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .pointerInput(Unit) {
+                                    var totalDrag = 0f
+                                    detectHorizontalDragGestures(
+                                        onDragEnd = {
+                                            if (totalDrag > 150f) {
+                                                viewModel.resetToInitial()
+                                            }
+                                            totalDrag = 0f
+                                        },
+                                        onDragCancel = { totalDrag = 0f },
+                                        onHorizontalDrag = { change, dragAmount ->
+                                            totalDrag += dragAmount
+                                        }
+                                    )
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(onClick = { viewModel.resetToInitial() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Back")
+                                }
+                                
+                                TextButton(
+                                    onClick = { 
+                                        if (state.isFocused) {
+                                            viewModel.removeFromFocusList(state.stockInfo.symbol)
+                                        } else {
+                                            viewModel.addToFocusList(state.stockInfo.symbol, state.stockInfo.lastPrice)
+                                        }
+                                        viewModel.fetchStockData(state.stockInfo.symbol)
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Default.Star, 
+                                        contentDescription = "Focus",
+                                        tint = if (state.isFocused) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(if (state.isFocused) "Focused" else "Focus", color = if (state.isFocused) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                             StockDashboard(state)
                         }
@@ -125,17 +134,24 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text("Error: ${state.message}", color = Color.Red)
+                            Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
                             Button(onClick = { viewModel.resetToInitial() }) { Text("Back") }
                         }
                     }
                     is StockUiState.Initial -> {
                         when (currentScreen) {
-                            Screen.HOME -> HomeScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
+                            Screen.HOME -> HomeScreen(
+                                viewModel = viewModel, 
+                                onSelectStock = { viewModel.fetchStockData(it) }, 
+                                onOpenEducation = { currentScreen = Screen.EDUCATION },
+                                onOpenAbout = { currentScreen = Screen.ABOUT }
+                            )
                             Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
+                            Screen.FOCUS -> FocusListScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
                             Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
+                            Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.HOME })
                             Screen.STATS -> StatsScreen(viewModel)
-                            Screen.LEARN -> TradingEducationScreen(onBack = { currentScreen = Screen.HOME })
+                            Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.HOME })
                         }
                     }
                 }
@@ -156,7 +172,6 @@ fun StockDashboard(state: StockUiState.Success) {
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start
     ) {
-        // --- 1. Top Strategy Signal ---
         SignalCard(state.signal, state.zone)
         
         if (info.isPartialData) {
@@ -176,26 +191,25 @@ fun StockDashboard(state: StockUiState.Success) {
         
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 2. Market Data (Public) ---
-        DashboardSection(title = "Public Market Data (SET Thai)", icon = Icons.Default.Info) {
+        DashboardSection {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = info.symbol, fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         if (!info.nameTH.isNullOrBlank()) {
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "(${info.nameTH})", fontSize = 18.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                            Text(text = "(${info.nameTH})", fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                         }
                         if (state.isVolumeSurge) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
-                                color = Color(0xFFFF9800).copy(alpha = 0.15f),
+                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
                                 shape = MaterialTheme.shapes.extraSmall,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF9800))
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
                             ) {
                                 Text(
                                     "VOLUME SURGE", 
-                                    color = Color(0xFFE65100), 
+                                    color = MaterialTheme.colorScheme.secondary, 
                                     fontSize = 9.sp, 
                                     fontWeight = FontWeight.Black,
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -206,6 +220,15 @@ fun StockDashboard(state: StockUiState.Success) {
                     
                     info.name?.let {
                         Text(text = it, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    if (info.sector != null) {
+                        Text(
+                            text = "${info.sector} • ${info.industry}", 
+                            fontSize = 12.sp, 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
                     }
 
                     TextButton(
@@ -222,7 +245,7 @@ fun StockDashboard(state: StockUiState.Success) {
                         Text(
                             text = it, 
                             fontSize = 13.sp, 
-                            color = Color.DarkGray, 
+                            color = MaterialTheme.colorScheme.onSurface, 
                             lineHeight = 18.sp,
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
@@ -233,44 +256,74 @@ fun StockDashboard(state: StockUiState.Success) {
                     Text(
                         text = "${if (info.change >= 0) "+" else ""}${String.format(Locale.ENGLISH,"%.2f", info.change)} (${String.format(Locale.ENGLISH,"%.2f", info.percentChange)}%)",
                         fontSize = 18.sp,
-                        color = if (info.change >= 0.0) Color(0xFF00C853) else Color.Red
+                        color = if (info.change >= 0.0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                     )
                 }
                 
                 if (portfolio != null && portfolio.quantity > 0 && state.netProfitPercent != null) {
-                    PortfolioSummaryCard(portfolio, info, state.netProfitPercent)
+                    StockPortfolioSummaryCard(portfolio, info, state.netProfitPercent)
                 }
             }
-            
-            Text(text = "Last Updated: ${info.lastUpdated}", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Fundamental Section
-            Text(text = "Fundamentals", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text(text = "Market Cap", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = info.marketCap?.let { "฿${formatLargeNumber(it)}" } ?: "N/A",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(text = "Volume", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = info.volume?.let { formatLargeNumber(it.toDouble()) } ?: "N/A",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            if (state.historicalPrices.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                PriceTrendChart(prices = state.historicalPrices, isPositive = info.change >= 0)
+            }
+            
+            Text(text = "Last Updated: ${info.lastUpdated}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DashboardSection(title = "Market Valuation", icon = Icons.Default.QueryStats) {
+            IndicatorRow("P/E Ratio", info.pe?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
+            IndicatorRow("P/BV Ratio", info.pbv?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
+            IndicatorRow("Fair Value (P/BV=1.0)", info.bookValue?.let { String.format(Locale.ENGLISH,"฿%.2f", it) } ?: "N/A")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DashboardSection(title = "Business Financials", icon = Icons.Default.AccountBalance) {
             if (info.isFundamentalGood) {
                 QualityStockBadge()
             }
-
-            IndicatorRow("P/E Ratio", info.pe?.toString() ?: "N/A")
-            IndicatorRow("P/BV Ratio", info.pbv?.toString() ?: "N/A")
-            IndicatorRow("ROE (%)", info.roe?.let { "${it}%" } ?: "N/A")
+            IndicatorRow("ROE (%)", info.roe?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
             IndicatorRow("Net Profit", info.netProfit?.let { "฿${String.format(Locale.ENGLISH,"%,.0f M", it)}" } ?: "N/A")
-            IndicatorRow("Net Profit Margin (%)", info.netProfitMargin?.let { "${it}%" } ?: "N/A")
-            IndicatorRow("3Y Profit Growth (%)", info.profitGrowth3Y?.let { "${it}%" } ?: "N/A")
-            IndicatorRow("EPS", info.eps?.toString() ?: "N/A")
-            IndicatorRow("D/E Ratio", info.debtToEquity?.toString() ?: "N/A")
+            IndicatorRow("Net Profit Margin (%)", info.netProfitMargin?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
+            IndicatorRow("3Y Profit Growth (%)", info.profitGrowth3Y?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
+            IndicatorRow("EPS", info.eps?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
+            IndicatorRow("D/E Ratio", info.debtToEquity?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
             IndicatorRow("Equity", info.equity?.let { "฿${String.format(Locale.ENGLISH,"%,.0f M", it)}" } ?: "N/A")
-            IndicatorRow("Fair Value (P/BV=1.0)", info.bookValue?.let { String.format(Locale.ENGLISH,"฿%.2f", it) } ?: "N/A")
-            
-            Spacer(modifier = Modifier.height(12.dp))
+        }
 
-            // Dividend Section
-            Text(text = "Dividend Information", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DashboardSection(title = "Dividends", icon = Icons.Default.Star) {
             if ((info.dividendYield ?: 0.0) > 4.0) {
                 HighDividendBadge()
             }
-            IndicatorRow("Dividend Yield (%)", info.dividendYield?.let { "${it}%" } ?: "No Payout")
+            IndicatorRow("Dividend Yield (%)", info.dividendYield?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "No Payout")
             IndicatorRow("Last XD Date", info.dividendDate ?: "N/A")
 
             if (portfolio != null) {
@@ -278,8 +331,6 @@ fun StockDashboard(state: StockUiState.Success) {
                     (info.dividendYield * info.lastPrice) / portfolio.cost
                 } else null
                 
-                IndicatorRow("Average Cost", "฿${portfolio.cost}")
-                IndicatorRow("Holdings", "${portfolio.quantity} Shares")
                 if (yieldOnCost != null) {
                     IndicatorRow("My Yield on Cost", "${String.format(Locale.ENGLISH,"%.2f", yieldOnCost)}%")
                 }
@@ -288,9 +339,7 @@ fun StockDashboard(state: StockUiState.Success) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 3. Analyst & Strategy (Calculated) ---
         DashboardSection(title = "Analyst & Strategy", icon = Icons.Default.Star) {
-            // Zone Price Targets
             Text(text = "Zone Price Targets", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -299,22 +348,21 @@ fun StockDashboard(state: StockUiState.Success) {
                 TargetPriceBadge(
                     label = "Buy Below",
                     price = state.buyingPrice,
-                    color = Color(0xFF00C853)
+                    color = MaterialTheme.colorScheme.tertiary
                 )
                 TargetPriceBadge(
                     label = "Sell Above",
                     price = state.sellingPrice,
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.error
                 )
             }
             Text(
                 text = "These targets are calculated based on RSI reversal levels (35 for Buy, 65 for Sell).",
                 fontSize = 11.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
             )
 
-            // Performance History Section
             Text(text = "Performance History (Price Return)", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -330,12 +378,11 @@ fun StockDashboard(state: StockUiState.Success) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 4. Technical Indicators (Calculated) ---
         DashboardSection(title = "Technical Indicators", icon = Icons.AutoMirrored.Filled.TrendingUp) {
             Text(
                 text = "Indicators help you understand price momentum and volatility 'under the hood'.",
                 fontSize = 12.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -375,20 +422,65 @@ fun StockDashboard(state: StockUiState.Success) {
 }
 
 @Composable
-fun DashboardSection(title: String, icon: ImageVector, content: @Composable () -> Unit) {
+fun PriceTrendChart(prices: List<Double>, isPositive: Boolean) {
+    val color = if (isPositive) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+    val minPrice = prices.minOrNull() ?: 0.0
+    val maxPrice = prices.maxOrNull() ?: 0.0
+    val range = (maxPrice - minPrice).coerceAtLeast(0.01)
+
+    androidx.compose.foundation.Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .padding(vertical = 4.dp)
+            .alpha(0.7f)
+    ) {
+        val width = size.width
+        val height = size.height
+        val stepX = width / (prices.size - 1).coerceAtLeast(1)
+        
+        val path = androidx.compose.ui.graphics.Path()
+        prices.forEachIndexed { i, price ->
+            val x = i * stepX
+            val y = height - ((price - minPrice) / range * height).toFloat()
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        
+        drawPath(
+            path = path,
+            color = color,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+        )
+    }
+}
+
+fun formatLargeNumber(number: Double): String {
+    return when {
+        number >= 1_000_000_000_000 -> String.format(Locale.ENGLISH, "%.2fT", number / 1_000_000_000_000)
+        number >= 1_000_000_000 -> String.format(Locale.ENGLISH, "%.2fB", number / 1_000_000_000)
+        number >= 1_000_000 -> String.format(Locale.ENGLISH, "%.2fM", number / 1_000_000)
+        else -> String.format(Locale.ENGLISH, "%,.0f", number)
+    }
+}
+
+@Composable
+fun DashboardSection(title: String? = null, icon: ImageVector? = null, content: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+            if (title != null && icon != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    @Suppress("DEPRECATION")
+                    Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             content()
         }
     }
@@ -407,7 +499,7 @@ fun TechnicalIndicatorItem(label: String, value: String, meaning: String) {
         Text(
             text = meaning,
             fontSize = 11.sp,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 15.sp,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -415,10 +507,12 @@ fun TechnicalIndicatorItem(label: String, value: String, meaning: String) {
 }
 
 @Composable
-fun PortfolioSummaryCard(portfolio: StockEntity, info: ScrapedStockInfo, netProfitPercent: Double) {
+fun StockPortfolioSummaryCard(portfolio: StockEntity, info: ScrapedStockInfo, netProfitPercent: Double) {
     val totalCostRaw = portfolio.cost * portfolio.quantity
     val currentTotalValue = info.lastPrice * portfolio.quantity
-    val stockTotalFees = (totalCostRaw + currentTotalValue) * TechnicalAnalysis.THAI_FEE_RATE
+    val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
+    val sellFees = TechnicalAnalysis.calculateFees(currentTotalValue, true)
+    val stockTotalFees = buyFees + sellFees
     val grossProfit = currentTotalValue - totalCostRaw
     val netProfitValue = grossProfit - stockTotalFees
 
@@ -432,19 +526,21 @@ fun PortfolioSummaryCard(portfolio: StockEntity, info: ScrapedStockInfo, netProf
                 text = "฿${String.format(Locale.ENGLISH,"%,.2f", netProfitValue)}",
                 fontWeight = FontWeight.ExtraBold, 
                 fontSize = 18.sp,
-                color = if (netProfitValue >= 0) Color(0xFF00C853) else Color.Red
+                color = if (netProfitValue >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
             )
-            Text("${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%", fontSize = 14.sp, color = if (netProfitValue >= 0) Color(0xFF00C853) else Color.Red)
+            Text("${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%", fontSize = 14.sp, color = if (netProfitValue >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp).alpha(0.2f))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Gross:", fontSize = 10.sp, color = Color.Gray)
-                Text("฿${String.format(Locale.ENGLISH,"%.2f", grossProfit)}", fontSize = 10.sp, color = if (grossProfit >= 0) Color(0xFF00C853) else Color.Red)
+                @Suppress("DEPRECATION")
+                Text("Gross:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("฿${String.format(Locale.ENGLISH,"%,.2f", grossProfit)}", fontSize = 10.sp, color = if (grossProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Fees:", fontSize = 10.sp, color = Color.Gray)
-                Text("-฿${String.format(Locale.ENGLISH,"%.2f", stockTotalFees)}", fontSize = 10.sp, color = Color.Gray)
+                @Suppress("DEPRECATION")
+                Text("Fees:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("-฿${String.format(Locale.ENGLISH,"%,.2f", stockTotalFees)}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -453,9 +549,9 @@ fun PortfolioSummaryCard(portfolio: StockEntity, info: ScrapedStockInfo, netProf
 @Composable
 fun QualityStockBadge() {
     Surface(
-        color = Color(0xFFFFD700).copy(alpha = 0.15f),
+        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
         shape = MaterialTheme.shapes.small,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD700)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
         modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth()
     ) {
         Row(
@@ -463,9 +559,9 @@ fun QualityStockBadge() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFA000), modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Solid Financials", color = Color(0xFFC6A700), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+            Text("Solid Financials", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
         }
     }
 }
@@ -473,14 +569,14 @@ fun QualityStockBadge() {
 @Composable
 fun HighDividendBadge() {
     Surface(
-        color = Color(0xFFE8F5E9),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
         shape = MaterialTheme.shapes.small,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
         modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth()
     ) {
         Text(
             text = "High Dividend Yield Target!",
-            color = Color(0xFF2E7D32),
+            color = MaterialTheme.colorScheme.tertiary,
             fontWeight = FontWeight.Bold,
             fontSize = 11.sp,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -493,13 +589,14 @@ fun HighDividendBadge() {
 @Composable
 fun PeriodReturnBadge(label: String, value: Double?) {
     val color = when {
-        value == null -> Color.Gray
-        value >= 0 -> Color(0xFF00C853)
-        else -> Color.Red
+        value == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        value >= 0 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.error
     }
     
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+        @Suppress("DEPRECATION")
+        Text(text = label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
         Surface(
             color = color.copy(alpha = 0.1f),
             shape = MaterialTheme.shapes.small,
@@ -527,7 +624,8 @@ fun RowScope.TargetPriceBadge(label: String, price: Double?, color: Color) {
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = label, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+            @Suppress("DEPRECATION")
+            Text(text = label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             Text(
                 text = if (price != null) "฿${String.format(Locale.ENGLISH,"%.2f", price)}" else "---",
                 color = color,
@@ -537,13 +635,14 @@ fun RowScope.TargetPriceBadge(label: String, price: Double?, color: Color) {
         }
     }
 }
+
 @Composable
 fun SignalCard(signal: TradeSignal, zone: TradingZone) {
     val color = when (signal.type) {
-        IndicatorSignal.BUY -> Color(0xFF00C853)
-        IndicatorSignal.POTENTIAL -> Color(0xFFC66900)
-        IndicatorSignal.SELL -> Color.Red
-        IndicatorSignal.NEUTRAL -> Color.Gray
+        IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
+        IndicatorSignal.POTENTIAL -> MaterialTheme.colorScheme.secondary
+        IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
+        IndicatorSignal.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Card(
@@ -592,7 +691,7 @@ fun SignalCard(signal: TradeSignal, zone: TradingZone) {
             Text(
                 text = signal.description,
                 fontSize = 13.sp,
-                color = Color.DarkGray,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }

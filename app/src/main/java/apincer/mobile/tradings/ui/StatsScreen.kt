@@ -68,7 +68,7 @@ fun StatsScreen(viewModel: StockViewModel) {
                         viewModel.clearTradeHistory()
                         showConfirmDialog = false
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text("Delete All")
                 }
@@ -95,14 +95,14 @@ fun StatsScreen(viewModel: StockViewModel) {
             ) {
                 Column {
                     Text(text = "Trade Statistics", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Improve your trading discipline", fontSize = 14.sp, color = Color.Gray)
+                    Text(text = "Improve your trading discipline", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (history.isNotEmpty()) {
                     IconButton(onClick = { showConfirmDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Clear History",
-                            tint = Color.Gray.copy(alpha = 0.6f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -123,11 +123,11 @@ fun StatsScreen(viewModel: StockViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("Beginning Cash", fontSize = 12.sp, color = Color.Gray)
+                            Text("Beginning Cash", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("฿${String.format(Locale.ENGLISH,"%,.2f", beginningCash)}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Win Rate", fontSize = 12.sp, color = Color.Gray)
+                            Text("Win Rate", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("${String.format(Locale.ENGLISH,"%.1f", winRate)}%", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
@@ -157,15 +157,15 @@ fun StatsScreen(viewModel: StockViewModel) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("Avg Win", fontSize = 12.sp, color = Color.Gray)
-                            Text("฿${String.format(Locale.ENGLISH,"%.0f", avgWin)}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00C853))
+                            Text("Avg Win", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("฿${String.format(Locale.ENGLISH,"%.0f", avgWin)}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Avg Loss", fontSize = 12.sp, color = Color.Gray)
-                            Text("฿${String.format(Locale.ENGLISH,"%.0f", avgLoss)}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+                            Text("Avg Loss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("฿${String.format(Locale.ENGLISH,"%.0f", avgLoss)}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Total Fees", fontSize = 12.sp, color = Color.Gray)
+                            Text("Total Fees", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("฿${String.format(Locale.ENGLISH,"%.0f", totalFees)}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -173,10 +173,10 @@ fun StatsScreen(viewModel: StockViewModel) {
                     if (bestTrade != null) {
                         HorizontalDivider(modifier = Modifier.alpha(0.1f))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Best Stock: ", fontSize = 12.sp, color = Color.Gray)
+                            Text("Best Stock: ", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(bestTrade.symbol, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                             Spacer(Modifier.weight(1f))
-                            Text("+฿${String.format(Locale.ENGLISH,"%.0f", bestTrade.netProfitBaht)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00C853))
+                            Text("+฿${String.format(Locale.ENGLISH,"%.0f", bestTrade.netProfitBaht)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                         }
                     }
                 }
@@ -190,7 +190,7 @@ fun StatsScreen(viewModel: StockViewModel) {
         if (history.isEmpty()) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                    Text("No trade history yet.", color = Color.Gray)
+                    Text("No trade history yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -204,12 +204,12 @@ fun StatsScreen(viewModel: StockViewModel) {
 @Composable
 fun StatMetric(label: String, value: Double) {
     Column {
-        Text(text = label, fontSize = 11.sp, color = Color.Gray)
+        Text(text = label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             text = "${if (value >= 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%.0f", value)}",
             fontSize = 14.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = if (value >= 0) Color(0xFF00C853) else Color.Red
+            color = if (value >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
         )
     }
 }
@@ -232,11 +232,11 @@ fun TradeHistoryCard(trade: TradeEntity) {
             ) {
                 Column {
                     Text(text = trade.symbol, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(text = dateStr, fontSize = 11.sp, color = Color.Gray)
+                    Text(text = dateStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "Bought @ ${trade.buyPrice}, Sold @ ${trade.sellPrice}",
                         fontSize = 12.sp,
-                        color = Color.DarkGray
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 
@@ -244,14 +244,14 @@ fun TradeHistoryCard(trade: TradeEntity) {
                     Text(
                         text = "${if (isWin) "+" else ""}฿${String.format(Locale.ENGLISH,"%.2f", trade.netProfitBaht)}",
                         fontWeight = FontWeight.Bold,
-                        color = if (isWin) Color(0xFF00C853) else Color.Red
+                        color = if (isWin) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                     )
                     Text(
                         text = "${String.format(Locale.ENGLISH,"%.2f", trade.netProfitPercent)}%",
                         fontSize = 12.sp,
-                        color = if (isWin) Color(0xFF00C853) else Color.Red
+                        color = if (isWin) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                     )
-                    Text(text = "Qty: ${trade.quantity}", fontSize = 10.sp, color = Color.Gray)
+                    Text(text = "Qty: ${trade.quantity}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             
@@ -263,7 +263,7 @@ fun TradeHistoryCard(trade: TradeEntity) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
-                        Text(text = "Lesson Learned:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Text(text = "Lesson Learned:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             text = trade.note,
                             fontSize = 12.sp,

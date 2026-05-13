@@ -1,5 +1,7 @@
 package apincer.mobile.tradings.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +21,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -50,12 +54,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 enum class WatchlistSort {
-    SYMBOL, YIELD, PROFIT, QUALITY
+    SYMBOL, YIELD, QUALITY_PROFIT, POTENTIAL
 }
 
 @Composable
@@ -72,6 +77,28 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
         .filter { it.isNotEmpty() }
         .maxOrNull() ?: "N/A"
 
+    val context = LocalContext.current
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            viewModel.exportWatchlist(context.contentResolver, it)
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            val type = context.contentResolver.getType(it)
+            if (type == "text/csv" || it.path?.endsWith(".csv") == true) {
+                viewModel.importWatchlistCsv(context.contentResolver, it)
+            } else {
+                viewModel.importWatchlistJson(context.contentResolver, it)
+            }
+        }
+    }
+
     val filteredItems = remember(watchlistInfo, searchQuery, sortBy) {
         val base = if (searchQuery.isBlank()) {
             watchlistInfo
@@ -85,10 +112,20 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
         when (sortBy) {
             WatchlistSort.SYMBOL -> base.sortedBy { it.info.symbol }
             WatchlistSort.YIELD -> base.sortedByDescending { it.info.dividendYield ?: 0.0 }
-            WatchlistSort.PROFIT -> base.sortedByDescending { it.netProfitPercent }
-            WatchlistSort.QUALITY -> base.sortedWith(
+            WatchlistSort.QUALITY_PROFIT -> base.sortedWith(
                 compareByDescending<StockWatchlistInfo> { it.info.isFundamentalGood }
-                .thenBy { it.info.symbol }
+                .thenByDescending { it.netProfitPercent }
+            )
+            WatchlistSort.POTENTIAL -> base.sortedWith(
+                compareByDescending<StockWatchlistInfo> { item ->
+                    when (item.signal?.type) {
+                        apincer.mobile.tradings.domain.IndicatorSignal.BUY -> 3
+                        apincer.mobile.tradings.domain.IndicatorSignal.POTENTIAL -> 2
+                        apincer.mobile.tradings.domain.IndicatorSignal.NEUTRAL -> 1
+                        apincer.mobile.tradings.domain.IndicatorSignal.SELL -> 0
+                        null -> -1
+                    }
+                }.thenBy { it.portfolio.rsi ?: 100.0 }
             )
         }
     }
@@ -111,7 +148,7 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
                     Text(
                         text = "Monitoring ${watchlistInfo.size} stocks | Updated: $lastUpdated", 
                         fontSize = 12.sp, 
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
@@ -121,7 +158,7 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
                         onClick = { showResetConfirm = true },
                         enabled = !isRefreshing && watchlistInfo.any { it.portfolio.quantity == 0 },
                         colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = Color.Red.copy(alpha = 0.7f)
+                            contentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                         ),
                         modifier = Modifier.size(44.dp)
                     ) {
@@ -145,6 +182,22 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
                                 modifier = Modifier.size(22.dp)
                             )
                         }
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    // Export Button
+                    IconButton(
+                        onClick = { exportLauncher.launch("tradingmate_watchlist.json") },
+                        enabled = watchlistInfo.isNotEmpty(),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileDownload, 
+                            contentDescription = "Export Watchlist", 
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.width(4.dp))
@@ -203,8 +256,8 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
                                 text = when(sortBy) {
                                     WatchlistSort.SYMBOL -> "Symbol"
                                     WatchlistSort.YIELD -> "Yield %"
-                                    WatchlistSort.PROFIT -> "Profit"
-                                    WatchlistSort.QUALITY -> "High Quality"
+                                    WatchlistSort.QUALITY_PROFIT -> "Quality & Profit"
+                                    WatchlistSort.POTENTIAL -> "Best Entry"
                                 },
                                 fontSize = 12.sp
                             ) 
@@ -220,7 +273,8 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
                             DropdownMenuItem(
                                 text = { 
                                     val label = when(option) {
-                                        WatchlistSort.QUALITY -> "High Quality"
+                                        WatchlistSort.QUALITY_PROFIT -> "Quality & Profit"
+                                        WatchlistSort.POTENTIAL -> "Best Entry (Potential)"
                                         else -> option.name.lowercase().replaceFirstChar { it.uppercase() }
                                     }
                                     Text(label) 
@@ -246,7 +300,7 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         text = if (searchQuery.isEmpty()) "Your watchlist is empty." else "No stocks match your search.", 
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
@@ -270,13 +324,22 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
 
     if (showAddDialog) {
         UnifiedAddStockDialog(
-            onDismiss = { showAddDialog = false },
+            viewModel = viewModel,
+            onDismiss = { 
+                showAddDialog = false 
+                viewModel.resetSearchResults()
+            },
             onConfirmSingle = { symbol ->
                 viewModel.addToWatchlist(symbol, 0.0, 0)
                 showAddDialog = false
+                viewModel.resetSearchResults()
             },
             onImportCollection = { category ->
                 viewModel.importFromCollection(category)
+                showAddDialog = false
+            },
+            onImportFile = {
+                importLauncher.launch(arrayOf("application/json", "text/csv", "text/comma-separated-values", "text/plain"))
                 showAddDialog = false
             }
         )
@@ -293,7 +356,7 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
                         viewModel.clearWatchlist()
                         showResetConfirm = false
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text("Clear All")
                 }
@@ -309,12 +372,15 @@ fun WatchlistScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
 
 @Composable
 fun UnifiedAddStockDialog(
+    viewModel: StockViewModel,
     onDismiss: () -> Unit, 
     onConfirmSingle: (String) -> Unit,
-    onImportCollection: (String) -> Unit
+    onImportCollection: (String) -> Unit,
+    onImportFile: () -> Unit
 ) {
     var symbolInput by remember { mutableStateOf("") }
-    
+    val searchResult by viewModel.searchResults.collectAsState()
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Stocks") },
@@ -326,7 +392,10 @@ fun UnifiedAddStockDialog(
                     Spacer(modifier = Modifier.height(8.dp))
                     TextField(
                         value = symbolInput,
-                        onValueChange = { symbolInput = it.uppercase() },
+                        onValueChange = { 
+                            symbolInput = it.uppercase() 
+                            viewModel.searchSymbol(it)
+                        },
                         label = { Text("Symbol (e.g. PTT)") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -339,21 +408,45 @@ fun UnifiedAddStockDialog(
                             }
                         }
                     )
+
+                    searchResult?.let { info ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            onClick = { onConfirmSingle(info.symbol) },
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(info.symbol, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text(info.name ?: "Unknown Company", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                    if (info.sector != null) {
+                                        Text("${info.sector} • ${info.industry}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                    }
+                                }
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
                 }
 
-                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 
                 // Section 2: Collections
                 Column {
                     Text("Import Curated Collections", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Quickly add high-quality stocks to monitor.", fontSize = 12.sp, color = Color.Gray)
+                    Text("Quickly add high-quality stocks to monitor.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         CollectionImportButton(
                             label = "Dividend Stars", 
                             description = "Top consistent yield payers",
-                            color = Color(0xFF2E7D32),
+                            color = MaterialTheme.colorScheme.tertiary,
                             onClick = { onImportCollection("DIVIDEND") }
                         )
                         CollectionImportButton(
@@ -363,10 +456,30 @@ fun UnifiedAddStockDialog(
                             onClick = { onImportCollection("BLUECHIP") }
                         )
                         CollectionImportButton(
-                            label = "Full SET100 Index", 
-                            description = "Top 100 stocks (2026)",
-                            color = Color.Gray,
+                            label = "SET50 Index", 
+                            description = "Top 50 market leaders",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            onClick = { onImportCollection("SET50") }
+                        )
+                        CollectionImportButton(
+                            label = "SET100 Index", 
+                            description = "Top 100 market leaders",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             onClick = { onImportCollection("SET100") }
+                        )
+                        CollectionImportButton(
+                            label = "SETHD Index", 
+                            description = "High Dividend yield stocks",
+                            color = MaterialTheme.colorScheme.tertiary,
+                            onClick = { onImportCollection("SETHD") }
+                        )
+                        
+                        CollectionImportButton(
+                            label = "Import from File", 
+                            description = "Restore JSON or CSV list",
+                            color = MaterialTheme.colorScheme.secondary,
+                            icon = Icons.Default.FileUpload,
+                            onClick = { onImportFile() }
                         )
                     }
                 }
@@ -380,7 +493,13 @@ fun UnifiedAddStockDialog(
 }
 
 @Composable
-fun CollectionImportButton(label: String, description: String, color: Color, onClick: () -> Unit) {
+fun CollectionImportButton(
+    label: String, 
+    description: String, 
+    color: Color, 
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Collections,
+    onClick: () -> Unit
+) {
     Surface(
         onClick = onClick,
         color = color.copy(alpha = 0.1f),
@@ -393,9 +512,9 @@ fun CollectionImportButton(label: String, description: String, color: Color, onC
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(label, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = color)
-                Text(description, fontSize = 11.sp, color = Color.DarkGray)
+                Text(description, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
             }
-            Icon(Icons.Default.Collections, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
         }
     }
 }

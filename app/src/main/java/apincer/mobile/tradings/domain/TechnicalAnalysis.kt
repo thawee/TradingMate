@@ -52,11 +52,11 @@ object TechnicalAnalysis {
     // 3. VAT: 7% on total commissions (Commission + Market Fee)
     // 4. Selling Tax (Financial Transaction Tax): 0.11% (currently 0.10% tax + 0.01% local tax)
     
-    private const val COMMISSION_RATE = 0.0015
-    private const val MARKET_FEE_RATE = 0.00007
-    private const val VAT_RATE = 0.07
-    private const val SELLING_TAX_RATE = 0.0011
-    private const val MIN_DAILY_COMMISSION = 50.0
+    const val COMMISSION_RATE = 0.0015
+    const val MARKET_FEE_RATE = 0.00007
+    const val VAT_RATE = 0.07
+    const val SELLING_TAX_RATE = 0.0011
+    const val MIN_DAILY_COMMISSION = 50.0
 
     // Alignment with snapshot Strategy: Focus on RSI (35/65 targets)
     const val RSI_OVERSOLD_THRESHOLD = 35.0

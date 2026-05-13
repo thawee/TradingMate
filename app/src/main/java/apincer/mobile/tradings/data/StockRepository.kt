@@ -1,19 +1,35 @@
 package apincer.mobile.tradings.data
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 
 class StockRepository(
     private val stockDao: StockDao,
     private val tradeDao: TradeDao,
-    private val cashDao: CashDao
+    private val cashDao: CashDao,
+    private val focusDao: FocusDao
 ) {
     val allStocks: Flow<List<StockEntity>> = stockDao.getAllStocks()
     val allTrades: Flow<List<TradeEntity>> = tradeDao.getAllTrades()
     val cashBalance: Flow<CashEntity?> = cashDao.getCash()
+    val allFocusStocks: Flow<List<FocusEntity>> = focusDao.getAllFocusStocks()
 
     suspend fun updateCash(balance: Double) {
         cashDao.updateCash(CashEntity(balance = balance))
+    }
+
+    suspend fun addToFocusList(symbol: String, price: Double) {
+        focusDao.insertFocusStock(FocusEntity(symbol.uppercase(), price))
+    }
+
+    suspend fun removeFromFocusList(symbol: String) {
+        val existing = focusDao.getFocusStockBySymbol(symbol.uppercase())
+        if (existing != null) {
+            focusDao.deleteFocusStock(existing)
+        }
+    }
+
+    suspend fun getFocusStock(symbol: String): FocusEntity? {
+        return focusDao.getFocusStockBySymbol(symbol.uppercase())
     }
 
     suspend fun addStock(

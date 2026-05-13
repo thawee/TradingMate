@@ -1,22 +1,34 @@
 package apincer.mobile.tradings.data
 
 import android.util.Log
-import org.jsoup.Jsoup
-import java.io.IOException
+import kotlinx.serialization.Serializable
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
+import org.json.JSONTokener
+import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.regex.Pattern
+import java.util.concurrent.TimeUnit
 
+@Serializable
 data class ScrapedStockInfo(
     val symbol: String,
     val name: String? = null,
     val nameTH: String? = null,
     val businessDescription: String? = null,
+    val sector: String? = null,
+    val industry: String? = null,
     val lastPrice: Double,
     val change: Double,
     val percentChange: Double,
+    val marketCap: Double? = null,
+    val volume: Long? = null,
     val pe: Double? = null,
     val pbv: Double? = null,
     val roe: Double? = null,
@@ -52,410 +64,336 @@ data class ScrapedHistoricalPrice(
 
 object SetScraper {
     private const val TAG = "SetScraper"
-    private const val GOOGLE_FINANCE_URL = "https://www.google.com/finance/quote"
-    private const val SET_FACTSHEET_URL = "https://www.set.or.th/th/market/product/stock/quote"
+    private const val SET_BASE_URL = "https://www.set.or.th"
     private const val YAHOO_FINANCE_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
-    private const val USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    private const val YAHOO_SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
+    private const val YAHOO_QUOTE_URL = "https://query1.finance.yahoo.com/v7/finance/quote"
+    private const val USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    private const val SEC_CH_UA = "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\""
+
+    private val client = OkHttpClient.Builder()
+        .cookieJar(object : CookieJar {
+            private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+            override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                val host = url.host
+                val store = cookieStore.getOrPut(host) { mutableListOf() }
+                cookies.forEach { newCookie ->
+                    store.removeAll { it.name == newCookie.name }
+                    store.add(newCookie)
+                }
+                Log.d(TAG, "SET Cookies Saved [${host}]: total ${store.size}")
+            }
+            override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                return cookieStore[url.host] ?: emptyList()
+            }
+        })
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
+    private fun ensureSession(url: String) {
+        try {
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", USER_AGENT)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+                .header("Accept-Language", "en-US,en;q=0.9,th;q=0.8")
+                .header("Sec-Ch-Ua", SEC_CH_UA)
+                .header("Sec-Ch-Ua-Mobile", "?0")
+                .header("Sec-Ch-Ua-Platform", "\"macOS\"")
+                .header("Sec-Fetch-Dest", "document")
+                .header("Sec-Fetch-Mode", "navigate")
+                .header("Sec-Fetch-Site", "none")
+                .header("Sec-Fetch-User", "?1")
+                .header("Upgrade-Insecure-Requests", "1")
+                .build()
+            client.newCall(request).execute().use { response ->
+                Log.d(TAG, "Session Warmup [${url}]: ${response.code}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Session Warmup Failed", e)
+        }
+    }
 
     fun fetchStockInfo(symbol: String): ScrapedStockInfo {
         Log.d(TAG, "Starting fetchStockInfo for $symbol")
-        var info = tryFetchFromGoogle(symbol)
-        Log.d(TAG, "Google Source Result [$symbol]: Price=${info.lastPrice}, Change=${info.change}, Percent=${info.percentChange}")
+        var info = ScrapedStockInfo(
+            symbol = symbol.uppercase(),
+            lastPrice = 0.0,
+            change = 0.0,
+            percentChange = 0.0,
+            lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        )
         
-        val setInfo = tryFetchFromSet(symbol)
-        if (setInfo != null) {
-            Log.d(TAG, "SET Source Result [$symbol]: Price=${setInfo.lastPrice}, PE=${setInfo.pe}, PBV=${setInfo.pbv}, ROE=${setInfo.roe}, Name=${setInfo.name}")
+        // 1. Get Metadata from Yahoo Search
+        val yahooSearch = searchYahoo(symbol)
+        yahooSearch?.let { yInfo ->
             info = info.copy(
-                name = if (!setInfo.name.isNullOrBlank()) setInfo.name else info.name,
-                businessDescription = if (info.businessDescription.isNullOrBlank()) setInfo.businessDescription else info.businessDescription,
-                lastPrice = if (info.lastPrice == 0.0) setInfo.lastPrice else info.lastPrice,
-                pe = if (info.pe == null || info.pe == 0.0) setInfo.pe else info.pe,
-                pbv = if (info.pbv == null || info.pbv == 0.0) setInfo.pbv else info.pbv,
-                roe = if (info.roe == null) setInfo.roe else info.roe,
-                eps = if (info.eps == null) setInfo.eps else info.eps,
-                netProfit = if (info.netProfit == null) setInfo.netProfit else info.netProfit,
-                equity = if (info.equity == null) setInfo.equity else info.equity,
-                debtToEquity = if (info.debtToEquity == null) setInfo.debtToEquity else info.debtToEquity,
-                dividendYield = if (info.dividendYield == null) setInfo.dividendYield else info.dividendYield,
-                dividendDate = if (info.dividendDate == null) setInfo.dividendDate else info.dividendDate
+                name = yInfo.name,
+                sector = yInfo.sector,
+                industry = yInfo.industry
+            )
+        }
+        
+        // 2. Deep Fundamentals from SET API
+        val setInfo = tryFetchFromSetApi(symbol)
+        if (setInfo != null) {
+            info = info.copy(
+                name = setInfo.name ?: info.name,
+                businessDescription = setInfo.businessDescription ?: info.businessDescription,
+                lastPrice = if (setInfo.lastPrice != 0.0) setInfo.lastPrice else info.lastPrice,
+                change = if (setInfo.lastPrice != 0.0) setInfo.change else info.change,
+                percentChange = if (setInfo.lastPrice != 0.0) setInfo.percentChange else info.percentChange,
+                pe = setInfo.pe ?: info.pe,
+                pbv = setInfo.pbv ?: info.pbv,
+                roe = setInfo.roe ?: info.roe,
+                eps = setInfo.eps ?: info.eps,
+                marketCap = setInfo.marketCap ?: info.marketCap,
+                volume = setInfo.volume ?: info.volume,
+                netProfit = setInfo.netProfit ?: info.netProfit,
+                netProfitMargin = if (setInfo.netProfitMargin != null) setInfo.netProfitMargin else info.netProfitMargin,
+                profitGrowth3Y = if (setInfo.profitGrowth3Y != null) setInfo.profitGrowth3Y else info.profitGrowth3Y,
+                equity = setInfo.equity ?: info.equity,
+                debtToEquity = setInfo.debtToEquity ?: info.debtToEquity,
+                dividendYield = setInfo.dividendYield ?: info.dividendYield,
+                dividendDate = setInfo.dividendDate ?: info.dividendDate
             )
         }
 
+        // 3. Final Fallback for Name
         if (info.name.isNullOrBlank()) {
             fetchStockNameFallback(symbol)?.let {
                 info = info.copy(name = it)
             }
         }
         
-        Log.d(TAG, "Final Merged Result for $symbol: Price=${info.lastPrice}, PE=${info.pe}, ROE=${info.roe}, Partial=${info.isPartialData}")
         return info
     }
 
-    private fun tryFetchFromGoogle(symbol: String): ScrapedStockInfo {
-        var info = ScrapedStockInfo(
-            symbol = symbol,
-            lastPrice = 0.0,
-            change = 0.0,
-            percentChange = 0.0,
-            lastUpdated = ""
-        )
-        try {
-            info = scrapeGoogle(symbol, "BK")
-            if (info.lastPrice == 0.0) {
-                info = scrapeGoogle(symbol, "BKK")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching from Google for $symbol", e)
-        }
-        return info
-    }
-
-    private fun scrapeGoogle(symbol: String, suffix: String): ScrapedStockInfo {
-        val url = "$GOOGLE_FINANCE_URL/${symbol.uppercase()}:$suffix"
-        Log.v(TAG, "Fetching Google: $url")
-        val doc = Jsoup.connect(url)
-            .userAgent(USER_AGENT)
-            .header("Accept-Language", "en-US,en;q=0.9")
-            .timeout(10000)
-            .get()
-
-        val mainContainer = doc.select("main").first() ?: doc.select("#yDmH0d").first() ?: doc
-
-        // Identify the symbol-specific block (card or row)
-        val symbolBlock = mainContainer.select(".SxcTic, .KY7fce, .vP79B, .D67Xm, tr, .MD1Z9").find { block ->
-             block.text().split(Regex("[^A-Za-z0-9]")).any { it.equals(symbol, ignoreCase = true) }
-        }
-        
-        val searchArea = symbolBlock ?: mainContainer
-
-        // Extract Name
-        var companyName: String? = symbolBlock?.select(".ZvmM7, .zz3FFb")?.first()?.text()
-            ?: mainContainer.select(".zz3FFb").first()?.text()
-            ?: mainContainer.select("h1").find { !it.text().contains("Google", ignoreCase = true) }?.text()
-            ?: doc.title().substringBefore(" (")
-        companyName = cleanName(companyName)
-
-        // Extract Price
-        val priceElement = searchArea.select(".YMlKec.fxKbKc, [jsname='vW7dgc']").first()
-            ?: searchArea.select(".YMlKec").find { it.text().contains("฿") }
-            ?: mainContainer.select(".YMlKec.fxKbKc, [jsname='vW7dgc']").first()
-            
-        val priceText = (priceElement?.text() ?: "0.0").replace("฿", "").replace(",", "").trim()
-        val lastPrice = priceText.toDoubleOrNull() ?: 0.0
-        
-        // Extract Change Data
-        var changeContainer = searchArea.select("[jsname='Fe7oBc']").first()
-            ?: priceElement?.parents()?.take(5)?.find { it.select("[jsname='Fe7oBc']").isNotEmpty() }?.select("[jsname='Fe7oBc']")?.first()
-            ?: mainContainer.select("[jsname='Fe7oBc']").first()
-            
-        val mainLabel = changeContainer?.attr("aria-label") ?: ""
-        val changeElement = changeContainer?.select("[jsname='qE749c'], [jsname='m6NnIb']")?.first() 
-        val percentElement = changeContainer?.select("[jsname='j9S6ve'], .JwB6zf")?.first()
-
-        val changeText = changeElement?.text() ?: ""
-        val percentText = percentElement?.text() ?: ""
-        
-        // Parse raw values: ignore percentage sign for absolute Baht change
-        var changeValue = if (changeText.contains("%")) 0.0 else extractNumeric(changeText)
-        var percentValue = extractNumeric(percentText.replace("%", ""))
-        
-        // Robust extraction from aria-label
-        if (mainLabel.isNotEmpty()) {
-             val rawAbsText = mainLabel.substringBefore("(")
-             val rawPerText = if (mainLabel.contains("(")) mainLabel.substringAfter("(").substringBefore(")") else ""
-             
-             // Extract absolute if text parsing failed or was just a percentage
-             if (changeValue == 0.0 && !rawAbsText.contains("%")) changeValue = extractNumeric(rawAbsText)
-             if (percentValue == 0.0) percentValue = extractNumeric(rawPerText)
-             
-             // If we still have 0.0 but have a percentage, calculate the Baht change
-             if (changeValue == 0.0 && rawAbsText.contains("%") && lastPrice != 0.0) {
-                 val p = extractNumeric(rawAbsText)
-                 changeValue = (lastPrice * (p/100.0))
-             }
-        }
-
-        Log.v(TAG, "Google Data Raw [$symbol]: Price=$lastPrice, Label=$mainLabel, ChangeValue=$changeValue, PercentValue=$percentValue")
-
-        // Direction
-        val combined = "$mainLabel $changeText $percentText".lowercase()
-        val isNegative = combined.contains("down") || combined.contains("-") || combined.contains("跌") || combined.contains("decrease")
-        
-        if (isNegative) {
-            changeValue = -Math.abs(changeValue)
-            percentValue = -Math.abs(percentValue)
-        }
-
-        var peVal: Double? = null
-        var pbvVal: Double? = null
-        var divYield: Double? = null
-
-        mainContainer.select(".P6uYm").forEach { row ->
-            val label = row.text().lowercase()
-            val valueText = row.nextElementSibling()?.text() ?: ""
-            val value = valueText.replace(",", "").replace("%", "").trim().toDoubleOrNull()
-            
-            when {
-                label.contains("p/e ratio") -> peVal = value
-                label.contains("p/b ratio") -> pbvVal = value
-                label.contains("dividend yield") -> divYield = value
-            }
-        }
-
-        return ScrapedStockInfo(
-            symbol = symbol.uppercase(),
-            name = companyName,
-            businessDescription = null,
-            lastPrice = lastPrice,
-            change = changeValue,
-            percentChange = percentValue,
-            pe = peVal,
-            pbv = pbvVal,
-            dividendYield = divYield,
-            lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        )
-    }
-
-    private fun extractNumeric(text: String): Double {
-        val regex = "([0-9]+[,.]?[0-9]*)".toRegex()
-        val match = regex.find(text.replace(",", ""))
-        return match?.value?.toDoubleOrNull() ?: 0.0
-    }
-
-    private fun tryFetchFromSet(symbol: String): ScrapedStockInfo? {
+    private fun tryFetchFromSetApi(symbol: String): ScrapedStockInfo? {
         return try {
-            val url = "$SET_FACTSHEET_URL/${symbol.uppercase()}/factsheet"
-            Log.v(TAG, "Fetching SET Factsheet: $url")
-            val doc = Jsoup.connect(url).userAgent(USER_AGENT).timeout(15000).get()
+            val symbolUpper = symbol.uppercase()
+            ensureSession("$SET_BASE_URL/th/market/product/stock/quote/$symbolUpper/overview")
+            
+            // 1. Fetch Overview (Basic Metadata)
+            val overviewObj = fetchJson("$SET_BASE_URL/api/set/stock/$symbolUpper/overview?lang=th", symbolUpper) as? JSONObject
+            
+            // 2. Fetch Trading Stats (ROE, historical P/E) - Returns Array
+            val tradingStatArray = fetchJson("$SET_BASE_URL/api/set/factsheet/$symbolUpper/trading-stat?lang=th", symbolUpper) as? JSONArray
+            
+            // 3. Fetch Info (Real-time Quote, P/E Ratio, P/BV Ratio, Dividend Yield)
+            val infoObj = fetchJson("$SET_BASE_URL/api/set/stock/$symbolUpper/info?lang=th", symbolUpper) as? JSONObject
 
-            val scripts = doc.select("script")
-            var nuxtInfo: ScrapedStockInfo? = null
-            for (script in scripts) {
-                val content = script.html()
-                if (content.contains("window.__NUXT__")) {
-                    Log.v(TAG, "Found window.__NUXT__ script for $symbol")
-                    nuxtInfo = parseNuxtJson(content, symbol.uppercase())
-                    break
+            // 4. Fetch Dividend History (Latest XD Date) - Returns Array
+            val divArray = fetchJson("$SET_BASE_URL/api/set/stock/$symbolUpper/corporate-action/historical?caType=XD&lang=th", symbolUpper) as? JSONArray
+
+            // 5. Fetch Company Highlight / Financial Data (ROE, D/E, Profit Growth)
+            val highlightReferer = "$SET_BASE_URL/th/market/product/stock/quote/$symbolUpper/financial-statement/company-highlights"
+            val highlightResult = fetchJson("$SET_BASE_URL/api/set/stock/$symbolUpper/company-highlight/financial-data?lang=th", symbolUpper, highlightReferer)
+            val highlightRows = when (highlightResult) {
+                is JSONArray -> highlightResult
+                is JSONObject -> highlightResult.optJSONArray("rows")
+                else -> null
+            }
+
+            val nameVal = infoObj?.optString("nameTH") ?: overviewObj?.optString("name")
+            val desc = infoObj?.optString("businessDescription") ?: overviewObj?.optString("name")
+            
+            val stats = tradingStatArray?.optJSONObject(0)
+            
+            // Prioritize Real-time infoObj for price and market ratios
+            val price = infoObj?.optDouble("last", 0.0)?.takeIf { it != 0.0 && !it.isNaN() } 
+                ?: stats?.optDouble("close", 0.0)?.takeIf { it != 0.0 && !it.isNaN() }
+                ?: overviewObj?.optDouble("lastPrice", 0.0)?.takeIf { it != 0.0 && !it.isNaN() } ?: 0.0
+                
+            val change = infoObj?.optDouble("change", 0.0)?.takeIf { !it.isNaN() }
+                ?: stats?.optDouble("change", 0.0)?.takeIf { !it.isNaN() } ?: 0.0
+                
+            val percentChange = infoObj?.optDouble("percentChange", 0.0)?.takeIf { !it.isNaN() }
+                ?: stats?.optDouble("percentChange", 0.0)?.takeIf { !it.isNaN() } ?: 0.0
+            
+            val marketCap = infoObj?.optDouble("marketCap", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: overviewObj?.optDouble("marketCap", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                
+            val volume = infoObj?.optLong("totalVolume", 0L)?.takeIf { it != 0L }
+                ?: overviewObj?.optLong("totalVolume", 0L)?.takeIf { it != 0L }
+
+            val pe = infoObj?.optDouble("peRatio", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: stats?.optDouble("pe", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: overviewObj?.optDouble("pe", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                
+            val pbv = infoObj?.optDouble("pbRatio", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: stats?.optDouble("pbv", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: overviewObj?.optDouble("pbv", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                
+            val yield = infoObj?.optDouble("dividendYield", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: stats?.optDouble("dividendYield", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: overviewObj?.optDouble("dividendYield", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+
+            // Financial Highlight Extraction
+            var roe = stats?.optDouble("roe", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+            var de = infoObj?.optDouble("debtToEquity", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+                ?: overviewObj?.optDouble("debtToEquity", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+            var netProfit = overviewObj?.optDouble("netProfit", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+            var margin: Double? = null
+            var profitGrowth: Double? = null
+            var eps = overviewObj?.optDouble("eps", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+            var equity = overviewObj?.optDouble("totalEquity", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
+
+            if (highlightRows != null && highlightRows.length() > 0) {
+                // Typically rows are chronological, last one is the most recent
+                val recentHighlight = highlightRows.optJSONObject(highlightRows.length() - 1)
+                roe = recentHighlight.optDouble("roe", roe ?: 0.0).takeIf { !it.isNaN() } ?: roe
+                de = recentHighlight.optDouble("deRatio", recentHighlight.optDouble("debtToEquity", de ?: 0.0)).takeIf { !it.isNaN() } ?: de
+                netProfit = recentHighlight.optDouble("netProfit", netProfit ?: 0.0).takeIf { !it.isNaN() } ?: netProfit
+                margin = recentHighlight.optDouble("netProfitMargin", 0.0).takeIf { !it.isNaN() }
+                eps = recentHighlight.optDouble("eps", eps ?: 0.0).takeIf { !it.isNaN() } ?: eps
+                equity = recentHighlight.optDouble("equity", equity ?: 0.0).takeIf { !it.isNaN() } ?: equity
+                
+                // Calculate Profit Growth if we have multiple years
+                if (highlightRows.length() >= 2) {
+                    val prevHighlight = highlightRows.optJSONObject(highlightRows.length() - 2)
+                    val currentNP = recentHighlight.optDouble("netProfit", 0.0)
+                    val prevNP = prevHighlight.optDouble("netProfit", 0.0)
+                    if (prevNP != 0.0 && !prevNP.isNaN() && !currentNP.isNaN()) {
+                        profitGrowth = ((currentNP - prevNP) / Math.abs(prevNP)) * 100.0
+                    }
                 }
             }
 
-            if (nuxtInfo != null && !nuxtInfo.name.isNullOrBlank()) {
-                Log.d(TAG, "SET Nuxt Parse SUCCESS for $symbol: Price=${nuxtInfo.lastPrice}, PE=${nuxtInfo.pe}, PBV=${nuxtInfo.pbv}")
-                return nuxtInfo
-            }
-
-            Log.v(TAG, "SET Nuxt Parse failed or incomplete for $symbol, trying DOM fallbacks")
-            val nameVal = doc.select(".factsheet-title").first()?.text()
-                ?: doc.select(".company-name").first()?.text()
-                ?: doc.select("h1").first()?.text()
-            
-            val priceVal = doc.select("label:contains(Price) + span").first()?.text()
-                ?: doc.select("label:contains(Price)").first()?.nextElementSibling()?.text()
-
-            val peVal = doc.select("label:contains(P/E (X)) + span").first()?.text()
-                ?: doc.select("label:contains(P/E)").first()?.nextElementSibling()?.text()
-
-            val pbvVal = doc.select("label:contains(P/BV (X)) + span").first()?.text()
-                ?: doc.select("label:contains(P/BV)").first()?.nextElementSibling()?.text()
-
-            Log.d(TAG, "SET DOM Fallback for $symbol: Name=$nameVal, Price=$priceVal, PE=$peVal, PBV=$pbvVal")
+            val xdDate = divArray?.optJSONObject(0)?.optString("xdate")?.substringBefore("T")
 
             ScrapedStockInfo(
-                symbol = symbol.uppercase(),
+                symbol = symbolUpper,
                 name = cleanName(nameVal),
-                lastPrice = priceVal?.replace(",", "")?.toDoubleOrNull() ?: 0.0,
-                change = 0.0,
-                percentChange = 0.0,
-                pe = peVal?.replace(",", "")?.toDoubleOrNull(),
-                pbv = pbvVal?.replace(",", "")?.toDoubleOrNull(),
+                businessDescription = desc,
+                lastPrice = price,
+                change = change,
+                percentChange = percentChange,
+                pe = pe,
+                pbv = pbv,
+                roe = roe,
+                eps = eps,
+                netProfit = netProfit,
+                netProfitMargin = margin,
+                profitGrowth3Y = profitGrowth,
+                equity = equity,
+                debtToEquity = de,
+                dividendYield = yield,
+                dividendDate = xdDate,
+                marketCap = marketCap,
+                volume = volume,
                 lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
             )
         } catch (e: Exception) {
-            Log.e(TAG, "SET Fetch Error for $symbol", e)
+            Log.e(TAG, "SET API Fetch Error for $symbol", e)
             null
         }
     }
 
-    private fun parseNuxtJson(scriptContent: String, symbol: String): ScrapedStockInfo? {
-        try {
-            val paramMap = extractNuxtParamMap(scriptContent) ?: return null
-
-            // Extract main data blocks (could be objects or arrays)
-            val hData = extractNuxtDataBlock(scriptContent, "highlightData")
-            val pData = extractNuxtDataBlock(scriptContent, "profile")
-            val cData = extractNuxtDataBlock(scriptContent, "compareStat")
-            val fData = extractNuxtDataBlock(scriptContent, "financialData")
+    private fun fetchJson(url: String, symbol: String, referer: String? = null): Any? {
+        return try {
+            val requestReferer = referer ?: "$SET_BASE_URL/th/market/product/stock/quote/$symbol/factsheet"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", USER_AGENT)
+                .header("Host", "www.set.or.th")
+                .header("Origin", SET_BASE_URL)
+                .header("Referer", requestReferer)
+                .header("Accept", "application/json, text/plain, */*")
+                .header("Accept-Language", "en-US,en;q=0.9,th;q=0.8")
+                .header("Sec-Ch-Ua", SEC_CH_UA)
+                .header("Sec-Ch-Ua-Mobile", "?0")
+                .header("Sec-Ch-Ua-Platform", "\"macOS\"")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Sec-Fetch-Site", "same-origin")
+                .header("Sec-Fetch-Mode", "cors")
+                .header("Sec-Fetch-Dest", "empty")
+                .build()
             
-            if (hData != null) {
-                // Market Ratios (highlightData)
-                val peStr = resolveValue(hData, "peRatio", paramMap)
-                val pbvStr = resolveValue(hData, "pbRatio", paramMap)
-                val priceStr = resolveValue(hData, "price", paramMap)
-                val yieldStr = resolveValue(hData, "dividendYield", paramMap)
-                
-                // Fundamental Metrics (compareStat and financialData)
-                val roeStr = cData?.let { resolveLatestValue(it, "roe", paramMap) }
-                val netProfitStr = fData?.let { resolveLatestValue(it, "netProfit", paramMap) }
-                val equityStr = fData?.let { resolveLatestValue(it, "totalEquity", paramMap) }
-                val deStr = fData?.let { resolveLatestValue(it, "debtToEquityRatio", paramMap) }
-                val epsStr = fData?.let { resolveLatestValue(it, "eps", paramMap) }
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string()
+                Log.d(TAG, "SET API Response [$url]: Code=${response.code}, Length=${body?.length ?: 0}")
+                if (!response.isSuccessful || body.isNullOrBlank()) return null
+                JSONTokener(body).nextValue()
+            }
+        } catch (e: Exception) { 
+            Log.e(TAG, "fetchJson failed for $url", e)
+            null 
+        }
+    }
 
-                val nameRaw = pData?.let { resolveValue(it, "name", paramMap) ?: resolveValue(it, "nameTH", paramMap) }
-                
-                Log.v(TAG, "Nuxt Resolved for $symbol: PE=$peStr, PBV=$pbvStr, Price=$priceStr, ROE=$roeStr, DE=$deStr, Yield=$yieldStr")
-
-                return ScrapedStockInfo(
+    fun fetchBatchQuotes(symbols: List<String>): List<ScrapedStockInfo> {
+        return try {
+            val yahooSymbols = symbols.joinToString(",") { "${it.uppercase()}.BK" }
+            val url = "$YAHOO_QUOTE_URL?symbols=$yahooSymbols"
+            Log.v(TAG, "Fetching Batch Quotes: $url")
+            val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute().body()
+            val json = JSONObject(response)
+            val results = json.getJSONObject("quoteResponse").getJSONArray("result")
+            
+            val infoList = mutableListOf<ScrapedStockInfo>()
+            for (i in 0 until results.length()) {
+                val quote = results.getJSONObject(i)
+                val symbol = quote.getString("symbol").replace(".BK", "")
+                infoList.add(ScrapedStockInfo(
                     symbol = symbol,
-                    name = cleanName(nameRaw),
-                    lastPrice = priceStr?.toDoubleOrNull() ?: 0.0,
+                    name = quote.optString("longName", quote.optString("shortName", null)),
+                    lastPrice = quote.optDouble("regularMarketPrice", 0.0),
+                    change = quote.optDouble("regularMarketChange", 0.0),
+                    percentChange = quote.optDouble("regularMarketChangePercent", 0.0),
+                    pe = quote.optDouble("trailingPE", 0.0).takeIf { it > 0 },
+                    pbv = quote.optDouble("priceToBook", 0.0).takeIf { it > 0 },
+                    dividendYield = quote.optDouble("trailingAnnualDividendYield", 0.0) * 100, // Yahoo returns decimal
+                    lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                ))
+            }
+            infoList
+        } catch (e: Exception) {
+            Log.e(TAG, "Batch Quote Error", e)
+            emptyList()
+        }
+    }
+
+    fun searchYahoo(query: String): ScrapedStockInfo? {
+        return try {
+            val url = "$YAHOO_SEARCH_URL?q=${query.uppercase()}${if (!query.contains(".")) ".BK" else ""}"
+            Log.v(TAG, "Searching Yahoo: $url")
+            val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute().body()
+            val json = JSONObject(response)
+
+            val quotes = json.getJSONArray("quotes")
+            var info: ScrapedStockInfo? = null
+            if (quotes.length() > 0) {
+                val quote = quotes.getJSONObject(0)
+                info = ScrapedStockInfo(
+                    symbol = quote.getString("symbol").replace(".BK", ""),
+                    name = quote.optString("longname", quote.optString("shortname", null)),
+                    sector = quote.optString("sector", null),
+                    industry = quote.optString("industry", null),
+                    lastPrice = 0.0,
                     change = 0.0,
                     percentChange = 0.0,
-                    pe = peStr?.toDoubleOrNull(),
-                    pbv = pbvStr?.toDoubleOrNull(),
-                    roe = roeStr?.toDoubleOrNull(),
-                    eps = epsStr?.toDoubleOrNull(),
-                    netProfit = netProfitStr?.toDoubleOrNull(),
-                    equity = equityStr?.toDoubleOrNull(),
-                    debtToEquity = deStr?.toDoubleOrNull(),
-                    dividendYield = yieldStr?.toDoubleOrNull(),
-                    dividendDate = null,
-                    lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                    lastUpdated = ""
                 )
             }
+            info
         } catch (e: Exception) {
-            Log.e(TAG, "parseNuxtJson failed for $symbol", e)
+            Log.e(TAG, "Yahoo Search Error", e)
+            null
         }
-        return null
     }
 
-    private fun extractNuxtParamMap(scriptContent: String): Map<String, String>? {
-        val functionStart = scriptContent.indexOf("(function(")
-        if (functionStart == -1) return null
-        
-        val paramStart = functionStart + 10
-        val paramEnd = scriptContent.indexOf("){", paramStart)
-        if (paramEnd == -1) return null
-        val paramsPart = scriptContent.substring(paramStart, paramEnd)
-        val params = paramsPart.split(",")
-        
-        val argsEnd = scriptContent.lastIndexOf("));")
-        if (argsEnd == -1) return null
-        
-        var braceLevel = 0
-        var argsStart = -1
-        for (i in argsEnd - 1 downTo 0) {
-            val iChar = scriptContent[i]
-            if (iChar == ')') braceLevel++
-            else if (iChar == '(') {
-                if (braceLevel == 0) {
-                    argsStart = i + 1
-                    break
-                }
-                braceLevel--
+    private fun cleanName(name: String?): String? {
+        if (name == null) return null
+        val unwanted = listOf("-")
+        var cleaned = name.trim()
+        unwanted.forEach { 
+            if (cleaned.contains(it, ignoreCase = true)) {
+                cleaned = cleaned.replace(it, "", ignoreCase = true).trim()
             }
         }
-        
-        if (argsStart == -1) return null
-        val argsPart = scriptContent.substring(argsStart, argsEnd)
-        val args = parseArgs(argsPart)
-        
-        if (params.size != args.size) {
-             Log.w(TAG, "Param/Arg size mismatch: Params=${params.size}, Args=${args.size}")
-        }
-        
-        return params.zip(args).toMap()
-    }
-
-    private fun extractNuxtDataBlock(script: String, key: String): String? {
-        val pattern = Pattern.compile("${Pattern.quote(key)}:([\\{\\[])")
-        val matcher = pattern.matcher(script)
-        
-        if (matcher.find()) {
-             val startPos = matcher.start(1)
-             val startChar = matcher.group(1)
-             val endChar = if (startChar == "{") "}" else "]"
-             var balance = 0
-             for (i in startPos until script.length) {
-                 val c = script[i].toString()
-                 if (c == startChar) balance++
-                 else if (c == endChar) {
-                     balance--
-                     if (balance == 0) {
-                         return script.substring(startPos + 1, i)
-                     }
-                 }
-             }
-        }
-        return null
-    }
-
-    private fun parseArgs(argsStr: String): List<String> {
-        val args = mutableListOf<String>()
-        val current = StringBuilder()
-        var inQuotes = false
-        var bracketLevel = 0
-        var braceLevel = 0
-        
-        var i = 0
-        while (i < argsStr.length) {
-            val c = argsStr[i]
-            when {
-                c == '\"' -> inQuotes = !inQuotes
-                !inQuotes && c == '[' -> bracketLevel++
-                !inQuotes && c == ']' -> bracketLevel--
-                !inQuotes && c == '{' -> braceLevel++
-                !inQuotes && c == '}' -> braceLevel--
-                !inQuotes && c == ',' && bracketLevel == 0 && braceLevel == 0 -> {
-                    args.add(current.toString().trim())
-                    current.setLength(0)
-                    i++
-                    continue
-                }
-            }
-            current.append(c)
-            i++
-        }
-        args.add(current.toString().trim())
-        return args
-    }
-
-    private fun resolveValue(data: String, key: String, paramMap: Map<String, String>): String? {
-        val pattern = Pattern.compile("$key:([^,}\\]]*)")
-        val matcher = pattern.matcher(data)
-        if (matcher.find()) {
-            val v = matcher.group(1).trim()
-            if (v.startsWith("\"") && v.endsWith("\"")) return v.substring(1, v.length - 1)
-            if (v.toDoubleOrNull() != null) return v
-            
-            val resolved = paramMap[v]
-            if (resolved != null) {
-                if (resolved.startsWith("\"") && resolved.endsWith("\"")) return resolved.substring(1, resolved.length - 1)
-                return if (resolved == "void 0" || resolved == "null" || resolved == "a") null else resolved
-            }
-            return v
-        }
-        return null
-    }
-
-    private fun resolveLatestValue(data: String, key: String, paramMap: Map<String, String>): String? {
-        // Find the specific key pattern, skipping arrays if necessary
-        val pattern = Pattern.compile("$key:\\[*([^\\]}]*)")
-        val matcher = pattern.matcher(data)
-        var latestValue: String? = null
-        while (matcher.find()) {
-            val listContent = matcher.group(1).trim()
-            val raw = listContent.split(",").last().trim()
-            
-            if (raw.toDoubleOrNull() != null) {
-                latestValue = raw
-            } else {
-                val resolved = paramMap[raw]
-                if (resolved != null && resolved != "void 0" && resolved != "null" && resolved != "a") {
-                    latestValue = if (resolved.startsWith("\"") && resolved.endsWith("\"")) resolved.substring(1, resolved.length - 1) else resolved
-                }
-            }
-        }
-        return latestValue
+        return if (cleaned.isEmpty() || cleaned == "-") null else cleaned
     }
 
     private fun fetchStockNameFallback(symbol: String): String? {
@@ -466,18 +404,6 @@ object SetScraper {
                 ?: doc.select("h1").first()?.text()?.substringAfter(" - ")
             cleanName(name)
         } catch (e: Exception) { null }
-    }
-
-    private fun cleanName(name: String?): String? {
-        if (name == null) return null
-        val unwanted = listOf("Back to Google Finance", "Google Finance", "Search", "Sign in")
-        var cleaned = name.trim()
-        unwanted.forEach { 
-            if (cleaned.contains(it, ignoreCase = true)) {
-                cleaned = cleaned.replace(it, "", ignoreCase = true).trim()
-            }
-        }
-        return if (cleaned.isEmpty() || cleaned == "Google" || cleaned == "-") null else cleaned
     }
 
     fun fetchHistoricalPrices(symbol: String): List<ScrapedHistoricalPrice> {
@@ -529,31 +455,78 @@ object SetScraper {
         )
     }
 
-    /**
-     * Returns a curated list of interesting symbols by category.
-     * This acts as a reliable resource fallback when web scraping fails.
-     */
+    fun fetchIndexComposition(indexName: String): List<String> {
+        return try {
+            val indexLower = indexName.lowercase()
+            val url = "$SET_BASE_URL/api/set/index/$indexLower/composition?lang=th"
+            val referer = "$SET_BASE_URL/th/market/index/$indexLower/overview"
+            ensureSession(referer)
+            val result = fetchJson(url, indexName, referer)
+            val symbols = mutableListOf<String>()
+            
+            Log.d(TAG, "$indexName Raw Result Type: ${result?.javaClass?.simpleName}")
+
+            val compositionArray = when (result) {
+                is JSONObject -> {
+                    val comp = result.optJSONObject("composition")
+                    result.optJSONArray("composition") 
+                        ?: comp?.optJSONArray("stockInfos")
+                        ?: result.optJSONArray("rows")
+                }
+                is JSONArray -> result 
+                else -> null
+            }
+            
+            if (compositionArray != null) {
+                for (i in 0 until compositionArray.length()) {
+                    val item = compositionArray.getJSONObject(i)
+                    val symbol = item.optString("symbol")
+                    if (!symbol.isNullOrBlank()) {
+                        symbols.add(symbol)
+                    }
+                }
+            }
+            Log.d(TAG, "Fetched ${symbols.size} symbols for $indexName")
+            symbols
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch $indexName composition", e)
+            emptyList()
+        }
+    }
+
     fun getCuratedCollection(category: String): List<String> {
+        val dividendStars = listOf(
+            "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
+            "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
+        )
         return when (category.uppercase()) {
-            "DIVIDEND" -> listOf(
-                "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
-                "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
-            )
+            "DIVIDEND" -> dividendStars
             "BLUECHIP" -> listOf(
                 "AOT", "BBL", "BDMS", "CPALL", "DELTA", "GULF", "KBANK", "PTT", "PTTEP", "SCB", "SCC"
             )
-            "SET100" -> listOf(
-                "AAV", "ADVANC", "AEONTS", "AMATA", "AOT", "AP", "AURA", "AWC", "BA", "BAM",
-                "BANPU", "BBL", "BCH", "BCP", "BCPG", "BDMS", "BEM", "BGRIM", "BH", "BJC",
-                "BLA", "BPP", "BTG", "CBG", "CENTEL", "CHG", "CK", "COM7", "CPALL", "CPF",
-                "CPN", "CRC", "DELTA", "DOHOME", "EA", "EGCO", "ERW", "FORTH", "GFPT", "GLOBAL",
-                "GPSC", "GULF", "GUNKUL", "HANA", "HMPRO", "ICHI", "INTUCH", "IRPC", "ITC", "IVL",
-                "JMART", "JMT", "JTS", "KBANK", "KCE", "KKP", "KTB", "KTC", "LH", "M",
-                "MASTER", "MEGA", "MINT", "MTC", "OR", "ORI", "OSP", "PLANB", "PR9", "PTG",
-                "PTT", "PTTEP", "PTTGC", "QH", "RATCH", "RBF", "SAWAD", "SCB", "SCC", "SCGP",
-                "SIRI", "SPALI", "SPRC", "STA", "STECON", "STGT", "TASCO", "TCAP", "THG", "TIDLOR",
-                "TIPH", "TISCO", "TLI", "TOA", "TOP", "TPIPL", "TPIPP", "TRUE", "TTB", "TU", "VGI", "WHA"
-            )
+            "SET50" -> {
+                val dynamicList = fetchIndexComposition("SET50")
+                if (dynamicList.isNotEmpty()) {
+                    dynamicList
+                } else {
+                    listOf(
+                        "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BGRIM", "BH",
+                        "CBG", "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO",
+                        "GLOBAL", "GPSC", "GULF", "GUNKUL", "HMPRO", "INTUCH", "IVL", "JMART", "JMT", "KBANK",
+                        "KCE", "KKP", "KTB", "KTC", "LH", "MINT", "MTC", "OR", "OSP", "PTT",
+                        "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TOP",
+                        "TRUE", "TTB", "TU", "WHA"
+                    )
+                }
+            }
+            "SET100" -> {
+                val dynamicList = fetchIndexComposition("SET100")
+                if (dynamicList.isNotEmpty()) dynamicList else getCuratedCollection("SET50")
+            }
+            "SETHD" -> {
+                val dynamicList = fetchIndexComposition("SETHD")
+                if (dynamicList.isNotEmpty()) dynamicList else dividendStars
+            }
             else -> emptyList()
         }
     }

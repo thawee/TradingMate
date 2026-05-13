@@ -30,12 +30,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:testOnly="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar" >
+        android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" >
         <activity
             android:name="apincer.mobile.tradings.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar" >
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

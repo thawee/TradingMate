@@ -1,7 +1,7 @@
-apincer.mobile.tradings.app-updated_navigation_xml-0 /Users/thawee.p/Workspaces/Labs/dotfiles/tradingMate/app/build/generated/updated_navigation_xml/debug
-apincer.mobile.tradings.app-packageDebugResources-1 /Users/thawee.p/Workspaces/Labs/dotfiles/tradingMate/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-apincer.mobile.tradings.app-packageDebugResources-2 /Users/thawee.p/Workspaces/Labs/dotfiles/tradingMate/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-apincer.mobile.tradings.app-debug-3 /Users/thawee.p/Workspaces/Labs/dotfiles/tradingMate/app/build/intermediates/merged_res/debug/mergeDebugResources
-apincer.mobile.tradings.app-debug-4 /Users/thawee.p/Workspaces/Labs/dotfiles/tradingMate/app/src/debug/res
-apincer.mobile.tradings.app-main-5 /Users/thawee.p/Workspaces/Labs/dotfiles/tradingMate/app/src/main/res
+apincer.mobile.tradings.app-updated_navigation_xml-0 /Users/thawee.p/Workspaces/github/tradingMate/app/build/generated/updated_navigation_xml/debug
+apincer.mobile.tradings.app-packageDebugResources-1 /Users/thawee.p/Workspaces/github/tradingMate/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+apincer.mobile.tradings.app-packageDebugResources-2 /Users/thawee.p/Workspaces/github/tradingMate/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+apincer.mobile.tradings.app-debug-3 /Users/thawee.p/Workspaces/github/tradingMate/app/build/intermediates/merged_res/debug/mergeDebugResources
+apincer.mobile.tradings.app-debug-4 /Users/thawee.p/Workspaces/github/tradingMate/app/src/debug/res
+apincer.mobile.tradings.app-main-5 /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/res
 gradleHome-0 /Users/thawee.p/.gradle

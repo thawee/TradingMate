@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
+import java.util.Locale
 
 @Composable
 fun PortfolioScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) {
@@ -68,122 +69,110 @@ fun PortfolioScreen(viewModel: StockViewModel, onSelectStock: (String) -> Unit) 
         .filter { it.isNotEmpty() }
         .maxOrNull() ?: "N/A"
 
+    // Asset Calculations
+    val stockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
+    val totalAssetValue = stockValue + cashBalance
+    val totalCostRaw = portfolioItems.sumOf { it.portfolio.cost * it.portfolio.quantity }
+    
+    val totalDividendBaht = portfolioItems.sumOf { 
+        val yield = it.info.dividendYield ?: 0.0
+        val priceAtDiv = it.info.lastPrice
+        (yield / 100.0) * priceAtDiv * it.portfolio.quantity
+    }
+    val avgYieldOnCost = if (totalCostRaw > 0) (totalDividendBaht / totalCostRaw) * 100 else 0.0
+
+    val totalBuyFees = portfolioItems.map { TechnicalAnalysis.calculateFees(it.portfolio.cost * it.portfolio.quantity, false) }.sum()
+    val totalSellFees = portfolioItems.map { TechnicalAnalysis.calculateFees(it.info.lastPrice * it.portfolio.quantity, true) }.sum()
+    val totalFees = totalBuyFees + totalSellFees
+
+    val grossProfit = stockValue - totalCostRaw
+    val netProfitValue = grossProfit - totalFees
+    val totalNetProfitPercent = if (totalCostRaw > 0) (netProfitValue / totalCostRaw) * 100 else 0.0
+
     Scaffold { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column {
-                    Text(text = "My Portfolio", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Last update: $lastUpdated", fontSize = 12.sp, color = Color.Gray)
-                }
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = { 
-                            selectedStockForEdit = null
-                            showBuyDialog = true 
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Buy Stock", modifier = Modifier.size(20.dp))
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column {
+                        Text(text = "My Portfolio", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Last update: $lastUpdated", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(
-                        onClick = { viewModel.refreshWatchlistInfo() },
-                        enabled = !isRefreshing
-                    ) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { 
+                                selectedStockForEdit = null
+                                showBuyDialog = true 
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Buy Stock", modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { viewModel.refreshWatchlistInfo() },
+                            enabled = !isRefreshing
+                        ) {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // Cash Management Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f))
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Available Cash", 
-                            fontSize = 12.sp, 
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "฿${String.format("%,.2f", cashBalance)}",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            "Used for buying new stocks and receiving dividends.",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                    
-                    IconButton(
-                        onClick = { showCashDialog = true },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.AccountBalanceWallet, 
-                            contentDescription = "Manage Cash",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
+            item {
+                PortfolioSummaryCard(
+                    totalAssetValue = totalAssetValue,
+                    stockValue = stockValue,
+                    cashBalance = cashBalance,
+                    grossProfit = grossProfit,
+                    totalFees = totalFees,
+                    netProfit = netProfitValue,
+                    netPercent = totalNetProfitPercent,
+                    yieldOnCost = avgYieldOnCost,
+                    onEditCash = { showCashDialog = true }
+                )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(text = "Holdings", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
+            item {
+                Text(text = "Holdings", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
 
             if (portfolioItems.isEmpty()) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text("Your portfolio is empty. Click + to buy stocks!", color = Color.Gray)
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                        Text("Your portfolio is empty. Click + to buy stocks!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth().weight(1f)
-                ) {
-                    items(portfolioItems) { item ->
-                        StockItemCard(
-                            item = item,
-                            onSelect = { onSelectStock(item.info.symbol) },
-                            onDelete = { viewModel.removeFromWatchlist(item.info.symbol) },
-                            onSell = { selectedStockForSell = item },
-                            onEdit = { 
-                                selectedStockForEdit = item
-                                showBuyDialog = true
-                            }
-                        )
-                    }
+                items(portfolioItems) { item ->
+                    StockItemCard(
+                        item = item,
+                        onSelect = { onSelectStock(item.info.symbol) },
+                        onDelete = { viewModel.removeFromWatchlist(item.info.symbol) },
+                        onSell = { selectedStockForSell = item },
+                        onEdit = { 
+                            selectedStockForEdit = item
+                            showBuyDialog = true
+                        }
+                    )
                 }
             }
         }
@@ -258,7 +247,7 @@ fun AdjustCashDialog(
                 ) {
                     Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Current Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
-                        Text("฿${String.format("%,.2f", currentBalance)}", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        Text("฿${String.format(Locale.ENGLISH, "%,.2f", currentBalance)}", fontSize = 20.sp, fontWeight = FontWeight.Black)
                     }
                 }
 
@@ -277,7 +266,7 @@ fun AdjustCashDialog(
                             RadioButton(selected = !isSetMode, onClick = { isSetMode = false })
                             Column {
                                 Text("Deposit / Withdraw", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("Add or remove funds from your wallet.", fontSize = 11.sp, color = Color.Gray)
+                                Text("Add or remove funds from your wallet.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -295,7 +284,7 @@ fun AdjustCashDialog(
                             RadioButton(selected = isSetMode, onClick = { isSetMode = true })
                             Column {
                                 Text("Account Reconcile", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("Set the exact balance to match your bank.", fontSize = 11.sp, color = Color.Gray)
+                                Text("Set the exact balance to match your bank.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -317,12 +306,12 @@ fun AdjustCashDialog(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
                         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 "Use positive (+) for deposits and negative (-) for withdrawals.",
                                 fontSize = 10.sp,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 14.sp
                             )
                         }
@@ -434,8 +423,8 @@ fun BuyStockDialog(
                                 color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
                                 shape = MaterialTheme.shapes.extraSmall,
                                 onClick = {
-                                    targetPrice = String.format("%.2f", entry * sug.first)
-                                    stopLossPrice = String.format("%.2f", entry * sug.second)
+                                    targetPrice = String.format(Locale.ENGLISH, "%.2f", entry * sug.first)
+                                    stopLossPrice = String.format(Locale.ENGLISH, "%.2f", entry * sug.second)
                                 }
                             ) {
                                 Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -448,7 +437,7 @@ fun BuyStockDialog(
                     }
                     
                     suggestion?.let { sug ->
-                        Text(text = sug.third, fontSize = 10.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
+                        Text(text = sug.third, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -486,36 +475,36 @@ fun BuyStockDialog(
 
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = if (rrRatio >= 2) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+                                containerColor = if (rrRatio >= 2) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("R:R Ratio", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    Text("1 : ${String.format("%.2f", rrRatio)}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = if (rrRatio >= 2) Color(0xFF2E7D32) else Color.Red)
+                                    Text("1 : ${String.format(Locale.ENGLISH, "%.2f", rrRatio)}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
                                 }
                                 LinearProgressIndicator(
                                     progress = { (rrRatio / 5f).toFloat().coerceIn(0.1f, 1f) },
                                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    color = if (rrRatio >= 2) Color(0xFF4CAF50) else Color.Red
+                                    color = if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Column {
-                                        Text("Potential Gain (Net)", fontSize = 10.sp, color = Color.Gray)
-                                        Text("฿${String.format("%,.2f", netReward)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                                        Text("Potential Gain (Net)", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("฿${String.format(Locale.ENGLISH, "%,.2f", netReward)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
-                                        Text("Potential Risk", fontSize = 10.sp, color = Color.Gray)
-                                        Text("฿${String.format("%,.2f", totalRisk)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+                                        Text("Potential Risk", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("฿${String.format(Locale.ENGLISH, "%,.2f", totalRisk)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                                     }
                                 }
                                 if (rrRatio < 2) {
                                     Text(
                                         "Tip: Reward should be at least 2x your risk.",
                                         fontSize = 9.sp,
-                                        color = Color(0xFFE65100),
+                                        color = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.padding(top = 8.dp)
                                     )
                                 }
@@ -526,6 +515,7 @@ fun BuyStockDialog(
             }
         },
         confirmButton = {
+            @Suppress("DEPRECATION")
             Button(
                 onClick = { 
                     if (symbol.isNotBlank()) {
@@ -557,7 +547,7 @@ fun SellStockDialog(
         title = { Text("Sell ${stock.info.symbol}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Current holdings: ${stock.portfolio.quantity} shares", fontSize = 12.sp, color = Color.Gray)
+                Text("Current holdings: ${stock.portfolio.quantity} shares", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextField(
                     value = price,
                     onValueChange = { price = it },
@@ -592,7 +582,7 @@ fun SellStockDialog(
                         onConfirm(stock.info.symbol, price.toDoubleOrNull() ?: 0.0, sellQty, note)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
                 Text("Confirm Sell", color = Color.White)
             }

@@ -60,9 +60,9 @@ Before looking at technical signals, TradingMate evaluates the "DNA" of a compan
 
 ---
 
-## 🧠 Trading Zones & Signals
+## 🧠 Trading Zones & Market Pulse
 
-TradingMate categorizes every stock into one of four "Zones" based on the logic in `TechnicalAnalysis.kt`.
+TradingMate categorizes every stock into one of four "Zones" based on the logic in `TechnicalAnalysis.kt`. These are visualized in the **Market Pulse** section of the Home page.
 
 ### 🟢 Buying Zone (Accumulation)
 Stocks here represent the best value-to-risk ratio.
@@ -98,14 +98,13 @@ Stocks with no clear trend or extreme valuation.
 TradingMate actively monitors your saved stocks and delivers real-time intelligence via Android Push Notifications and in-app alerts.
 
 ### 1. Push Notifications (Background Monitoring)
-The app runs a background worker (every 15 minutes) to monitor stocks currently in your **Watchlist**. 
+The app runs a background worker (every hour) to monitor stocks currently in your **Watchlist**. 
 - **Market Hours Only:** To prevent spam, notifications are only processed when the SET market is OPEN or during the LUNCH break.
 - **Trigger Conditions:** A push notification is sent whenever a stock's technical data triggers a `BUY`, `POTENTIAL`, or `SELL` signal.
-- **Quality Highlighting:** If a high-quality stock triggers a signal, the notification will be prefixed with **"⭐ Quality"** to distinguish it from speculative trades.
 
 ### 2. In-App Dividend Alerts (XD Dates)
-On the Watchlist screen, the app tracks the corporate action dates for your stocks.
-- **Trigger:** If a stock has an upcoming Ex-Dividend (XD) date within the **next 14 days**, it will appear in a special "Dividend Alerts" banner.
+On the Home screen, the app tracks corporate action dates.
+- **Trigger:** If a stock has an upcoming Ex-Dividend (XD) date within the **next 14 days**, it will appear in the "Dividend Opportunities" section.
 
 ---
 

@@ -3,6 +3,7 @@ package apincer.mobile.tradings.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import apincer.mobile.tradings.data.FocusEntity
 import apincer.mobile.tradings.data.ScrapedStockInfo
 import apincer.mobile.tradings.data.SetScraper
 import apincer.mobile.tradings.data.StockDatabase
@@ -20,12 +21,17 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.InputStream
+import java.io.OutputStream
 
 sealed class StockUiState {
     object Initial : StockUiState()
@@ -44,7 +50,9 @@ sealed class StockUiState {
         val returns: Map<Int, Double> = emptyMap(),
         val zone: TradingZone,
         val buyingPrice: Double? = null,
-        val sellingPrice: Double? = null
+        val sellingPrice: Double? = null,
+        val isFocused: Boolean = false,
+        val historicalPrices: List<Double> = emptyList()
     ) : StockUiState()
     data class Error(val message: String) : StockUiState()
 }
@@ -56,12 +64,24 @@ data class StockWatchlistInfo(
     val signal: TradeSignal? = null
 )
 
+data class StockFocusInfo(
+    val symbol: String,
+    val startPrice: Double,
+    val currentPrice: Double,
+    val movementPercent: Double,
+    val addedAtMillis: Long,
+    val info: ScrapedStockInfo? = null
+)
+
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val database = StockDatabase.getDatabase(application)
-    private val repository = StockRepository(database.stockDao(), database.tradeDao(), database.cashDao())
+    private val repository = StockRepository(database.stockDao(), database.tradeDao(), database.cashDao(), database.focusDao())
     
     private val _uiState = MutableStateFlow<StockUiState>(StockUiState.Initial)
     val uiState: StateFlow<StockUiState> = _uiState
+
+    private val _searchResults = MutableStateFlow<ScrapedStockInfo?>(null)
+    val searchResults: StateFlow<ScrapedStockInfo?> = _searchResults
 
     val watchlistInfo: StateFlow<List<StockWatchlistInfo>> = 
         repository.allStocks.map { stocks ->
@@ -71,6 +91,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     name = stock.name,
                     nameTH = stock.nameTH,
                     businessDescription = stock.businessDescription,
+                    sector = stock.sector,
+                    industry = stock.industry,
                     lastPrice = stock.lastPrice,
                     change = stock.change,
                     percentChange = stock.percentChange,
@@ -109,6 +131,37 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
+    val focusListInfo: StateFlow<List<StockFocusInfo>> = 
+        combine(repository.allFocusStocks, repository.allStocks) { focusStocks, stocks ->
+            focusStocks.map { focus ->
+                val stock = stocks.find { it.symbol == focus.symbol }
+                val currentPrice = stock?.lastPrice ?: focus.startPrice
+                val movement = if (focus.startPrice != 0.0) ((currentPrice - focus.startPrice) / focus.startPrice) * 100 else 0.0
+                
+                StockFocusInfo(
+                    symbol = focus.symbol,
+                    startPrice = focus.startPrice,
+                    currentPrice = currentPrice,
+                    movementPercent = movement,
+                    addedAtMillis = focus.addedAtMillis,
+                    info = stock?.let {
+                        ScrapedStockInfo(
+                            symbol = it.symbol,
+                            name = it.name,
+                            lastPrice = it.lastPrice,
+                            change = it.change,
+                            percentChange = it.percentChange,
+                            lastUpdated = it.lastUpdated ?: ""
+                        )
+                    }
+                )
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
@@ -137,8 +190,32 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             _isRefreshing.value = true
             
             val stocks = watchlistInfo.value.map { it.portfolio }
-            val semaphore = Semaphore(3) // Limit parallel requests
-            
+            if (stocks.isEmpty()) {
+                _isRefreshing.value = false
+                return@launch
+            }
+
+            // 1. Ultra-Fast Batch Update (Prices, Changes, basic ratios)
+            withContext(Dispatchers.IO) {
+                val batchResults = SetScraper.fetchBatchQuotes(stocks.map { it.symbol })
+                batchResults.forEach { updated ->
+                    stocks.find { it.symbol == updated.symbol }?.let { original ->
+                        repository.updateStockCache(original.copy(
+                            name = updated.name ?: original.name,
+                            lastPrice = updated.lastPrice,
+                            change = updated.change,
+                            percentChange = updated.percentChange,
+                            pe = updated.pe ?: original.pe,
+                            pbv = updated.pbv ?: original.pbv,
+                            dividendYield = updated.dividendYield ?: original.dividendYield,
+                            lastUpdated = updated.lastUpdated
+                        ))
+                    }
+                }
+            }
+
+            // 2. Deep Update (Technical Analysis & Fundamentals from SET)
+            val semaphore = Semaphore(3) 
             withContext(Dispatchers.IO) {
                 val jobs = stocks.map { stock ->
                     async {
@@ -159,22 +236,23 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                     isFundamentalGood = info.isFundamentalGood
                                 )
 
-                                // Update individual stock in DB to trigger UI updates incrementally
                                 repository.updateStockCache(
                                     stock.copy(
                                         name = info.name ?: stock.name,
                                         businessDescription = info.businessDescription ?: stock.businessDescription,
+                                        sector = info.sector ?: stock.sector,
+                                        industry = info.industry ?: stock.industry,
                                         lastPrice = info.lastPrice,
                                         change = info.change,
                                         percentChange = info.percentChange,
-                                        pe = info.pe,
-                                        pbv = info.pbv,
+                                        pe = info.pe ?: stock.pe,
+                                        pbv = info.pbv ?: stock.pbv,
                                         roe = info.roe,
                                         eps = info.eps,
                                         netProfit = info.netProfit,
                                         equity = info.equity,
                                         debtToEquity = info.debtToEquity,
-                                        dividendYield = info.dividendYield,
+                                        dividendYield = info.dividendYield ?: stock.dividendYield,
                                         dividendDate = info.dividendDate,
                                         rsi = indicators.rsi,
                                         macdHist = indicators.histogram,
@@ -184,9 +262,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                         lastUpdated = info.lastUpdated
                                     )
                                 )
-                            } catch (e: Exception) {
-                                // Skip individual failures
-                            }
+                            } catch (e: Exception) { }
                         }
                     }
                 }
@@ -226,6 +302,20 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 adjustCash(-(totalCostRaw + fees))
             }
             repository.addStock(symbol, cost, quantity)
+        }
+    }
+
+    fun addToFocusList(symbol: String, price: Double) {
+        viewModelScope.launch {
+            repository.addToFocusList(symbol, price)
+            repository.addStockIfMissing(symbol)
+            refreshWatchlistInfo()
+        }
+    }
+
+    fun removeFromFocusList(symbol: String) {
+        viewModelScope.launch {
+            repository.removeFromFocusList(symbol)
         }
     }
 
@@ -325,6 +415,66 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun exportWatchlist(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+        viewModelScope.launch {
+            try {
+                val stocks = watchlistInfo.value.map { it.portfolio }
+                val json = Json { 
+                    prettyPrint = true
+                    ignoreUnknownKeys = true
+                }
+                val content = json.encodeToString(stocks)
+                withContext(Dispatchers.IO) {
+                    contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
+                }
+            } catch (e: Exception) {
+                _uiState.value = StockUiState.Error("Failed to export: ${e.message}")
+            }
+        }
+    }
+
+    fun importWatchlistJson(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+        viewModelScope.launch {
+            try {
+                val content = withContext(Dispatchers.IO) {
+                    contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: ""
+                }
+                val json = Json { ignoreUnknownKeys = true }
+                val stocks = json.decodeFromString<List<StockEntity>>(content)
+                stocks.forEach { stock ->
+                    repository.updateStockCache(stock)
+                }
+                refreshWatchlistInfo()
+            } catch (e: Exception) {
+                _uiState.value = StockUiState.Error("Failed to import JSON: ${e.message}")
+            }
+        }
+    }
+
+    fun importWatchlistCsv(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+        viewModelScope.launch {
+            try {
+                val lines = withContext(Dispatchers.IO) {
+                    contentResolver.openInputStream(uri)?.bufferedReader()?.readLines() ?: emptyList()
+                }
+                lines.forEach { line ->
+                    val parts = line.split(",")
+                    if (parts.isNotEmpty()) {
+                        val symbol = parts[0].trim().uppercase()
+                        if (symbol.isNotEmpty() && symbol != "SYMBOL") { // Simple header skip
+                            val cost = parts.getOrNull(1)?.trim()?.toDoubleOrNull() ?: 0.0
+                            val quantity = parts.getOrNull(2)?.trim()?.toIntOrNull() ?: 0
+                            repository.addStock(symbol, cost, quantity)
+                        }
+                    }
+                }
+                refreshWatchlistInfo()
+            } catch (e: Exception) {
+                _uiState.value = StockUiState.Error("Failed to import CSV: ${e.message}")
+            }
+        }
+    }
+
     fun importFromCollection(category: String) {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -338,6 +488,23 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             // Trigger refresh after import to get prices for new stocks
             _isRefreshing.value = false
             refreshWatchlistInfo()
+        }
+    }
+
+    fun resetSearchResults() {
+        _searchResults.value = null
+    }
+
+    fun searchSymbol(query: String) {
+        if (query.length < 2) {
+            _searchResults.value = null
+            return
+        }
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                SetScraper.searchYahoo(query)
+            }
+            _searchResults.value = result
         }
     }
 
@@ -358,7 +525,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     
                     val updatedInfo = calculateManualPercent(info.copy(
                         name = info.name ?: local?.name,
-                        businessDescription = info.businessDescription ?: local?.businessDescription
+                        businessDescription = info.businessDescription ?: local?.businessDescription,
+                        sector = info.sector ?: local?.sector,
+                        industry = info.industry ?: local?.industry
                     ))
                     
                     val history = SetScraper.fetchHistoricalPrices(symbol)
@@ -406,11 +575,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val buyPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices.reversed(), 35.0)
                     val sellPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices.reversed(), 65.0)
 
+                    val isFocused = repository.getFocusStock(symbol) != null
+
                     // Optional: Update cache for this single stock too
                     if (local != null) {
                         repository.updateStockCache(local.copy(
                             name = updatedInfo.name,
                             businessDescription = updatedInfo.businessDescription,
+                            sector = updatedInfo.sector ?: local.sector,
+                            industry = updatedInfo.industry ?: local.industry,
                             lastPrice = updatedInfo.lastPrice,
                             change = updatedInfo.change,
                             percentChange = updatedInfo.percentChange,
@@ -439,7 +612,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         returns, 
                         zone,
                         buyPriceTarget,
-                        sellPriceTarget
+                        sellPriceTarget,
+                        isFocused,
+                        prices.reversed()
                     )
                 }
                 _uiState.value = result

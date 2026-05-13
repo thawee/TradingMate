@@ -18,14 +18,27 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import apincer.mobile.tradings.ui.StockScreen
+import apincer.mobile.tradings.ui.theme.TradingMateTheme
 import apincer.mobile.tradings.util.NotificationHelper
 import apincer.mobile.tradings.util.StockAlertWorker
 import java.util.concurrent.TimeUnit
 
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
+            )
+        )
+
         // 1. Initialize Notification Channel
         NotificationHelper.createNotificationChannel(this)
         
@@ -36,7 +49,7 @@ class MainActivity : ComponentActivity() {
         scheduleStockAlerts()
 
         setContent {
-            MaterialTheme {
+            TradingMateTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

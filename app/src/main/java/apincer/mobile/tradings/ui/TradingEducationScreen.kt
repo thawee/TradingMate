@@ -44,7 +44,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
         Text(
             text = "Master the TradingMate workflow for disciplined profit.",
             fontSize = 16.sp,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 24.dp, start = 44.dp)
         )
 
@@ -55,7 +55,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
         EducationCard(
             title = "1. Discovery (Quality First)",
             content = "Don't gamble on random stocks. Use the '+' button to import 'Dividend Stars' or 'Bluechips'. Look for the 'Solid Financials' badge—these companies have high ROE (>10%) and low debt.",
-            color = Color(0xFF673AB7),
+            color = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.Search
         )
 
@@ -66,7 +66,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
             content = "Move stocks into your Watchlist. The app monitors them 24/7:\n\n" +
                       "• AMBER (Potential): The stock is getting cheap or testing support. Start planning!\n" +
                       "• GREEN (Buy): Confirmed value + confirmed momentum. High-probability entry point.",
-            color = Color(0xFFFFB300),
+            color = MaterialTheme.colorScheme.secondary,
             icon = Icons.Default.Traffic
         )
 
@@ -75,21 +75,21 @@ fun TradingEducationScreen(onBack: () -> Unit) {
         EducationCard(
             title = "3. Execution (The Plan)",
             content = "When you see a Buy signal, use the 'Risk/Reward Calculator'. Set a target (+10-20%) and a stop loss (-5%). If the math doesn't show at least 2x reward for your risk, wait for a better price.",
-            color = Color(0xFF00C853),
+            color = MaterialTheme.colorScheme.tertiary,
             icon = Icons.Default.AssignmentTurnedIn
         )
 
         Spacer(modifier = Modifier.height(32.dp))
         
         // --- NEW SECTION: RISK MANAGEMENT ---
-        SectionHeader("Risk Management", Icons.Default.Shield, Color(0xFFE65100))
+        SectionHeader("Risk Management", Icons.Default.Shield, MaterialTheme.colorScheme.error)
         
         EducationCard(
             title = "The Art of the 'Cut Loss'",
             content = "The most important rule in trading is preserving your capital. \n\n" +
                       "• Why: Small losses are easy to recover; big losses are not. A -50% loss requires a +100% gain just to break even.\n" +
                       "• When: If a stock drops -5% from your cost, the app will trigger a SELL signal. This is your cue to exit and protect your remaining cash.",
-            color = Color.Red,
+            color = MaterialTheme.colorScheme.error,
             icon = Icons.Default.ContentCut
         )
 
@@ -98,7 +98,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
         EducationCard(
             title = "Yield on Cost (YoC)",
             content = "For dividend stocks, focus on your YoC. If you buy a stock at ฿10 with a ฿1 dividend, your YoC is 10%. Even if the price drops to ฿8, your YoC stays 10%—the app helps you see this 'Real Return'.",
-            color = Color(0xFF2E7D32),
+            color = MaterialTheme.colorScheme.tertiary,
             icon = Icons.Default.Analytics
         )
 
@@ -107,12 +107,12 @@ fun TradingEducationScreen(onBack: () -> Unit) {
 
         // --- SECTION 2: THE SENSORS ---
         SectionHeader("Your Weather Sensors", Icons.Default.Lightbulb, MaterialTheme.colorScheme.secondary)
-        Text(text = "Understanding the math behind the alerts.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start = 44.dp, bottom = 16.dp))
+        Text(text = "Understanding the math behind the alerts.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 44.dp, bottom = 16.dp))
 
         EducationCard(
             title = "RSI (The Speedometer)",
             content = "The Relative Strength Index (14 days). \n\n• Target 35 (Value): The stock is oversold. Prices are 'compressed' and ready to bounce.\n• Target 65 (Caution): The stock is overbought. Risk of a crash is high.",
-            color = Color(0xFF2196F3),
+            color = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.Speed
         )
 
@@ -121,7 +121,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
         EducationCard(
             title = "MACD (The Momentum Switch)",
             content = "Think of this as the car's gears. Even if a stock is cheap (RSI 35), you wait for the MACD Histogram to turn GREEN. This confirms that the momentum is moving UP.",
-            color = Color(0xFFFF9800),
+            color = MaterialTheme.colorScheme.tertiary,
             icon = Icons.AutoMirrored.Filled.CompareArrows
         )
 
@@ -130,7 +130,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
         EducationCard(
             title = "SMA 50 & 200 (The Trend Guards)",
             content = "Simple Moving Averages track the 'Average' price over time.\n\n• SMA 200: The long-term 'Line in the Sand'. It defines if we are in a Bull or Bear market.\n• SMA 50: Mid-term health. If the price is above this, the immediate trend is your friend.",
-            color = Color(0xFF9C27B0),
+            color = MaterialTheme.colorScheme.primary,
             icon = Icons.AutoMirrored.Filled.TrendingUp
         )
 
@@ -139,7 +139,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
         EducationCard(
             title = "Bollinger Bands (The Volatility Map)",
             content = "A 'Volatility Tube' that wraps around the price. \n\n• Lower Band (Value): Prices here are statistically cheap for their current movement. Good for entry.\n• Upper Band (Resistance): Prices here are stretched too far. High risk of a pullback.",
-            color = Color(0xFF607D8B),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             icon = Icons.Default.BlurOn
         )
 
@@ -158,7 +158,8 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     Text(
                         "SELL signals ALWAYS override BUY signals. If a stock has great momentum but hits RSI 65, the app will warn you to wait. Never buy at the peak!",
                         fontSize = 13.sp,
-                        lineHeight = 18.sp
+                        lineHeight = 18.sp,
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
@@ -190,7 +191,7 @@ fun SectionHeader(title: String, icon: ImageVector, color: Color) {
 fun EducationCard(title: String, content: String, color: Color, icon: ImageVector) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -212,7 +213,7 @@ fun EducationCard(title: String, content: String, color: Color, icon: ImageVecto
                 text = content, 
                 fontSize = 14.sp, 
                 lineHeight = 22.sp, 
-                color = Color.DarkGray
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

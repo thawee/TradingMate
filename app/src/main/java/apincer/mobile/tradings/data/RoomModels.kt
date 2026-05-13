@@ -2,13 +2,17 @@ package apincer.mobile.tradings.data
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "stocks")
+@Serializable
 data class StockEntity(
     @PrimaryKey val symbol: String,
     val name: String? = null,
     val nameTH: String? = null,
     val businessDescription: String? = null,
+    val sector: String? = null,
+    val industry: String? = null,
     val cost: Double = 0.0,
     val quantity: Int = 0,
     // Cached dynamic data for offline-first display
@@ -51,6 +55,13 @@ data class CashEntity(
     val balance: Double = 0.0
 )
 
+@Entity(tableName = "focus_list")
+data class FocusEntity(
+    @PrimaryKey val symbol: String,
+    val startPrice: Double,
+    val addedAtMillis: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface StockDao {
     @Query("SELECT * FROM stocks")
@@ -90,11 +101,27 @@ interface CashDao {
     suspend fun updateCash(cash: CashEntity)
 }
 
-@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class], version = 8)
+@Dao
+interface FocusDao {
+    @Query("SELECT * FROM focus_list ORDER BY addedAtMillis DESC")
+    fun getAllFocusStocks(): Flow<List<FocusEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFocusStock(focusStock: FocusEntity)
+
+    @Delete
+    suspend fun deleteFocusStock(focusStock: FocusEntity)
+
+    @Query("SELECT * FROM focus_list WHERE symbol = :symbol")
+    suspend fun getFocusStockBySymbol(symbol: String): FocusEntity?
+}
+
+@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class], version = 11)
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
     abstract fun tradeDao(): TradeDao
     abstract fun cashDao(): CashDao
+    abstract fun focusDao(): FocusDao
 
     companion object {
         @Volatile
