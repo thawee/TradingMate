@@ -126,8 +126,9 @@ object SetScraper {
         )
         
         // 1. Get Metadata from Yahoo Search
-        val yahooSearch = searchYahoo(symbol)
-        yahooSearch?.let { yInfo ->
+        val yahooSearchList = searchYahoo(symbol)
+        if (yahooSearchList.isNotEmpty()) {
+            val yInfo = yahooSearchList[0]
             info = info.copy(
                 name = yInfo.name,
                 sector = yInfo.sector,
@@ -355,7 +356,7 @@ object SetScraper {
         }
     }
 
-    fun searchYahoo(query: String): ScrapedStockInfo? {
+    fun searchYahoo(query: String): List<ScrapedStockInfo> {
         return try {
             val url = "$YAHOO_SEARCH_URL?q=${query.uppercase()}${if (!query.contains(".")) ".BK" else ""}"
             Log.v(TAG, "Searching Yahoo: $url")
@@ -363,10 +364,10 @@ object SetScraper {
             val json = JSONObject(response)
 
             val quotes = json.getJSONArray("quotes")
-            var info: ScrapedStockInfo? = null
-            if (quotes.length() > 0) {
-                val quote = quotes.getJSONObject(0)
-                info = ScrapedStockInfo(
+            val results = mutableListOf<ScrapedStockInfo>()
+            for (i in 0 until quotes.length()) {
+                val quote = quotes.getJSONObject(i)
+                results.add(ScrapedStockInfo(
                     symbol = quote.getString("symbol").replace(".BK", ""),
                     name = quote.optString("longname", quote.optString("shortname", null)),
                     sector = quote.optString("sector", null),
@@ -375,12 +376,12 @@ object SetScraper {
                     change = 0.0,
                     percentChange = 0.0,
                     lastUpdated = ""
-                )
+                ))
             }
-            info
+            results
         } catch (e: Exception) {
             Log.e(TAG, "Yahoo Search Error", e)
-            null
+            emptyList()
         }
     }
 

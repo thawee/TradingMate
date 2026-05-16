@@ -31,12 +31,13 @@ public class FocusDao_Impl(
   init {
     this.__db = __db
     this.__insertAdapterOfFocusEntity = object : EntityInsertAdapter<FocusEntity>() {
-      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `focus_list` (`symbol`,`startPrice`,`addedAtMillis`) VALUES (?,?,?)"
+      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `focus_list` (`symbol`,`startPrice`,`targetPrice`,`addedAtMillis`) VALUES (?,?,?,?)"
 
       protected override fun bind(statement: SQLiteStatement, entity: FocusEntity) {
         statement.bindText(1, entity.symbol)
         statement.bindDouble(2, entity.startPrice)
-        statement.bindLong(3, entity.addedAtMillis)
+        statement.bindDouble(3, entity.targetPrice)
+        statement.bindLong(4, entity.addedAtMillis)
       }
     }
     this.__deleteAdapterOfFocusEntity = object : EntityDeleteOrUpdateAdapter<FocusEntity>() {
@@ -63,6 +64,7 @@ public class FocusDao_Impl(
       try {
         val _columnIndexOfSymbol: Int = getColumnIndexOrThrow(_stmt, "symbol")
         val _columnIndexOfStartPrice: Int = getColumnIndexOrThrow(_stmt, "startPrice")
+        val _columnIndexOfTargetPrice: Int = getColumnIndexOrThrow(_stmt, "targetPrice")
         val _columnIndexOfAddedAtMillis: Int = getColumnIndexOrThrow(_stmt, "addedAtMillis")
         val _result: MutableList<FocusEntity> = mutableListOf()
         while (_stmt.step()) {
@@ -71,9 +73,11 @@ public class FocusDao_Impl(
           _tmpSymbol = _stmt.getText(_columnIndexOfSymbol)
           val _tmpStartPrice: Double
           _tmpStartPrice = _stmt.getDouble(_columnIndexOfStartPrice)
+          val _tmpTargetPrice: Double
+          _tmpTargetPrice = _stmt.getDouble(_columnIndexOfTargetPrice)
           val _tmpAddedAtMillis: Long
           _tmpAddedAtMillis = _stmt.getLong(_columnIndexOfAddedAtMillis)
-          _item = FocusEntity(_tmpSymbol,_tmpStartPrice,_tmpAddedAtMillis)
+          _item = FocusEntity(_tmpSymbol,_tmpStartPrice,_tmpTargetPrice,_tmpAddedAtMillis)
           _result.add(_item)
         }
         _result
@@ -92,6 +96,7 @@ public class FocusDao_Impl(
         _stmt.bindText(_argIndex, symbol)
         val _columnIndexOfSymbol: Int = getColumnIndexOrThrow(_stmt, "symbol")
         val _columnIndexOfStartPrice: Int = getColumnIndexOrThrow(_stmt, "startPrice")
+        val _columnIndexOfTargetPrice: Int = getColumnIndexOrThrow(_stmt, "targetPrice")
         val _columnIndexOfAddedAtMillis: Int = getColumnIndexOrThrow(_stmt, "addedAtMillis")
         val _result: FocusEntity?
         if (_stmt.step()) {
@@ -99,9 +104,11 @@ public class FocusDao_Impl(
           _tmpSymbol = _stmt.getText(_columnIndexOfSymbol)
           val _tmpStartPrice: Double
           _tmpStartPrice = _stmt.getDouble(_columnIndexOfStartPrice)
+          val _tmpTargetPrice: Double
+          _tmpTargetPrice = _stmt.getDouble(_columnIndexOfTargetPrice)
           val _tmpAddedAtMillis: Long
           _tmpAddedAtMillis = _stmt.getLong(_columnIndexOfAddedAtMillis)
-          _result = FocusEntity(_tmpSymbol,_tmpStartPrice,_tmpAddedAtMillis)
+          _result = FocusEntity(_tmpSymbol,_tmpStartPrice,_tmpTargetPrice,_tmpAddedAtMillis)
         } else {
           _result = null
         }

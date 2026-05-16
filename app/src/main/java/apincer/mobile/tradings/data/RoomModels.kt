@@ -37,6 +37,7 @@ data class StockEntity(
 )
 
 @Entity(tableName = "trade_history")
+@Serializable
 data class TradeEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val symbol: String,
@@ -50,15 +51,18 @@ data class TradeEntity(
 )
 
 @Entity(tableName = "cash")
+@Serializable
 data class CashEntity(
     @PrimaryKey val id: Int = 1,
     val balance: Double = 0.0
 )
 
 @Entity(tableName = "focus_list")
+@Serializable
 data class FocusEntity(
     @PrimaryKey val symbol: String,
     val startPrice: Double,
+    val targetPrice: Double = 0.0,
     val addedAtMillis: Long = System.currentTimeMillis()
 )
 
@@ -116,7 +120,7 @@ interface FocusDao {
     suspend fun getFocusStockBySymbol(symbol: String): FocusEntity?
 }
 
-@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class], version = 11)
+@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class], version = 12)
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
     abstract fun tradeDao(): TradeDao

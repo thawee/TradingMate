@@ -3,8 +3,12 @@ package apincer.mobile.tradings.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +25,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.platform.LocalLocale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(viewModel: StockViewModel) {
     val history by viewModel.tradeHistory.collectAsState()
@@ -58,144 +63,199 @@ fun StatsScreen(viewModel: StockViewModel) {
     val bestTrade = history.maxByOrNull { it.netProfitBaht }
 
     if (showConfirmDialog) {
-        AlertDialog(
+        GlassDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Clear History") },
-            text = { Text("Are you sure you want to delete all trade history? This action cannot be undone.") },
+            title = "Clear History",
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         viewModel.clearTradeHistory()
                         showConfirmDialog = false
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Delete All")
+                    Text("Delete All", color = Color.White)
                 }
             },
             dismissButton = {
+                
                 TextButton(onClick = { showConfirmDialog = false }) {
                     Text("Cancel")
                 }
             }
-        )
+        ) {
+            
+            Text("Are you sure you want to delete all trade history? This action cannot be undone.")
+        }
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(text = "Trade Statistics", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Improve your trading discipline", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (history.isNotEmpty()) {
-                    IconButton(onClick = { showConfirmDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Clear History",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
+    AppBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("Performance", fontWeight = FontWeight.Black) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+                    actions = {
+                        if (history.isNotEmpty()) {
+                            IconButton(onClick = { showConfirmDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Clear History",
+                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
                     }
-                }
-            }
-        }
-        
-        // Performance Summary Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
+            }
+        ) { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
+                // Performance Summary Card
+                item {
+                    GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                     ) {
-                        Column {
-                            Text("Beginning Cash", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("฿${String.format(Locale.ENGLISH,"%,.2f", beginningCash)}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Win Rate", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${String.format(Locale.ENGLISH,"%.1f", winRate)}%", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    
+                                    Text("Beginning Cash", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    
+                                    Text("฿${String.format(Locale.ENGLISH,"%,.2f", beginningCash)}", fontSize = 18.sp, fontWeight = FontWeight.Black)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    
+                                    Text("Win Rate", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    
+                                    Text("${String.format(Locale.ENGLISH,"%.1f", winRate)}%", fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                            
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp).alpha(0.1f))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                StatMetric("Total Profit", totalProfit)
+                                StatMetric("This Month", mtdProfit)
+                                StatMetric("This Year", ytdProfit)
+                            }
                         }
                     }
-                    
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp).alpha(0.3f))
-                    
-                    Row(
+                }
+
+                // Trading Efficiency Section
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = CircleShape,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.TrendingUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        
+                        Text(text = "Trading Efficiency", fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
+                    }
+                }
+
+                item {
+                    GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
                     ) {
-                        StatMetric("Total Profit", totalProfit)
-                        StatMetric("This Month", mtdProfit)
-                        StatMetric("This Year", ytdProfit)
-                    }
-                }
-            }
-        }
-
-        // Trading Efficiency Section
-        item {
-            Text(text = "Trading Efficiency", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("Avg Win", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("฿${String.format(Locale.ENGLISH,"%.0f", avgWin)}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Avg Loss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("฿${String.format(Locale.ENGLISH,"%.0f", avgLoss)}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Total Fees", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("฿${String.format(Locale.ENGLISH,"%.0f", totalFees)}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    
-                    if (bestTrade != null) {
-                        HorizontalDivider(modifier = Modifier.alpha(0.1f))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Best Stock: ", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(bestTrade.symbol, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                            Spacer(Modifier.weight(1f))
-                            Text("+฿${String.format(Locale.ENGLISH,"%.0f", bestTrade.netProfitBaht)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column {
+                                    
+                                    Text("Avg Win", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    
+                                    Text("฿${String.format(Locale.ENGLISH,"%,.0f", avgWin)}", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    
+                                    Text("Avg Loss", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    
+                                    Text("฿${String.format(Locale.ENGLISH,"%,.0f", avgLoss)}", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    
+                                    Text("Total Fees", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    
+                                    Text("฿${String.format(Locale.ENGLISH,"%,.0f", totalFees)}", fontSize = 16.sp, fontWeight = FontWeight.Black)
+                                }
+                            }
+                            
+                            if (bestTrade != null) {
+                                HorizontalDivider(modifier = Modifier.alpha(0.05f))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    
+                                    Text("Best Performer: ", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                                    
+                                    Text(bestTrade.symbol, fontSize = 13.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.weight(1f))
+                                    
+                                    Text("+฿${String.format(Locale.ENGLISH,"%,.0f", bestTrade.netProfitBaht)}", fontSize = 13.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
 
-        item {
-            Text(text = "Recent Trades", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
-
-        if (history.isEmpty()) {
-            item {
-                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                    Text("No trade history yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = CircleShape,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        
+                        Text(text = "Recent Trades", fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
+                    }
                 }
-            }
-        } else {
-            items(history) { trade ->
-                TradeHistoryCard(trade)
+
+                if (history.isEmpty()) {
+                    item {
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth().height(150.dp),
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                
+                                Text("No trade history yet", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                            }
+                        }
+                    }
+                } else {
+                    items(history) { trade ->
+                        TradeHistoryCard(trade)
+                    }
+                }
+                
+                item {
+                    Spacer(Modifier.height(40.dp))
+                }
             }
         }
     }
@@ -204,11 +264,13 @@ fun StatsScreen(viewModel: StockViewModel) {
 @Composable
 fun StatMetric(label: String, value: Double) {
     Column {
-        Text(text = label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        Text(text = label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+        
         Text(
-            text = "${if (value >= 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%.0f", value)}",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.ExtraBold,
+            text = "${if (value >= 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%,.0f", value)}",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Black,
             color = if (value >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
         )
     }
@@ -220,55 +282,72 @@ fun TradeHistoryCard(trade: TradeEntity) {
     val dateStr = dateFormat.format(Date(trade.dateMillis))
     val isWin = trade.netProfitBaht > 0
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    GlassCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(text = trade.symbol, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(text = dateStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    
+                    Text(text = trade.symbol, fontWeight = FontWeight.Black, fontSize = 20.sp, letterSpacing = (-0.5).sp)
+                    
+                    Text(text = dateStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    
+                    Spacer(Modifier.height(4.dp))
+                    
                     Text(
-                        text = "Bought @ ${trade.buyPrice}, Sold @ ${trade.sellPrice}",
+                        text = "฿${trade.buyPrice} → ฿${trade.sellPrice}",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
                 }
                 
                 Column(horizontalAlignment = Alignment.End) {
+                    
                     Text(
-                        text = "${if (isWin) "+" else ""}฿${String.format(Locale.ENGLISH,"%.2f", trade.netProfitBaht)}",
-                        fontWeight = FontWeight.Bold,
+                        text = "${if (isWin) "+" else ""}฿${String.format(Locale.ENGLISH,"%,.2f", trade.netProfitBaht)}",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
                         color = if (isWin) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                     )
+                    
                     Text(
                         text = "${String.format(Locale.ENGLISH,"%.2f", trade.netProfitPercent)}%",
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
                         color = if (isWin) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                     )
-                    Text(text = "Qty: ${trade.quantity}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    
+                    Text(text = "${trade.quantity} Shares", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                 }
             }
             
             if (trade.note.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = MaterialTheme.shapes.extraSmall,
-                    modifier = Modifier.fillMaxWidth()
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text(text = "Lesson Learned:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        
+                        Text(text = "LESSON LEARNED", fontSize = 9.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        
+                        Spacer(Modifier.height(4.dp))
+                        
                         Text(
                             text = trade.note,
                             fontSize = 12.sp,
                             fontStyle = FontStyle.Italic,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 18.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }

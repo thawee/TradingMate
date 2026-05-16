@@ -22,12 +22,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.InputStream
@@ -52,6 +54,7 @@ sealed class StockUiState {
         val buyingPrice: Double? = null,
         val sellingPrice: Double? = null,
         val isFocused: Boolean = false,
+        val focusTargetPrice: Double = 0.0,
         val historicalPrices: List<Double> = emptyList()
     ) : StockUiState()
     data class Error(val message: String) : StockUiState()
@@ -61,31 +64,45 @@ data class StockWatchlistInfo(
     val info: ScrapedStockInfo,
     val portfolio: StockEntity,
     val netProfitPercent: Double = 0.0,
-    val signal: TradeSignal? = null
+    val signal: TradeSignal? = null,
+    val isFocused: Boolean = false,
+    val focusStartPrice: Double? = null,
+    val focusTargetPrice: Double? = null,
+    val focusMovementPercent: Double? = null
 )
 
 data class StockFocusInfo(
     val symbol: String,
     val startPrice: Double,
+    val targetPrice: Double,
     val currentPrice: Double,
     val movementPercent: Double,
     val addedAtMillis: Long,
     val info: ScrapedStockInfo? = null
 )
 
+@Serializable
+data class TradingBackup(
+    val stocks: List<StockEntity>,
+    val focusList: List<FocusEntity>,
+    val trades: List<TradeEntity>,
+    val cashBalance: Double
+)
+
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val database = StockDatabase.getDatabase(application)
     private val repository = StockRepository(database.stockDao(), database.tradeDao(), database.cashDao(), database.focusDao())
-    
+
     private val _uiState = MutableStateFlow<StockUiState>(StockUiState.Initial)
     val uiState: StateFlow<StockUiState> = _uiState
 
-    private val _searchResults = MutableStateFlow<ScrapedStockInfo?>(null)
-    val searchResults: StateFlow<ScrapedStockInfo?> = _searchResults
+    private val _searchResults = MutableStateFlow<List<ScrapedStockInfo>>(emptyList())
+    val searchResults: StateFlow<List<ScrapedStockInfo>> = _searchResults
 
     val watchlistInfo: StateFlow<List<StockWatchlistInfo>> = 
-        repository.allStocks.map { stocks ->
+        combine(repository.allStocks, repository.allFocusStocks) { stocks, focusStocks ->
             stocks.map { stock ->
+                val focus = focusStocks.find { it.symbol == stock.symbol }
                 val info = ScrapedStockInfo(
                     symbol = stock.symbol,
                     name = stock.name,
@@ -110,7 +127,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 val netProfit = if (stock.cost > 0) {
                     TechnicalAnalysis.calculateNetProfitPercent(stock.cost, stock.lastPrice)
                 } else 0.0
-                
+
                 val signal = if (stock.signalType != null) {
                     TradeSignal(
                         type = IndicatorSignal.valueOf(stock.signalType),
@@ -118,8 +135,21 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         description = stock.signalDescription ?: ""
                     )
                 } else null
-                
-                StockWatchlistInfo(info, stock, netProfit, signal)
+
+                val focusMovement = if (focus != null && focus.startPrice != 0.0) {
+                    ((stock.lastPrice - focus.startPrice) / focus.startPrice) * 100
+                } else null
+
+                StockWatchlistInfo(
+                    info = info, 
+                    portfolio = stock, 
+                    netProfitPercent = netProfit, 
+                    signal = signal,
+                    isFocused = focus != null,
+                    focusStartPrice = focus?.startPrice,
+                    focusTargetPrice = focus?.targetPrice,
+                    focusMovementPercent = focusMovement
+                )
             }.sortedWith(
                 compareByDescending<StockWatchlistInfo> { it.portfolio.quantity > 0 }
                     .thenByDescending { if (it.portfolio.quantity > 0) it.netProfitPercent else 0.0 }
@@ -137,10 +167,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 val stock = stocks.find { it.symbol == focus.symbol }
                 val currentPrice = stock?.lastPrice ?: focus.startPrice
                 val movement = if (focus.startPrice != 0.0) ((currentPrice - focus.startPrice) / focus.startPrice) * 100 else 0.0
-                
+
                 StockFocusInfo(
                     symbol = focus.symbol,
                     startPrice = focus.startPrice,
+                    targetPrice = focus.targetPrice,
                     currentPrice = currentPrice,
                     movementPercent = movement,
                     addedAtMillis = focus.addedAtMillis,
@@ -188,7 +219,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             if (_isRefreshing.value) return@launch
             _isRefreshing.value = true
-            
+
             val stocks = watchlistInfo.value.map { it.portfolio }
             if (stocks.isEmpty()) {
                 _isRefreshing.value = false
@@ -223,7 +254,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             try {
                                 val info = SetScraper.fetchStockInfo(stock.symbol)
                                 val indicators = SetScraper.fetchTechnicalIndicators(stock.symbol)
-                                
+
                                 val signal = TechnicalAnalysis.getDetailedSignal(
                                     rsi = indicators.rsi, 
                                     macdHist = indicators.histogram, 
@@ -305,9 +336,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addToFocusList(symbol: String, price: Double) {
+    fun addToFocusList(symbol: String, price: Double, targetPrice: Double = 0.0) {
         viewModelScope.launch {
-            repository.addToFocusList(symbol, price)
+            repository.addToFocusList(symbol, price, targetPrice)
             repository.addStockIfMissing(symbol)
             refreshWatchlistInfo()
         }
@@ -326,12 +357,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 val buyPrice = item.portfolio.cost
                 val totalCostRaw = buyPrice * sellQuantity
                 val sellValueRaw = sellPrice * sellQuantity
-                
+
                 // Buying fees already paid when adding to portfolio, we only pay selling fees now
                 val sellFees = TechnicalAnalysis.calculateFees(sellValueRaw, true)
                 val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
                 val totalFees = buyFees + sellFees
-                
+
                 val netProfitValue = (sellValueRaw - totalCostRaw) - totalFees
                 val netProfitPercent = ((sellValueRaw - sellFees - (totalCostRaw + buyFees)) / (totalCostRaw + buyFees)) * 100
 
@@ -369,10 +400,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val item = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }
             if (item != null && item.portfolio.quantity > 0) {
-                // If it was in portfolio, record the trade history as a \"Sale\" at current market price
+                // If it was in portfolio, record the trade history as a "Sale" at current market price
                 val totalCostRaw = item.portfolio.cost * item.portfolio.quantity
                 val currentTotalValue = item.info.lastPrice * item.portfolio.quantity
-                
+
                 val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
                 val sellFees = TechnicalAnalysis.calculateFees(currentTotalValue, true)
                 val stockTotalFees = buyFees + sellFees
@@ -415,15 +446,21 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun exportWatchlist(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+    fun exportBackup(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
         viewModelScope.launch {
             try {
-                val stocks = watchlistInfo.value.map { it.portfolio }
+                val stocks = repository.allStocks.first()
+                val focusList = repository.allFocusStocks.first()
+                val trades = repository.allTrades.first()
+                val cash = repository.cashBalance.first()?.balance ?: 0.0
+
+                val backup = TradingBackup(stocks, focusList, trades, cash)
+
                 val json = Json { 
                     prettyPrint = true
                     ignoreUnknownKeys = true
                 }
-                val content = json.encodeToString(stocks)
+                val content = json.encodeToString(backup)
                 withContext(Dispatchers.IO) {
                     contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
                 }
@@ -433,44 +470,27 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun importWatchlistJson(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+    fun importBackup(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
         viewModelScope.launch {
             try {
                 val content = withContext(Dispatchers.IO) {
                     contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: ""
                 }
                 val json = Json { ignoreUnknownKeys = true }
-                val stocks = json.decodeFromString<List<StockEntity>>(content)
-                stocks.forEach { stock ->
-                    repository.updateStockCache(stock)
-                }
-                refreshWatchlistInfo()
-            } catch (e: Exception) {
-                _uiState.value = StockUiState.Error("Failed to import JSON: ${e.message}")
-            }
-        }
-    }
+                val backup = json.decodeFromString<TradingBackup>(content)
 
-    fun importWatchlistCsv(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
-        viewModelScope.launch {
-            try {
-                val lines = withContext(Dispatchers.IO) {
-                    contentResolver.openInputStream(uri)?.bufferedReader()?.readLines() ?: emptyList()
-                }
-                lines.forEach { line ->
-                    val parts = line.split(",")
-                    if (parts.isNotEmpty()) {
-                        val symbol = parts[0].trim().uppercase()
-                        if (symbol.isNotEmpty() && symbol != "SYMBOL") { // Simple header skip
-                            val cost = parts.getOrNull(1)?.trim()?.toDoubleOrNull() ?: 0.0
-                            val quantity = parts.getOrNull(2)?.trim()?.toIntOrNull() ?: 0
-                            repository.addStock(symbol, cost, quantity)
-                        }
-                    }
-                }
+                // Clear existing data
+                repository.clearWatchlist()
+                repository.clearHistory()
+
+                backup.stocks.forEach { repository.updateStockCache(it) }
+                backup.focusList.forEach { repository.addToFocusList(it.symbol, it.startPrice, it.targetPrice) }
+                backup.trades.forEach { repository.insertTrade(it) }
+                repository.updateCash(backup.cashBalance)
+
                 refreshWatchlistInfo()
             } catch (e: Exception) {
-                _uiState.value = StockUiState.Error("Failed to import CSV: ${e.message}")
+                _uiState.value = StockUiState.Error("Failed to import backup: ${e.message}")
             }
         }
     }
@@ -492,12 +512,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun resetSearchResults() {
-        _searchResults.value = null
+        _searchResults.value = emptyList()
     }
 
-    fun searchSymbol(query: String) {
+    fun searchStocks(query: String) {
         if (query.length < 2) {
-            _searchResults.value = null
+            _searchResults.value = emptyList()
             return
         }
         viewModelScope.launch {
@@ -513,23 +533,23 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             resetToInitial()
             return
         }
-        
+
         viewModelScope.launch {
             _uiState.value = StockUiState.Loading
             try {
                 val result = withContext(Dispatchers.IO) {
                     var info = SetScraper.fetchStockInfo(symbol)
-                    
+
                     // Find if it's in local DB to get cached name/desc
                     val local = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }?.portfolio
-                    
+
                     val updatedInfo = calculateManualPercent(info.copy(
                         name = info.name ?: local?.name,
                         businessDescription = info.businessDescription ?: local?.businessDescription,
                         sector = info.sector ?: local?.sector,
                         industry = info.industry ?: local?.industry
                     ))
-                    
+
                     val history = SetScraper.fetchHistoricalPrices(symbol)
                     val prices = history.map { it.close }.reversed()
                     val volumes = history.map { it.volume }.reversed()
@@ -553,7 +573,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     val rsi = TechnicalAnalysis.calculateRSI(prices, 14)
                     val macd = TechnicalAnalysis.calculateMACD(prices)
-                    
+
                     val netProfit = if (local != null && local.cost > 0) {
                         TechnicalAnalysis.calculateNetProfitPercent(local.cost, updatedInfo.lastPrice)
                     } else null
@@ -569,13 +589,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         userCost = local?.cost,
                         isFundamentalGood = updatedInfo.isFundamentalGood
                     )
-                    
+
                     val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, sma200, bb)
-                    
+
                     val buyPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices.reversed(), 35.0)
                     val sellPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices.reversed(), 65.0)
 
-                    val isFocused = repository.getFocusStock(symbol) != null
+                    val focusEntry = repository.getFocusStock(symbol)
+                    val isFocused = focusEntry != null
+                    val focusTarget = focusEntry?.targetPrice ?: 0.0
 
                     // Optional: Update cache for this single stock too
                     if (local != null) {
@@ -597,7 +619,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             lastUpdated = updatedInfo.lastUpdated
                         ))
                     }
-                    
+
                     StockUiState.Success(
                         updatedInfo, 
                         local, 
@@ -614,6 +636,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         buyPriceTarget,
                         sellPriceTarget,
                         isFocused,
+                        focusTarget,
                         prices.reversed()
                     )
                 }

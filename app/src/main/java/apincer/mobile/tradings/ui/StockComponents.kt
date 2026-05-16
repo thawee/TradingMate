@@ -1,25 +1,186 @@
 package apincer.mobile.tradings.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.domain.IndicatorSignal
 import java.util.Locale
+import android.os.Build
+
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+    shape: RoundedCornerShape = RoundedCornerShape(24.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        color = containerColor,
+        shape = shape,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 0.5.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.45f),
+                    Color.White.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.25f)
+                ),
+                start = Offset(0f, 0f),
+                end = Offset(1000f, 1000f)
+            )
+        )
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+fun GlassDialog(
+    onDismissRequest: () -> Unit,
+    title: String? = null,
+    confirmButton: @Composable (() -> Unit)? = null,
+    dismissButton: @Composable (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismissRequest) {
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            shape = RoundedCornerShape(32.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                title?.let {
+                    
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+                
+                content()
+
+                if (confirmButton != null || dismissButton != null) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        dismissButton?.invoke()
+                        Spacer(modifier = Modifier.width(8.dp))
+                        confirmButton?.invoke()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GlassTag(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = color.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, color.copy(alpha = 0.25f)),
+        modifier = modifier
+    ) {
+        
+        Text(
+            text = text,
+            color = color,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun <T> GlassSegmentedControl(
+    items: List<T>,
+    selectedItem: T,
+    onItemSelect: (T) -> Unit,
+    labelExtractor: (T) -> String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+        shape = CircleShape,
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(48.dp)
+            .border(
+                0.5.dp, 
+                Brush.verticalGradient(listOf(Color.White.copy(0.4f), Color.White.copy(0.05f))), 
+                CircleShape
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEach { item ->
+                val isSelected = item == selectedItem
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                            else Color.Transparent
+                        )
+                        .clickable { onItemSelect(item) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    
+                    Text(
+                        text = labelExtractor(item),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary 
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun StockItemCard(
@@ -29,268 +190,233 @@ fun StockItemCard(
     onSell: ((StockWatchlistInfo) -> Unit)? = null,
     onEdit: ((StockWatchlistInfo) -> Unit)? = null
 ) {
-    val info = item.info
-    val portfolio = item.portfolio
-    var showDeleteConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    
-    val totalValue = info.lastPrice * portfolio.quantity
-    val profitPercent = item.netProfitPercent
-    val profitValue = (profitPercent / 100) * (portfolio.cost * portfolio.quantity)
-    
-    // Yield on Cost Calculation
-    val yieldOnCost = if (portfolio.cost > 0 && info.dividendYield != null) {
-        (info.dividendYield * info.lastPrice) / portfolio.cost
-    } else null
-
-    val isWatchlistMode = onSell == null && onEdit == null
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     if (showDeleteConfirm) {
-        AlertDialog(
+        GlassDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Remove from Watchlist") },
-            text = { Text("Are you sure you want to remove ${info.symbol}? This will also delete its portfolio and trade records if any.") },
+            title = "Remove from Watchlist?",
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = { 
                         onDelete(item)
                         showDeleteConfirm = false
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Remove")
+                    Text("Remove", color = Color.White)
                 }
             },
             dismissButton = {
+                
                 TextButton(onClick = { showDeleteConfirm = false }) {
                     Text("Cancel")
                 }
             }
-        )
+        ) {
+            
+            Text("Are you sure you want to remove ${item.info.symbol} from your watchlist?")
+        }
     }
 
-    Card(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelect(item) },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .clickable { onSelect(item) }
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Main Content Row
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left Side: Stock Info
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = info.symbol, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        if (portfolio.quantity > 0) {
-                            Spacer(Modifier.width(8.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.extraSmall
-                            ) {
-                                Text(
-                                    "IN PORT", 
-                                    fontSize = 9.sp, 
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-
-                        // Dividend Badge
-                        if ((info.dividendYield ?: 0.0) > 0.0) {
-                            val badgeColor = MaterialTheme.colorScheme.tertiary
-                            Spacer(Modifier.width(8.dp))
-                            Surface(
-                                color = badgeColor.copy(alpha = 0.1f),
-                                shape = MaterialTheme.shapes.extraSmall,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
-                            ) {
-                                Text(
-                                    "${String.format(Locale.ENGLISH,"%.2f", info.dividendYield)}% YIELD",
-                                    color = badgeColor,
-                                    fontSize = 8.sp, 
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
                         
-                        if (info.isPartialData) {
-                            Spacer(Modifier.width(6.dp))
-                            Icon(
-                                Icons.Default.ErrorOutline, 
-                                contentDescription = "Partial Data", 
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(14.dp)
-                            )
+                        Text(
+                            text = item.info.symbol,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = (-0.5).sp
+                        )
+                        if (item.isFocused) {
+                            Spacer(Modifier.width(8.dp))
+                            GlassTag(text = "FOCUS", color = MaterialTheme.colorScheme.secondary)
                         }
                     }
                     
-                    info.name?.let {
-                        Text(
-                            text = it, 
-                            fontSize = 12.sp, 
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, 
-                            maxLines = 1, 
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                    }
+                    Text(
+                        text = item.info.name ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        maxLines = 1
+                    )
+                }
 
-                    // Add Signal Badge if not NEUTRAL
-                    item.signal?.let { signal ->
-                        if (signal.type != IndicatorSignal.NEUTRAL) {
-                            val signalColor = when (signal.type) {
-                                IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
-                                IndicatorSignal.POTENTIAL -> MaterialTheme.colorScheme.secondary
-                                else -> MaterialTheme.colorScheme.error
-                            }
-                            Surface(
-                                color = signalColor.copy(alpha = 0.1f),
-                                shape = MaterialTheme.shapes.extraSmall,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, signalColor.copy(alpha = 0.5f)),
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "SIGNAL: ${signal.type.name}", 
-                                    color = signalColor, 
-                                    fontSize = 9.sp, 
-                                    fontWeight = FontWeight.Black,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    if (portfolio.quantity > 0) {
-                        Column {
-                            Text(
-                                text = "${portfolio.quantity} @ ฿${portfolio.cost} | Market: ฿${info.lastPrice}", 
-                                fontSize = 11.sp, 
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (yieldOnCost != null && yieldOnCost != info.dividendYield) {
-                                Text(
-                                    text = "Yield on Cost: ${String.format(Locale.ENGLISH,"%.2f", yieldOnCost)}%",
-                                    fontSize = 11.sp, 
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
-                        }
-                    } else {
-                        val peStr = info.pe?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "N/A"
-                        val pbvStr = info.pbv?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "N/A"
-                        Text(
-                            text = "P/E: $peStr | P/BV: $pbvStr", 
-                            fontSize = 11.sp, 
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                Column(horizontalAlignment = Alignment.End) {
                     
-                    // Show Signal Reason if not NEUTRAL
-                    item.signal?.let { signal ->
-                        if (signal.type != IndicatorSignal.NEUTRAL) {
-                            val signalColor = when (signal.type) {
-                                IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
-                                IndicatorSignal.POTENTIAL -> MaterialTheme.colorScheme.secondary
-                                else -> MaterialTheme.colorScheme.error
-                            }
-                            Text(
-                                text = signal.reason, 
-                                fontSize = 10.sp, 
-                                fontWeight = FontWeight.Bold, 
-                                color = signalColor.copy(alpha = 0.8f)
-                            )
-                        }
+                    Text(
+                        text = "฿${item.info.lastPrice}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    
+                    val changeColor = if (item.info.change >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (item.info.change >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                            contentDescription = null,
+                            tint = changeColor,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        
+                        Text(
+                            text = "${if (item.info.change >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.info.percentChange)}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = changeColor,
+                            fontWeight = FontWeight.Black
+                        )
                     }
                 }
-                
-                // Right Side: Price, Profit, and Actions
-                Row(verticalAlignment = Alignment.Top) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        if (!isWatchlistMode && portfolio.quantity > 0) {
-                            // PORTFOLIO VIEW: Show Total Value and Profit
-                            Text(text = "Total Value", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(text = "฿${String.format(Locale.ENGLISH,"%,.2f", totalValue)}", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                            Text(
-                                text = "${if (profitValue >= 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%.2f", profitValue)} (${String.format(Locale.ENGLISH,"%.2f", profitPercent)}%)",
-                                fontSize = 11.sp,
-                                color = if (profitValue >= 0.0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                            )
-                        } else {
-                            // WATCHLIST VIEW or not in port: Show Price and Daily Change
-                            Text(text = "฿${info.lastPrice}", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                            Text(
-                                text = "${if (info.change >= 0) "+" else ""}${String.format(Locale.ENGLISH,"%.2f", info.change)} (${String.format(Locale.ENGLISH,"%.2f", info.percentChange)}%)",
-                                fontSize = 11.sp,
-                                color = if (info.change >= 0.0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                            )
-                            
-                            // If in port but on Watchlist page, show personal profit percent subtly
-                            if (portfolio.quantity > 0) {
-                                Text(
-                                    text = "My: ${if (profitPercent >= 0) "+" else ""}${String.format(Locale.ENGLISH,"%.1f", profitPercent)}%",
-                                    fontSize = 10.sp,
-                                    color = if (profitPercent >= 0.0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+            }
+
+            if (item.isFocused && item.focusStartPrice != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        
+                        Text("Start", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        
+                        Text("฿${item.focusStartPrice}", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     
-                    Spacer(modifier = Modifier.width(8.dp))
+                    val startDiff = ((item.info.lastPrice - item.focusStartPrice) / item.focusStartPrice) * 100
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        
+                        Text("Move", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        
+                        Text(
+                            text = "${if (startDiff >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", startDiff)}%",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (startDiff >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        )
+                    }
 
-                    // Trailing Actions (Top Right)
                     Column(horizontalAlignment = Alignment.End) {
-                        if (isWatchlistMode) {
-                            IconButton(
-                                onClick = { showDeleteConfirm = true },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete, 
-                                    contentDescription = "Delete", 
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), 
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        } else if (portfolio.quantity > 0) {
-                            if (onSell != null) {
-                                IconButton(
-                                    onClick = { onSell(item) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Sell, 
-                                        contentDescription = "Sell", 
-                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f), 
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                            if (onEdit != null) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                IconButton(
-                                    onClick = { onEdit(item) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Edit, 
-                                        contentDescription = "Edit", 
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), 
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                        }
+                        
+                        Text("Target", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        
+                        Text(
+                            text = if ((item.focusTargetPrice ?: 0.0) > 0) "฿${item.focusTargetPrice}" else "---",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            } else if (item.portfolio.quantity > 0) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        
+                        Text("Cost", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        
+                        Text("฿${item.portfolio.cost}", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        
+                        Text("Net Profit", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        
+                        Text(
+                            text = "${if (item.netProfitPercent >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.netProfitPercent)}%",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (item.netProfitPercent >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+
+            if (item.signal != null) {
+                val signalColor = when (item.signal.type) {
+                    IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
+                    IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.secondary
+                }
+                
+                Surface(
+                    color = signalColor.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, signalColor.copy(alpha = 0.2f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        
+                        Text(
+                            text = item.signal.type.name,
+                            color = signalColor,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 11.sp
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        
+                        Text(
+                            text = item.signal.reason,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+            
+            if (onSell != null && onEdit != null && item.portfolio.quantity > 0) {
+                 Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    
+                    TextButton(onClick = { onEdit(item) }) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Edit", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    
+                    Button(
+                        onClick = { onSell(item) },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Icon(Icons.Default.Sell, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Sell", fontSize = 12.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun IndicatorRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        
+        Text(text = label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -299,108 +425,154 @@ fun PortfolioSummaryCard(
     totalAssetValue: Double,
     stockValue: Double,
     cashBalance: Double,
-    grossProfit: Double, 
-    totalFees: Double, 
-    netProfit: Double, 
+    grossProfit: Double,
+    totalFees: Double,
+    netProfit: Double,
     netPercent: Double,
-    yieldOnCost: Double,
-    onEditCash: (() -> Unit)? = null
+    yieldOnCost: Double?,
+    onEditCash: () -> Unit
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text("Total Assets (Stock + Cash)", fontSize = 14.sp)
-            Text(
-                text = "฿${String.format(Locale.ENGLISH,"%,.2f", totalAssetValue)}",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    
+                    Text("Total Assets", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    
+                    Text("฿${String.format(Locale.ENGLISH, "%,.2f", totalAssetValue)}", fontSize = 32.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface, letterSpacing = (-1).sp)
+                }
+                
+                Surface(
+                    color = Color.White.copy(alpha = 0.2f),
+                    shape = CircleShape,
+                    onClick = onEditCash,
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.White.copy(alpha = 0.4f))
+                ) {
+                    Box(modifier = Modifier.padding(10.dp)) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Cash", modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
             
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+            Spacer(Modifier.height(20.dp))
             
-            SummaryDetailRow("Stock Value", "฿${String.format(Locale.ENGLISH,"%,.2f", stockValue)}", MaterialTheme.colorScheme.onPrimaryContainer)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    
+                    Text("Stocks Value", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    
+                    Text("฿${String.format(Locale.ENGLISH, "%,.2f", stockValue)}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    
+                    Text("Cash Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    
+                    Text("฿${String.format(Locale.ENGLISH, "%,.2f", cashBalance)}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Spacer(Modifier.height(20.dp))
+            
+            GlassCard(
+                containerColor = (if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error).copy(alpha = 0.1f),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "Available Cash", fontSize = 13.sp)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "฿${String.format(Locale.ENGLISH,"%,.2f", cashBalance)}", 
-                        fontSize = 13.sp, 
-                        fontWeight = FontWeight.Bold, 
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    if (onEditCash != null) {
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = onEditCash,
-                            modifier = Modifier.size(20.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit, 
-                                contentDescription = "Edit Cash", 
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
+                Row(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        
+                        Text("Total Net Profit", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            
+                            Text(
+                                text = "฿${String.format(Locale.ENGLISH, "%,.2f", netProfit)}", 
+                                fontSize = 20.sp, 
+                                fontWeight = FontWeight.Black,
+                                color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                             )
+                            Spacer(Modifier.width(8.dp))
+                            
+                            Text(
+                                text = "(${String.format(Locale.ENGLISH, "%.2f", netPercent)}%)", 
+                                fontSize = 16.sp, 
+                                fontWeight = FontWeight.Bold,
+                                color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                    
+                    yieldOnCost?.let {
+                        Column(horizontalAlignment = Alignment.End) {
+                            
+                            Text("Avg Yield", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            
+                            Text("${String.format(Locale.ENGLISH, "%.2f", it)}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val profitColor = if (grossProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-            SummaryDetailRow("Gross Profit", "฿${String.format(Locale.ENGLISH,"%,.2f", grossProfit)}", profitColor)
-            SummaryDetailRow("Total Thai Fees (0.32%)", "-฿${String.format(Locale.ENGLISH,"%,.2f", totalFees)}", MaterialTheme.colorScheme.onSurfaceVariant)
-            SummaryDetailRow("Avg Yield on Cost", "${String.format(Locale.ENGLISH,"%.2f", yieldOnCost)}%", MaterialTheme.colorScheme.tertiary)
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(verticalAlignment = Alignment.Bottom) {
-                val netColor = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Net Realized (Post-Fee)", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = "${if (netProfit >= 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%,.2f", netProfit)}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = netColor
-                    )
-                }
-                Text(
-                    text = "${String.format(Locale.ENGLISH,"%.2f", netPercent)}%",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    color = netColor
-                )
+            Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                
+                Text("Gross: ฿${String.format(Locale.ENGLISH, "%,.2f", grossProfit)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                
+                Text("Fees: ฿${String.format(Locale.ENGLISH, "%,.2f", totalFees)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-fun SummaryDetailRow(label: String, value: String, color: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, fontSize = 13.sp)
-        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color)
-    }
-}
+fun AppBackground(content: @Composable () -> Unit) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
 
-@Composable
-fun IndicatorRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Text(text = label, fontSize = 14.sp)
-        Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        // Dynamic background "blobs" for better glass effect
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF6366F1).copy(alpha = 0.15f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 0.1f, screenHeight.toPx() * 0.1f),
+                    radius = screenWidth.toPx() * 1.2f
+                )
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFC5A059).copy(alpha = 0.15f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 0.9f, screenHeight.toPx() * 0.4f),
+                    radius = screenWidth.toPx() * 1.0f
+                )
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF2D6A4F).copy(alpha = 0.1f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 0.3f, screenHeight.toPx() * 0.8f),
+                    radius = screenWidth.toPx() * 1.4f
+                )
+            )
+             drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFBC4749).copy(alpha = 0.05f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 0.8f, screenHeight.toPx() * 0.9f),
+                    radius = screenWidth.toPx() * 0.8f
+                )
+            )
+        }
+        
+        content()
     }
 }

@@ -17,8 +17,8 @@ class StockRepository(
         cashDao.updateCash(CashEntity(balance = balance))
     }
 
-    suspend fun addToFocusList(symbol: String, price: Double) {
-        focusDao.insertFocusStock(FocusEntity(symbol.uppercase(), price))
+    suspend fun addToFocusList(symbol: String, startPrice: Double, targetPrice: Double = 0.0) {
+        focusDao.insertFocusStock(FocusEntity(symbol.uppercase(), startPrice, targetPrice))
     }
 
     suspend fun removeFromFocusList(symbol: String) {
