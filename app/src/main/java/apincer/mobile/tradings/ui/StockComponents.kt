@@ -545,30 +545,30 @@ fun AppBackground(content: @Composable () -> Unit) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF6366F1).copy(alpha = 0.15f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 0.1f, screenHeight.toPx() * 0.1f),
+                    colors = listOf(Color(0xFF6366F1).copy(alpha = 0.08f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * -0.2f, screenHeight.toPx() * -0.1f),
+                    radius = screenWidth.toPx() * 1.5f
+                )
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFC5A059).copy(alpha = 0.08f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 1.2f, screenHeight.toPx() * 0.2f),
                     radius = screenWidth.toPx() * 1.2f
                 )
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFFC5A059).copy(alpha = 0.15f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 0.9f, screenHeight.toPx() * 0.4f),
-                    radius = screenWidth.toPx() * 1.0f
-                )
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF2D6A4F).copy(alpha = 0.1f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 0.3f, screenHeight.toPx() * 0.8f),
-                    radius = screenWidth.toPx() * 1.4f
+                    colors = listOf(Color(0xFF2D6A4F).copy(alpha = 0.06f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * -0.1f, screenHeight.toPx() * 1.1f),
+                    radius = screenWidth.toPx() * 1.5f
                 )
             )
              drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFFBC4749).copy(alpha = 0.05f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 0.8f, screenHeight.toPx() * 0.9f),
-                    radius = screenWidth.toPx() * 0.8f
+                    colors = listOf(Color(0xFFBC4749).copy(alpha = 0.04f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 1.1f, screenHeight.toPx() * 0.9f),
+                    radius = screenWidth.toPx() * 1.0f
                 )
             )
         }

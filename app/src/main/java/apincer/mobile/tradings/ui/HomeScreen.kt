@@ -1,18 +1,7 @@
 package apincer.mobile.tradings.ui
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -32,7 +21,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.domain.IndicatorSignal
@@ -62,193 +50,187 @@ fun HomeScreen(
     val totalStockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     val totalEquity = totalStockValue + cashBalance
 
-    AppBackground {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Market Pulse", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
-                )
-            }
-        ) { innerPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    Column(modifier = Modifier.fillMaxSize()) {
+        CenterAlignedTopAppBar(
+            title = { Text("Market Pulse", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+        )
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 1. The TradingMate Story Area
+                    GlassCard(
+                        modifier = Modifier.weight(1f).clickable { onOpenAbout() },
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        // 1. The TradingMate Story Area
-                        GlassCard(
-                            modifier = Modifier.weight(1f).clickable { onOpenAbout() },
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(24.dp)
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.HistoryEdu, 
-                                            contentDescription = null, 
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.HistoryEdu, 
+                                        contentDescription = null, 
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
                                 }
-                                Spacer(Modifier.height(12.dp))
-                                Text(
-                                    text = "Our Story", 
-                                    fontWeight = FontWeight.Bold, 
-                                    fontSize = 14.sp
-                                )
                             }
-                        }
-
-                        // 2. Trading Academy Area
-                        GlassCard(
-                            modifier = Modifier.weight(1f).clickable { onOpenEducation() },
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(24.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.School, 
-                                            contentDescription = null, 
-                                            tint = MaterialTheme.colorScheme.secondary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                }
-                                Spacer(Modifier.height(12.dp))
-                                Text(
-                                    text = "Academy", 
-                                    fontWeight = FontWeight.Bold, 
-                                    fontSize = 14.sp
-                                )
-                            }
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = "Our Story", 
+                                fontWeight = FontWeight.Bold, 
+                                fontSize = 14.sp
+                            )
                         }
                     }
-                }
 
-                item {
+                    // 2. Trading Academy Area
                     GlassCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        modifier = Modifier.weight(1f).clickable { onOpenEducation() },
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(24.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column {
-                                Text(text = "Total Equity", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                Text(
-                                    text = "฿${String.format(Locale.ENGLISH, "%,.0f", totalEquity)}", 
-                                    fontSize = 36.sp, 
-                                    fontWeight = FontWeight.Black, 
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    letterSpacing = (-1.5).sp
-                                )
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.School, 
+                                        contentDescription = null, 
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
-                            Icon(
-                                imageVector = Icons.Default.AccountBalance,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp).alpha(0.2f),
-                                tint = MaterialTheme.colorScheme.primary
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = "Academy", 
+                                fontWeight = FontWeight.Bold, 
+                                fontSize = 14.sp
                             )
                         }
                     }
                 }
+            }
 
-                if (targetWatchList.isNotEmpty()) {
-                    item {
-                        HomeSectionHeader(title = "Price Alerts", icon = Icons.Default.Star, color = MaterialTheme.colorScheme.secondary)
-                        Spacer(Modifier.height(16.dp))
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(bottom = 8.dp)
-                        ) {
-                            items(targetWatchList) { item ->
-                                TargetAlertCard(item, onClick = { onSelectStock(item.info.symbol) })
-                            }
+            item {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(text = "Total Equity", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                text = "฿${String.format(Locale.ENGLISH, "%,.0f", totalEquity)}", 
+                                fontSize = 36.sp, 
+                                fontWeight = FontWeight.Black, 
+                                color = MaterialTheme.colorScheme.onSurface,
+                                letterSpacing = (-1).sp
+                            )
                         }
+                        Icon(
+                            imageVector = Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp).alpha(0.2f),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
+            }
 
-                if (buySignals.isNotEmpty()) {
-                    item {
-                        HomeSectionHeader(title = "Buy Signals", icon = Icons.AutoMirrored.Filled.TrendingUp, color = MaterialTheme.colorScheme.tertiary)
-                        Spacer(Modifier.height(16.dp))
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(bottom = 8.dp)
-                        ) {
-                            items(buySignals) { item ->
-                                SignalQuickCard(item, color = MaterialTheme.colorScheme.tertiary, onClick = { onSelectStock(item.info.symbol) })
-                            }
-                        }
-                    }
-                }
-
-                if (sellSignals.isNotEmpty()) {
-                    item {
-                        HomeSectionHeader(title = "Exit Alerts", icon = Icons.AutoMirrored.Filled.TrendingDown, color = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.height(16.dp))
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(bottom = 8.dp)
-                        ) {
-                            items(sellSignals) { item ->
-                                SignalQuickCard(item, color = MaterialTheme.colorScheme.error, onClick = { onSelectStock(item.info.symbol) })
-                            }
-                        }
-                    }
-                }
-
+            if (targetWatchList.isNotEmpty()) {
                 item {
-                    HomeSectionHeader(title = "Top Holdings", icon = Icons.Default.PieChart)
+                    HomeSectionHeader(title = "Price Alerts", icon = Icons.Default.Star, color = MaterialTheme.colorScheme.secondary)
                     Spacer(Modifier.height(16.dp))
-                    if (portfolioItems.isEmpty()) {
-                        GlassCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                        ) {
-                            Box(modifier = Modifier.padding(40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No active holdings", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        items(targetWatchList) { item ->
+                            TargetAlertCard(item, onClick = { onSelectStock(item.info.symbol) })
                         }
                     }
                 }
+            }
 
-                items(portfolioItems.take(5)) { item ->
-                    StockItemCard(item = item, onSelect = { onSelectStock(it.info.symbol) }, onDelete = {})
-                }
-
+            if (buySignals.isNotEmpty()) {
                 item {
-                    Spacer(Modifier.height(40.dp))
+                    HomeSectionHeader(title = "Buy Signals", icon = Icons.AutoMirrored.Filled.TrendingUp, color = MaterialTheme.colorScheme.tertiary)
+                    Spacer(Modifier.height(16.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        items(buySignals) { item ->
+                            SignalQuickCard(item, color = MaterialTheme.colorScheme.tertiary, onClick = { onSelectStock(item.info.symbol) })
+                        }
+                    }
                 }
+            }
+
+            if (sellSignals.isNotEmpty()) {
+                item {
+                    HomeSectionHeader(title = "Exit Alerts", icon = Icons.AutoMirrored.Filled.TrendingDown, color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(16.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        items(sellSignals) { item ->
+                            SignalQuickCard(item, color = MaterialTheme.colorScheme.error, onClick = { onSelectStock(item.info.symbol) })
+                        }
+                    }
+                }
+            }
+
+            item {
+                HomeSectionHeader(title = "Top Holdings", icon = Icons.Default.PieChart)
+                Spacer(Modifier.height(16.dp))
+                if (portfolioItems.isEmpty()) {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                    ) {
+                        Box(modifier = Modifier.padding(40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text("No active holdings", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            items(portfolioItems.take(5)) { item ->
+                StockItemCard(item = item, onSelect = { onSelectStock(item.info.symbol) }, onDelete = {})
+            }
+
+            item {
+                Spacer(Modifier.height(40.dp))
             }
         }
     }

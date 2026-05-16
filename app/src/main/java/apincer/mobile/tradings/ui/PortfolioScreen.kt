@@ -72,93 +72,87 @@ fun PortfolioScreen(
         portfolioItems.sumOf { (it.info.dividendYield ?: 0.0) * (it.info.lastPrice * it.portfolio.quantity) } / totalCost
     } else null
 
-    AppBackground {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Portfolio", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
-                    actions = {
-                        IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(20.dp))
-                        }
-                        IconButton(onClick = { showBuyDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Buy Stock", modifier = Modifier.size(20.dp))
-                        }
-                    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        CenterAlignedTopAppBar(
+            title = { Text("Portfolio", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+            actions = {
+                IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(20.dp))
+                }
+                IconButton(onClick = { showBuyDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Buy Stock", modifier = Modifier.size(20.dp))
+                }
+            }
+        )
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                PortfolioSummaryCard(
+                    totalAssetValue = totalAssetValue,
+                    stockValue = stockValue,
+                    cashBalance = cashBalance,
+                    grossProfit = grossProfit,
+                    totalFees = totalFees,
+                    netProfit = netProfitValue,
+                    netPercent = totalNetProfitPercent,
+                    yieldOnCost = avgYieldOnCost,
+                    onEditCash = { showCashDialog = true }
                 )
             }
-        ) { innerPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+
+            item {
+                Row(
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(text = "Active Holdings", fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
+                }
+            }
+
+            if (portfolioItems.isEmpty()) {
                 item {
-                    PortfolioSummaryCard(
-                        totalAssetValue = totalAssetValue,
-                        stockValue = stockValue,
-                        cashBalance = cashBalance,
-                        grossProfit = grossProfit,
-                        totalFees = totalFees,
-                        netProfit = netProfitValue,
-                        netPercent = totalNetProfitPercent,
-                        yieldOnCost = avgYieldOnCost,
-                        onEditCash = { showCashDialog = true }
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Portfolio is empty", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                        }
+                    }
+                }
+            } else {
+                items(portfolioItems) { item ->
+                    StockItemCard(
+                        item = item,
+                        onSelect = { onSelectStock(item.info.symbol) },
+                        onDelete = { viewModel.removeFromWatchlist(item.info.symbol) },
+                        onSell = { selectedStockForSell = item },
+                        onEdit = { 
+                            selectedStockForEdit = item
+                            showBuyDialog = true
+                        }
                     )
                 }
-
-                item {
-                    Row(
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
-                            }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Text(text = "Active Holdings", fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
-                    }
-                }
-
-                if (portfolioItems.isEmpty()) {
-                    item {
-                        GlassCard(
-                            modifier = Modifier.fillMaxWidth().height(200.dp),
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Portfolio is empty", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                            }
-                        }
-                    }
-                } else {
-                    items(portfolioItems) { item ->
-                        StockItemCard(
-                            item = item,
-                            onSelect = { onSelectStock(item.info.symbol) },
-                            onDelete = { viewModel.removeFromWatchlist(item.info.symbol) },
-                            onSell = { selectedStockForSell = item },
-                            onEdit = { 
-                                selectedStockForEdit = item
-                                showBuyDialog = true
-                            }
-                        )
-                    }
-                }
-                
-                item {
-                    Spacer(Modifier.height(40.dp))
-                }
+            }
+            
+            item {
+                Spacer(Modifier.height(40.dp))
             }
         }
     }

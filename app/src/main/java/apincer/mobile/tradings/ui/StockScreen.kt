@@ -52,66 +52,69 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        bottomBar = {
-            val isBlurSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-            Surface(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
-                modifier = Modifier
-                    .then(if (isBlurSupported) Modifier.blur(24.dp) else Modifier)
-                    .fillMaxWidth()
-            ) {
-                NavigationBar(
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp
+    AppBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            bottomBar = {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    tonalElevation = 8.dp,
+                    shadowElevation = 16.dp
                 ) {
-                    Screen.entries.filter { it.inBottomBar }.forEach { screen ->
-                        NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = screen.label, modifier = Modifier.size(22.dp)) },
-                            selected = currentScreen == screen,
-                            alwaysShowLabel = false,
-                            onClick = { 
-                                currentScreen = screen 
-                                viewModel.resetToInitial()
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    NavigationBar(
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp
+                    ) {
+                        Screen.entries.filter { it.inBottomBar }.forEach { screen ->
+                            NavigationBarItem(
+                                icon = { Icon(screen.icon, contentDescription = screen.label, modifier = Modifier.size(24.dp)) },
+                                label = { Text(screen.label, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp) },
+                                selected = currentScreen == screen,
+                                alwaysShowLabel = true,
+                                onClick = { 
+                                    currentScreen = screen 
+                                    viewModel.resetToInitial()
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
-        }
-    ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
-            if (isRefreshing) {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth().height(2.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = Color.Transparent
-                )
-            }
+        ) { innerPadding ->
+            Column(modifier = Modifier.padding(innerPadding)) {
+                if (isRefreshing) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth().height(2.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = Color.Transparent
+                    )
+                }
 
-            Box(modifier = Modifier.weight(1f)) {
-                when (val state = uiState) {
-                    is StockUiState.Success -> {
-                        var showFocusDialog by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.weight(1f)) {
+                    when (val state = uiState) {
+                        is StockUiState.Success -> {
+                            var showFocusDialog by remember { mutableStateOf(false) }
 
-                        if (showFocusDialog) {
-                            FocusSettingsDialog(
-                                symbol = state.stockInfo.symbol,
-                                initialTargetPrice = state.focusTargetPrice,
-                                currentPrice = state.stockInfo.lastPrice,
-                                onDismiss = { showFocusDialog = false },
-                                onConfirm = { target ->
-                                    viewModel.addToFocusList(state.stockInfo.symbol, state.stockInfo.lastPrice, target)
-                                    showFocusDialog = false
-                                }
-                            )
-                        }
+                            if (showFocusDialog) {
+                                FocusSettingsDialog(
+                                    symbol = state.stockInfo.symbol,
+                                    initialTargetPrice = state.focusTargetPrice,
+                                    currentPrice = state.stockInfo.lastPrice,
+                                    onDismiss = { showFocusDialog = false },
+                                    onConfirm = { target ->
+                                        viewModel.addToFocusList(state.stockInfo.symbol, state.stockInfo.lastPrice, target)
+                                        showFocusDialog = false
+                                    }
+                                )
+                            }
 
-                        AppBackground {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -160,42 +163,42 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                 StockDashboard(state)
                             }
                         }
-                    }
-                    is StockUiState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                        is StockUiState.Loading -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
                         }
-                    }
-                    is StockUiState.Error -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            GlassCard(modifier = Modifier.padding(32.dp)) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
-                                    Spacer(Modifier.height(16.dp))
-                                    Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                                    Spacer(Modifier.height(24.dp))
-                                    Button(onClick = { viewModel.resetToInitial() }, shape = RoundedCornerShape(12.dp)) { Text("Back") }
+                        is StockUiState.Error -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                GlassCard(modifier = Modifier.padding(32.dp)) {
+                                    Column(
+                                        modifier = Modifier.padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
+                                        Spacer(Modifier.height(16.dp))
+                                        Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                                        Spacer(Modifier.height(24.dp))
+                                        Button(onClick = { viewModel.resetToInitial() }, shape = RoundedCornerShape(12.dp)) { Text("Back") }
+                                    }
                                 }
                             }
                         }
-                    }
-                    is StockUiState.Initial -> {
-                        when (currentScreen) {
-                            Screen.HOME -> HomeScreen(
-                                viewModel = viewModel, 
-                                onSelectStock = { viewModel.fetchStockData(it) }, 
-                                onOpenEducation = { currentScreen = Screen.EDUCATION },
-                                onOpenAbout = { currentScreen = Screen.ABOUT }
-                            )
-                            Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
-                            Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
-                            Screen.SETTINGS -> SettingsScreen(viewModel)
-                            Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.HOME })
-                            Screen.STATS -> StatsScreen(viewModel)
-                            Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.HOME })
+                        is StockUiState.Initial -> {
+                            when (currentScreen) {
+                                Screen.HOME -> HomeScreen(
+                                    viewModel = viewModel, 
+                                    onSelectStock = { viewModel.fetchStockData(it) }, 
+                                    onOpenEducation = { currentScreen = Screen.EDUCATION },
+                                    onOpenAbout = { currentScreen = Screen.ABOUT }
+                                )
+                                Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
+                                Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
+                                Screen.SETTINGS -> SettingsScreen(viewModel)
+                                Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.HOME })
+                                Screen.STATS -> StatsScreen(viewModel)
+                                Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.HOME })
+                            }
                         }
                     }
                 }

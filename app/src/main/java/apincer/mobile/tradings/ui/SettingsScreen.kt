@@ -91,89 +91,82 @@ fun SettingsScreen(
         }
     }
 
-    AppBackground {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Settings", fontWeight = FontWeight.Black) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
-                )
-            }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(16.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                SettingsSection(title = "Data Management", icon = Icons.Default.Info) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SettingsItem(
-                            title = "Backup Data",
-                            description = "Export your local data to a JSON file.",
-                            icon = Icons.Default.FileDownload,
-                            onClick = { exportLauncher.launch("trading_mate_backup_${System.currentTimeMillis()}.json") }
-                        )
-                        
-                        SettingsItem(
-                            title = "Restore Data",
-                            description = "Import data from a backup file.",
-                            icon = Icons.Default.FileUpload,
-                            onClick = { importLauncher.launch(arrayOf("application/json")) }
-                        )
+    Column(modifier = Modifier.fillMaxSize()) {
+        CenterAlignedTopAppBar(
+            title = { Text("Settings", fontWeight = FontWeight.Black) },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+        )
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            SettingsSection(title = "Data Management", icon = Icons.Default.Info) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SettingsItem(
+                        title = "Backup Data",
+                        description = "Export your local data to a JSON file.",
+                        icon = Icons.Default.FileDownload,
+                        onClick = { exportLauncher.launch("trading_mate_backup_${System.currentTimeMillis()}.json") }
+                    )
+                    
+                    SettingsItem(
+                        title = "Restore Data",
+                        description = "Import data from a backup file.",
+                        icon = Icons.Default.FileUpload,
+                        onClick = { importLauncher.launch(arrayOf("application/json")) }
+                    )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Button(
-                            onClick = { showDeleteConfirm = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
-                        ) {
-                            Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Clear All Data", fontWeight = FontWeight.Black)
-                        }
-                    }
-                }
-
-                SettingsSection(title = "Appearance", icon = Icons.Default.ColorLens) {
-                    GlassCard(
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Button(
+                        onClick = { showDeleteConfirm = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
                     ) {
-                        
-                        Text(
-                            "Dynamic Theme (System Default)", 
-                            modifier = Modifier.padding(20.dp),
-                            style = MaterialTheme.typography.bodyMedium, 
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Clear All Data", fontWeight = FontWeight.Black)
                     }
                 }
+            }
 
+            SettingsSection(title = "Appearance", icon = Icons.Default.ColorLens) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        
-                        Text("Trading Mate v1.1.0", fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
-                        
-                        Text("Your personal premium trading companion.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
-                        Spacer(Modifier.height(8.dp))
-                        
-                        Text("© 2024 apincer mobile", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                    }
+                    
+                    Text(
+                        "Dynamic Theme (System Default)", 
+                        modifier = Modifier.padding(20.dp),
+                        style = MaterialTheme.typography.bodyMedium, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                
-                Spacer(Modifier.height(40.dp))
             }
+
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    
+                    Text("Trading Mate v1.1.0", fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
+                    
+                    Text("Your personal premium trading companion.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Text("© 2024 apincer mobile", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                }
+            }
+            
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
