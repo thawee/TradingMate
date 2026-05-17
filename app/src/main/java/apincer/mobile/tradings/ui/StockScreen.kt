@@ -35,7 +35,7 @@ import apincer.mobile.tradings.domain.TradingZone
 import java.util.Locale
 
 enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: Boolean = true) {
-    HOME(R.string.app_name, Icons.Default.Dashboard),
+    DASHBOARD(R.string.title_dashboard, Icons.Default.Dashboard),
     PORTFOLIO(R.string.title_portfolio, Icons.Default.AccountBalance),
     WATCHLIST(R.string.title_watchlist, Icons.Default.QueryStats),
     STATS(R.string.title_history, Icons.Default.History),
@@ -47,7 +47,7 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockScreen(viewModel: StockViewModel = viewModel()) {
-    var currentScreen by remember { mutableStateOf(Screen.HOME) }
+    var currentScreen by remember { mutableStateOf(Screen.DASHBOARD) }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
@@ -187,7 +187,7 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                         }
                         is StockUiState.Initial -> {
                             when (currentScreen) {
-                                Screen.HOME -> HomeScreen(
+                                Screen.DASHBOARD -> DashboardScreen(
                                     viewModel = viewModel, 
                                     onSelectStock = { viewModel.fetchStockData(it) }, 
                                     onOpenEducation = { currentScreen = Screen.EDUCATION },
@@ -196,9 +196,9 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                 Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
                                 Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
                                 Screen.SETTINGS -> SettingsScreen(viewModel)
-                                Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.HOME })
+                                Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.DASHBOARD })
                                 Screen.STATS -> StatsScreen(viewModel)
-                                Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.HOME })
+                                Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.DASHBOARD })
                             }
                         }
                     }

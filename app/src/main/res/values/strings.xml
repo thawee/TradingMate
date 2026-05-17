@@ -1,7 +1,8 @@
 <resources>
-    <string name="app_name">TradingMate</string>
+    <string name="app_name">Trading Mate</string>
 
     <!-- Screen Titles -->
+    <string name="title_dashboard">Dashboard</string>
     <string name="title_portfolio">Portfolio</string>
     <string name="title_watchlist">Watchlist</string>
     <string name="title_history">History</string>
@@ -28,6 +29,8 @@
     <string name="section_success_path">Success Path</string>
     <string name="section_risk_management">Risk Management</string>
     <string name="section_the_sensors">The Sensors</string>
+    <string name="section_attentions">Attentions</string>
+    <string name="section_market_summary">Market Signal Summary</string>
 
     <!-- Labels & UI Elements -->
     <string name="label_our_story">Our Story</string>
@@ -121,6 +124,11 @@
     <string name="label_price_return_history_title">Price Return History</string>
     <string name="label_volume_surge">VOLUME SURGE</string>
     <string name="label_not_set">Not Set</string>
+    <string name="label_to_sell">To Sell</string>
+    <string name="label_to_buy">To Buy</string>
+    <string name="label_attentions">Attentions</string>
+    <string name="label_total_symbols">Symbols</string>
+    <string name="label_active_holdings_count">%1$d Active Holdings</string>
 
     <!-- Dialog Titles & Actions -->
     <string name="title_adjust_cash">Adjust Cash Balance</string>
