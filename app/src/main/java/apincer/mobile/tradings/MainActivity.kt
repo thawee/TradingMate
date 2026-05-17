@@ -31,10 +31,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
+            statusBarStyle = SystemBarStyle.auto(
                 android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
             ),
-            navigationBarStyle = SystemBarStyle.light(
+            navigationBarStyle = SystemBarStyle.auto(
                 android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
             )
         )

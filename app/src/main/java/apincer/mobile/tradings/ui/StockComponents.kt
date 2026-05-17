@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -402,6 +403,59 @@ fun StockItemCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun SectionHeader(
+    title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        Surface(
+            color = color.copy(alpha = 0.1f),
+            shape = CircleShape,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon, 
+                    contentDescription = null, 
+                    tint = color, 
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = title, 
+            fontSize = 20.sp, 
+            fontWeight = FontWeight.Black, 
+            letterSpacing = (-0.5).sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+fun SectionContent(
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    icon: ImageVector? = null,
+    color: Color = MaterialTheme.colorScheme.primary,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (title != null && icon != null) {
+            SectionHeader(title = title, icon = icon, color = color)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        content()
     }
 }
 

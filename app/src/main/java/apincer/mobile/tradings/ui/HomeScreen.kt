@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import apincer.mobile.tradings.R
 import apincer.mobile.tradings.domain.IndicatorSignal
 import java.util.Locale
 
@@ -52,8 +54,8 @@ fun HomeScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text("Market Pulse", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+            title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
         
         LazyColumn(
@@ -93,7 +95,7 @@ fun HomeScreen(
                             }
                             Spacer(Modifier.height(12.dp))
                             Text(
-                                text = "Our Story", 
+                                text = stringResource(R.string.label_our_story), 
                                 fontWeight = FontWeight.Bold, 
                                 fontSize = 14.sp
                             )
@@ -126,7 +128,7 @@ fun HomeScreen(
                             }
                             Spacer(Modifier.height(12.dp))
                             Text(
-                                text = "Academy", 
+                                text = stringResource(R.string.label_academy), 
                                 fontWeight = FontWeight.Bold, 
                                 fontSize = 14.sp
                             )
@@ -146,7 +148,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text(text = "Total Equity", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(text = stringResource(R.string.label_total_equity), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                             Text(
                                 text = "฿${String.format(Locale.ENGLISH, "%,.0f", totalEquity)}", 
                                 fontSize = 36.sp, 
@@ -167,7 +169,7 @@ fun HomeScreen(
 
             if (targetWatchList.isNotEmpty()) {
                 item {
-                    HomeSectionHeader(title = "Price Alerts", icon = Icons.Default.Star, color = MaterialTheme.colorScheme.secondary)
+                    SectionHeader(title = stringResource(R.string.section_price_alerts), icon = Icons.Default.Star, color = MaterialTheme.colorScheme.secondary)
                     Spacer(Modifier.height(16.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -182,7 +184,7 @@ fun HomeScreen(
 
             if (buySignals.isNotEmpty()) {
                 item {
-                    HomeSectionHeader(title = "Buy Signals", icon = Icons.AutoMirrored.Filled.TrendingUp, color = MaterialTheme.colorScheme.tertiary)
+                    SectionHeader(title = stringResource(R.string.section_buy_signals), icon = Icons.AutoMirrored.Filled.TrendingUp, color = MaterialTheme.colorScheme.tertiary)
                     Spacer(Modifier.height(16.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -197,7 +199,7 @@ fun HomeScreen(
 
             if (sellSignals.isNotEmpty()) {
                 item {
-                    HomeSectionHeader(title = "Exit Alerts", icon = Icons.AutoMirrored.Filled.TrendingDown, color = MaterialTheme.colorScheme.error)
+                    SectionHeader(title = stringResource(R.string.section_exit_alerts), icon = Icons.AutoMirrored.Filled.TrendingDown, color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(16.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -211,7 +213,7 @@ fun HomeScreen(
             }
 
             item {
-                HomeSectionHeader(title = "Top Holdings", icon = Icons.Default.PieChart)
+                SectionHeader(title = stringResource(R.string.section_top_holdings), icon = Icons.Default.PieChart)
                 Spacer(Modifier.height(16.dp))
                 if (portfolioItems.isEmpty()) {
                     GlassCard(
@@ -219,7 +221,7 @@ fun HomeScreen(
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
                     ) {
                         Box(modifier = Modifier.padding(40.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("No active holdings", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.label_no_active_holdings), fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -233,23 +235,6 @@ fun HomeScreen(
                 Spacer(Modifier.height(40.dp))
             }
         }
-    }
-}
-
-@Composable
-fun HomeSectionHeader(title: String, icon: ImageVector, color: Color = MaterialTheme.colorScheme.primary) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Surface(
-            color = color.copy(alpha = 0.1f),
-            shape = CircleShape,
-            modifier = Modifier.size(32.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Text(text = title, fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
     }
 }
 

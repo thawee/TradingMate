@@ -1,3 +1,200 @@
 <resources>
     <string name="app_name">TradingMate</string>
+
+    <!-- Screen Titles -->
+    <string name="title_portfolio">Portfolio</string>
+    <string name="title_watchlist">Watchlist</string>
+    <string name="title_history">History</string>
+    <string name="title_settings">Settings</string>
+    <string name="title_academy">Academy</string>
+    <string name="title_about">About</string>
+
+    <!-- Section Headers -->
+    <string name="section_price_alerts">Price Alerts</string>
+    <string name="section_buy_signals">Buy Signals</string>
+    <string name="section_exit_alerts">Exit Alerts</string>
+    <string name="section_top_holdings">Top Holdings</string>
+    <string name="section_active_holdings">Active Holdings</string>
+    <string name="section_trading_efficiency">Trading Efficiency</string>
+    <string name="section_recent_trades">Recent Trades</string>
+    <string name="section_data_management">Data Management</string>
+    <string name="section_appearance">Appearance</string>
+    <string name="section_market_valuation">Market Valuation</string>
+    <string name="section_core_financials">Core Financials</string>
+    <string name="section_dividends">Dividends</string>
+    <string name="section_strategy_zones">Strategy &amp; Zones</string>
+    <string name="section_technical_indicators">Technical Indicators</string>
+    <string name="section_focus_tracking">Focus Tracking</string>
+    <string name="section_success_path">Success Path</string>
+    <string name="section_risk_management">Risk Management</string>
+    <string name="section_the_sensors">The Sensors</string>
+
+    <!-- Labels & UI Elements -->
+    <string name="label_our_story">Our Story</string>
+    <string name="label_academy">Academy</string>
+    <string name="label_total_equity">Total Equity</string>
+    <string name="label_total_assets">Total Assets</string>
+    <string name="label_stocks_value">Stocks Value</string>
+    <string name="label_cash_balance">Cash Balance</string>
+    <string name="label_beginning_cash">Beginning Cash</string>
+    <string name="label_win_rate">Win Rate</string>
+    <string name="label_total_profit">Total Profit</string>
+    <string name="label_this_month">This Month</string>
+    <string name="label_this_year">This Year</string>
+    <string name="label_avg_win">Avg Win</string>
+    <string name="label_avg_loss">Avg Loss</string>
+    <string name="label_total_fees">Total Fees</string>
+    <string name="label_best_performer">Best Performer: </string>
+    <string name="label_returns">Returns</string>
+    <string name="label_market_cap">Market Cap</string>
+    <string name="label_volume">Volume</string>
+    <string name="label_last_sync">Last Sync: %1$s</string>
+    <string name="label_buy_below">Buy Below</string>
+    <string name="label_sell_above">Sell Above</string>
+    <string name="label_rsi_zones">RSI Zones</string>
+    <string name="label_price_return_history">Price Return History</string>
+    <string name="label_rsi_14">RSI (14)</string>
+    <string name="label_sma">SMA (50 / 200)</string>
+    <string name="label_bollinger_bands">Bollinger Bands</string>
+    <string name="label_lesson_learned">LESSON LEARNED</string>
+    <string name="label_stock_symbol">Stock Symbol</string>
+    <string name="label_quantity">Quantity</string>
+    <string name="label_avg_cost">Avg Cost per Share</string>
+    <string name="label_target">Target</string>
+    <string name="label_stop_loss">Stop Loss</string>
+    <string name="label_rr_ratio">R:R Ratio</string>
+    <string name="label_potential_gain">Potential Gain (Net)</string>
+    <string name="label_potential_risk">Potential Risk</string>
+    <string name="label_current_market_price">Current Market Price</string>
+    <string name="label_target_price_thb">Target Price (THB)</string>
+    <string name="label_target_price">Target: ฿%1$s</string>
+    <string name="label_gap">Gap</string>
+    <string name="label_over">Over</string>
+    <string name="label_no_active_holdings">No active holdings</string>
+    <string name="label_portfolio_empty">Portfolio is empty</string>
+    <string name="label_no_trade_history">No trade history yet</string>
+    <string name="label_no_focused_stocks">No focused stocks</string>
+    <string name="label_no_matches_found">No matches found</string>
+    <string name="label_focused_count">Focused on %1$d stocks</string>
+    <string name="label_monitoring_count">Monitoring %1$d stocks</string>
+    <string name="label_import_desc">Quickly add popular stock groups to your watchlist.</string>
+    <string name="label_backup_desc">Export your local data to a JSON file.</string>
+    <string name="label_restore_desc">Import data from a backup file.</string>
+    <string name="label_dynamic_theme">Dynamic Theme (System Default)</string>
+    <string name="label_app_version">Trading Mate v1.1.0</string>
+    <string name="label_app_tagline">Your personal premium trading companion.</string>
+    <string name="label_copyright">© 2024 apincer mobile</string>
+    <string name="label_rr_calculator">Risk/Reward Calculator</string>
+    <string name="label_suggested_strategy">Suggested: 10% Target / 5% Stop (2.0 R:R)</string>
+    <string name="label_current_holdings_count">Current holdings: %1$d shares</string>
+    <string name="label_sell_note">Lessons Learned / Note</string>
+    <string name="hint_sell_note">e.g. Sold too early, RSI was 80</string>
+    <string name="label_sell_price">Sell Price</string>
+    <string name="label_quantity_to_sell">Quantity to Sell</string>
+    <string name="label_current_balance">Current: ฿%1$s</string>
+    <string name="label_amount_thb">Amount (THB)</string>
+    <string name="label_search_results">Search Results</string>
+    <string name="label_search_stock">Search Stock Symbol</string>
+    <string name="label_partial_data_warning">Partial Data: Some fundamental metrics could not be fetched.</string>
+    <string name="label_focus_tracker_info">We\'ll track movement from ฿%1$s and alert you on the Home screen when the price hits your target (+/- 10%).</string>
+    <string name="label_rsi_meaning">Relative Strength Index. &lt; 30 is Cheap, &gt; 70 is Expensive.</string>
+    <string name="label_sma_meaning">Trend lines. Price above SMA indicates a strong uptrend.</string>
+    <string name="label_bb_meaning">Volatility tube. Price often bounces between these bands.</string>
+    <string name="label_premium_financials">Premium Financials</string>
+    <string name="label_high_dividend_alert">High Dividend Yield Alert!</string>
+    <string name="label_view_quote">View Official Quote ↗</string>
+    <string name="label_rsi_zone_desc">Targets based on RSI reversal levels (35 Buy / 65 Sell).</string>
+    <string name="label_start_price">Start Price</string>
+    <string name="label_roe">ROE (%)</string>
+    <string name="label_net_profit">Net Profit</string>
+    <string name="label_net_margin">Net Margin (%)</string>
+    <string name="label_3y_growth">3Y Growth (%)</string>
+    <string name="label_eps">EPS</string>
+    <string name="label_de_ratio">D/E Ratio</string>
+    <string name="label_dividend_yield">Dividend Yield (%)</string>
+    <string name="label_last_xd">Last XD Date</string>
+    <string name="label_yoc">My Yield on Cost</string>
+    <string name="label_pe_ratio">P/E Ratio</string>
+    <string name="label_pbv_ratio">P/BV Ratio</string>
+    <string name="label_book_value">Book Value (P/BV=1.0)</string>
+    <string name="label_rsi_zones_title">RSI Zones</string>
+    <string name="label_price_return_history_title">Price Return History</string>
+    <string name="label_volume_surge">VOLUME SURGE</string>
+    <string name="label_not_set">Not Set</string>
+
+    <!-- Dialog Titles & Actions -->
+    <string name="title_adjust_cash">Adjust Cash Balance</string>
+    <string name="title_record_purchase">Record Purchase</string>
+    <string name="title_edit_holding">Edit Holding</string>
+    <string name="title_sell_stock">Sell %1$s</string>
+    <string name="title_clear_history">Clear History</string>
+    <string name="title_clear_all_data">Clear All Data</string>
+    <string name="title_import_set">Import SET Collection</string>
+    <string name="title_add_stock">Add Stock</string>
+    <string name="title_focus_on">Focus on %1$s</string>
+
+    <string name="action_add_funds">Add Funds</string>
+    <string name="action_set_balance">Set Balance</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_add_to_portfolio">Add to Portfolio</string>
+    <string name="action_update">Update</string>
+    <string name="action_set_suggested">Set Suggested</string>
+    <string name="action_confirm_sell">Confirm Sell</string>
+    <string name="action_delete_all">Delete All</string>
+    <string name="action_clear_everything">Clear Everything</string>
+    <string name="action_close">Close</string>
+    <string name="action_add_manually">Add Manually</string>
+    <string name="action_confirm_focus">Confirm Focus</string>
+    <string name="action_backup_data">Backup Data</string>
+    <string name="action_restore_data">Restore Data</string>
+    <string name="action_ready_to_trade">I\'m ready to trade</string>
+
+    <!-- Content Descriptions -->
+    <string name="desc_refresh">Refresh</string>
+    <string name="desc_buy_stock">Buy Stock</string>
+    <string name="desc_import_set">Import SET</string>
+    <string name="desc_add_stock">Add Stock</string>
+    <string name="desc_clear_history">Clear History</string>
+    <string name="desc_back">Back</string>
+    <string name="desc_focus">Focus</string>
+
+    <!-- Confirmation Messages -->
+    <string name="confirm_clear_history">Are you sure you want to delete all trade history? This action cannot be undone.</string>
+    <string name="confirm_clear_all_data">Are you sure you want to clear all watchlist, portfolio and trade history? This cannot be undone.</string>
+
+    <!-- Academy/Education Content -->
+    <string name="edu_workflow_title">Master the Workflow</string>
+    <string name="edu_workflow_subtitle">Disciplined steps for consistent profit.</string>
+    <string name="edu_step1_title">1. Discovery (Quality First)</string>
+    <string name="edu_step1_content">Don\'t gamble on random stocks. Use the \'+\' button to import \'Dividend Stars\' or \'Bluechips\'. Look for the \'Solid Financials\' badge—these companies have high ROE (&gt;10%) and low debt.</string>
+    <string name="edu_step2_title">2. Monitoring (The Traffic Lights)</string>
+    <string name="edu_step2_content">Move stocks into your Watchlist. The app monitors them 24/7:\n\n• AMBER (Potential): The stock is getting cheap or testing support. Start planning!\n• GREEN (Buy): Confirmed value + confirmed momentum. High-probability entry point.</string>
+    <string name="edu_step3_title">3. Execution (The Plan)</string>
+    <string name="edu_step3_content">When you see a Buy signal, use the \'Risk/Reward Calculator\'. Set a target (+10-20%) and a stop loss (-5%). If the math doesn\'t show at least 2x reward for your risk, wait for a better price.</string>
+    <string name="edu_risk_mgmt_title">The Art of the \'Cut Loss\'</string>
+    <string name="edu_risk_mgmt_content">The most important rule in trading is preserving your capital. \n\n• Why: Small losses are easy to recover. A -50% loss requires a +100% gain just to break even.\n• When: If a stock drops -5% from your cost, the app will trigger a SELL signal. This is your cue to exit and protect your remaining cash.</string>
+    <string name="edu_yoc_title">Yield on Cost (YoC)</string>
+    <string name="edu_yoc_content">For dividend stocks, focus on your YoC. If you buy a stock at ฿10 with a ฿1 dividend, your YoC is 10%. Even if the price drops to ฿8, your YoC stays 10%—the app helps you see this \'Real Return\'.</string>
+    <string name="edu_rsi_title">RSI (The Speedometer)</string>
+    <string name="edu_rsi_content">The Relative Strength Index (14 days). \n\n• Target 35 (Value): The stock is oversold. Prices are \'compressed\' and ready to bounce.\n• Target 65 (Caution): The stock is overbought. Risk of a crash is high.</string>
+    <string name="edu_macd_title">MACD (The Momentum Switch)</string>
+    <string name="edu_macd_content">Think of this as the car\'s gears. Even if a stock is cheap (RSI 35), you wait for the MACD Histogram to turn GREEN. This confirms that the momentum is moving UP.</string>
+    <string name="edu_sma_title">SMA 50 &amp; 200 (Trend Guards)</string>
+    <string name="edu_sma_content">Moving Averages track the \'Average\' price over time.\n\n• SMA 200: The long-term \'Line in the Sand\'. It defines if we are in a Bull or Bear market.\n• SMA 50: Mid-term health. If price is above this, the trend is your friend.</string>
+    <string name="edu_bollinger_title">Bollinger Bands (Volatility)</string>
+    <string name="edu_bollinger_content">A \'Volatility Tube\' that wraps around price. \n\n• Lower Band (Value): Prices here are statistically cheap for their current movement.\n• Upper Band (Resistance): Prices here are stretched too far. High risk of a pullback.</string>
+    <string name="edu_golden_rule_title">The Golden Rule</string>
+    <string name="edu_golden_rule_content">SELL signals ALWAYS override BUY signals. If a stock has great momentum but hits RSI 65, the app will warn you to wait. Never buy at the peak!</string>
+
+    <!-- About Content -->
+    <string name="about_idea_title">The Idea</string>
+    <string name="about_idea_content">TradingMate was born from the need for a disciplined, emotionless approach to stock trading. It aims to replace guesswork with data-driven signals.</string>
+    <string name="about_concept_title">The Concept</string>
+    <string name="about_concept_content">Our philosophy is \'Quality First\'. We focus on dividend stocks with solid fundamentals, monitored through indicators like RSI and MACD to find high-probability zones.</string>
+    <string name="about_ai_title">Built with AI</string>
+    <string name="about_ai_content">This application is built through human-AI collaboration. It was architected and implemented with the assistance of Google\'s Gemini AI.</string>
+    <string name="about_creator_title">The Creator</string>
+    <string name="about_creator_content">Developed by Thawee P., a software engineer and trading enthusiast passionate about building tools for financial empowerement.</string>
+    <string name="about_copyright">© 2024 TradingMate Project</string>
+    <string name="about_tagline">Happy Trading! 🚀</string>
 </resources>

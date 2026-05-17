@@ -38,9 +38,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import apincer.mobile.tradings.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +67,7 @@ fun SettingsScreen(
     if (showDeleteConfirm) {
         GlassDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = "Clear All Data",
+            title = stringResource(R.string.title_clear_all_data),
             confirmButton = {
                 Button(
                     onClick = { 
@@ -76,45 +78,45 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Clear Everything", color = Color.White)
+                    Text(stringResource(R.string.action_clear_everything), color = Color.White)
                 }
             },
             dismissButton = {
                 
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         ) {
             
-            Text("Are you sure you want to clear all watchlist, portfolio and trade history? This cannot be undone.")
+            Text(stringResource(R.string.confirm_clear_all_data))
         }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text("Settings", fontWeight = FontWeight.Black) },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+            title = { Text(stringResource(R.string.title_settings), fontWeight = FontWeight.Black) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            SettingsSection(title = "Data Management", icon = Icons.Default.Info) {
+            SectionContent(title = stringResource(R.string.section_data_management), icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SettingsItem(
-                        title = "Backup Data",
-                        description = "Export your local data to a JSON file.",
+                        title = stringResource(R.string.action_backup_data),
+                        description = stringResource(R.string.label_backup_desc),
                         icon = Icons.Default.FileDownload,
                         onClick = { exportLauncher.launch("trading_mate_backup_${System.currentTimeMillis()}.json") }
                     )
                     
                     SettingsItem(
-                        title = "Restore Data",
-                        description = "Import data from a backup file.",
+                        title = stringResource(R.string.action_restore_data),
+                        description = stringResource(R.string.label_restore_desc),
                         icon = Icons.Default.FileUpload,
                         onClick = { importLauncher.launch(arrayOf("application/json")) }
                     )
@@ -130,19 +132,19 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Clear All Data", fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.title_clear_all_data), fontWeight = FontWeight.Black)
                     }
                 }
             }
 
-            SettingsSection(title = "Appearance", icon = Icons.Default.ColorLens) {
+            SectionContent(title = stringResource(R.string.section_appearance), icon = Icons.Default.ColorLens) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
                 ) {
                     
                     Text(
-                        "Dynamic Theme (System Default)", 
+                        stringResource(R.string.label_dynamic_theme), 
                         modifier = Modifier.padding(20.dp),
                         style = MaterialTheme.typography.bodyMedium, 
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -157,39 +159,17 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     
-                    Text("Trading Mate v1.1.0", fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
+                    Text(stringResource(R.string.label_app_version), fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
                     
-                    Text("Your personal premium trading companion.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.label_app_tagline), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     
-                    Text("© 2024 apincer mobile", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    Text(stringResource(R.string.label_copyright), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                 }
             }
             
             Spacer(Modifier.height(40.dp))
         }
-    }
-}
-
-@Composable
-fun SettingsSection(title: String, icon: ImageVector, content: @Composable () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                shape = CircleShape,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                }
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface, letterSpacing = (-0.5).sp)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        content()
     }
 }
 

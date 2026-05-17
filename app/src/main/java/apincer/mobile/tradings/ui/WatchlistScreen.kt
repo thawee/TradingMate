@@ -13,15 +13,17 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.StockEntity
 import apincer.mobile.tradings.domain.IndicatorSignal
 
@@ -93,17 +95,17 @@ fun WatchlistScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text("Watchlist", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+            title = { Text(stringResource(R.string.title_watchlist), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
                 IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.desc_refresh), modifier = Modifier.size(24.dp))
                 }
                 IconButton(onClick = { showImportDialog = true }) {
-                    Icon(Icons.Default.CloudDownload, contentDescription = "Import SET")
+                    Icon(Icons.Default.CloudDownload, contentDescription = stringResource(R.string.desc_import_set), modifier = Modifier.size(24.dp))
                 }
                 IconButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Stock")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.desc_add_stock), modifier = Modifier.size(24.dp))
                 }
             }
         )
@@ -117,30 +119,14 @@ fun WatchlistScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        // Sorting, Filtering & Counter Row
+        // Sorting, Filtering Row
         LazyRow(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             item {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = CircleShape,
-                    border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                ) {
-                    Text(
-                        text = "${processedList.size}", 
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            item {
-                Icon(Icons.Default.Sort, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             items(WatchlistSortOrder.entries.toList()) { order ->
                 FilterChip(
@@ -154,23 +140,23 @@ fun WatchlistScreen(
                     )
                 )
             }
-            /*
-            item {
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            items(WatchlistFilter.entries.toList()) { filter ->
-                FilterChip(
-                    selected = activeFilter == filter,
-                    onClick = { activeFilter = filter },
-                    label = { Text(filter.label, fontSize = 10.sp) },
-                    shape = CircleShape,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-                        selectedLabelColor = MaterialTheme.colorScheme.secondary
-                    )
-                )
-            } */
+        }
+
+        // Monitor Count Display
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (selectedTab == WatchlistTab.FOCUS) {
+                    stringResource(R.string.label_focused_count, processedList.size)
+                } else {
+                    stringResource(R.string.label_monitoring_count, processedList.size)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold
+            )
         }
         
         LazyColumn(
@@ -187,7 +173,7 @@ fun WatchlistScreen(
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = if (selectedTab == WatchlistTab.FOCUS) "No focused stocks" else "No matches found", 
+                                text = if (selectedTab == WatchlistTab.FOCUS) stringResource(R.string.label_no_focused_stocks) else stringResource(R.string.label_no_matches_found), 
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -238,14 +224,14 @@ fun ImportCollectionDialog(
 ) {
     GlassDialog(
         onDismissRequest = onDismiss,
-        title = "Import SET Collection",
+        title = stringResource(R.string.title_import_set),
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         }
     ) {
         val collections = listOf("SET50", "SET100", "SETHD", "DIVIDEND", "BLUECHIP")
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Quickly add popular stock groups to your watchlist.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.label_import_desc), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             
             collections.forEach { category ->
                 Surface(
@@ -280,7 +266,7 @@ fun AddStockDialog(
 
     GlassDialog(
         onDismissRequest = onDismiss,
-        title = "Add Stock",
+        title = stringResource(R.string.title_add_stock),
         confirmButton = {
             Button(
                 onClick = { 
@@ -289,12 +275,12 @@ fun AddStockDialog(
                 enabled = query.isNotBlank(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Add Manually")
+                Text(stringResource(R.string.action_add_manually))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     ) {
@@ -305,7 +291,7 @@ fun AddStockDialog(
                     query = it
                     viewModel.searchStocks(it)
                 },
-                label = { Text("Search Stock Symbol") },
+                label = { Text(stringResource(R.string.label_search_stock)) },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true,
@@ -314,7 +300,7 @@ fun AddStockDialog(
 
             if (searchResults.isNotEmpty()) {
                 Text(
-                    text = "Search Results", 
+                    text = stringResource(R.string.label_search_results), 
                     style = MaterialTheme.typography.labelMedium, 
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold

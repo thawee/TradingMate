@@ -33,9 +33,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.StockEntity
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.util.Locale
@@ -74,14 +76,14 @@ fun PortfolioScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text("Portfolio", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+            title = { Text(stringResource(R.string.title_portfolio), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
                 IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.desc_refresh), modifier = Modifier.size(24.dp))
                 }
                 IconButton(onClick = { showBuyDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Buy Stock", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.desc_buy_stock), modifier = Modifier.size(24.dp))
                 }
             }
         )
@@ -107,22 +109,11 @@ fun PortfolioScreen(
             }
 
             item {
-                Row(
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
-                        }
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text(text = "Active Holdings", fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
-                }
+                SectionHeader(
+                    title = stringResource(R.string.section_active_holdings), 
+                    icon = Icons.Default.AccountBalance,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                )
             }
 
             if (portfolioItems.isEmpty()) {
@@ -132,7 +123,7 @@ fun PortfolioScreen(
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Portfolio is empty", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                            Text(stringResource(R.string.label_portfolio_empty), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                         }
                     }
                 }
@@ -206,30 +197,30 @@ fun AdjustCashDialog(
     
     GlassDialog(
         onDismissRequest = onDismiss,
-        title = "Adjust Cash Balance",
+        title = stringResource(R.string.title_adjust_cash),
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { onConfirm(amount.toDoubleOrNull() ?: 0.0, false) }) {
-                    Text("Add Funds")
+                    Text(stringResource(R.string.action_add_funds))
                 }
                 Button(
                     onClick = { onConfirm(amount.toDoubleOrNull() ?: 0.0, true) }, 
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Set Balance")
+                    Text(stringResource(R.string.action_set_balance))
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Current: ฿${String.format(Locale.ENGLISH, "%,.2f", currentBalance)}", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.label_current_balance, String.format(Locale.ENGLISH, "%,.2f", currentBalance)), style = MaterialTheme.typography.bodyLarge)
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it },
-                label = { Text("Amount (THB)") },
+                label = { Text(stringResource(R.string.label_amount_thb)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                 singleLine = true,
@@ -258,12 +249,12 @@ fun BuyStockDialog(
     val stopLoss = stopLossPrice.toDoubleOrNull() ?: 0.0
 
     val suggestion = if (entry > 0) {
-        Triple(1.10, 0.95, "Suggested: 10% Target / 5% Stop (2.0 R:R)")
+        Triple(1.10, 0.95, stringResource(R.string.label_suggested_strategy))
     } else null
 
     GlassDialog(
         onDismissRequest = onDismiss,
-        title = if (initialStock == null) "Record Purchase" else "Edit Holding",
+        title = if (initialStock == null) stringResource(R.string.title_record_purchase) else stringResource(R.string.title_edit_holding),
         confirmButton = {
             Button(
                 onClick = { 
@@ -273,12 +264,12 @@ fun BuyStockDialog(
                 },
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(if (initialStock == null) "Add to Portfolio" else "Update")
+                Text(if (initialStock == null) stringResource(R.string.action_add_to_portfolio) else stringResource(R.string.action_update))
             }
         },
         dismissButton = {
             
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     ) {
         LazyColumn(
@@ -290,7 +281,7 @@ fun BuyStockDialog(
                     OutlinedTextField(
                         value = symbol,
                         onValueChange = { symbol = it.uppercase() },
-                        label = { Text("Stock Symbol") },
+                        label = { Text(stringResource(R.string.label_stock_symbol)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = initialStock == null,
                         shape = RoundedCornerShape(14.dp)
@@ -298,7 +289,7 @@ fun BuyStockDialog(
                     OutlinedTextField(
                         value = entryPrice,
                         onValueChange = { entryPrice = it },
-                        label = { Text("Avg Cost per Share") },
+                        label = { Text(stringResource(R.string.label_avg_cost)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -308,7 +299,7 @@ fun BuyStockDialog(
                     OutlinedTextField(
                         value = qty,
                         onValueChange = { qty = it },
-                        label = { Text("Quantity") },
+                        label = { Text(stringResource(R.string.label_quantity)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -323,7 +314,7 @@ fun BuyStockDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
-                        Text("Risk/Reward Calculator", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(stringResource(R.string.label_rr_calculator), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                     
                     suggestion?.let { sug ->
@@ -338,7 +329,7 @@ fun BuyStockDialog(
                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
                                 Spacer(Modifier.width(4.dp))
-                                Text("Set Suggested", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Text(stringResource(R.string.action_set_suggested), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
                             }
                         }
                     }
@@ -352,7 +343,7 @@ fun BuyStockDialog(
                     OutlinedTextField(
                         value = targetPrice,
                         onValueChange = { targetPrice = it },
-                        label = { Text("Target") },
+                        label = { Text(stringResource(R.string.label_target)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f),
@@ -362,7 +353,7 @@ fun BuyStockDialog(
                     OutlinedTextField(
                         value = stopLossPrice,
                         onValueChange = { stopLossPrice = it },
-                        label = { Text("Stop Loss") },
+                        label = { Text(stringResource(R.string.label_stop_loss)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f),
@@ -390,7 +381,7 @@ fun BuyStockDialog(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("R:R Ratio", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.label_rr_ratio), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 Text("1 : ${String.format(Locale.ENGLISH, "%.2f", rrRatio)}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
                             }
                             LinearProgressIndicator(
@@ -402,11 +393,11 @@ fun BuyStockDialog(
                             Spacer(Modifier.height(8.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column {
-                                    Text("Potential Gain (Net)", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.label_potential_gain), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text("฿${String.format(Locale.ENGLISH, "%,.2f", netReward)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("Potential Risk", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.label_potential_risk), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text("฿${String.format(Locale.ENGLISH, "%,.2f", totalRisk)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                                 }
                             }
@@ -430,7 +421,7 @@ fun SellStockDialog(
 
     GlassDialog(
         onDismissRequest = onDismiss,
-        title = "Sell ${stock.info.symbol}",
+        title = stringResource(R.string.title_sell_stock, stock.info.symbol),
         confirmButton = {
             Button(
                 onClick = { 
@@ -442,19 +433,19 @@ fun SellStockDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Confirm Sell", color = Color.White)
+                Text(stringResource(R.string.action_confirm_sell), color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Current holdings: ${stock.portfolio.quantity} shares", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.label_current_holdings_count, stock.portfolio.quantity), fontSize = 13.sp, fontWeight = FontWeight.Medium)
             OutlinedTextField(
                 value = price,
                 onValueChange = { price = it },
-                label = { Text("Sell Price") },
+                label = { Text(stringResource(R.string.label_sell_price)) },
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -464,7 +455,7 @@ fun SellStockDialog(
             OutlinedTextField(
                 value = qty,
                 onValueChange = { qty = it },
-                label = { Text("Quantity to Sell") },
+                label = { Text(stringResource(R.string.label_quantity_to_sell)) },
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -473,8 +464,8 @@ fun SellStockDialog(
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text("Lessons Learned / Note") },
-                placeholder = { Text("e.g. Sold too early, RSI was 80") },
+                label = { Text(stringResource(R.string.label_sell_note)) },
+                placeholder = { Text(stringResource(R.string.hint_sell_note)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp)
             )

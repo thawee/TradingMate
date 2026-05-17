@@ -3,7 +3,6 @@ package apincer.mobile.tradings.ui
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,16 +14,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.ScrapedStockInfo
 import apincer.mobile.tradings.data.StockEntity
 import apincer.mobile.tradings.domain.IndicatorSignal
@@ -32,17 +33,15 @@ import apincer.mobile.tradings.domain.TechnicalAnalysis
 import apincer.mobile.tradings.domain.TradeSignal
 import apincer.mobile.tradings.domain.TradingZone
 import java.util.Locale
-import android.os.Build
-import androidx.compose.ui.text.style.TextAlign
 
-enum class Screen(val label: String, val icon: ImageVector, val inBottomBar: Boolean = true) {
-    HOME("Home", Icons.Default.Dashboard),
-    PORTFOLIO("Portfolio", Icons.Default.AccountBalance),
-    WATCHLIST("Watchlist", Icons.Default.QueryStats),
-    STATS("History", Icons.Default.History),
-    SETTINGS("Settings", Icons.Default.Settings),
-    EDUCATION("Academy", Icons.Default.School, false),
-    ABOUT("About", Icons.Default.Info, false)
+enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: Boolean = true) {
+    HOME(R.string.app_name, Icons.Default.Dashboard),
+    PORTFOLIO(R.string.title_portfolio, Icons.Default.AccountBalance),
+    WATCHLIST(R.string.title_watchlist, Icons.Default.QueryStats),
+    STATS(R.string.title_history, Icons.Default.History),
+    SETTINGS(R.string.title_settings, Icons.Default.Settings),
+    EDUCATION(R.string.title_academy, Icons.Default.School, false),
+    ABOUT(R.string.title_about, Icons.Default.Info, false)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,9 +65,10 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                         tonalElevation = 0.dp
                     ) {
                         Screen.entries.filter { it.inBottomBar }.forEach { screen ->
+                            val label = stringResource(screen.labelResId)
                             NavigationBarItem(
-                                icon = { Icon(screen.icon, contentDescription = screen.label, modifier = Modifier.size(24.dp)) },
-                                label = { Text(screen.label, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp) },
+                                icon = { Icon(screen.icon, contentDescription = label, modifier = Modifier.size(24.dp)) },
+                                label = { Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp) },
                                 selected = currentScreen == screen,
                                 alwaysShowLabel = true,
                                 onClick = { 
@@ -136,10 +136,10 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                             ) {
                                 CenterAlignedTopAppBar(
                                     title = { Text(state.stockInfo.symbol, fontWeight = FontWeight.Black) },
-                                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+                                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                                     navigationIcon = {
                                         IconButton(onClick = { viewModel.resetToInitial() }) {
-                                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back), modifier = Modifier.size(24.dp))
                                         }
                                     },
                                     actions = {
@@ -154,8 +154,9 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                         ) {
                                             Icon(
                                                 imageVector = if (state.isFocused) Icons.Default.Star else Icons.Default.StarBorder, 
-                                                contentDescription = "Focus",
-                                                tint = if (state.isFocused) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                contentDescription = stringResource(R.string.desc_focus),
+                                                tint = if (state.isFocused) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(24.dp)
                                             )
                                         }
                                     }
@@ -179,7 +180,7 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                         Spacer(Modifier.height(16.dp))
                                         Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                                         Spacer(Modifier.height(24.dp))
-                                        Button(onClick = { viewModel.resetToInitial() }, shape = RoundedCornerShape(12.dp)) { Text("Back") }
+                                        Button(onClick = { viewModel.resetToInitial() }, shape = RoundedCornerShape(12.dp)) { Text(stringResource(R.string.desc_back)) }
                                     }
                                 }
                             }
@@ -219,43 +220,56 @@ fun FocusSettingsDialog(
 
     GlassDialog(
         onDismissRequest = onDismiss,
-        title = "Focus on $symbol",
+        title = stringResource(R.string.title_focus_on, symbol),
         confirmButton = {
             Button(
-                onClick = { 
+                onClick = {
                     val target = targetPrice.toDoubleOrNull() ?: 0.0
                     onConfirm(target)
                 },
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Confirm Focus")
+                Text(stringResource(R.string.action_confirm_focus))
             }
         },
         dismissButton = {
-            
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            
-            Text("Market Price: ฿$currentPrice", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.label_current_market_price), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("฿$currentPrice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+            }
+
             OutlinedTextField(
                 value = targetPrice,
                 onValueChange = { targetPrice = it },
-                label = { Text("Target Price (THB)") },
+                label = { Text(stringResource(R.string.label_target_price_thb)) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                 singleLine = true,
+                prefix = { Text("฿ ") },
                 shape = RoundedCornerShape(14.dp)
             )
-            
-            Text(
-                "We'll track movement from ฿$currentPrice and alert you on Home screen when price hits target (+/- 10%).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.label_focus_tracker_info, currentPrice.toString()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(12.dp),
+                    lineHeight = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
@@ -286,31 +300,31 @@ fun StockDashboard(state: StockUiState.Success) {
                     Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     
-                    Text("Partial Data: Some fundamental metrics could not be fetched.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.label_partial_data_warning), fontSize = 11.sp, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Medium)
                 }
             }
         }
 
         if (state.isFocused) {
-            DashboardSection(title = "Focus Tracking", icon = Icons.Default.Star) {
+            SectionContent(title = stringResource(R.string.section_focus_tracking), icon = Icons.Default.Star) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         
-                        Text("Start Price", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.label_start_price), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         
                         Text("฿${String.format(Locale.ENGLISH, "%.2f", state.stockInfo.lastPrice / (1 + (state.returns[3] ?: 0.0)/100))}", fontSize = 18.sp, fontWeight = FontWeight.Black)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         
-                        Text("Target Price", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.label_target), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         
-                        Text(if (state.focusTargetPrice > 0) "฿${state.focusTargetPrice}" else "Not Set", fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        Text(if (state.focusTargetPrice > 0) "฿${state.focusTargetPrice}" else stringResource(R.string.label_not_set), fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
         }
 
-        DashboardSection {
+        SectionContent {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -323,7 +337,7 @@ fun StockDashboard(state: StockUiState.Success) {
                     }
 
                     if (state.isVolumeSurge) {
-                        GlassTag(text = "VOLUME SURGE", color = MaterialTheme.colorScheme.secondary)
+                        GlassTag(text = stringResource(R.string.label_volume_surge), color = MaterialTheme.colorScheme.secondary)
                     }
                 }
 
@@ -351,7 +365,7 @@ fun StockDashboard(state: StockUiState.Success) {
                     modifier = Modifier.height(32.dp)
                 ) {
                     
-                    Text("View Official Quote ↗", fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black)
+                    Text(stringResource(R.string.label_view_quote), fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -395,7 +409,7 @@ fun StockDashboard(state: StockUiState.Success) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     
-                    Text(text = "Market Cap", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(text = stringResource(R.string.label_market_cap), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     
                     Text(
                         text = info.marketCap?.let { "฿${formatLargeNumber(it)}" } ?: "N/A",
@@ -405,7 +419,7 @@ fun StockDashboard(state: StockUiState.Success) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     
-                    Text(text = "Volume", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(text = stringResource(R.string.label_volume), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     
                     Text(
                         text = info.volume?.let { formatLargeNumber(it.toDouble()) } ?: "N/A",
@@ -422,7 +436,7 @@ fun StockDashboard(state: StockUiState.Success) {
 
             
             Text(
-                text = "Last Sync: ${info.lastUpdated}", 
+                text = stringResource(R.string.label_last_sync, info.lastUpdated), 
                 fontSize = 10.sp, 
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), 
                 modifier = Modifier.padding(top = 12.dp),
@@ -430,30 +444,30 @@ fun StockDashboard(state: StockUiState.Success) {
             )
         }
 
-        DashboardSection(title = "Market Valuation", icon = Icons.Default.QueryStats) {
-            IndicatorRow("P/E Ratio", info.pe?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
-            IndicatorRow("P/BV Ratio", info.pbv?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
-            IndicatorRow("Book Value (P/BV=1.0)", info.bookValue?.let { String.format(Locale.ENGLISH,"฿%.2f", it) } ?: "N/A")
+        SectionContent(title = stringResource(R.string.section_market_valuation), icon = Icons.Default.QueryStats) {
+            IndicatorRow(stringResource(R.string.label_pe_ratio), info.pe?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_pbv_ratio), info.pbv?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_book_value), info.bookValue?.let { String.format(Locale.ENGLISH,"฿%.2f", it) } ?: "N/A")
         }
 
-        DashboardSection(title = "Core Financials", icon = Icons.Default.AccountBalance) {
+        SectionContent(title = stringResource(R.string.section_core_financials), icon = Icons.Default.AccountBalance) {
             if (info.isFundamentalGood) {
                 QualityStockBadge()
             }
-            IndicatorRow("ROE (%)", info.roe?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
-            IndicatorRow("Net Profit", info.netProfit?.let { "฿${String.format(Locale.ENGLISH,"%,.0f M", it)}" } ?: "N/A")
-            IndicatorRow("Net Margin (%)", info.netProfitMargin?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
-            IndicatorRow("3Y Growth (%)", info.profitGrowth3Y?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
-            IndicatorRow("EPS", info.eps?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
-            IndicatorRow("D/E Ratio", info.debtToEquity?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_roe), info.roe?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_net_profit), info.netProfit?.let { "฿${String.format(Locale.ENGLISH,"%,.0f M", it)}" } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_net_margin), info.netProfitMargin?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_3y_growth), info.profitGrowth3Y?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_eps), info.eps?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_de_ratio), info.debtToEquity?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")
         }
 
-        DashboardSection(title = "Dividends", icon = Icons.Default.AutoAwesome) {
+        SectionContent(title = stringResource(R.string.section_dividends), icon = Icons.Default.AutoAwesome) {
             if ((info.dividendYield ?: 0.0) > 4.0) {
                 HighDividendBadge()
             }
-            IndicatorRow("Dividend Yield (%)", info.dividendYield?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "No Payout")
-            IndicatorRow("Last XD Date", info.dividendDate ?: "N/A")
+            IndicatorRow(stringResource(R.string.label_dividend_yield), info.dividendYield?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "No Payout")
+            IndicatorRow(stringResource(R.string.label_last_xd), info.dividendDate ?: "N/A")
 
             if (portfolio != null) {
                 val yieldOnCost = if (portfolio.cost > 0 && info.dividendYield != null) {
@@ -461,32 +475,32 @@ fun StockDashboard(state: StockUiState.Success) {
                 } else null
 
                 if (yieldOnCost != null) {
-                    IndicatorRow("My Yield on Cost", "${String.format(Locale.ENGLISH,"%.2f", yieldOnCost)}%")
+                    IndicatorRow(stringResource(R.string.label_yoc), "${String.format(Locale.ENGLISH,"%.2f", yieldOnCost)}%")
                 }
             }
         }
 
-        DashboardSection(title = "Strategy & Zones", icon = Icons.Default.TrackChanges) {
+        SectionContent(title = stringResource(R.string.section_strategy_zones), icon = Icons.Default.TrackChanges) {
             
-            Text(text = "RSI Zones", fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
+            Text(text = stringResource(R.string.label_rsi_zones_title), fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TargetPriceBadge(
-                    label = "Buy Below",
+                    label = stringResource(R.string.label_buy_below),
                     price = state.buyingPrice,
                     color = MaterialTheme.colorScheme.tertiary
                 )
                 TargetPriceBadge(
-                    label = "Sell Above",
+                    label = stringResource(R.string.label_sell_above),
                     price = state.sellingPrice,
                     color = MaterialTheme.colorScheme.error
                 )
             }
             
             Text(
-                text = "Targets based on RSI reversal levels (35 Buy / 65 Sell).",
+                text = stringResource(R.string.label_rsi_zone_desc),
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
@@ -494,7 +508,7 @@ fun StockDashboard(state: StockUiState.Success) {
             )
 
             
-            Text(text = "Price Return History", fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
+            Text(text = stringResource(R.string.label_price_return_history_title), fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -506,27 +520,27 @@ fun StockDashboard(state: StockUiState.Success) {
             }
         }
 
-        DashboardSection(title = "Technical Indicators", icon = Icons.AutoMirrored.Filled.TrendingUp) {
+        SectionContent(title = stringResource(R.string.section_technical_indicators), icon = Icons.AutoMirrored.Filled.TrendingUp) {
             TechnicalIndicatorItem(
-                label = "RSI (14)",
+                label = stringResource(R.string.label_rsi_14),
                 value = String.format(Locale.ENGLISH,"%.2f", state.rsi ?: 0.0),
-                meaning = "Relative Strength Index. < 30 is Cheap, > 70 is Expensive."
+                meaning = stringResource(R.string.label_rsi_meaning)
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp).alpha(0.05f))
 
             TechnicalIndicatorItem(
-                label = "SMA (50 / 200)",
+                label = stringResource(R.string.label_sma),
                 value = "${String.format(Locale.ENGLISH,"%.2f", state.sma50 ?: 0.0)} / ${String.format(Locale.ENGLISH,"%.2f", state.sma200 ?: 0.0)}",
-                meaning = "Trend lines. Price above SMA indicates a strong uptrend."
+                meaning = stringResource(R.string.label_sma_meaning)
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp).alpha(0.05f))
 
             TechnicalIndicatorItem(
-                label = "Bollinger Bands",
+                label = stringResource(R.string.label_bollinger_bands),
                 value = state.bb?.let { "${String.format(Locale.ENGLISH,"%.2f", it.lower)} - ${String.format(Locale.ENGLISH,"%.2f", it.upper)}" } ?: "N/A",
-                meaning = "Volatility tube. Price often bounces between these bands."
+                meaning = stringResource(R.string.label_bollinger_bands)
             )
         }
 
@@ -591,33 +605,6 @@ fun formatLargeNumber(number: Double): String {
 }
 
 @Composable
-fun DashboardSection(title: String? = null, icon: ImageVector? = null, content: @Composable () -> Unit) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            if (title != null && icon != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.width(12.dp))
-                    
-                    Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface, letterSpacing = (-0.5).sp)
-                }
-                Spacer(modifier = Modifier.height(20.dp))
-            }
-            content()
-        }
-    }
-}
-
-@Composable
 fun TechnicalIndicatorItem(label: String, value: String, meaning: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -660,7 +647,7 @@ fun StockPortfolioSummaryCard(portfolio: StockEntity, info: ScrapedStockInfo, ne
     ) {
         Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.End) {
             
-            Text("Returns", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.label_returns), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             val profitColor = if (netProfitValue >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
             
             Text(
@@ -692,7 +679,7 @@ fun QualityStockBadge() {
             
             Spacer(Modifier.width(8.dp))
             
-            Text("Premium Financials", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black, fontSize = 12.sp)
+            Text(stringResource(R.string.label_premium_financials), color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black, fontSize = 12.sp)
         }
     }
 }
@@ -707,7 +694,7 @@ fun HighDividendBadge() {
     ) {
         
         Text(
-            text = "High Dividend Yield Alert!",
+            text = stringResource(R.string.label_high_dividend_alert),
             color = MaterialTheme.colorScheme.tertiary,
             fontWeight = FontWeight.Black,
             fontSize = 11.sp,
