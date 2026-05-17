@@ -25,7 +25,7 @@
     <string name="action_set_balance">Set Balance</string>
     <string name="action_set_suggested">Set Suggested</string>
     <string name="action_update">Update</string>
-    <string name="app_name">TradingMate</string>
+    <string name="app_name">Trading Mate</string>
     <string name="confirm_clear_all_data">Are you sure you want to clear all watchlist, portfolio and trade history? This cannot be undone.</string>
     <string name="confirm_clear_history">Are you sure you want to delete all trade history? This action cannot be undone.</string>
     <string name="desc_add_stock">Add Stock</string>
@@ -141,13 +141,13 @@
     <string name="label_target_price_thb">Target Price (THB)</string>
     <string name="label_this_month">This Month</string>
     <string name="label_this_year">This Year</string>
-    <string name="label_to_buy">To Buy</string>
-    <string name="label_to_sell">To Sell</string>
+    <string name="label_to_buy">Buy Alert</string>
+    <string name="label_to_sell">Sale Alert</string>
     <string name="label_total_assets">Total Assets</string>
     <string name="label_total_equity">Total Equity</string>
     <string name="label_total_fees">Total Fees</string>
     <string name="label_total_profit">Total Profit</string>
-    <string name="label_total_symbols">Symbols</string>
+    <string name="label_total_symbols">Total Symbols</string>
     <string name="label_view_quote">View Official Quote ↗</string>
     <string name="label_volume">Volume</string>
     <string name="label_volume_surge">VOLUME SURGE</string>
