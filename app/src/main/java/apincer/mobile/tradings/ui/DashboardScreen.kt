@@ -87,6 +87,67 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(text = stringResource(R.string.label_total_equity), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                text = "฿${String.format(Locale.ENGLISH, "%,.0f", totalEquity)}", 
+                                fontSize = 36.sp, 
+                                fontWeight = FontWeight.Black, 
+                                color = MaterialTheme.colorScheme.onSurface,
+                                letterSpacing = (-1).sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.label_active_holdings_count, portfolioItems.size),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp).alpha(0.2f),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            item {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        SectionHeader(
+                            title = stringResource(R.string.section_market_summary), 
+                            icon = Icons.Default.QueryStats,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            SummaryStat(stringResource(R.string.label_total_symbols), watchlist.size, MaterialTheme.colorScheme.primary)
+                            SummaryStat(stringResource(R.string.label_to_sell), sellSignals.size, MaterialTheme.colorScheme.error)
+                            SummaryStat(stringResource(R.string.label_to_buy), buySignals.size, MaterialTheme.colorScheme.tertiary)
+                            SummaryStat(stringResource(R.string.label_attentions), potentialSignals.size, MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                }
+            }
+
+            item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -154,67 +215,6 @@ fun DashboardScreen(
                                 fontWeight = FontWeight.Bold, 
                                 fontSize = 14.sp
                             )
-                        }
-                    }
-                }
-            }
-
-            item {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(24.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(text = stringResource(R.string.label_total_equity), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            Text(
-                                text = "฿${String.format(Locale.ENGLISH, "%,.0f", totalEquity)}", 
-                                fontSize = 36.sp, 
-                                fontWeight = FontWeight.Black, 
-                                color = MaterialTheme.colorScheme.onSurface,
-                                letterSpacing = (-1).sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.label_active_holdings_count, portfolioItems.size),
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.AccountBalance,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp).alpha(0.2f),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-
-            item {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        SectionHeader(
-                            title = stringResource(R.string.section_market_summary), 
-                            icon = Icons.Default.QueryStats,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            SummaryStat(stringResource(R.string.label_total_symbols), watchlist.size, MaterialTheme.colorScheme.primary)
-                            SummaryStat(stringResource(R.string.label_to_sell), sellSignals.size, MaterialTheme.colorScheme.error)
-                            SummaryStat(stringResource(R.string.label_to_buy), buySignals.size, MaterialTheme.colorScheme.tertiary)
-                            SummaryStat(stringResource(R.string.label_attentions), potentialSignals.size, MaterialTheme.colorScheme.secondary)
                         }
                     }
                 }

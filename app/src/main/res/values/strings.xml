@@ -123,12 +123,12 @@
     <string name="label_rsi_zones_title">RSI Zones</string>
     <string name="label_price_return_history_title">Price Return History</string>
     <string name="label_volume_surge">VOLUME SURGE</string>
-    <string name="label_not_set">Not Set</string>
-    <string name="label_to_sell">To Sell</string>
-    <string name="label_to_buy">To Buy</string>
+    <string name="label_total_symbols">Total Symbols</string>
+    <string name="label_to_sell">Sale Alert</string>
+    <string name="label_to_buy">Buy Alert</string>
     <string name="label_attentions">Attentions</string>
-    <string name="label_total_symbols">Symbols</string>
     <string name="label_active_holdings_count">%1$d Active Holdings</string>
+    <string name="label_not_set">Not Set</string>
 
     <!-- Dialog Titles & Actions -->
     <string name="title_adjust_cash">Adjust Cash Balance</string>
