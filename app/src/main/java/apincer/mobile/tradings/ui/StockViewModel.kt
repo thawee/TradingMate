@@ -54,6 +54,7 @@ sealed class StockUiState {
         val buyingPrice: Double? = null,
         val sellingPrice: Double? = null,
         val isFocused: Boolean = false,
+        val focusStartPrice: Double = 0.0,
         val focusTargetPrice: Double = 0.0,
         val historicalPrices: List<Double> = emptyList()
     ) : StockUiState()
@@ -338,15 +339,41 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addToFocusList(symbol: String, price: Double, targetPrice: Double = 0.0) {
         viewModelScope.launch {
-            repository.addToFocusList(symbol, price, targetPrice)
-            repository.addStockIfMissing(symbol)
+            val normalizedSymbol = symbol.uppercase()
+            val existing = repository.getFocusStock(normalizedSymbol)
+            val startPrice = existing?.startPrice ?: price
+            
+            repository.addToFocusList(normalizedSymbol, startPrice, targetPrice)
+            repository.addStockIfMissing(normalizedSymbol)
+            
+            // Update current UI state immediately for reactivity
+            val currentState = _uiState.value
+            if (currentState is StockUiState.Success && currentState.stockInfo.symbol == normalizedSymbol) {
+                _uiState.value = currentState.copy(
+                    isFocused = true,
+                    focusStartPrice = startPrice,
+                    focusTargetPrice = targetPrice
+                )
+            }
+            
             refreshWatchlistInfo()
         }
     }
 
     fun removeFromFocusList(symbol: String) {
         viewModelScope.launch {
-            repository.removeFromFocusList(symbol)
+            val normalizedSymbol = symbol.uppercase()
+            repository.removeFromFocusList(normalizedSymbol)
+            
+            // Update current UI state immediately for reactivity
+            val currentState = _uiState.value
+            if (currentState is StockUiState.Success && currentState.stockInfo.symbol == normalizedSymbol) {
+                _uiState.value = currentState.copy(
+                    isFocused = false,
+                    focusStartPrice = 0.0,
+                    focusTargetPrice = 0.0
+                )
+            }
         }
     }
 
@@ -597,6 +624,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     val focusEntry = repository.getFocusStock(symbol)
                     val isFocused = focusEntry != null
+                    val focusStart = focusEntry?.startPrice ?: 0.0
                     val focusTarget = focusEntry?.targetPrice ?: 0.0
 
                     // Optional: Update cache for this single stock too
@@ -636,6 +664,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         buyPriceTarget,
                         sellPriceTarget,
                         isFocused,
+                        focusStart,
                         focusTarget,
                         prices.reversed()
                     )

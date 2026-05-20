@@ -99,7 +99,7 @@
     <string name="label_search_results">Search Results</string>
     <string name="label_search_stock">Search Stock Symbol</string>
     <string name="label_partial_data_warning">Partial Data: Some fundamental metrics could not be fetched.</string>
-    <string name="label_focus_tracker_info">We\'ll track movement from ฿%1$s and alert you on the Home screen when the price hits your target (+/- 10%).</string>
+    <string name="label_focus_tracker_info">We\'ll track movement from ฿%1$s and alert you on the Home screen when the price hits your target (+/- 10%%).</string>
     <string name="label_rsi_meaning">Relative Strength Index. &lt; 30 is Cheap, &gt; 70 is Expensive.</string>
     <string name="label_sma_meaning">Trend lines. Price above SMA indicates a strong uptrend.</string>
     <string name="label_bb_meaning">Volatility tube. Price often bounces between these bands.</string>

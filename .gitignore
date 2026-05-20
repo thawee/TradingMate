@@ -19,6 +19,7 @@ node_modules/
 .next/
 dist/
 build/
+app/build/
 __pycache__/
 *.pyc
 .venv/

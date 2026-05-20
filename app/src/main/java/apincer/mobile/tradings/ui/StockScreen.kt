@@ -1,9 +1,13 @@
 package apincer.mobile.tradings.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -16,11 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -109,7 +116,8 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                     currentPrice = state.stockInfo.lastPrice,
                                     onDismiss = { showFocusDialog = false },
                                     onConfirm = { target ->
-                                        viewModel.addToFocusList(state.stockInfo.symbol, state.stockInfo.lastPrice, target)
+                                        val startPriceToUse = if (state.isFocused && state.focusStartPrice > 0) state.focusStartPrice else state.stockInfo.lastPrice
+                                        viewModel.addToFocusList(state.stockInfo.symbol, startPriceToUse, target)
                                         showFocusDialog = false
                                     }
                                 )
@@ -161,7 +169,7 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                         }
                                     }
                                 )
-                                StockDashboard(state)
+                                StockDashboard(state, onEditFocus = { showFocusDialog = true })
                             }
                         }
                         is StockUiState.Loading -> {
@@ -251,7 +259,7 @@ fun FocusSettingsDialog(
                 onValueChange = { targetPrice = it },
                 label = { Text(stringResource(R.string.label_target_price_thb)) },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 prefix = { Text("฿ ") },
                 shape = RoundedCornerShape(14.dp)
@@ -275,7 +283,7 @@ fun FocusSettingsDialog(
 }
 
 @Composable
-fun StockDashboard(state: StockUiState.Success) {
+fun StockDashboard(state: StockUiState.Success, onEditFocus: () -> Unit) {
     val info = state.stockInfo
     val portfolio = state.portfolio
     val uriHandler = LocalUriHandler.current
@@ -306,19 +314,27 @@ fun StockDashboard(state: StockUiState.Success) {
         }
 
         if (state.isFocused) {
-            SectionContent(title = stringResource(R.string.section_focus_tracking), icon = Icons.Default.Star) {
+            SectionContent(
+                modifier = Modifier.clickable { onEditFocus() },
+                title = stringResource(R.string.section_focus_tracking), 
+                icon = Icons.Default.Star
+            ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         
                         Text(stringResource(R.string.label_start_price), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         
-                        Text("฿${String.format(Locale.ENGLISH, "%.2f", state.stockInfo.lastPrice / (1 + (state.returns[3] ?: 0.0)/100))}", fontSize = 18.sp, fontWeight = FontWeight.Black)
+                        Text("฿${String.format(Locale.ENGLISH, "%.2f", state.focusStartPrice)}", fontSize = 18.sp, fontWeight = FontWeight.Black)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         
                         Text(stringResource(R.string.label_target), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         
-                        Text(if (state.focusTargetPrice > 0) "฿${state.focusTargetPrice}" else stringResource(R.string.label_not_set), fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (state.focusTargetPrice > 0) "฿${state.focusTargetPrice}" else stringResource(R.string.label_not_set), fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), modifier = Modifier.size(14.dp))
+                        }
                     }
                 }
             }
@@ -555,7 +571,7 @@ fun PriceTrendChart(prices: List<Double>, isPositive: Boolean) {
     val maxPrice = prices.maxOrNull() ?: 0.0
     val range = (maxPrice - minPrice).coerceAtLeast(0.01)
 
-    androidx.compose.foundation.Canvas(
+    Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
@@ -566,7 +582,7 @@ fun PriceTrendChart(prices: List<Double>, isPositive: Boolean) {
         val height = size.height
         val stepX = width / (prices.size - 1).coerceAtLeast(1)
 
-        val path = androidx.compose.ui.graphics.Path()
+        val path = Path()
         prices.forEachIndexed { i, price ->
             val x = i * stepX
             val y = height - ((price - minPrice) / range * height).toFloat()
@@ -576,11 +592,11 @@ fun PriceTrendChart(prices: List<Double>, isPositive: Boolean) {
         drawPath(
             path = path,
             color = color,
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5.dp.toPx())
+            style = Stroke(width = 2.5.dp.toPx())
         )
 
         // Add a subtle gradient fill
-        val fillPath = androidx.compose.ui.graphics.Path().apply {
+        val fillPath = Path().apply {
             addPath(path)
             lineTo(width, height)
             lineTo(0f, height)
@@ -643,7 +659,7 @@ fun StockPortfolioSummaryCard(portfolio: StockEntity, info: ScrapedStockInfo, ne
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.width(150.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.End) {
             
@@ -667,7 +683,7 @@ fun QualityStockBadge() {
     Surface(
         color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)),
         modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth()
     ) {
         Row(
@@ -689,7 +705,7 @@ fun HighDividendBadge() {
     Surface(
         color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)),
         modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth()
     ) {
         
@@ -720,7 +736,7 @@ fun PeriodReturnBadge(label: String, value: Double?) {
         Surface(
             color = color.copy(alpha = 0.1f),
             shape = RoundedCornerShape(10.dp),
-            border = androidx.compose.foundation.BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
+            border = BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
         ) {
             
             Text(
@@ -740,7 +756,7 @@ fun RowScope.TargetPriceBadge(label: String, price: Double?, color: Color) {
         modifier = Modifier.weight(1f),
         color = color.copy(alpha = 0.05f),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
+        border = BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -793,7 +809,7 @@ fun SignalCard(signal: TradeSignal, zone: TradingZone) {
                 Surface(
                     color = zone.color.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(0.5.dp, zone.color.copy(alpha = 0.3f))
+                    border = BorderStroke(0.5.dp, zone.color.copy(alpha = 0.3f))
                 ) {
                     
                     Text(
