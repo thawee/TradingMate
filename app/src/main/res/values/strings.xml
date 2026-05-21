@@ -228,6 +228,8 @@
     <string name="sentiment_bearish">BEARISH</string>
     <string name="sentiment_balanced">BALANCED</string>
     <string name="label_dividend_alerts">XD Alerts</string>
-    <string name="label_no_upcoming_dividends">No upcoming dividends in the next 14 days.</string>
+    <string name="label_dividend_alert_window">XD Alert Window (Days)</string>
+    <string name="label_dividend_alert_end_year">Show until end of year</string>
+    <string name="label_no_upcoming_dividends">No upcoming dividends in the specified window.</string>
     <string name="about_tagline">Happy Trading! 🚀</string>
 </resources>

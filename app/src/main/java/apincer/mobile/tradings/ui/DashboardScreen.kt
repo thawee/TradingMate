@@ -43,6 +43,8 @@ fun DashboardScreen(
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
     val priceAlertThreshold by viewModel.priceAlertThreshold.collectAsState()
+    val dividendAlertWindow by viewModel.dividendAlertWindow.collectAsState()
+    val isDividendAlertEndYear by viewModel.isDividendAlertEndYear.collectAsState()
     val isPrivacyMode by viewModel.isPrivacyMode.collectAsState()
     val tradeHistory by viewModel.tradeHistory.collectAsState()
     
@@ -71,16 +73,23 @@ fun DashboardScreen(
 
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
-    // Dividend Alerts (XD within next 14 days)
-    val dividendAlerts = remember(watchlist) {
+    // Dividend Alerts
+    val dividendAlerts = remember(watchlist, dividendAlertWindow, isDividendAlertEndYear) {
         val today = Calendar.getInstance()
-        val next14Days = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 14) }
+        val limitDate = if (isDividendAlertEndYear) {
+            Calendar.getInstance().apply {
+                set(Calendar.MONTH, Calendar.DECEMBER)
+                set(Calendar.DAY_OF_MONTH, 31)
+            }
+        } else {
+            Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dividendAlertWindow) }
+        }
         val sdf = SimpleDateFormat("dd MMM yyyy", Locale.ENGLISH)
         
         watchlist.filter { 
             it.info.dividendDate?.isNotBlank() == true && try {
                 val xdDate = Calendar.getInstance().apply { time = sdf.parse(it.info.dividendDate)!! }
-                xdDate.after(today) && xdDate.before(next14Days)
+                xdDate.after(today) && xdDate.before(limitDate)
             } catch (e: Exception) { false }
         }
     }

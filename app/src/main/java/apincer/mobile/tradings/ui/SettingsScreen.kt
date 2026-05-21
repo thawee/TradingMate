@@ -172,6 +172,37 @@ fun SettingsScreen(
                     suffix = { Text("%") },
                     shape = RoundedCornerShape(14.dp)
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val dividendWindow by viewModel.dividendAlertWindow.collectAsState()
+                var editingWindow by remember(dividendWindow) { mutableStateOf(dividendWindow.toString()) }
+                val isEndYear by viewModel.isDividendAlertEndYear.collectAsState()
+
+                OutlinedTextField(
+                    value = editingWindow,
+                    onValueChange = { 
+                        editingWindow = it
+                        it.toIntOrNull()?.let { days ->
+                            viewModel.updateDividendAlertWindow(days)
+                        }
+                    },
+                    label = { Text(stringResource(R.string.label_dividend_alert_window)) },
+                    modifier = Modifier.fillMaxWidth().alpha(if (isEndYear) 0.5f else 1f),
+                    enabled = !isEndYear,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("Days") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(stringResource(R.string.label_dividend_alert_end_year), style = MaterialTheme.typography.bodyMedium)
+                    Switch(checked = isEndYear, onCheckedChange = { viewModel.toggleDividendAlertEndYear() })
+                }
             }
 
             SectionContent(title = stringResource(R.string.section_data_management), icon = Icons.Default.Info) {

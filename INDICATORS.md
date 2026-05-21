@@ -116,7 +116,8 @@ The app runs a background worker (every hour) to monitor stocks currently in you
 
 ### 2. In-App Dividend Alerts (XD Dates)
 On the Home screen, the app tracks corporate action dates.
-- **Trigger:** If a stock has an upcoming Ex-Dividend (XD) date within the **next 14 days**, it will appear in the "Dividend Opportunities" section.
+- **Trigger:** If a stock has an upcoming Ex-Dividend (XD) date within the defined window (default 14 days, customizable in Settings), it will appear in the "Dividend Opportunities" section.
+- **End of Year Option:** You can also choose to show all upcoming XD dates until the end of the current year.
 
 ---
 

@@ -121,6 +121,32 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    val dividendAlertWindow: StateFlow<Int> = 
+        preferenceRepository.dividendAlertWindow.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 14
+        )
+
+    fun updateDividendAlertWindow(days: Int) {
+        viewModelScope.launch {
+            preferenceRepository.setDividendAlertWindow(days)
+        }
+    }
+
+    val isDividendAlertEndYear: StateFlow<Boolean> = 
+        preferenceRepository.isDividendAlertEndYear.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun toggleDividendAlertEndYear() {
+        viewModelScope.launch {
+            preferenceRepository.setDividendAlertEndYear(!isDividendAlertEndYear.value)
+        }
+    }
+
     val isPrivacyMode: StateFlow<Boolean> = 
         preferenceRepository.isPrivacyMode.stateIn(
             scope = viewModelScope,
