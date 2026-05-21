@@ -606,40 +606,45 @@ fun AppBackground(content: @Composable () -> Unit) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
+    val colorScheme = MaterialTheme.colorScheme
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(colorScheme.background)
     ) {
-        // Dynamic background "blobs" for better glass effect
+        // Dynamic background "blobs" for better glass effect and premium feel
         Canvas(modifier = Modifier.fillMaxSize()) {
+            // Sophisticated Teal Glow (Primary Action/Trust)
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF6366F1).copy(alpha = 0.08f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * -0.2f, screenHeight.toPx() * -0.1f),
+                    colors = listOf(colorScheme.primary.copy(alpha = 0.08f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * -0.1f, screenHeight.toPx() * -0.05f),
                     radius = screenWidth.toPx() * 1.5f
                 )
             )
+            // Champagne Gold Glow (Wealth/Achievement)
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFFC5A059).copy(alpha = 0.08f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 1.2f, screenHeight.toPx() * 0.2f),
+                    colors = listOf(colorScheme.secondary.copy(alpha = 0.08f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 1.1f, screenHeight.toPx() * 0.15f),
                     radius = screenWidth.toPx() * 1.2f
                 )
             )
+            // Success Green Glow (Subtle growth hint)
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF2D6A4F).copy(alpha = 0.06f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * -0.1f, screenHeight.toPx() * 1.1f),
-                    radius = screenWidth.toPx() * 1.5f
+                    colors = listOf(colorScheme.tertiary.copy(alpha = 0.05f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * -0.05f, screenHeight.toPx() * 1.05f),
+                    radius = screenWidth.toPx() * 1.4f
                 )
             )
-             drawCircle(
+            // Soft Surface Bloom
+            drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFFBC4749).copy(alpha = 0.04f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 1.1f, screenHeight.toPx() * 0.9f),
-                    radius = screenWidth.toPx() * 1.0f
+                    colors = listOf(colorScheme.primary.copy(alpha = 0.03f), Color.Transparent),
+                    center = Offset(screenWidth.toPx() * 1.05f, screenHeight.toPx() * 0.95f),
+                    radius = screenWidth.toPx() * 1.1f
                 )
             )
         }

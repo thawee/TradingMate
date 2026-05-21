@@ -1,53 +1,36 @@
 package apincer.mobile.tradings.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.HistoryEdu
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.QueryStats
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
 import apincer.mobile.tradings.domain.IndicatorSignal
-import java.util.Locale
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,11 +42,15 @@ fun DashboardScreen(
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
+    val priceAlertThreshold by viewModel.priceAlertThreshold.collectAsState()
+    
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
-    // Surveillance: Stocks near target price (+/- 10%)
+    // Surveillance: Stocks near target price (+/- threshold%)
     val targetWatchList = watchlist.filter { 
         it.isFocused && it.focusTargetPrice != null && it.focusTargetPrice > 0.0 &&
-        Math.abs(it.info.lastPrice - it.focusTargetPrice) <= (it.focusTargetPrice * 0.10)
+        Math.abs(it.info.lastPrice - it.focusTargetPrice) <= (it.focusTargetPrice * (priceAlertThreshold / 100.0))
     }
 
     val buySignals = watchlist.filter { it.signal?.type == IndicatorSignal.BUY }
@@ -74,6 +61,52 @@ fun DashboardScreen(
     val totalStockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     val totalEquity = totalStockValue + cashBalance
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+
+    // Dividend Alerts (XD within next 14 days)
+    val dividendAlerts = remember(watchlist) {
+        val today = Calendar.getInstance()
+        val next14Days = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 14) }
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.ENGLISH)
+        
+        watchlist.filter { 
+            it.info.dividendDate?.isNotBlank() == true && try {
+                val xdDate = Calendar.getInstance().apply { time = sdf.parse(it.info.dividendDate)!! }
+                xdDate.after(today) && xdDate.before(next14Days)
+            } catch (e: Exception) { false }
+        }
+    }
+
+    // Scroll mapping logic using dynamic index calculation matching Pulse order: BUY -> ATTN -> XD -> SELL
+    fun scrollToSection(sectionId: String) {
+        scope.launch {
+            try {
+                var targetIndex = 3 // Items before signals: SUMMARY (0), PULSE (1), NAV (2)
+                
+                if (sectionId == "BUY") {
+                    if (buySignals.isNotEmpty()) listState.animateScrollToItem(targetIndex)
+                    return@launch
+                }
+                if (buySignals.isNotEmpty()) targetIndex++
+                
+                if (sectionId == "ATTN") {
+                    if (potentialSignals.isNotEmpty()) listState.animateScrollToItem(targetIndex)
+                    return@launch
+                }
+                if (potentialSignals.isNotEmpty()) targetIndex++
+
+                if (sectionId == "XD") {
+                    listState.animateScrollToItem(targetIndex) // XD is always present
+                    return@launch
+                }
+                targetIndex++ 
+                
+                if (sectionId == "SELL") {
+                    if (sellSignals.isNotEmpty()) listState.animateScrollToItem(targetIndex)
+                    return@launch
+                }
+            } catch (e: Exception) { }
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
@@ -94,162 +127,34 @@ fun DashboardScreen(
         )
         
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            item {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(24.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(text = stringResource(R.string.label_total_equity), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            Text(
-                                text = "฿${String.format(Locale.ENGLISH, "%,.0f", totalEquity)}", 
-                                fontSize = 36.sp, 
-                                fontWeight = FontWeight.Black, 
-                                color = MaterialTheme.colorScheme.onSurface,
-                                letterSpacing = (-1).sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.label_active_holdings_count, portfolioItems.size),
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.AccountBalance,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp).alpha(0.2f),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
+            item(key = "SUMMARY") {
+                PortfolioSummaryCard(totalEquity, portfolioItems.size)
             }
 
-            item {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        SectionHeader(
-                            title = stringResource(R.string.section_market_summary), 
-                            icon = Icons.Default.QueryStats,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            SummaryStat(stringResource(R.string.label_total_symbols), watchlist.size, MaterialTheme.colorScheme.primary)
-                            SummaryStat(stringResource(R.string.label_to_sell), sellSignals.size, MaterialTheme.colorScheme.error)
-                            SummaryStat(stringResource(R.string.label_to_buy), buySignals.size, MaterialTheme.colorScheme.tertiary)
-                            SummaryStat(stringResource(R.string.label_attentions), potentialSignals.size, MaterialTheme.colorScheme.secondary)
-                        }
-                    }
-                }
+            item(key = "PULSE") {
+                MarketPulseCard(
+                    buyCount = buySignals.size,
+                    sellCount = sellSignals.size,
+                    potentialCount = potentialSignals.size,
+                    dividendAlertCount = dividendAlerts.size,
+                    totalCount = watchlist.size,
+                    onStatClick = { scrollToSection(it) }
+                )
             }
 
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // 1. The TradingMate Story Area
-                    GlassCard(
-                        modifier = Modifier.weight(1f).clickable { onOpenAbout() },
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.HistoryEdu, 
-                                        contentDescription = null, 
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = stringResource(R.string.label_our_story), 
-                                fontWeight = FontWeight.Bold, 
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-
-                    // 2. Trading Academy Area
-                    GlassCard(
-                        modifier = Modifier.weight(1f).clickable { onOpenEducation() },
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.School, 
-                                        contentDescription = null, 
-                                        tint = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = stringResource(R.string.label_academy), 
-                                fontWeight = FontWeight.Bold, 
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
+            item(key = "NAV") {
+                DiscoveryNavigationRows(onOpenAbout, onOpenEducation)
             }
 
-            if (sellSignals.isNotEmpty()) {
-                item {
-                    SectionHeader(title = stringResource(R.string.section_exit_alerts), icon = Icons.AutoMirrored.Filled.TrendingDown, color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(16.dp))
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(bottom = 8.dp)
-                    ) {
-                        items(sellSignals) { item ->
-                            SignalQuickCard(item, color = MaterialTheme.colorScheme.error, onClick = { onSelectStock(item.info.symbol) })
-                        }
-                    }
-                }
-            }
-
+            // ORDER: BUY -> ATTN -> XD -> SELL -> PRICE
             if (buySignals.isNotEmpty()) {
-                item {
+                item(key = "BUY") {
                     SectionHeader(title = stringResource(R.string.section_buy_signals), icon = Icons.AutoMirrored.Filled.TrendingUp, color = MaterialTheme.colorScheme.tertiary)
                     Spacer(Modifier.height(16.dp))
                     LazyRow(
@@ -264,7 +169,7 @@ fun DashboardScreen(
             }
 
             if (potentialSignals.isNotEmpty()) {
-                item {
+                item(key = "ATTN") {
                     SectionHeader(title = stringResource(R.string.section_attentions), icon = Icons.Default.Lightbulb, color = MaterialTheme.colorScheme.secondary)
                     Spacer(Modifier.height(16.dp))
                     LazyRow(
@@ -278,8 +183,40 @@ fun DashboardScreen(
                 }
             }
 
+            item(key = "XD") {
+                SectionHeader(title = stringResource(R.string.label_dividend_alerts), icon = Icons.Default.EventNote, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(16.dp))
+                if (dividendAlerts.isNotEmpty()) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        items(dividendAlerts) { item ->
+                            DividendQuickCard(item, onClick = { onSelectStock(item.info.symbol) })
+                        }
+                    }
+                } else {
+                    EmptyAlertCard(message = stringResource(R.string.label_no_upcoming_dividends), icon = Icons.Default.EventBusy)
+                }
+            }
+
+            if (sellSignals.isNotEmpty()) {
+                item(key = "SELL") {
+                    SectionHeader(title = stringResource(R.string.section_exit_alerts), icon = Icons.AutoMirrored.Filled.TrendingDown, color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(16.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        items(sellSignals) { item ->
+                            SignalQuickCard(item, color = MaterialTheme.colorScheme.error, onClick = { onSelectStock(item.info.symbol) })
+                        }
+                    }
+                }
+            }
+
             if (targetWatchList.isNotEmpty()) {
-                item {
+                item(key = "PRICE") {
                     SectionHeader(title = stringResource(R.string.section_price_alerts), icon = Icons.Default.Star, color = MaterialTheme.colorScheme.secondary)
                     Spacer(Modifier.height(16.dp))
                     LazyRow(
@@ -301,20 +238,281 @@ fun DashboardScreen(
 }
 
 @Composable
-fun SummaryStat(label: String, count: Int, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = count.toString(),
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Black,
-            color = color
-        )
+fun PortfolioSummaryCard(totalEquity: Double, holdingsCount: Int) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier.padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(text = stringResource(R.string.label_total_equity), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "฿${String.format(Locale.ENGLISH, "%,.0f", totalEquity)}", 
+                    fontSize = 36.sp, 
+                    fontWeight = FontWeight.Black, 
+                    color = MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = (-1).sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.label_active_holdings_count, holdingsCount),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.AccountBalance,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp).alpha(0.2f),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+fun MarketPulseCard(
+    buyCount: Int,
+    sellCount: Int,
+    potentialCount: Int,
+    dividendAlertCount: Int,
+    totalCount: Int,
+    onStatClick: (String) -> Unit
+) {
+    val sentiment = when {
+        buyCount > sellCount -> stringResource(R.string.sentiment_bullish)
+        sellCount > buyCount -> stringResource(R.string.sentiment_bearish)
+        else -> stringResource(R.string.sentiment_balanced)
+    }
+    
+    val sentimentColor = when {
+        buyCount > sellCount -> MaterialTheme.colorScheme.tertiary
+        sellCount > buyCount -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SectionHeader(
+                    title = stringResource(R.string.section_market_pulse), 
+                    icon = Icons.Default.QueryStats
+                )
+                
+                Surface(
+                    color = sentimentColor.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, sentimentColor.copy(alpha = 0.2f))
+                ) {
+                    Text(
+                        text = sentiment,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        color = sentimentColor
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Breadth Bar
+            if (totalCount > 0) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                ) {
+                    val neutralCount = (totalCount - buyCount - sellCount - potentialCount).coerceAtLeast(0)
+                    
+                    if (buyCount > 0) Box(modifier = Modifier.fillMaxHeight().weight(buyCount.toFloat()).background(MaterialTheme.colorScheme.tertiary))
+                    if (potentialCount > 0) Box(modifier = Modifier.fillMaxHeight().weight(potentialCount.toFloat()).background(MaterialTheme.colorScheme.secondary))
+                    if (neutralCount > 0) Box(modifier = Modifier.fillMaxHeight().weight(neutralCount.toFloat()).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)))
+                    if (sellCount > 0) Box(modifier = Modifier.fillMaxHeight().weight(sellCount.toFloat()).background(MaterialTheme.colorScheme.error))
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                SummaryStat(stringResource(R.string.section_buy_signals), buyCount, MaterialTheme.colorScheme.tertiary, Icons.AutoMirrored.Filled.TrendingUp, onClick = { onStatClick("BUY") })
+                SummaryStat(stringResource(R.string.section_attentions), potentialCount, MaterialTheme.colorScheme.secondary, Icons.Default.Lightbulb, onClick = { onStatClick("ATTN") })
+                SummaryStat(stringResource(R.string.label_dividend_alerts), dividendAlertCount, MaterialTheme.colorScheme.primary, Icons.Default.EventNote, onClick = { onStatClick("XD") })
+                SummaryStat(stringResource(R.string.section_exit_alerts), sellCount, MaterialTheme.colorScheme.error, Icons.AutoMirrored.Filled.TrendingDown, onClick = { onStatClick("SELL") })
+            }
+        }
+    }
+}
+
+@Composable
+fun DiscoveryNavigationRows(onOpenAbout: () -> Unit, onOpenEducation: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        GlassCard(
+            modifier = Modifier.weight(1f).clickable { onOpenAbout() },
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.HistoryEdu, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.label_our_story), 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        GlassCard(
+            modifier = Modifier.weight(1f).clickable { onOpenEducation() },
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.School, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.label_academy), 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryStat(label: String, count: Int, color: Color, icon: ImageVector, onClick: (() -> Unit)? = null) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = color.copy(alpha = 0.5f), modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = count.toString(),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black,
+                color = color
+            )
+        }
         Text(
             text = label,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+fun DividendQuickCard(item: StockWatchlistInfo, onClick: () -> Unit) {
+    GlassCard(
+        modifier = Modifier.width(160.dp).clickable { onClick() },
+        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = item.info.symbol, fontWeight = FontWeight.Black, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.Event, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(text = "฿${item.info.lastPrice}", fontWeight = FontWeight.Black, fontSize = 16.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "XD: ${item.info.dividendDate}", 
+                fontSize = 11.sp, 
+                lineHeight = 14.sp, 
+                maxLines = 1, 
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Black
+            )
+            Text(
+                text = "Yield: ${String.format(Locale.ENGLISH, "%.2f%%", item.info.dividendYield ?: 0.0)}",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.tertiary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun EmptyAlertCard(message: String, icon: ImageVector) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.02f)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon, 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Text(
+                text = message,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 

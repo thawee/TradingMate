@@ -118,6 +118,9 @@ interface FocusDao {
 
     @Query("SELECT * FROM focus_list WHERE symbol = :symbol")
     suspend fun getFocusStockBySymbol(symbol: String): FocusEntity?
+
+    @Query("DELETE FROM focus_list WHERE symbol NOT IN (SELECT symbol FROM stocks WHERE quantity > 0)")
+    suspend fun clearFocusList()
 }
 
 @Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class], version = 12)

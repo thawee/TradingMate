@@ -45,7 +45,7 @@ A "volatility tube" that wraps around the price.
 
 ## 🏛️ Fundamental Guardrails (Quality Rules)
 
-Before looking at technical signals, TradingMate evaluates the "DNA" of a company. A stock is marked with the **"Solid Financials"** badge only if it passes these strict safety checks:
+Before looking at technical signals, TradingMate evaluates the "DNA" of a company. A stock is marked with the **"Solid Financials"** badge or suggested in the **Dividend Advisor** only if it passes these strict safety checks:
 
 1. **ROE (Return on Equity) > 15%:**
    - **Why:** We want highly efficient companies that generate superior returns on shareholders' capital.
@@ -60,9 +60,20 @@ Before looking at technical signals, TradingMate evaluates the "DNA" of a compan
 
 ---
 
+## 💰 Dividend Advisor & Planning
+
+The **Dividend Advisor** screen helps you plan for long-term passive income.
+
+- **Passive Income Goal:** You can set a **Target Monthly Dividend** in the app Settings.
+- **Capital Calculation:** The advisor calculates the total capital required to reach your monthly goal (assuming a 5% average yield).
+- **Suggested Stocks:** The advisor suggests stocks from the "Dividend Stars" collection. These are filtered to ensure they have a **positive dividend yield** and pass the **Fundamental Guardrails** mentioned above.
+- **Progress Tracking:** The app compares your current portfolio's estimated monthly dividends against your target to show your "Goal Progress."
+
+---
+
 ## 🧠 Trading Zones & Market Pulse
 
-TradingMate categorizes every stock into one of four "Zones" based on the logic in `TechnicalAnalysis.kt`. These are visualized in the **Market Pulse** section of the Home page.
+TradingMate categorizes every stock into one of four "Zones" based on technical logic. These are visualized in the **Market Pulse** section of the Home page.
 
 ### 🟢 Buying Zone (Accumulation)
 Stocks here represent the best value-to-risk ratio.
@@ -99,8 +110,9 @@ TradingMate actively monitors your saved stocks and delivers real-time intellige
 
 ### 1. Push Notifications (Background Monitoring)
 The app runs a background worker (every hour) to monitor stocks currently in your **Watchlist**. 
-- **Market Hours Only:** To prevent spam, notifications are only processed when the SET market is OPEN or during the LUNCH break.
+- **Market Hours Only:** Notifications are only processed during SET market hours.
 - **Trigger Conditions:** A push notification is sent whenever a stock's technical data triggers a `BUY`, `POTENTIAL`, or `SELL` signal.
+- **Price Alerts:** Visual indicators for stocks nearing target prices. The proximity threshold can be customized in **Settings**.
 
 ### 2. In-App Dividend Alerts (XD Dates)
 On the Home screen, the app tracks corporate action dates.
@@ -110,7 +122,7 @@ On the Home screen, the app tracks corporate action dates.
 
 ## 💸 Fee Structure (InnovestX)
 
-TradingMate calculates **Net Profit** by accounting for the following fees (approx. **0.32%** round-trip):
+TradingMate calculates **Net Profit** by accounting for the following fees (approx. 0.32% round-trip):
 
 - **Commission:** 0.15% (Safety estimate).
 - **Market Fee:** 0.007% (Trading + Clearing + Regulatory).
@@ -118,4 +130,4 @@ TradingMate calculates **Net Profit** by accounting for the following fees (appr
 - **Selling Tax:** 0.11% (applied only on sell orders).
 - **Minimum Fee:** 50 THB daily (if applicable).
 
-> **Formula:** `Net Profit = (Selling Price - Sell Fees) - (Buying Price + Buy Fees)`
+> **Formula:** Net Profit = (Selling Price - Sell Fees) - (Buying Price + Buy Fees)

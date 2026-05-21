@@ -76,6 +76,13 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                 )
 
                 EducationGlassCard(
+                    title = stringResource(R.string.edu_yoc_title),
+                    content = stringResource(R.string.edu_yoc_content),
+                    color = MaterialTheme.colorScheme.tertiary,
+                    icon = Icons.Default.Verified
+                )
+
+                EducationGlassCard(
                     title = stringResource(R.string.edu_step2_title),
                     content = stringResource(R.string.edu_step2_content),
                     color = MaterialTheme.colorScheme.secondary,
@@ -85,7 +92,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                 EducationGlassCard(
                     title = stringResource(R.string.edu_step3_title),
                     content = stringResource(R.string.edu_step3_content),
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = MaterialTheme.colorScheme.primary,
                     icon = Icons.Default.AssignmentTurnedIn
                 )
                 
@@ -97,13 +104,6 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     content = stringResource(R.string.edu_risk_mgmt_content),
                     color = MaterialTheme.colorScheme.error,
                     icon = Icons.Default.ContentCut
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_yoc_title),
-                    content = stringResource(R.string.edu_yoc_content),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.Analytics
                 )
 
                 // --- SECTION 3: THE SENSORS ---

@@ -1,9 +1,11 @@
 package apincer.mobile.tradings.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -13,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,17 +33,25 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DividendAdvisorScreen(viewModel: StockViewModel) {
-    var targetMonthlyIncome by remember { mutableStateOf("10000") }
-    var yearsToRetirement by remember { mutableStateOf("10") }
+    val targetMonthlyIncome by viewModel.targetMonthlyDividend.collectAsState()
     var estYield by remember { mutableStateOf(5.0) } // Default 5%
 
-    val monthly = targetMonthlyIncome.toDoubleOrNull() ?: 0.0
-    val years = yearsToRetirement.toIntOrNull() ?: 0
+    val monthly = targetMonthlyIncome
     val yearlyGoal = monthly * 12
     val requiredCapital = if (estYield > 0) yearlyGoal / (estYield / 100.0) else 0.0
 
     var dividendStocks by remember { mutableStateOf<List<ScrapedStockInfo>>(emptyList()) }
     val watchlist by viewModel.watchlistInfo.collectAsState()
+    
+    val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
+    val currentYearlyDividend = portfolioItems.sumOf { 
+        it.portfolio.quantity * it.info.lastPrice * ((it.info.dividendYield ?: 0.0) / 100.0)
+    }
+    val currentMonthlyDividend = currentYearlyDividend / 12.0
+    val progress = if (monthly > 0) (currentMonthlyDividend / monthly).toFloat().coerceIn(0f, 1.2f) else 0f
+    
+    val remainingMonthlyGoal = (monthly - currentMonthlyDividend).coerceAtLeast(0.0)
+    val remainingRequiredCapital = if (estYield > 0) (remainingMonthlyGoal * 12) / (estYield / 100.0) else 0.0
 
     LaunchedEffect(Unit) {
         val symbols = SetScraper.getCuratedCollection("DIVIDEND")
@@ -64,32 +76,6 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            SectionHeader(title = stringResource(R.string.section_dividend_goal), icon = Icons.Default.Flag)
-
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = targetMonthlyIncome,
-                        onValueChange = { targetMonthlyIncome = it },
-                        label = { Text(stringResource(R.string.label_target_monthly_dividend)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        prefix = { Text("฿ ") },
-                        shape = RoundedCornerShape(14.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = yearsToRetirement,
-                        onValueChange = { yearsToRetirement = it },
-                        label = { Text(stringResource(R.string.label_years_to_retirement)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        suffix = { Text(" Years") },
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                }
-            }
-
             SectionHeader(title = stringResource(R.string.section_plan_details), icon = Icons.Default.Calculate)
 
             GlassCard(
@@ -101,7 +87,6 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
                         text = stringResource(
                             R.string.label_plan_summary,
                             String.format(Locale.ENGLISH, "%,.0f", monthly),
-                            years,
                             String.format(Locale.ENGLISH, "%,.0f", requiredCapital)
                         ),
                         style = MaterialTheme.typography.bodyLarge,
@@ -109,19 +94,74 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
                         lineHeight = 24.sp
                     )
 
+                    Spacer(Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.label_goal_progress),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = String.format(Locale.ENGLISH, "%.1f%%", progress * 100),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = if (progress >= 1f) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    LinearProgressIndicator(
+                        progress = { progress.coerceAtMost(1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp)),
+                        color = if (progress >= 1f) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+
                     Spacer(Modifier.height(16.dp))
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text(stringResource(R.string.label_required_capital), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("฿${String.format(Locale.ENGLISH, "%,.0f", requiredCapital)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(R.string.label_current_monthly_dividend), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("฿${String.format(Locale.ENGLISH, "%,.0f", currentMonthlyDividend)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text(stringResource(R.string.label_est_avg_yield), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${String.format(Locale.ENGLISH, "%.1f", estYield)}%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
+                            Text(stringResource(R.string.label_remaining_capital), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("฿${String.format(Locale.ENGLISH, "%,.0f", remainingRequiredCapital)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider(modifier = Modifier.alpha(0.1f))
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text(stringResource(R.string.label_required_capital), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("฿${String.format(Locale.ENGLISH, "%,.0f", requiredCapital)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(stringResource(R.string.label_est_avg_yield), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${String.format(Locale.ENGLISH, "%.1f", estYield)}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
+            }
+
+            if (dividendStocks.isNotEmpty()) {
+                SectionHeader(title = "Diversification", icon = Icons.Default.PieChart)
+                DiversificationComparison(
+                    currentStocks = portfolioItems.map { it.info },
+                    recommendedStocks = dividendStocks
+                )
             }
 
             SectionHeader(title = stringResource(R.string.section_suggested_stocks), icon = Icons.Default.AutoAwesome)
@@ -132,11 +172,102 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
                 }
             } else {
                 dividendStocks.forEach { stock ->
-                    SuggestedStockCard(stock, requiredCapital / dividendStocks.size, viewModel)
+                    SuggestedStockCard(stock, remainingRequiredCapital / dividendStocks.size, viewModel)
                 }
             }
 
             Spacer(Modifier.height(40.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun DiversificationComparison(currentStocks: List<ScrapedStockInfo>, recommendedStocks: List<ScrapedStockInfo>) {
+    val sectorColors = remember {
+        mapOf(
+            "Financial Services" to Color(0xFF2196F3),
+            "Financials" to Color(0xFF2196F3),
+            "Communication Services" to Color(0xFF00BCD4),
+            "Energy" to Color(0xFFFF9800),
+            "Consumer Defensive" to Color(0xFF4CAF50),
+            "Real Estate" to Color(0xFF795548),
+            "Basic Materials" to Color(0xFF8BC34A),
+            "Utilities" to Color(0xFF3F51B5),
+            "Industrials" to Color(0xFF607D8B),
+            "Consumer Cyclical" to Color(0xFFE91E63),
+            "Healthcare" to Color(0xFFF44336)
+        )
+    }
+
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            // 1. Current Portfolio Distribution
+            if (currentStocks.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("My Portfolio", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    DistributionBar(stocks = currentStocks, sectorColors = sectorColors)
+                }
+            }
+
+            // 2. Recommended Distribution
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Recommended Diversification", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                DistributionBar(stocks = recommendedStocks, sectorColors = sectorColors)
+            }
+
+            // Shared Legend
+            val allStocks = currentStocks + recommendedStocks
+            val uniqueSectors = allStocks.map { it.sector ?: "Other" }.distinct()
+            
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                uniqueSectors.forEach { sector ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(sectorColors[sector] ?: Color.Gray, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = sector,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DistributionBar(stocks: List<ScrapedStockInfo>, sectorColors: Map<String, Color>) {
+    val distribution = remember(stocks) {
+        stocks.groupBy { it.sector ?: "Other" }
+            .mapValues { it.value.size.toFloat() / stocks.size }
+            .toList()
+            .sortedByDescending { it.second }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(16.dp)
+            .clip(RoundedCornerShape(8.dp))
+    ) {
+        distribution.forEach { (sector, percent) ->
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(percent)
+                    .background(sectorColors[sector] ?: Color.Gray)
+            )
         }
     }
 }
@@ -156,7 +287,14 @@ fun SuggestedStockCard(stock: ScrapedStockInfo, suggestedCapital: Double, viewMo
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Column(modifier = Modifier.weight(1.5f)) {
-                Text(stock.symbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stock.symbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
+                    if (stock.isFundamentalGood) {
+                        Spacer(Modifier.width(4.dp))
+                        Text("⭐", fontSize = 10.sp)
+                    }
+                }
+                Text(stock.sector ?: "", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Text(stock.name ?: "", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
 

@@ -1,0 +1,39 @@
+package apincer.mobile.tradings.data
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+class PreferenceRepository(private val context: Context) {
+    private val TARGET_MONTHLY_DIVIDEND = doublePreferencesKey("target_monthly_dividend")
+    private val PRICE_ALERT_THRESHOLD = doublePreferencesKey("price_alert_threshold")
+
+    val targetMonthlyDividend: Flow<Double> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[TARGET_MONTHLY_DIVIDEND] ?: 10000.0
+        }
+
+    suspend fun setTargetMonthlyDividend(amount: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[TARGET_MONTHLY_DIVIDEND] = amount
+        }
+    }
+
+    val priceAlertThreshold: Flow<Double> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[PRICE_ALERT_THRESHOLD] ?: 10.0
+        }
+
+    suspend fun setPriceAlertThreshold(percent: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[PRICE_ALERT_THRESHOLD] = percent
+        }
+    }
+}

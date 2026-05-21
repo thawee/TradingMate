@@ -43,23 +43,29 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = SoftBlue,
-    onPrimary = DeepNavy,
-    primaryContainer = DeepNavy,
-    onPrimaryContainer = SoftBlue,
+    primary = NightPrimary,
+    onPrimary = NightBackground,
+    primaryContainer = NightPrimary.copy(alpha = 0.15f),
+    onPrimaryContainer = NightPrimary,
     
-    secondary = GoldAccent,
-    onSecondary = RichBlue,
+    secondary = NightSecondary,
+    onSecondary = NightBackground,
+    secondaryContainer = NightSecondary.copy(alpha = 0.15f),
+    onSecondaryContainer = NightSecondary,
     
-    tertiary = GrowthGreen,
-    onTertiary = RichBlue,
+    tertiary = NightSuccess,
+    onTertiary = NightBackground,
     
-    background = RichBlue,
+    error = NightError,
+    onError = NightBackground,
+    
+    background = NightBackground,
     onBackground = OffWhite,
-    surface = DeepNavy,
+    surface = NightSurface,
     onSurface = OffWhite,
-    surfaceVariant = MutedNavy,
-    onSurfaceVariant = LightGray
+    surfaceVariant = NightSurface.copy(alpha = 0.7f),
+    onSurfaceVariant = LightGray.copy(alpha = 0.6f),
+    outline = GlassBorder
 )
 
 @Composable

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
@@ -23,7 +24,10 @@ import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -40,6 +44,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
@@ -50,7 +55,8 @@ fun SettingsScreen(
     viewModel: StockViewModel
 ) {
     val context = LocalContext.current
-    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showWatchlistConfirm by remember { mutableStateOf(false) }
+    var showHistoryConfirm by remember { mutableStateOf(false) }
     
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -64,32 +70,55 @@ fun SettingsScreen(
         uri?.let { viewModel.importBackup(context.contentResolver, it) }
     }
 
-    if (showDeleteConfirm) {
+    if (showWatchlistConfirm) {
         GlassDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = stringResource(R.string.title_clear_all_data),
+            onDismissRequest = { showWatchlistConfirm = false },
+            title = stringResource(R.string.title_clear_watchlist),
             confirmButton = {
                 Button(
                     onClick = { 
                         viewModel.clearWatchlist()
-                        viewModel.clearTradeHistory()
-                        showDeleteConfirm = false
+                        showWatchlistConfirm = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(stringResource(R.string.action_clear_everything), color = Color.White)
+                    Text(stringResource(R.string.action_clear_watchlist), color = Color.White)
                 }
             },
             dismissButton = {
-                
-                TextButton(onClick = { showDeleteConfirm = false }) {
+                TextButton(onClick = { showWatchlistConfirm = false }) {
                     Text(stringResource(R.string.action_cancel))
                 }
             }
         ) {
-            
-            Text(stringResource(R.string.confirm_clear_all_data))
+            Text(stringResource(R.string.confirm_clear_watchlist))
+        }
+    }
+
+    if (showHistoryConfirm) {
+        GlassDialog(
+            onDismissRequest = { showHistoryConfirm = false },
+            title = stringResource(R.string.title_clear_history),
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        viewModel.clearTradeHistory()
+                        showHistoryConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(stringResource(R.string.action_clear_history), color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHistoryConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        ) {
+            Text(stringResource(R.string.confirm_clear_history))
         }
     }
 
@@ -105,6 +134,46 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            SectionContent(title = stringResource(R.string.section_dividend_goal), icon = Icons.Default.Savings) {
+                val targetDividend by viewModel.targetMonthlyDividend.collectAsState()
+                var editingTarget by remember(targetDividend) { mutableStateOf(targetDividend.toInt().toString()) }
+
+                OutlinedTextField(
+                    value = editingTarget,
+                    onValueChange = { 
+                        editingTarget = it
+                        it.toDoubleOrNull()?.let { amount ->
+                            viewModel.updateTargetMonthlyDividend(amount)
+                        }
+                    },
+                    label = { Text(stringResource(R.string.label_target_monthly_dividend)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    prefix = { Text("฿ ") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+            }
+
+            SectionContent(title = stringResource(R.string.section_price_alerts), icon = Icons.Default.NotificationsActive) {
+                val alertThreshold by viewModel.priceAlertThreshold.collectAsState()
+                var editingThreshold by remember(alertThreshold) { mutableStateOf(alertThreshold.toInt().toString()) }
+
+                OutlinedTextField(
+                    value = editingThreshold,
+                    onValueChange = { 
+                        editingThreshold = it
+                        it.toDoubleOrNull()?.let { percent ->
+                            viewModel.updatePriceAlertThreshold(percent)
+                        }
+                    },
+                    label = { Text(stringResource(R.string.label_alert_threshold_percent)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+            }
+
             SectionContent(title = stringResource(R.string.section_data_management), icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SettingsItem(
@@ -123,16 +192,30 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    Button(
-                        onClick = { showDeleteConfirm = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
-                    ) {
-                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.title_clear_all_data), fontWeight = FontWeight.Black)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = { showWatchlistConfirm = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.error),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                        ) {
+                            Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_clear_watchlist), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+
+                        Button(
+                            onClick = { showHistoryConfirm = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.error),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                        ) {
+                            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_clear_history), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
                 }
             }

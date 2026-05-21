@@ -93,6 +93,33 @@ data class TradingBackup(
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val database = StockDatabase.getDatabase(application)
     private val repository = StockRepository(database.stockDao(), database.tradeDao(), database.cashDao(), database.focusDao())
+    private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
+
+    val targetMonthlyDividend: StateFlow<Double> = 
+        preferenceRepository.targetMonthlyDividend.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 10000.0
+        )
+
+    fun updateTargetMonthlyDividend(amount: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setTargetMonthlyDividend(amount)
+        }
+    }
+
+    val priceAlertThreshold: StateFlow<Double> = 
+        preferenceRepository.priceAlertThreshold.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 10.0
+        )
+
+    fun updatePriceAlertThreshold(percent: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setPriceAlertThreshold(percent)
+        }
+    }
 
     private val _uiState = MutableStateFlow<StockUiState>(StockUiState.Initial)
     val uiState: StateFlow<StockUiState> = _uiState
@@ -470,6 +497,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     fun clearWatchlist() {
         viewModelScope.launch {
             repository.clearWatchlist()
+            repository.clearFocusList()
         }
     }
 

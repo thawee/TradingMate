@@ -77,6 +77,10 @@ class StockRepository(
         stockDao.deleteWatchlistStocks()
     }
 
+    suspend fun clearFocusList() {
+        focusDao.clearFocusList()
+    }
+
     suspend fun insertTrade(trade: TradeEntity) {
         tradeDao.insertTrade(trade)
     }
