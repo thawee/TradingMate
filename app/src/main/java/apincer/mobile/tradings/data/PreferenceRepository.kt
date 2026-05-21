@@ -3,6 +3,7 @@ package apincer.mobile.tradings.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
@@ -14,6 +15,7 @@ val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(na
 class PreferenceRepository(private val context: Context) {
     private val TARGET_MONTHLY_DIVIDEND = doublePreferencesKey("target_monthly_dividend")
     private val PRICE_ALERT_THRESHOLD = doublePreferencesKey("price_alert_threshold")
+    private val IS_PRIVACY_MODE = booleanPreferencesKey("is_privacy_mode")
 
     val targetMonthlyDividend: Flow<Double> = context.settingsDataStore.data
         .map { preferences ->
@@ -34,6 +36,17 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setPriceAlertThreshold(percent: Double) {
         context.settingsDataStore.edit { preferences ->
             preferences[PRICE_ALERT_THRESHOLD] = percent
+        }
+    }
+
+    val isPrivacyMode: Flow<Boolean> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[IS_PRIVACY_MODE] ?: false
+        }
+
+    suspend fun setPrivacyMode(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[IS_PRIVACY_MODE] = enabled
         }
     }
 }

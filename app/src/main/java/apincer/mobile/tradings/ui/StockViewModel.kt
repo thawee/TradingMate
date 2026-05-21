@@ -121,6 +121,19 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    val isPrivacyMode: StateFlow<Boolean> = 
+        preferenceRepository.isPrivacyMode.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun togglePrivacyMode() {
+        viewModelScope.launch {
+            preferenceRepository.setPrivacyMode(!isPrivacyMode.value)
+        }
+    }
+
     private val _uiState = MutableStateFlow<StockUiState>(StockUiState.Initial)
     val uiState: StateFlow<StockUiState> = _uiState
 
