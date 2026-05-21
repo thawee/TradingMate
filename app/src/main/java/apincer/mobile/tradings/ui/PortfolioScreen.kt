@@ -51,6 +51,7 @@ fun PortfolioScreen(
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
     var showCashDialog by remember { mutableStateOf(false) }
@@ -74,9 +75,26 @@ fun PortfolioScreen(
         portfolioItems.sumOf { (it.info.dividendYield ?: 0.0) * (it.info.lastPrice * it.portfolio.quantity) } / totalCost
     } else null
 
+    val dividendItems = portfolioItems.filter { (it.info.dividendYield ?: 0.0) > 0.0 }
+    val totalYearlyDividend = dividendItems.sumOf { 
+        it.portfolio.quantity * it.info.lastPrice * ((it.info.dividendYield ?: 0.0) / 100.0)
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text(stringResource(R.string.title_portfolio), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            title = { 
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.title_portfolio), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                    if (lastSync != "---") {
+                        Text(
+                            text = stringResource(R.string.label_last_sync, lastSync),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
                 IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
@@ -106,6 +124,86 @@ fun PortfolioScreen(
                     yieldOnCost = avgYieldOnCost,
                     onEditCash = { showCashDialog = true }
                 )
+            }
+
+            if (totalYearlyDividend > 0) {
+                item {
+                    SectionHeader(
+                        title = stringResource(R.string.section_dividend_estimation),
+                        icon = Icons.Default.AutoAwesome,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                    )
+                    
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.label_est_yearly_dividend),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "฿${String.format(Locale.ENGLISH, "%,.2f", totalYearlyDividend)}",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                                
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    val yield = if (stockValue > 0) (totalYearlyDividend / stockValue) * 100 else 0.0
+                                    Text(
+                                        text = String.format(Locale.ENGLISH, "%.2f%%", yield),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                            }
+                            
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(R.string.label_dividend_symbols),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            androidx.compose.foundation.layout.FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                dividendItems.forEach { item ->
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = item.info.symbol,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             item {

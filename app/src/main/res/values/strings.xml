@@ -9,6 +9,7 @@
     <string name="title_settings">Settings</string>
     <string name="title_academy">Academy</string>
     <string name="title_about">About</string>
+    <string name="title_advisor">Advisor</string>
 
     <!-- Section Headers -->
     <string name="section_price_alerts">Price Alerts</string>
@@ -16,6 +17,9 @@
     <string name="section_exit_alerts">Exit Alerts</string>
     <string name="section_top_holdings">Top Holdings</string>
     <string name="section_active_holdings">Active Holdings</string>
+    <string name="section_dividend_estimation">Dividend Estimation</string>
+    <string name="label_est_yearly_dividend">Estimated Yearly Dividend</string>
+    <string name="label_dividend_symbols">Providing Dividend</string>
     <string name="section_trading_efficiency">Trading Efficiency</string>
     <string name="section_recent_trades">Recent Trades</string>
     <string name="section_data_management">Data Management</string>
@@ -31,6 +35,9 @@
     <string name="section_the_sensors">The Sensors</string>
     <string name="section_attentions">Attentions</string>
     <string name="section_market_summary">Market Signal Summary</string>
+    <string name="section_dividend_goal">Dividend Goal</string>
+    <string name="section_plan_details">Retirement Plan</string>
+    <string name="section_suggested_stocks">Recommended Dividend Stocks</string>
 
     <!-- Labels & UI Elements -->
     <string name="label_our_story">Our Story</string>
@@ -129,6 +136,13 @@
     <string name="label_attentions">Attentions</string>
     <string name="label_active_holdings_count">%1$d Active Holdings</string>
     <string name="label_not_set">Not Set</string>
+    <string name="label_target_monthly_dividend">Target Monthly Dividend</string>
+    <string name="label_years_to_retirement">Years to Retirement</string>
+    <string name="label_required_capital">Required Total Capital</string>
+    <string name="label_monthly_saving_needed">Suggested Monthly Saving</string>
+    <string name="label_est_avg_yield">Est. Portfolio Yield (5%)</string>
+    <string name="label_plan_summary">To earn ฿%1$s/month in %2$d years, you need a portfolio of ฿%3$s.</string>
+    <string name="label_suggested_invest">Suggested Investment</string>
 
     <!-- Dialog Titles & Actions -->
     <string name="title_adjust_cash">Adjust Cash Balance</string>

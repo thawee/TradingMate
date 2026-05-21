@@ -45,6 +45,7 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
     DASHBOARD(R.string.title_dashboard, Icons.Default.Dashboard),
     PORTFOLIO(R.string.title_portfolio, Icons.Default.AccountBalance),
     WATCHLIST(R.string.title_watchlist, Icons.Default.QueryStats),
+    ADVISOR(R.string.title_advisor, Icons.Default.Savings),
     STATS(R.string.title_history, Icons.Default.History),
     SETTINGS(R.string.title_settings, Icons.Default.Settings),
     EDUCATION(R.string.title_academy, Icons.Default.School, false),
@@ -143,7 +144,19 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                     }
                             ) {
                                 CenterAlignedTopAppBar(
-                                    title = { Text(state.stockInfo.symbol, fontWeight = FontWeight.Black) },
+                                    title = { 
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(state.stockInfo.symbol, fontWeight = FontWeight.Black)
+                                            if (state.stockInfo.lastUpdated.isNotBlank()) {
+                                                Text(
+                                                    text = stringResource(R.string.label_last_sync, state.stockInfo.lastUpdated),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                        }
+                                    },
                                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                                     navigationIcon = {
                                         IconButton(onClick = { viewModel.resetToInitial() }) {
@@ -203,6 +216,7 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                 )
                                 Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
                                 Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
+                                Screen.ADVISOR -> DividendAdvisorScreen(viewModel)
                                 Screen.SETTINGS -> SettingsScreen(viewModel)
                                 Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.DASHBOARD })
                                 Screen.STATS -> StatsScreen(viewModel)

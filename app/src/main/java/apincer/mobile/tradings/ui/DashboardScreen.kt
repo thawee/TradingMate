@@ -73,10 +73,23 @@ fun DashboardScreen(
     val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
     val totalStockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     val totalEquity = totalStockValue + cashBalance
+    val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            title = { 
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                    if (lastSync != "---") {
+                        Text(
+                            text = stringResource(R.string.label_last_sync, lastSync),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
         

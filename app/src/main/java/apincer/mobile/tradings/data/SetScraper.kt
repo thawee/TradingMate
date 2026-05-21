@@ -115,6 +115,10 @@ object SetScraper {
         }
     }
 
+    private fun getCurrentTimestamp(): String {
+        return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+    }
+
     fun fetchStockInfo(symbol: String): ScrapedStockInfo {
         Log.d(TAG, "Starting fetchStockInfo for $symbol")
         var info = ScrapedStockInfo(
@@ -122,7 +126,7 @@ object SetScraper {
             lastPrice = 0.0,
             change = 0.0,
             percentChange = 0.0,
-            lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            lastUpdated = getCurrentTimestamp()
         )
         
         // 1. Get Metadata from Yahoo Search
@@ -284,7 +288,7 @@ object SetScraper {
                 dividendDate = xdDate,
                 marketCap = marketCap,
                 volume = volume,
-                lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                lastUpdated = getCurrentTimestamp()
             )
         } catch (e: Exception) {
             Log.e(TAG, "SET API Fetch Error for $symbol", e)
@@ -346,7 +350,7 @@ object SetScraper {
                     pe = quote.optDouble("trailingPE", 0.0).takeIf { it > 0 },
                     pbv = quote.optDouble("priceToBook", 0.0).takeIf { it > 0 },
                     dividendYield = quote.optDouble("trailingAnnualDividendYield", 0.0) * 100, // Yahoo returns decimal
-                    lastUpdated = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                    lastUpdated = getCurrentTimestamp()
                 ))
             }
             infoList

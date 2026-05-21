@@ -35,27 +35,42 @@ fun GlassCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
     shape: RoundedCornerShape = RoundedCornerShape(24.dp),
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
-        modifier = modifier,
-        color = containerColor,
-        shape = shape,
-        border = androidx.compose.foundation.BorderStroke(
-            width = 0.5.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.45f),
-                    Color.White.copy(alpha = 0.05f),
-                    Color.White.copy(alpha = 0.05f),
-                    Color.White.copy(alpha = 0.25f)
-                ),
-                start = Offset(0f, 0f),
-                end = Offset(1000f, 1000f)
-            )
+    val border = androidx.compose.foundation.BorderStroke(
+        width = 0.5.dp,
+        brush = Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.45f),
+                Color.White.copy(alpha = 0.05f),
+                Color.White.copy(alpha = 0.05f),
+                Color.White.copy(alpha = 0.25f)
+            ),
+            start = Offset(0f, 0f),
+            end = Offset(1000f, 1000f)
         )
-    ) {
-        Column(content = content)
+    )
+
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            modifier = modifier,
+            color = containerColor,
+            shape = shape,
+            border = border
+        ) {
+            Column(content = content)
+        }
+    } else {
+        Surface(
+            modifier = modifier,
+            color = containerColor,
+            shape = shape,
+            border = border
+        ) {
+            Column(content = content)
+        }
     }
 }
 
@@ -222,9 +237,8 @@ fun StockItemCard(
     }
 
     GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onSelect(item) }
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onSelect(item) }
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -232,13 +246,15 @@ fun StockItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1.3f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         
                         Text(
                             text = item.info.symbol,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Black,
+                            maxLines = 1,
+                            softWrap = false,
                             letterSpacing = (-0.5).sp
                         )
                         if (item.isFocused) {
@@ -255,12 +271,13 @@ fun StockItemCard(
                     )
                 }
 
-                Column(horizontalAlignment = Alignment.End) {
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                     
                     Text(
                         text = "฿${item.info.lastPrice}",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1
                     )
                     
                     val changeColor = if (item.info.change >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error

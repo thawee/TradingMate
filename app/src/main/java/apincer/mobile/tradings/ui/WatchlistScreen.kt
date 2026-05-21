@@ -55,6 +55,7 @@ fun WatchlistScreen(
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
     var showAddDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(WatchlistTab.ALL) }
@@ -95,7 +96,19 @@ fun WatchlistScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text(stringResource(R.string.title_watchlist), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            title = { 
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.title_watchlist), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                    if (lastSync != "---") {
+                        Text(
+                            text = stringResource(R.string.label_last_sync, lastSync),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
                 IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
