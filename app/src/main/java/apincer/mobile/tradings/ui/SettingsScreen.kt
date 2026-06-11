@@ -326,21 +326,6 @@ fun SettingsScreen(
                 }
             }
 
-            SectionContent(title = stringResource(R.string.section_appearance), icon = Icons.Default.ColorLens) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                ) {
-                    
-                    Text(
-                        stringResource(R.string.label_dynamic_theme), 
-                        modifier = Modifier.padding(20.dp),
-                        style = MaterialTheme.typography.bodyMedium, 
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
 
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
