@@ -39,16 +39,16 @@ TradingMate is a high-performance personal trading companion specifically design
 ## 3. Screen & Page Flows
 
 ### 3.1 Main Navigation
-- **Home:** Entry point for daily market pulse, educational academy, and story concepts.
+- **Watchlist:** Active monitoring list with quick filtering, sorting, and Focus management via Filter Chips.
+- **Advisor:** AI Discovery Hub with top-level Sell Alerts, tabbed Setup lists (Swing, Gap, Dividend), and automatic prompt generation.
 - **Portfolio:** Central hub for viewing current holdings, cash management, and net return summary.
-- **Watchlist:** Active monitoring list with quick filtering, sorting, and focus management.
 - **History (Stats):** Audit trail of completed trades with profitability analytics and lessons learned.
-- **Settings:** App configuration, background sync intervals, and data management (Backup/Restore).
+- **Settings:** App configuration, dynamic Risk Management limits, and data management.
 
 ### 3.2 Secondary Flows
-- **Stock Detail (Dashboard):** Triggered from any list item (Home/Portfolio/Watchlist). Provides deep technical drill-down, price trend charts, and Focus toggle.
-- **Action Dialogs:** 
-    - **Record Buy/Sell:** Floating overlays for transaction entry without losing context.
+- **Stock Detail (Dashboard):** Triggered from any list item (Advisor/Portfolio/Watchlist). Provides deep technical drill-down, price trend charts, and Focus toggle.
+- **Action Dialogs & Sheets:** 
+    - **Record Buy/Sell:** Modal Bottom Sheet sliding up for transaction entry without losing context.
     - **Import SET:** Multi-select dialog for rapid watchlist population.
     - **Adjust Cash:** Instant balance setting from the Portfolio summary card.
 

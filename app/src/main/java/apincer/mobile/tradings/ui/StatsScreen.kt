@@ -128,15 +128,11 @@ fun StatsScreen(viewModel: StockViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-
                                 Text(stringResource(R.string.label_beginning_cash), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-
                                 Text("฿${String.format(Locale.ENGLISH,"%,.2f", beginningCash)}", fontSize = 18.sp, fontWeight = FontWeight.Black)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-
                                 Text(stringResource(R.string.label_win_rate), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-
                                 Text("${String.format(Locale.ENGLISH,"%.1f", winRate)}%", fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                             }
                         }
@@ -150,6 +146,56 @@ fun StatsScreen(viewModel: StockViewModel) {
                             StatMetric(stringResource(R.string.label_total_profit), totalProfit)
                             StatMetric(stringResource(R.string.label_this_month), mtdProfit)
                             StatMetric(stringResource(R.string.label_this_year), ytdProfit)
+                        }
+                    }
+                }
+            }
+
+            // L4 Journal Analyzer AI Copilot
+            if (history.isNotEmpty()) {
+                item {
+                    val promptBuilder = StringBuilder()
+                    promptBuilder.appendLine("Act as my Trading Journal Analyzer.")
+                    promptBuilder.appendLine("Review my recent trades below. Identify my top 3 recurring mistakes, my best performing setup type, and the one rule I break most often.")
+                    promptBuilder.appendLine("Format as a structured report.\\n")
+                    history.take(30).forEach { trade ->
+                        val isWin = trade.netProfitBaht > 0
+                        val resultStr = if (isWin) "WIN" else "LOSS"
+                        promptBuilder.appendLine("- ${trade.symbol}: $resultStr (${String.format(Locale.ENGLISH,"%.2f", trade.netProfitPercent)}%). Lessons: ${trade.note.takeIf { it.isNotBlank() } ?: "None"}")
+                    }
+
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Journal Analyzer (L4)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text("Review your trading psychology and identify mistakes from your recent trades.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            
+                            Spacer(Modifier.height(16.dp))
+                            
+                            val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            
+                            Button(
+                                onClick = {
+                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(promptBuilder.toString()))
+                                    android.widget.Toast.makeText(context, "Prompt copied!", android.widget.Toast.LENGTH_SHORT).show()
+                                    try {
+                                        uriHandler.openUri("https://gemini.google.com")
+                                    } catch (e: Exception) {}
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                            ) {
+                                Text("Copy Prompt & Open Gemini")
+                            }
                         }
                     }
                 }

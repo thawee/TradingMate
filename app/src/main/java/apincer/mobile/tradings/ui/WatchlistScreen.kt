@@ -27,11 +27,6 @@ import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.StockEntity
 import apincer.mobile.tradings.domain.IndicatorSignal
 
-enum class WatchlistTab(val label: String) {
-    ALL("All"),
-    FOCUS("Focus")
-}
-
 enum class WatchlistSortOrder(val label: String) {
     SYMBOL("Symbol"),
     CHANGE("Change %"),
@@ -39,13 +34,12 @@ enum class WatchlistSortOrder(val label: String) {
     SIGNAL("Signal")
 }
 
-/*
 enum class WatchlistFilter(val label: String) {
-    NONE("No Filter"),
-    BUY_ONLY("Buy Only"),
-    POSITIVE_ONLY("Positive Only"),
-    HOLDINGS_ONLY("Holdings Only")
-} */
+    ALL("All"),
+    FOCUS("Focus List"),
+    PORTFOLIO("Portfolio"),
+    BUY_SIGNAL("Buy Signals")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,24 +52,16 @@ fun WatchlistScreen(
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
     var showAddDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableStateOf(WatchlistTab.ALL) }
-    
+    var activeFilter by remember { mutableStateOf(WatchlistFilter.ALL) }
     var sortOrder by remember { mutableStateOf(WatchlistSortOrder.SYMBOL) }
-    //var activeFilter by remember { mutableStateOf(WatchlistFilter.NONE) }
 
-    val processedList = remember(watchlist, selectedTab, sortOrder) {
-        var list = when (selectedTab) {
-            WatchlistTab.ALL -> watchlist
-            WatchlistTab.FOCUS -> watchlist.filter { it.isFocused }
+    val processedList = remember(watchlist, activeFilter, sortOrder) {
+        var list = when (activeFilter) {
+            WatchlistFilter.ALL -> watchlist
+            WatchlistFilter.FOCUS -> watchlist.filter { it.isFocused }
+            WatchlistFilter.PORTFOLIO -> watchlist.filter { it.portfolio.quantity > 0 }
+            WatchlistFilter.BUY_SIGNAL -> watchlist.filter { it.signal?.type == IndicatorSignal.BUY || it.signal?.type == IndicatorSignal.POTENTIAL }
         }
-
-        // Apply Filters
-       /* list = when (activeFilter) {
-            WatchlistFilter.NONE -> list
-            WatchlistFilter.BUY_ONLY -> list.filter { it.signal?.type == IndicatorSignal.BUY }
-            WatchlistFilter.POSITIVE_ONLY -> list.filter { it.info.percentChange > 0 }
-            WatchlistFilter.HOLDINGS_ONLY -> list.filter { it.portfolio.quantity > 0 }
-        } */
 
         // Apply Sorting
         when (sortOrder) {
@@ -123,22 +109,29 @@ fun WatchlistScreen(
             }
         )
 
-        // Tab Control
-        GlassSegmentedControl(
-            items = WatchlistTab.entries.toList(),
-            selectedItem = selectedTab,
-            onItemSelect = { selectedTab = it },
-            labelExtractor = { it.label },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        // Sorting, Filtering Row
+        // Filtering & Sorting Row
         LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             item {
+                Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            items(WatchlistFilter.entries.toList()) { filter ->
+                FilterChip(
+                    selected = activeFilter == filter,
+                    onClick = { activeFilter = filter },
+                    label = { Text(filter.label, fontSize = 10.sp) },
+                    shape = CircleShape,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+            }
+            item {
+                Spacer(Modifier.width(8.dp))
                 Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             items(WatchlistSortOrder.entries.toList()) { order ->
@@ -161,7 +154,7 @@ fun WatchlistScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (selectedTab == WatchlistTab.FOCUS) {
+                text = if (activeFilter == WatchlistFilter.FOCUS) {
                     stringResource(R.string.label_focused_count, processedList.size)
                 } else {
                     stringResource(R.string.label_monitoring_count, processedList.size)
@@ -186,7 +179,7 @@ fun WatchlistScreen(
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = if (selectedTab == WatchlistTab.FOCUS) stringResource(R.string.label_no_focused_stocks) else stringResource(R.string.label_no_matches_found), 
+                                text = if (activeFilter == WatchlistFilter.FOCUS) stringResource(R.string.label_no_focused_stocks) else stringResource(R.string.label_no_matches_found), 
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

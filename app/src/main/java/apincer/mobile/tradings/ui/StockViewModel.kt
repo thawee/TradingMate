@@ -95,6 +95,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = StockRepository(database.stockDao(), database.tradeDao(), database.cashDao(), database.focusDao())
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
 
+
     val targetMonthlyDividend: StateFlow<Double> = 
         preferenceRepository.targetMonthlyDividend.stateIn(
             scope = viewModelScope,
@@ -157,6 +158,58 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     fun togglePrivacyMode() {
         viewModelScope.launch {
             preferenceRepository.setPrivacyMode(!isPrivacyMode.value)
+        }
+    }
+
+    val maxRiskPerTrade: StateFlow<Double> = 
+        preferenceRepository.maxRiskPerTrade.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 1.0
+        )
+
+    fun updateMaxRiskPerTrade(percent: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setMaxRiskPerTrade(percent)
+        }
+    }
+
+    val maxOpenExposure: StateFlow<Double> = 
+        preferenceRepository.maxOpenExposure.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 5.0
+        )
+
+    fun updateMaxOpenExposure(percent: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setMaxOpenExposure(percent)
+        }
+    }
+
+    val maxPortfolioAllocation: StateFlow<Double> = 
+        preferenceRepository.maxPortfolioAllocation.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 10.0
+        )
+
+    fun updateMaxPortfolioAllocation(percent: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setMaxPortfolioAllocation(percent)
+        }
+    }
+
+    val minRiskRewardRatio: StateFlow<Double> = 
+        preferenceRepository.minRiskRewardRatio.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 2.0
+        )
+
+    fun updateMinRiskRewardRatio(ratio: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setMinRiskRewardRatio(ratio)
         }
     }
 

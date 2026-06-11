@@ -80,6 +80,10 @@ fun PortfolioScreen(
         it.portfolio.quantity * it.info.lastPrice * ((it.info.dividendYield ?: 0.0) / 100.0)
     }
 
+    val targetMonthlyDividend by viewModel.targetMonthlyDividend.collectAsState()
+    val targetYearlyDividend = targetMonthlyDividend * 12
+    val dividendProgress = if (targetYearlyDividend > 0) (totalYearlyDividend / targetYearlyDividend).toFloat().coerceIn(0f, 1f) else 0f
+
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
             title = { 
@@ -124,6 +128,55 @@ fun PortfolioScreen(
                     yieldOnCost = avgYieldOnCost,
                     onEditCash = { showCashDialog = true }
                 )
+            }
+
+            if (targetYearlyDividend > 0) {
+                item {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Dividend Snowball Goal", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "฿${String.format(Locale.ENGLISH, "%,.0f", totalYearlyDividend)} / ฿${String.format(Locale.ENGLISH, "%,.0f", targetYearlyDividend)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        "${String.format(Locale.ENGLISH, "%.1f", dividendProgress * 100)}%",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiary
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+
+                            LinearProgressIndicator(
+                                progress = { dividendProgress },
+                                modifier = Modifier.fillMaxWidth().height(8.dp),
+                                color = MaterialTheme.colorScheme.tertiary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        }
+                    }
+                }
             }
 
             if (totalYearlyDividend > 0) {
@@ -253,8 +306,11 @@ fun PortfolioScreen(
                 showBuyDialog = false
                 selectedStockForEdit = null
             },
-            onConfirm = { symbol, cost, qty ->
+            onConfirm = { symbol, cost, qty, target, stopLoss, note ->
                 viewModel.addToWatchlist(symbol, cost, qty)
+                if (target > 0) {
+                    viewModel.addToFocusList(symbol, cost, target)
+                }
                 showBuyDialog = false
                 selectedStockForEdit = null
             }
@@ -328,11 +384,12 @@ fun AdjustCashDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuyStockDialog(
     initialStock: StockWatchlistInfo? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, Int) -> Unit
+    onConfirm: (String, Double, Int, Double, Double, String) -> Unit
 ) {
     var symbol by remember { mutableStateOf(initialStock?.info?.symbol ?: "") }
     var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: "") }
@@ -340,6 +397,7 @@ fun BuyStockDialog(
     
     var targetPrice by remember { mutableStateOf("") }
     var stopLossPrice by remember { mutableStateOf("") }
+    var playbookNote by remember { mutableStateOf("") }
 
     val entry = entryPrice.toDoubleOrNull() ?: 0.0
     val amount = qty.toIntOrNull() ?: 0
@@ -350,26 +408,28 @@ fun BuyStockDialog(
         Triple(1.10, 0.95, stringResource(R.string.label_suggested_strategy))
     } else null
 
-    GlassDialog(
+    val riskPerShare = entry - stopLoss
+    val rewardPerShare = target - entry
+    val rrRatio = if (riskPerShare > 0) rewardPerShare / riskPerShare else 0.0
+    val isValidDividend = playbookNote.lowercase().contains("dividend")
+    val isFormValid = symbol.isNotBlank() && entry > 0 && amount > 0 && playbookNote.isNotBlank() && 
+                      (isValidDividend || (target > 0 && stopLoss > 0 && rrRatio >= 2.0))
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = if (initialStock == null) stringResource(R.string.title_record_purchase) else stringResource(R.string.title_edit_holding),
-        confirmButton = {
-            Button(
-                onClick = { 
-                    if (symbol.isNotBlank()) {
-                        onConfirm(symbol, entry, amount)
-                    }
-                },
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(if (initialStock == null) stringResource(R.string.action_add_to_portfolio) else stringResource(R.string.action_update))
-            }
-        },
-        dismissButton = {
-            
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        }
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+            Text(
+                if (initialStock == null) stringResource(R.string.title_record_purchase) else stringResource(R.string.title_edit_holding),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black
+            )
+            Spacer(Modifier.height(16.dp))
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.heightIn(max = 400.dp)
@@ -402,6 +462,15 @@ fun BuyStockDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp)
+                    )
+                    OutlinedTextField(
+                        value = playbookNote,
+                        onValueChange = { playbookNote = it },
+                        label = { Text("Playbook / Setup Reasoning") },
+                        placeholder = { Text("e.g. Swing Breakout, Dividend") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        minLines = 2
                     )
                 }
             }
@@ -463,14 +532,11 @@ fun BuyStockDialog(
 
             if (entry > 0 && amount > 0 && target > 0 && stopLoss > 0) {
                 item {
-                    val riskPerShare = entry - stopLoss
-                    val rewardPerShare = target - entry
                     val totalRisk = riskPerShare * amount
                     val totalReward = rewardPerShare * amount
                     
                     val totalFees = TechnicalAnalysis.calculateFees(entry * amount, false) + TechnicalAnalysis.calculateFees(target * amount, true)
                     val netReward = totalReward - totalFees
-                    val rrRatio = if (riskPerShare > 0) rewardPerShare / riskPerShare else 0.0
 
                     GlassCard(
                         containerColor = (if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary).copy(alpha = 0.1f),
@@ -504,9 +570,27 @@ fun BuyStockDialog(
                 }
             }
         }
+            Spacer(Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    enabled = isFormValid,
+                    onClick = { 
+                        if (isFormValid) {
+                            onConfirm(symbol, entry, amount, target, stopLoss, playbookNote)
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(if (initialStock == null) stringResource(R.string.action_add_to_portfolio) else stringResource(R.string.action_update))
+                }
+            }
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SellStockDialog(
     stock: StockWatchlistInfo,
@@ -517,27 +601,21 @@ fun SellStockDialog(
     var qty by remember { mutableStateOf(stock.portfolio.quantity.toString()) }
     var note by remember { mutableStateOf("") }
 
-    GlassDialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.title_sell_stock, stock.info.symbol),
-        confirmButton = {
-            Button(
-                onClick = { 
-                    val sellQty = qty.toIntOrNull() ?: 0
-                    if (sellQty > 0 && sellQty <= stock.portfolio.quantity) {
-                        onConfirm(stock.info.symbol, price.toDoubleOrNull() ?: 0.0, sellQty, note)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(R.string.action_confirm_sell), color = Color.White)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        }
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+            Text(
+                stringResource(R.string.title_sell_stock, stock.info.symbol),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black
+            )
+            Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.label_current_holdings_count, stock.portfolio.quantity), fontSize = 13.sp, fontWeight = FontWeight.Medium)
             OutlinedTextField(
@@ -567,6 +645,25 @@ fun SellStockDialog(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp)
             )
+        }
+        
+            Spacer(Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = { 
+                        val sellQty = qty.toIntOrNull() ?: 0
+                        if (sellQty > 0 && sellQty <= stock.portfolio.quantity) {
+                            onConfirm(stock.info.symbol, price.toDoubleOrNull() ?: 0.0, sellQty, note)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(stringResource(R.string.action_confirm_sell), color = Color.White)
+                }
+            }
         }
     }
 }

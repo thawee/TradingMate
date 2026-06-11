@@ -29,7 +29,12 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +47,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -204,7 +210,76 @@ fun SettingsScreen(
                     Switch(checked = isEndYear, onCheckedChange = { viewModel.toggleDividendAlertEndYear() })
                 }
             }
+            SectionContent(title = "Risk Management", icon = Icons.Default.Warning) {
+                val maxRiskPerTrade by viewModel.maxRiskPerTrade.collectAsState()
+                var editingMaxRisk by remember(maxRiskPerTrade) { mutableStateOf(maxRiskPerTrade.toString()) }
 
+                OutlinedTextField(
+                    value = editingMaxRisk,
+                    onValueChange = { 
+                        editingMaxRisk = it
+                        it.toDoubleOrNull()?.let { percent -> viewModel.updateMaxRiskPerTrade(percent) }
+                    },
+                    label = { Text("Max Risk Per Trade") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val maxOpenExposure by viewModel.maxOpenExposure.collectAsState()
+                var editingMaxOpen by remember(maxOpenExposure) { mutableStateOf(maxOpenExposure.toString()) }
+
+                OutlinedTextField(
+                    value = editingMaxOpen,
+                    onValueChange = { 
+                        editingMaxOpen = it
+                        it.toDoubleOrNull()?.let { percent -> viewModel.updateMaxOpenExposure(percent) }
+                    },
+                    label = { Text("Max Open Risk Exposure") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val maxAllocation by viewModel.maxPortfolioAllocation.collectAsState()
+                var editingMaxAlloc by remember(maxAllocation) { mutableStateOf(maxAllocation.toString()) }
+
+                OutlinedTextField(
+                    value = editingMaxAlloc,
+                    onValueChange = { 
+                        editingMaxAlloc = it
+                        it.toDoubleOrNull()?.let { percent -> viewModel.updateMaxPortfolioAllocation(percent) }
+                    },
+                    label = { Text("Max Portfolio Allocation per Asset") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val minRR by viewModel.minRiskRewardRatio.collectAsState()
+                var editingMinRR by remember(minRR) { mutableStateOf(minRR.toString()) }
+
+                OutlinedTextField(
+                    value = editingMinRR,
+                    onValueChange = { 
+                        editingMinRR = it
+                        it.toDoubleOrNull()?.let { ratio -> viewModel.updateMinRiskRewardRatio(ratio) }
+                    },
+                    label = { Text("Minimum Risk/Reward Ratio") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp)
+                )
+            }
             SectionContent(title = stringResource(R.string.section_data_management), icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SettingsItem(

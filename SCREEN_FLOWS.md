@@ -8,21 +8,21 @@ This document outlines the user journey and navigation architecture of the Tradi
 
 The bottom navigation bar provides instant access to the five main functional areas of the app:
 
-1.  **🏠 Home (Discovery Hub)**
-    *   **Focus:** Alerts, discovery, and market sentiment.
-    *   **Features:** Quick access to the TradingMate Story, Academy, Market Pulse, and technical alerts (Buy/Sell/Potential).
-2.  **💼 Portfolio (Financial Hub)**
-    *   **Focus:** Consolidated asset tracking.
-    *   **Features:** Total Asset summary (Stock + Cash), inline cash management, and detailed holdings list with profit/loss tracking.
-3.  **⭐ Focus (Priority Watchlist)**
-    *   **Focus:** Immediate trading opportunities.
-    *   **Features:** High-conviction stocks filtered from the broader watchlist for active monitoring.
-4.  **📊 Watchlist (Data Center)**
+1.  **📊 Watchlist (Data Center)**
     *   **Focus:** Broad market monitoring.
-    *   **Features:** A comprehensive list of saved stocks with technical signals and fundamental overview.
-5.  **📈 History (Performance Review)**
+    *   **Features:** A comprehensive list of saved stocks with technical signals, fundamental overview, and Filter Chips to isolate "Focus" or "All" stocks.
+2.  **🧠 Advisor (AI Discovery Hub)**
+    *   **Focus:** Actionable trade setups and Risk Management.
+    *   **Features:** Permanent top-level Sell Alerts, tabbed browsing for Swing Trades, Earnings Gaps, and Dividend plays. Generates AI Master Prompts directly to clipboard.
+3.  **💼 Portfolio (Financial Hub)**
+    *   **Focus:** Consolidated asset tracking.
+    *   **Features:** Total Asset summary (Stock + Cash), inline cash management, detailed holdings list, and inline Modal Bottom Sheet for trades.
+4.  **📈 History (Performance Review)**
     *   **Focus:** Learning from past trades.
     *   **Features:** Closed trade records, win/loss ratios, and total realized profit tracking.
+5.  **⚙️ Settings (App Configuration)**
+    *   **Focus:** Core application preferences.
+    *   **Features:** Real-time Risk Management limits (Max Risk Per Trade, Exposure, Portfolio Allocation) driving the AI prompts.
 
 ---
 

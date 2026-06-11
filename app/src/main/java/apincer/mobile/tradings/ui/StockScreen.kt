@@ -42,10 +42,9 @@ import apincer.mobile.tradings.domain.TradingZone
 import java.util.Locale
 
 enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: Boolean = true) {
-    DASHBOARD(R.string.title_dashboard, Icons.Default.Dashboard),
-    PORTFOLIO(R.string.title_portfolio, Icons.Default.AccountBalance),
     WATCHLIST(R.string.title_watchlist, Icons.Default.QueryStats),
     ADVISOR(R.string.title_advisor, Icons.Default.Savings),
+    PORTFOLIO(R.string.title_portfolio, Icons.Default.AccountBalance),
     STATS(R.string.title_history, Icons.Default.History),
     SETTINGS(R.string.title_settings, Icons.Default.Settings),
     EDUCATION(R.string.title_academy, Icons.Default.School, false),
@@ -55,13 +54,53 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockScreen(viewModel: StockViewModel = viewModel()) {
-    var currentScreen by remember { mutableStateOf(Screen.DASHBOARD) }
+    var currentScreen by remember { mutableStateOf(Screen.WATCHLIST) }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val minRR by viewModel.minRiskRewardRatio.collectAsState()
 
     AppBackground {
         Scaffold(
             containerColor = Color.Transparent,
+            floatingActionButton = {
+                if (uiState is StockUiState.Success) {
+                    val state = uiState as StockUiState.Success
+                    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                    val context = androidx.compose.ui.platform.LocalContext.current
+
+                    ExtendedFloatingActionButton(
+                        onClick = { 
+                            val symbol = state.stockInfo.symbol
+                            val pe = state.stockInfo.pe ?: 0.0
+                            val yield = state.stockInfo.dividendYield ?: 0.0
+                            val prompt = """
+                                Act as my specialist subagents to evaluate $symbol (P/E: $pe, Yield: $yield%).
+                                
+                                CONSTRAINTS:
+                                - Focus purely on fundamental strength and technical support.
+                                - Disregard short-term intraday noise.
+                                - RISK: Assess max drawdown potential. Do not recommend if R/R is < $minRR.
+                                
+                                DELEGATED TASKS:
+                                1. [market-researcher]: Search the web for their latest news. Is their business moat strong?
+                                2. [risk-manager]: Is this yield a 'trap' or safe? Identify any major downside scenarios.
+                                
+                                Keep the final output under 3 short bullet points.
+                            """.trimIndent()
+                            
+                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
+                            android.widget.Toast.makeText(context, "Prompt copied! Paste it into Gemini.", android.widget.Toast.LENGTH_LONG).show()
+                            uriHandler.openUri("https://gemini.google.com/app")
+                        },
+                        icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Ask AI") },
+                        text = { Text("Ask Gemini Web") },
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
+            },
             bottomBar = {
                 Surface(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
@@ -78,7 +117,7 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                                 icon = { Icon(screen.icon, contentDescription = label, modifier = Modifier.size(24.dp)) },
                                 label = { Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp) },
                                 selected = currentScreen == screen,
-                                alwaysShowLabel = true,
+                                alwaysShowLabel = false,
                                 onClick = { 
                                     currentScreen = screen 
                                     viewModel.resetToInitial()
@@ -208,19 +247,13 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                         }
                         is StockUiState.Initial -> {
                             when (currentScreen) {
-                                Screen.DASHBOARD -> DashboardScreen(
-                                    viewModel = viewModel, 
-                                    onSelectStock = { viewModel.fetchStockData(it) }, 
-                                    onOpenEducation = { currentScreen = Screen.EDUCATION },
-                                    onOpenAbout = { currentScreen = Screen.ABOUT }
-                                )
                                 Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
                                 Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
                                 Screen.ADVISOR -> DividendAdvisorScreen(viewModel)
-                                Screen.SETTINGS -> SettingsScreen(viewModel)
-                                Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.DASHBOARD })
                                 Screen.STATS -> StatsScreen(viewModel)
-                                Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.DASHBOARD })
+                                Screen.SETTINGS -> SettingsScreen(viewModel)
+                                Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.ADVISOR })
+                                Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.ADVISOR })
                             }
                         }
                     }
