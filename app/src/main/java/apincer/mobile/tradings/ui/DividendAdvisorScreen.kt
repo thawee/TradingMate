@@ -341,7 +341,6 @@ fun AiCopilotCard(
             // Dividend Button
             Button(
                 onClick = {
-                    val portfolioStr = portfolioItems.joinToString(", ") { "${it.info.symbol} (${it.portfolio.quantity} shares)" }
                     val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
                     val dividendCandidates = dividendPlays
                         .sortedByDescending { it.info.dividendYield }
@@ -355,7 +354,6 @@ fun AiCopilotCard(
                         - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
 
                         I am loading the 'Dividend Accumulation Playbook'.
-                        Current Portfolio: $portfolioStr
                         Candidates Yielding > 5%: $dividendCandidates
                         
                         DELEGATED TASKS:
