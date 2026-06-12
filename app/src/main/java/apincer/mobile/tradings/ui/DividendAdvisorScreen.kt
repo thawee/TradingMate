@@ -252,25 +252,40 @@ fun AdvisorStockCard(
                 }
             }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-            }
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Line 1: Price
+                Row(
+                    verticalAlignment = Alignment.CenterVertically, 
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("Price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                }
 
-            Column(horizontalAlignment = Alignment.End) {
-                if (isSellAlert) {
-                     val net = stock.netProfitPercent
-                     Text("P/L", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                     Text("${if (net > 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", net)}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (net >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
-                } else {
-                     val yield = stock.info.dividendYield ?: 0.0
-                     if (yield > 0) {
-                         Text("Yield", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                         Text("${String.format(Locale.ENGLISH, "%.2f", yield)}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
-                     } else {
-                         Text("P/E", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                         Text(stock.info.pe?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "-", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                     }
+                Spacer(Modifier.height(4.dp))
+
+                // Line 2: Yield or P/L
+                Row(
+                    verticalAlignment = Alignment.CenterVertically, 
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (isSellAlert) {
+                        val net = stock.netProfitPercent
+                        Text("P/L", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${if (net > 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", net)}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (net >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                    } else {
+                        val yield = stock.info.dividendYield ?: 0.0
+                        if (yield > 0) {
+                            Text("Yield", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${String.format(Locale.ENGLISH, "%.2f", yield)}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                        } else {
+                            Text("P/E", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stock.info.pe?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "-", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
