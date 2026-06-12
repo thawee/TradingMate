@@ -384,7 +384,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                     bb = indicators.bollingerBands,
                                     isVolumeSurge = indicators.isVolumeSurge,
                                     userCost = if (stock.cost > 0) stock.cost else null,
-                                    isFundamentalGood = info.isFundamentalGood
+                                    isFundamentalGood = info.isFundamentalGood,
+                                    tradePurpose = stock.tradePurpose,
+                                    dividendYield = info.dividendYield,
+                                    roe = info.roe
                                 )
 
                                 repository.updateStockCache(
@@ -444,7 +447,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addToWatchlist(symbol: String, cost: Double = 0.0, quantity: Int = 0) {
+    fun addToWatchlist(symbol: String, cost: Double = 0.0, quantity: Int = 0, tradePurpose: String = "SWING") {
         viewModelScope.launch {
             // Deduct cash if it's a purchase (quantity > 0)
             if (quantity > 0) {
@@ -452,7 +455,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 val fees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
                 adjustCash(-(totalCostRaw + fees))
             }
-            repository.addStock(symbol, cost, quantity)
+            repository.addStock(symbol, cost, quantity, tradePurpose)
         }
     }
 
@@ -734,7 +737,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         bb = bb,
                         isVolumeSurge = isVolumeSurge,
                         userCost = local?.cost,
-                        isFundamentalGood = updatedInfo.isFundamentalGood
+                        isFundamentalGood = updatedInfo.isFundamentalGood,
+                        tradePurpose = local?.tradePurpose ?: "SWING",
+                        dividendYield = updatedInfo.dividendYield,
+                        roe = updatedInfo.roe
                     )
 
                     val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, sma200, bb)

@@ -42,14 +42,14 @@ public class StockDatabase_Impl : StockDatabase() {
   }
 
   protected override fun createOpenDelegate(): RoomOpenDelegate {
-    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(12, "0fd0fcb68a5ea771adb745b847220498", "86e052fe02618a87fcd1a9b8eaca06fe") {
+    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(13, "bb27f39f5ae27ac0ed0bbd2572566115", "7dc0994c8fda98e3ac0f2e902cb37ba7") {
       public override fun createAllTables(connection: SQLiteConnection) {
-        connection.execSQL("CREATE TABLE IF NOT EXISTS `stocks` (`symbol` TEXT NOT NULL, `name` TEXT, `nameTH` TEXT, `businessDescription` TEXT, `sector` TEXT, `industry` TEXT, `cost` REAL NOT NULL, `quantity` INTEGER NOT NULL, `lastPrice` REAL NOT NULL, `change` REAL NOT NULL, `percentChange` REAL NOT NULL, `pe` REAL, `pbv` REAL, `roe` REAL, `eps` REAL, `netProfit` REAL, `equity` REAL, `debtToEquity` REAL, `dividendYield` REAL, `dividendDate` TEXT, `rsi` REAL, `macdHist` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, PRIMARY KEY(`symbol`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `stocks` (`symbol` TEXT NOT NULL, `name` TEXT, `nameTH` TEXT, `businessDescription` TEXT, `sector` TEXT, `industry` TEXT, `cost` REAL NOT NULL, `quantity` INTEGER NOT NULL, `tradePurpose` TEXT NOT NULL, `lastPrice` REAL NOT NULL, `change` REAL NOT NULL, `percentChange` REAL NOT NULL, `pe` REAL, `pbv` REAL, `roe` REAL, `eps` REAL, `netProfit` REAL, `equity` REAL, `debtToEquity` REAL, `dividendYield` REAL, `dividendDate` TEXT, `rsi` REAL, `macdHist` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, PRIMARY KEY(`symbol`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `trade_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `symbol` TEXT NOT NULL, `buyPrice` REAL NOT NULL, `sellPrice` REAL NOT NULL, `quantity` INTEGER NOT NULL, `netProfitPercent` REAL NOT NULL, `netProfitBaht` REAL NOT NULL, `dateMillis` INTEGER NOT NULL, `note` TEXT NOT NULL)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `cash` (`id` INTEGER NOT NULL, `balance` REAL NOT NULL, PRIMARY KEY(`id`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `focus_list` (`symbol` TEXT NOT NULL, `startPrice` REAL NOT NULL, `targetPrice` REAL NOT NULL, `addedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`symbol`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0fd0fcb68a5ea771adb745b847220498')")
+        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bb27f39f5ae27ac0ed0bbd2572566115')")
       }
 
       public override fun dropAllTables(connection: SQLiteConnection) {
@@ -83,6 +83,7 @@ public class StockDatabase_Impl : StockDatabase() {
         _columnsStocks.put("industry", TableInfo.Column("industry", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("cost", TableInfo.Column("cost", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("quantity", TableInfo.Column("quantity", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStocks.put("tradePurpose", TableInfo.Column("tradePurpose", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("lastPrice", TableInfo.Column("lastPrice", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("change", TableInfo.Column("change", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("percentChange", TableInfo.Column("percentChange", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))

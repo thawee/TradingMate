@@ -36,6 +36,7 @@ class StockRepository(
         symbol: String, 
         cost: Double = 0.0, 
         quantity: Int = 0, 
+        tradePurpose: String = "SWING",
         name: String? = null, 
         description: String? = null
     ) {
@@ -45,6 +46,7 @@ class StockRepository(
             existing?.copy(
                 cost = cost,
                 quantity = quantity,
+                tradePurpose = tradePurpose,
                 name = name ?: existing.name,
                 businessDescription = description ?: existing.businessDescription
             ) ?: StockEntity(
@@ -52,7 +54,8 @@ class StockRepository(
                 name = name,
                 businessDescription = description,
                 cost = cost,
-                quantity = quantity
+                quantity = quantity,
+                tradePurpose = tradePurpose
             )
         )
     }

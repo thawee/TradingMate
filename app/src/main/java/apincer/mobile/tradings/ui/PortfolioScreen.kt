@@ -306,8 +306,8 @@ fun PortfolioScreen(
                 showBuyDialog = false
                 selectedStockForEdit = null
             },
-            onConfirm = { symbol, cost, qty, target, stopLoss, note ->
-                viewModel.addToWatchlist(symbol, cost, qty)
+            onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose ->
+                viewModel.addToWatchlist(symbol, cost, qty, purpose)
                 if (target > 0) {
                     viewModel.addToFocusList(symbol, cost, target)
                 }
@@ -389,7 +389,7 @@ fun AdjustCashDialog(
 fun BuyStockDialog(
     initialStock: StockWatchlistInfo? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, Int, Double, Double, String) -> Unit
+    onConfirm: (String, Double, Int, Double, Double, String, String) -> Unit
 ) {
     var symbol by remember { mutableStateOf(initialStock?.info?.symbol ?: "") }
     var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: "") }
@@ -398,6 +398,7 @@ fun BuyStockDialog(
     var targetPrice by remember { mutableStateOf("") }
     var stopLossPrice by remember { mutableStateOf("") }
     var playbookNote by remember { mutableStateOf("") }
+    var tradePurpose by remember { mutableStateOf(initialStock?.portfolio?.tradePurpose ?: "SWING") }
 
     val entry = entryPrice.toDoubleOrNull() ?: 0.0
     val amount = qty.toIntOrNull() ?: 0
@@ -411,8 +412,8 @@ fun BuyStockDialog(
     val riskPerShare = entry - stopLoss
     val rewardPerShare = target - entry
     val rrRatio = if (riskPerShare > 0) rewardPerShare / riskPerShare else 0.0
-    val isValidDividend = playbookNote.lowercase().contains("dividend")
-    val isFormValid = symbol.isNotBlank() && entry > 0 && amount > 0 && playbookNote.isNotBlank() && 
+    val isValidDividend = tradePurpose == "DIVIDEND" || playbookNote.lowercase().contains("dividend")
+    val isFormValid = symbol.isNotBlank() && entry > 0 && amount > 0 && 
                       (isValidDividend || (target > 0 && stopLoss > 0 && rrRatio >= 2.0))
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -444,6 +445,31 @@ fun BuyStockDialog(
                         enabled = initialStock == null,
                         shape = RoundedCornerShape(14.dp)
                     )
+                    Text("Trade Purpose", style = MaterialTheme.typography.labelMedium)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { tradePurpose = "SWING" },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (tradePurpose == "SWING") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (tradePurpose == "SWING") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Swing Trade")
+                        }
+                        Button(
+                            onClick = { tradePurpose = "DIVIDEND" },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (tradePurpose == "DIVIDEND") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = if (tradePurpose == "DIVIDEND") MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Dividend")
+                        }
+                    }
                     OutlinedTextField(
                         value = entryPrice,
                         onValueChange = { entryPrice = it },
@@ -578,7 +604,7 @@ fun BuyStockDialog(
                     enabled = isFormValid,
                     onClick = { 
                         if (isFormValid) {
-                            onConfirm(symbol, entry, amount, target, stopLoss, playbookNote)
+                            onConfirm(symbol, entry, amount, target, stopLoss, playbookNote, tradePurpose)
                         }
                     },
                     shape = RoundedCornerShape(12.dp)

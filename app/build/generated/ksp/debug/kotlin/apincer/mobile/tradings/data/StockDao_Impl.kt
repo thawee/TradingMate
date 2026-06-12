@@ -30,7 +30,7 @@ public class StockDao_Impl(
   init {
     this.__db = __db
     this.__insertAdapterOfStockEntity = object : EntityInsertAdapter<StockEntity>() {
-      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `stocks` (`symbol`,`name`,`nameTH`,`businessDescription`,`sector`,`industry`,`cost`,`quantity`,`lastPrice`,`change`,`percentChange`,`pe`,`pbv`,`roe`,`eps`,`netProfit`,`equity`,`debtToEquity`,`dividendYield`,`dividendDate`,`rsi`,`macdHist`,`signalType`,`signalReason`,`signalDescription`,`lastUpdated`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `stocks` (`symbol`,`name`,`nameTH`,`businessDescription`,`sector`,`industry`,`cost`,`quantity`,`tradePurpose`,`lastPrice`,`change`,`percentChange`,`pe`,`pbv`,`roe`,`eps`,`netProfit`,`equity`,`debtToEquity`,`dividendYield`,`dividendDate`,`rsi`,`macdHist`,`signalType`,`signalReason`,`signalDescription`,`lastUpdated`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
       protected override fun bind(statement: SQLiteStatement, entity: StockEntity) {
         statement.bindText(1, entity.symbol)
@@ -66,98 +66,99 @@ public class StockDao_Impl(
         }
         statement.bindDouble(7, entity.cost)
         statement.bindLong(8, entity.quantity.toLong())
-        statement.bindDouble(9, entity.lastPrice)
-        statement.bindDouble(10, entity.change)
-        statement.bindDouble(11, entity.percentChange)
+        statement.bindText(9, entity.tradePurpose)
+        statement.bindDouble(10, entity.lastPrice)
+        statement.bindDouble(11, entity.change)
+        statement.bindDouble(12, entity.percentChange)
         val _tmpPe: Double? = entity.pe
         if (_tmpPe == null) {
-          statement.bindNull(12)
+          statement.bindNull(13)
         } else {
-          statement.bindDouble(12, _tmpPe)
+          statement.bindDouble(13, _tmpPe)
         }
         val _tmpPbv: Double? = entity.pbv
         if (_tmpPbv == null) {
-          statement.bindNull(13)
+          statement.bindNull(14)
         } else {
-          statement.bindDouble(13, _tmpPbv)
+          statement.bindDouble(14, _tmpPbv)
         }
         val _tmpRoe: Double? = entity.roe
         if (_tmpRoe == null) {
-          statement.bindNull(14)
+          statement.bindNull(15)
         } else {
-          statement.bindDouble(14, _tmpRoe)
+          statement.bindDouble(15, _tmpRoe)
         }
         val _tmpEps: Double? = entity.eps
         if (_tmpEps == null) {
-          statement.bindNull(15)
+          statement.bindNull(16)
         } else {
-          statement.bindDouble(15, _tmpEps)
+          statement.bindDouble(16, _tmpEps)
         }
         val _tmpNetProfit: Double? = entity.netProfit
         if (_tmpNetProfit == null) {
-          statement.bindNull(16)
+          statement.bindNull(17)
         } else {
-          statement.bindDouble(16, _tmpNetProfit)
+          statement.bindDouble(17, _tmpNetProfit)
         }
         val _tmpEquity: Double? = entity.equity
         if (_tmpEquity == null) {
-          statement.bindNull(17)
+          statement.bindNull(18)
         } else {
-          statement.bindDouble(17, _tmpEquity)
+          statement.bindDouble(18, _tmpEquity)
         }
         val _tmpDebtToEquity: Double? = entity.debtToEquity
         if (_tmpDebtToEquity == null) {
-          statement.bindNull(18)
+          statement.bindNull(19)
         } else {
-          statement.bindDouble(18, _tmpDebtToEquity)
+          statement.bindDouble(19, _tmpDebtToEquity)
         }
         val _tmpDividendYield: Double? = entity.dividendYield
         if (_tmpDividendYield == null) {
-          statement.bindNull(19)
+          statement.bindNull(20)
         } else {
-          statement.bindDouble(19, _tmpDividendYield)
+          statement.bindDouble(20, _tmpDividendYield)
         }
         val _tmpDividendDate: String? = entity.dividendDate
         if (_tmpDividendDate == null) {
-          statement.bindNull(20)
+          statement.bindNull(21)
         } else {
-          statement.bindText(20, _tmpDividendDate)
+          statement.bindText(21, _tmpDividendDate)
         }
         val _tmpRsi: Double? = entity.rsi
         if (_tmpRsi == null) {
-          statement.bindNull(21)
+          statement.bindNull(22)
         } else {
-          statement.bindDouble(21, _tmpRsi)
+          statement.bindDouble(22, _tmpRsi)
         }
         val _tmpMacdHist: Double? = entity.macdHist
         if (_tmpMacdHist == null) {
-          statement.bindNull(22)
+          statement.bindNull(23)
         } else {
-          statement.bindDouble(22, _tmpMacdHist)
+          statement.bindDouble(23, _tmpMacdHist)
         }
         val _tmpSignalType: String? = entity.signalType
         if (_tmpSignalType == null) {
-          statement.bindNull(23)
+          statement.bindNull(24)
         } else {
-          statement.bindText(23, _tmpSignalType)
+          statement.bindText(24, _tmpSignalType)
         }
         val _tmpSignalReason: String? = entity.signalReason
         if (_tmpSignalReason == null) {
-          statement.bindNull(24)
+          statement.bindNull(25)
         } else {
-          statement.bindText(24, _tmpSignalReason)
+          statement.bindText(25, _tmpSignalReason)
         }
         val _tmpSignalDescription: String? = entity.signalDescription
         if (_tmpSignalDescription == null) {
-          statement.bindNull(25)
+          statement.bindNull(26)
         } else {
-          statement.bindText(25, _tmpSignalDescription)
+          statement.bindText(26, _tmpSignalDescription)
         }
         val _tmpLastUpdated: String? = entity.lastUpdated
         if (_tmpLastUpdated == null) {
-          statement.bindNull(26)
+          statement.bindNull(27)
         } else {
-          statement.bindText(26, _tmpLastUpdated)
+          statement.bindText(27, _tmpLastUpdated)
         }
       }
     }
@@ -191,6 +192,7 @@ public class StockDao_Impl(
         val _columnIndexOfIndustry: Int = getColumnIndexOrThrow(_stmt, "industry")
         val _columnIndexOfCost: Int = getColumnIndexOrThrow(_stmt, "cost")
         val _columnIndexOfQuantity: Int = getColumnIndexOrThrow(_stmt, "quantity")
+        val _columnIndexOfTradePurpose: Int = getColumnIndexOrThrow(_stmt, "tradePurpose")
         val _columnIndexOfLastPrice: Int = getColumnIndexOrThrow(_stmt, "lastPrice")
         val _columnIndexOfChange: Int = getColumnIndexOrThrow(_stmt, "change")
         val _columnIndexOfPercentChange: Int = getColumnIndexOrThrow(_stmt, "percentChange")
@@ -248,6 +250,8 @@ public class StockDao_Impl(
           _tmpCost = _stmt.getDouble(_columnIndexOfCost)
           val _tmpQuantity: Int
           _tmpQuantity = _stmt.getLong(_columnIndexOfQuantity).toInt()
+          val _tmpTradePurpose: String
+          _tmpTradePurpose = _stmt.getText(_columnIndexOfTradePurpose)
           val _tmpLastPrice: Double
           _tmpLastPrice = _stmt.getDouble(_columnIndexOfLastPrice)
           val _tmpChange: Double
@@ -344,7 +348,7 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _item = StockEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpCost,_tmpQuantity,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpRsi,_tmpMacdHist,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
+          _item = StockEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpCost,_tmpQuantity,_tmpTradePurpose,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpRsi,_tmpMacdHist,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
           _result.add(_item)
         }
         _result
@@ -369,6 +373,7 @@ public class StockDao_Impl(
         val _columnIndexOfIndustry: Int = getColumnIndexOrThrow(_stmt, "industry")
         val _columnIndexOfCost: Int = getColumnIndexOrThrow(_stmt, "cost")
         val _columnIndexOfQuantity: Int = getColumnIndexOrThrow(_stmt, "quantity")
+        val _columnIndexOfTradePurpose: Int = getColumnIndexOrThrow(_stmt, "tradePurpose")
         val _columnIndexOfLastPrice: Int = getColumnIndexOrThrow(_stmt, "lastPrice")
         val _columnIndexOfChange: Int = getColumnIndexOrThrow(_stmt, "change")
         val _columnIndexOfPercentChange: Int = getColumnIndexOrThrow(_stmt, "percentChange")
@@ -425,6 +430,8 @@ public class StockDao_Impl(
           _tmpCost = _stmt.getDouble(_columnIndexOfCost)
           val _tmpQuantity: Int
           _tmpQuantity = _stmt.getLong(_columnIndexOfQuantity).toInt()
+          val _tmpTradePurpose: String
+          _tmpTradePurpose = _stmt.getText(_columnIndexOfTradePurpose)
           val _tmpLastPrice: Double
           _tmpLastPrice = _stmt.getDouble(_columnIndexOfLastPrice)
           val _tmpChange: Double
@@ -521,7 +528,7 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _result = StockEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpCost,_tmpQuantity,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpRsi,_tmpMacdHist,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
+          _result = StockEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpCost,_tmpQuantity,_tmpTradePurpose,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpRsi,_tmpMacdHist,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
         } else {
           _result = null
         }

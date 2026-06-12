@@ -15,6 +15,7 @@ data class StockEntity(
     val industry: String? = null,
     val cost: Double = 0.0,
     val quantity: Int = 0,
+    val tradePurpose: String = "SWING",
     // Cached dynamic data for offline-first display
     val lastPrice: Double = 0.0,
     val change: Double = 0.0,
@@ -123,7 +124,7 @@ interface FocusDao {
     suspend fun clearFocusList()
 }
 
-@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class], version = 12)
+@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class], version = 13)
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
     abstract fun tradeDao(): TradeDao
@@ -134,6 +135,12 @@ abstract class StockDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: StockDatabase? = null
 
+        val MIGRATION_12_13 = object : androidx.room.migration.Migration(12, 13) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stocks ADD COLUMN tradePurpose TEXT NOT NULL DEFAULT 'SWING'")
+            }
+        }
+
         fun getDatabase(context: android.content.Context): StockDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -141,6 +148,7 @@ abstract class StockDatabase : RoomDatabase() {
                     StockDatabase::class.java,
                     "stock_database"
                 )
+                .addMigrations(MIGRATION_12_13)
                 .fallbackToDestructiveMigration() // Simple migration for early dev
                 .build()
                 INSTANCE = instance
