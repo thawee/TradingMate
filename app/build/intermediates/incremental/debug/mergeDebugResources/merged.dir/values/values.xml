@@ -217,6 +217,7 @@
     <string name="action_confirm_focus">Confirm Focus</string>
     <string name="action_confirm_sell">Confirm Sell</string>
     <string name="action_delete_all">Delete All</string>
+    <string name="action_read_concept">Read Concept (The 5 Layers)</string>
     <string name="action_ready_to_trade">I\'m ready to trade</string>
     <string name="action_restore_data">Restore Data</string>
     <string name="action_set_balance">Set Balance</string>
@@ -245,31 +246,46 @@
     <string name="desc_clear_history">Clear History</string>
     <string name="desc_focus">Focus</string>
     <string name="desc_import_set">Import SET</string>
+    <string name="desc_max_open_exposure">The maximum combined risk across all your currently open trades. This protects your account from sudden, broad market crashes.</string>
+    <string name="desc_max_portfolio_allocation">The maximum percentage of your total account capital that can be invested in a single stock. Prevents you from putting all your eggs in one basket.</string>
+    <string name="desc_max_risk_per_trade">The maximum percentage of your total account equity you are willing to lose on a single trade. If your stop loss is hit, you will lose exactly this amount.</string>
+    <string name="desc_min_risk_reward">The minimum ratio between your potential profit (Reward) and potential loss (Risk) required to take a trade. A ratio of 2.0 means you expect to make twice as much as you risk losing.</string>
     <string name="desc_refresh">Refresh</string>
     <string name="dropdown_menu">"Dropdown menu"</string>
+    <string name="edu_5_layers_intro">Our system evaluates stocks through 5 distinct \"Layers\" of analysis. A stock must pass the earlier layers before the later layers matter. We use these tags to quickly identify the current state of a stock.</string>
     <string name="edu_bollinger_content">A \'Volatility Tube\' that wraps around price. \n\n• Lower Band (Value): Prices here are statistically cheap for their current movement.\n• Upper Band (Resistance): Prices here are stretched too far. High risk of a reversal.</string>
     <string name="edu_bollinger_title">Bollinger Bands (Volatility Map)</string>
     <string name="edu_golden_rule_content">SELL signals ALWAYS override BUY signals. If a stock has great momentum but hits RSI 65 or the Upper Bollinger Band, the app will warn you to wait. Never buy at the peak!</string>
     <string name="edu_golden_rule_title">The Golden Rule</string>
+    <string formatted="false" name="edu_layer_1_content">The foundation. Does the company make money? We look for ROE > 15%, Net Profit Margin > 10%, consistent 3Y profit growth, and low debt (D/E &lt; 1.5).</string>
+    <string name="edu_layer_1_title">Layer 1: QUAL (Quality/Fundamentals)</string>
+    <string name="edu_layer_2_content">Is the price fair? Even a great company is a bad investment if you pay too much. We compare Current P/E to Historical P/E and check Price-to-Book ratios.</string>
+    <string name="edu_layer_2_title">Layer 2: VAL (Valuation)</string>
+    <string formatted="false" name="edu_layer_3_content">For income investors. We look for a dividend yield > 5% that is sustainable, meaning the company pays out a reasonable portion of its profits without starving its own growth.</string>
+    <string name="edu_layer_3_title">Layer 3: DIV (Dividend)</string>
+    <string name="edu_layer_4_content">Are buyers stepping in? We use MACD crossovers and moving averages to confirm that the trend has actually shifted to the upside. Never catch a falling knife.</string>
+    <string name="edu_layer_4_title">Layer 4: MOM (Momentum)</string>
+    <string name="edu_layer_5_content">The trigger. We use RSI (Relative Strength Index) to find when prices are \'oversold\' (RSI &lt; 35) at major support levels, providing a low-risk entry point.</string>
+    <string name="edu_layer_5_title">Layer 5: SUP (Support/Technicals)</string>
     <string name="edu_macd_content">Think of this as the car\'s gears. Even if a stock is cheap (RSI 35), we look for the MACD Histogram to turn positive. This confirms that the momentum has shifted to the upside.</string>
     <string name="edu_macd_title">MACD (The Momentum Switch)</string>
-    <string name="edu_risk_mgmt_content">The most important rule in trading is preserving your capital. \n\n• Why: Small losses are easy to recover. A -50% loss requires a +100% gain just to break even.\n• When: If a stock drops -5% from your cost, the app will trigger a SELL signal. This is your cue to exit and protect your remaining cash.</string>
+    <string formatted="false" name="edu_risk_mgmt_content">The most important rule in trading is preserving your capital. \n\n• Why: Small losses are easy to recover. A -50% loss requires a +100% gain just to break even.\n• When: If a stock drops -5% from your cost, the app will trigger a SELL signal. This is your cue to exit and protect your remaining cash.</string>
     <string name="edu_risk_mgmt_title">The Art of the \'Cut Loss\'</string>
     <string name="edu_rsi_content">The Relative Strength Index (14 days). \n\n• Target 35 (Value): The stock is oversold. Prices are \'compressed\' and ready to bounce.\n• Target 65 (Caution): The stock is overbought. Risk of a pullback is high.</string>
     <string name="edu_rsi_title">RSI (The Speedometer)</string>
     <string name="edu_sma_content">Moving Averages track the \'Average\' price over time.\n\n• SMA 200: The long-term \'Line in the Sand\'. Above this is a healthy Bull Market.\n• SMA 50: Mid-term health. Price above this suggests the trend is your friend.</string>
     <string name="edu_sma_title">SMA 50 &amp; 200 (Trend Guards)</string>
-    <string name="edu_step1_content">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections like \'Dividend Stars\' or \'Bluechips\'. Look for the \'Solid Financials\' badge—these companies have high ROE (>15%), low debt (D/E &lt; 1.5), and strong profit margins.</string>
+    <string formatted="false" name="edu_step1_content">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections like \'Dividend Stars\' or \'Bluechips\'. Look for the \'Solid Financials\' badge—these companies have high ROE (>15%), low debt (D/E &lt; 1.5), and strong profit margins.</string>
     <string name="edu_step1_title">1. Discovery (Quality First)</string>
     <string name="edu_step2_content">Move stocks into your Watchlist. The app monitors them 24/7:\n\n• AMBER (Potential): RSI &lt; 42. The stock is getting cheap or testing support.\n• GREEN (Buy): RSI &lt; 35 or confirmed momentum. Confirmed value + confirmed momentum.</string>
     <string name="edu_step2_title">2. Monitoring (The Traffic Lights)</string>
-    <string name="edu_step3_content">When you see a Buy signal, use the \'Risk/Reward Calculator\'. Set a target (+10-20%) and a stop loss (-5%). If the math doesn\'t show at least 2x reward for your risk, wait for a better price.</string>
+    <string formatted="false" name="edu_step3_content">When you see a Buy signal, use the \'Risk/Reward Calculator\'. Set a target (+10-20%) and a stop loss (-5%). If the math doesn\'t show at least 2x reward for your risk, wait for a better price.</string>
     <string name="edu_step3_title">3. Execution (The Plan)</string>
     <string name="edu_workflow_subtitle">Disciplined steps for consistent profit.</string>
     <string name="edu_workflow_title">Master the Workflow</string>
-    <string name="edu_yoc_content">We evaluate the \'DNA\' of every company before suggesting it. A stock earns the \'⭐ Quality\' tag if it meets these strict checks:\n\n• ROE > 15%: Superior management efficiency.\n• Net Profit Margin > 10%: Healthy business profitability.\n• Profit Growth (3Y) > 10%: Consistent bottom-line growth.\n• D/E Ratio &lt; 1.5: Safe levels of financial debt.</string>
+    <string formatted="false" name="edu_yoc_content">We evaluate the \'DNA\' of every company before suggesting it. A stock earns the \'⭐ Quality\' tag if it meets these strict checks:\n\n• ROE > 15%: Superior management efficiency.\n• Net Profit Margin > 10%: Healthy business profitability.\n• Profit Growth (3Y) > 10%: Consistent bottom-line growth.\n• D/E Ratio &lt; 1.5: Safe levels of financial debt.</string>
     <string name="edu_yoc_title">Fundamental Guardrails</string>
-    <string name="hint_sell_note">e.g. Sold too early, RSI was 80</string>
+    <string formatted="false" name="hint_sell_note">e.g. Sold too early, RSI was 80</string>
     <string name="in_progress">In progress</string>
     <string name="indeterminate">Partially checked</string>
     <string name="label_3y_growth">3Y Growth (%)</string>
@@ -365,7 +381,7 @@
     <string name="label_stocks_value">Stocks Value</string>
     <string name="label_stop_loss">Stop Loss</string>
     <string name="label_suggested_invest">Suggested Investment</string>
-    <string name="label_suggested_strategy">Suggested: 10% Target / 5% Stop (2.0 R:R)</string>
+    <string formatted="false" name="label_suggested_strategy">Suggested: 10% Target / 5% Stop (2.0 R:R)</string>
     <string name="label_target">Target</string>
     <string name="label_target_monthly_dividend">Target Monthly Dividend</string>
     <string name="label_target_price">Target: ฿%1$s</string>
@@ -503,6 +519,7 @@
     <string name="title_clear_history">Clear History</string>
     <string name="title_clear_watchlist">Clear Watchlist</string>
     <string name="title_edit_holding">Edit Holding</string>
+    <string name="title_education_concept">TradingMate Concept: The 5 Layers</string>
     <string name="title_focus_on">Focus on %1$s</string>
     <string name="title_history">History</string>
     <string name="title_import_set">Import SET Collection</string>
@@ -609,9 +626,9 @@
     <declare-styleable name="DividerAttributes">
         
         <attr format="enum" name="embeddingDividerType">
-            <!-- Fixed divider type. -->
+            
             <enum name="fixed" value="0"/>
-            <!-- Draggable divider type. -->
+            
             <enum name="draggable" value="1"/>
         </attr>
         
@@ -638,23 +655,14 @@
         <attr format="reference" name="fontProviderCerts"/>
         
         <attr name="fontProviderFetchStrategy">
-            <!-- The blocking font fetch works as follows.
-              First, check the local cache, then if the requested font is not cached, request the
-              font from the provider and wait until it is finished.  You can change the length of
-              the timeout by modifying fontProviderFetchTimeout.  If the timeout happens, the
-              default typeface will be used instead. -->
+            
             <enum name="blocking" value="0"/>
-            <!-- The async font fetch works as follows.
-              First, check the local cache, then if the requested font is not cached, trigger a
-              request the font and continue with layout inflation. Once the font fetch succeeds, the
-              target text view will be refreshed with the downloaded font data. The
-              fontProviderFetchTimeout will be ignored if async loading is specified. -->
+            
             <enum name="async" value="1"/>
         </attr>
         
         <attr format="integer" name="fontProviderFetchTimeout">
-            <!-- A special value for the timeout. In this case, the blocking font fetching will not
-              timeout and wait until a reply is received from the font provider. -->
+            
             <enum name="forever" value="-1"/>
         </attr>
         

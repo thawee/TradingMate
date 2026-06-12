@@ -23,6 +23,13 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
@@ -61,6 +68,11 @@ fun SettingsScreen(
     viewModel: StockViewModel
 ) {
     val context = LocalContext.current
+    var showConceptDialog by remember { mutableStateOf(false) }
+
+    if (showConceptDialog) {
+        ConceptDialog(onDismiss = { showConceptDialog = false })
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
@@ -144,6 +156,19 @@ fun SettingsScreen(
                     Switch(checked = isEndYear, onCheckedChange = { viewModel.toggleDividendAlertEndYear() })
                 }
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { showConceptDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.School, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.action_read_concept), fontWeight = FontWeight.Bold)
+            }
+
             SectionContent(title = "Risk Management", icon = Icons.Default.Warning) {
                 val maxRiskPerTrade by viewModel.maxRiskPerTrade.collectAsState()
                 var editingMaxRisk by remember(maxRiskPerTrade) { mutableStateOf(maxRiskPerTrade.toString()) }
@@ -159,6 +184,12 @@ fun SettingsScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     suffix = { Text("%") },
                     shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = stringResource(R.string.desc_max_risk_per_trade),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -178,6 +209,12 @@ fun SettingsScreen(
                     suffix = { Text("%") },
                     shape = RoundedCornerShape(14.dp)
                 )
+                Text(
+                    text = stringResource(R.string.desc_max_open_exposure),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -196,6 +233,12 @@ fun SettingsScreen(
                     suffix = { Text("%") },
                     shape = RoundedCornerShape(14.dp)
                 )
+                Text(
+                    text = stringResource(R.string.desc_max_portfolio_allocation),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -212,6 +255,12 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = stringResource(R.string.desc_min_risk_reward),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
             }
 
@@ -261,6 +310,120 @@ fun SettingsItem(title: String, description: String, icon: ImageVector, onClick:
                 }
                 Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConceptDialog(onDismiss: () -> Unit) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.8f),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.title_education_concept),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black
+                    )
+                    androidx.compose.material3.IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                // Content
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.edu_5_layers_intro),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    ConceptLayerItem(
+                        title = stringResource(R.string.edu_layer_1_title),
+                        content = stringResource(R.string.edu_layer_1_content),
+                        icon = Icons.Default.Verified,
+                        color = Color(0xFF4CAF50)
+                    )
+                    ConceptLayerItem(
+                        title = stringResource(R.string.edu_layer_2_title),
+                        content = stringResource(R.string.edu_layer_2_content),
+                        icon = Icons.Default.AccountBalanceWallet,
+                        color = Color(0xFF2196F3)
+                    )
+                    ConceptLayerItem(
+                        title = stringResource(R.string.edu_layer_3_title),
+                        content = stringResource(R.string.edu_layer_3_content),
+                        icon = Icons.Default.Savings,
+                        color = Color(0xFFFF9800)
+                    )
+                    ConceptLayerItem(
+                        title = stringResource(R.string.edu_layer_4_title),
+                        content = stringResource(R.string.edu_layer_4_content),
+                        icon = Icons.Default.TrendingUp,
+                        color = Color(0xFF9C27B0)
+                    )
+                    ConceptLayerItem(
+                        title = stringResource(R.string.edu_layer_5_title),
+                        content = stringResource(R.string.edu_layer_5_content),
+                        icon = Icons.Default.ShowChart,
+                        color = Color(0xFFF44336)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ConceptLayerItem(title: String, content: String, icon: ImageVector, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Surface(
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = color.copy(alpha = 0.1f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+        Column {
+            Text(text = title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = content, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
