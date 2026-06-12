@@ -1,12 +1,16 @@
 name: Build and Release APK
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - '*' # Trigger on any new tag
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build APK
+    name: Build APK and Create Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,10 +29,11 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Upload APK to Release
+      - name: Create Release and Upload APK
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
