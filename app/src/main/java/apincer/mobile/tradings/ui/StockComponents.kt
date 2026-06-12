@@ -269,6 +269,36 @@ fun StockItemCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                         maxLines = 1
                     )
+                    
+                    val tags = mutableListOf<String>()
+                    val isQual = (item.info.roe ?: 0.0) > 15.0
+                    if (isQual) tags.add("QUAL")
+                    if ((item.info.pe ?: 0.0) in 0.1..15.0 && (item.info.pbv ?: 0.0) in 0.1..1.0) tags.add("VAL")
+                    if ((item.info.dividendYield ?: 0.0) >= 5.0) tags.add("DIV")
+                    if ((item.portfolio.macdHist ?: 0.0) > 0.0) tags.add("MOM")
+                    if (item.signal?.type == IndicatorSignal.BUY || item.signal?.type == IndicatorSignal.POTENTIAL || (item.portfolio.rsi ?: 50.0) < 35.0) tags.add("SUP")
+                    if (item.info.percentChange >= 4.0 && (isQual || (item.info.netProfitMargin ?: 0.0) > 10.0)) tags.add("GAP")
+                    if ((item.portfolio.rsi ?: 50.0) < 30.0) tags.add("OS")
+
+                    if (tags.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            tags.forEach { tag ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
@@ -358,11 +388,28 @@ fun StockItemCard(
                 }
             }
 
-            if (item.signal != null) {
-                val signalColor = when (item.signal.type) {
-                    IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
-                    IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
+            val isPortfolioItem = item.portfolio.quantity > 0
+            val isSellSignal = item.signal?.type == IndicatorSignal.SELL
+            val showStatusBox = item.signal != null || isPortfolioItem
+            
+            if (showStatusBox) {
+                val signalColor = when {
+                    isPortfolioItem && isSellSignal -> MaterialTheme.colorScheme.error
+                    isPortfolioItem && !isSellSignal -> MaterialTheme.colorScheme.tertiary
+                    item.signal?.type == IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
+                    item.signal?.type == IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.secondary
+                }
+                
+                val signalText = when {
+                    isPortfolioItem && isSellSignal -> "ACTION: SELL"
+                    isPortfolioItem && !isSellSignal -> "ACTION: HOLD"
+                    else -> item.signal?.type?.name ?: "MONITOR"
+                }
+                
+                val reasonText = when {
+                    isPortfolioItem && !isSellSignal -> "Trend is intact. No exit signals triggered."
+                    else -> item.signal?.reason ?: "Monitoring price action."
                 }
                 
                 Surface(
@@ -375,17 +422,15 @@ fun StockItemCard(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        
                         Text(
-                            text = item.signal.type.name,
+                            text = signalText,
                             color = signalColor,
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp
                         )
                         Spacer(Modifier.width(10.dp))
-                        
                         Text(
-                            text = item.signal.reason,
+                            text = reasonText,
                             style = MaterialTheme.typography.labelSmall,
                             maxLines = 1,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -410,12 +455,15 @@ fun StockItemCard(
                     
                     Button(
                         onClick = { onSell(item) },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSellSignal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isSellSignal) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(Icons.Default.Sell, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Sell", fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        Text(if (isSellSignal) "Execute Sell" else "Close Trade", fontSize = 12.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
