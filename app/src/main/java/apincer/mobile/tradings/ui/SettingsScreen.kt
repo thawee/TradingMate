@@ -61,72 +61,6 @@ fun SettingsScreen(
     viewModel: StockViewModel
 ) {
     val context = LocalContext.current
-    var showWatchlistConfirm by remember { mutableStateOf(false) }
-    var showHistoryConfirm by remember { mutableStateOf(false) }
-    
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        uri?.let { viewModel.exportBackup(context.contentResolver, it) }
-    }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri?.let { viewModel.importBackup(context.contentResolver, it) }
-    }
-
-    if (showWatchlistConfirm) {
-        GlassDialog(
-            onDismissRequest = { showWatchlistConfirm = false },
-            title = stringResource(R.string.title_clear_watchlist),
-            confirmButton = {
-                Button(
-                    onClick = { 
-                        viewModel.clearWatchlist()
-                        showWatchlistConfirm = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(stringResource(R.string.action_clear_watchlist), color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showWatchlistConfirm = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            }
-        ) {
-            Text(stringResource(R.string.confirm_clear_watchlist))
-        }
-    }
-
-    if (showHistoryConfirm) {
-        GlassDialog(
-            onDismissRequest = { showHistoryConfirm = false },
-            title = stringResource(R.string.title_clear_history),
-            confirmButton = {
-                Button(
-                    onClick = { 
-                        viewModel.clearTradeHistory()
-                        showHistoryConfirm = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(stringResource(R.string.action_clear_history), color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showHistoryConfirm = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            }
-        ) {
-            Text(stringResource(R.string.confirm_clear_history))
-        }
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
@@ -280,51 +214,7 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(14.dp)
                 )
             }
-            SectionContent(title = stringResource(R.string.section_data_management), icon = Icons.Default.Info) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SettingsItem(
-                        title = stringResource(R.string.action_backup_data),
-                        description = stringResource(R.string.label_backup_desc),
-                        icon = Icons.Default.FileDownload,
-                        onClick = { exportLauncher.launch("trading_mate_backup_${System.currentTimeMillis()}.json") }
-                    )
-                    
-                    SettingsItem(
-                        title = stringResource(R.string.action_restore_data),
-                        description = stringResource(R.string.label_restore_desc),
-                        icon = Icons.Default.FileUpload,
-                        onClick = { importLauncher.launch(arrayOf("application/json")) }
-                    )
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(
-                            onClick = { showWatchlistConfirm = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
-                        ) {
-                            Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.action_clear_watchlist), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        }
-
-                        Button(
-                            onClick = { showHistoryConfirm = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
-                        ) {
-                            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.action_clear_history), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        }
-                    }
-                }
-            }
 
 
             GlassCard(

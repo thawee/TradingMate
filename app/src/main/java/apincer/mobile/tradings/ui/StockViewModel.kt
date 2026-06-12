@@ -589,61 +589,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun clearWatchlist() {
-        viewModelScope.launch {
-            repository.clearWatchlist()
-            repository.clearFocusList()
-        }
-    }
 
-    fun exportBackup(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
-        viewModelScope.launch {
-            try {
-                val stocks = repository.allStocks.first()
-                val focusList = repository.allFocusStocks.first()
-                val trades = repository.allTrades.first()
-                val cash = repository.cashBalance.first()?.balance ?: 0.0
-
-                val backup = TradingBackup(stocks, focusList, trades, cash)
-
-                val json = Json { 
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                }
-                val content = json.encodeToString(backup)
-                withContext(Dispatchers.IO) {
-                    contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
-                }
-            } catch (e: Exception) {
-                _uiState.value = StockUiState.Error("Failed to export: ${e.message}")
-            }
-        }
-    }
-
-    fun importBackup(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
-        viewModelScope.launch {
-            try {
-                val content = withContext(Dispatchers.IO) {
-                    contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: ""
-                }
-                val json = Json { ignoreUnknownKeys = true }
-                val backup = json.decodeFromString<TradingBackup>(content)
-
-                // Clear existing data
-                repository.clearWatchlist()
-                repository.clearHistory()
-
-                backup.stocks.forEach { repository.updateStockCache(it) }
-                backup.focusList.forEach { repository.addToFocusList(it.symbol, it.startPrice, it.targetPrice) }
-                backup.trades.forEach { repository.insertTrade(it) }
-                repository.updateCash(backup.cashBalance)
-
-                refreshWatchlistInfo()
-            } catch (e: Exception) {
-                _uiState.value = StockUiState.Error("Failed to import backup: ${e.message}")
-            }
-        }
-    }
 
     fun importFromCollection(category: String) {
         viewModelScope.launch {
