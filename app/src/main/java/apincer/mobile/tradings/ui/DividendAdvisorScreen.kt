@@ -55,29 +55,32 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
 
     val sellAlerts = mutableListOf<SellAlertData>()
     portfolioItems.forEach { stock ->
-        val yield = stock.info.dividendYield ?: 0.0
-        val isDivHolding = yield > 3.0 // Treat as dividend holding if yield > 3% (might have dropped from 5%)
+        val tradePurpose = stock.portfolio.tradePurpose ?: "SWING"
         
-        if (isDivHolding) {
+        // Dividend checks
+        if (tradePurpose == "DIVIDEND") {
+            val yield = stock.info.dividendYield ?: 0.0
             val roe = stock.info.roe ?: 0.0
             if (roe < 15.0) {
                 sellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
-            } else if (yield < 5.0) {
-                sellAlerts.add(SellAlertData(stock, "Yield Dropped (< 5%)"))
+            } else if (yield < 3.0) {
+                sellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%)"))
             }
-        } else {
-            val netProfit = stock.netProfitPercent
-            val rsi = stock.portfolio.rsi ?: 50.0
-            
-            if (netProfit >= 5.0) {
-                sellAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 5%)"))
-            } else if (netProfit <= -5.0) {
-                sellAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
-            } else if (rsi >= 70.0) {
-                sellAlerts.add(SellAlertData(stock, "Overbought (RSI >= 70)"))
-            } else if (stock.signal?.type == IndicatorSignal.SELL) {
-                sellAlerts.add(SellAlertData(stock, stock.signal.reason))
-            }
+        }
+        
+        // Swing checks (now applied to both SWING and DIVIDEND)
+        val netProfit = stock.netProfitPercent
+        val rsi = stock.portfolio.rsi ?: 50.0
+        
+        if (netProfit >= 10.0) {
+            // Using 10% to match TechnicalAnalysis target
+            sellAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
+        } else if (netProfit <= -5.0) {
+            sellAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
+        } else if (rsi >= 65.0) { // Using 65.0 to match TechnicalAnalysis OVERBOUGHT
+            sellAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
+        } else if (stock.signal?.type == IndicatorSignal.SELL) {
+            sellAlerts.add(SellAlertData(stock, stock.signal.reason))
         }
     }
 

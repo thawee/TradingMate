@@ -55,214 +55,215 @@
 30-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:9:9-54
 31        android:supportsRtl="true"
 31-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:9-35
-32        android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" >
-32-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:12:9-77
-33        <activity
-33-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:13:9-22:20
-34            android:name="apincer.mobile.tradings.MainActivity"
-34-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:14:13-41
-35            android:exported="true"
-35-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:15:13-36
-36            android:label="@string/app_name"
-36-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:16:13-45
-37            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" >
-37-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:17:13-81
-38            <intent-filter>
-38-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:18:13-21:29
-39                <action android:name="android.intent.action.MAIN" />
-39-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:19:17-69
-39-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:19:25-66
-40
-41                <category android:name="android.intent.category.LAUNCHER" />
-41-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:20:17-77
-41-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:20:27-74
-42            </intent-filter>
-43        </activity>
-44        <activity
-44-->[androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
-45            android:name="androidx.compose.ui.tooling.PreviewActivity"
-45-->[androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:24:13-71
-46            android:exported="true" />
-46-->[androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:25:13-36
-47
-48        <provider
-48-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:29:9-37:20
-49            android:name="androidx.startup.InitializationProvider"
-49-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:30:13-67
-50            android:authorities="apincer.mobile.tradings.androidx-startup"
-50-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:31:13-68
-51            android:exported="false" >
-51-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:32:13-37
-52            <meta-data
-52-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:34:13-36:52
-53                android:name="androidx.work.WorkManagerInitializer"
-53-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:35:17-68
-54                android:value="androidx.startup" />
-54-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:36:17-49
-55            <meta-data
-55-->[androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
-56                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-56-->[androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
-57                android:value="androidx.startup" />
-57-->[androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
-58            <meta-data
-58-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
-59                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-59-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
-60                android:value="androidx.startup" />
-60-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
-61            <meta-data
-61-->[com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:16:13-18:52
-62                android:name="okhttp3.internal.platform.PlatformInitializer"
-62-->[com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:17:17-77
-63                android:value="androidx.startup" />
-63-->[com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:18:17-49
-64            <meta-data
-64-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:29:13-31:52
-65                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-65-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:30:17-85
-66                android:value="androidx.startup" />
-66-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:31:17-49
-67        </provider>
-68
-69        <service
-69-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:39:9-45:35
-70            android:name="androidx.work.impl.background.systemjob.SystemJobService"
-70-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:40:13-84
-71            android:directBootAware="false"
-71-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:41:13-44
-72            android:enabled="@bool/enable_system_job_service_default"
-72-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:42:13-70
-73            android:exported="true"
-73-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:43:13-36
-74            android:permission="android.permission.BIND_JOB_SERVICE" />
-74-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:44:13-69
-75        <service
-75-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:46:9-52:35
-76            android:name="androidx.work.impl.foreground.SystemForegroundService"
-76-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:47:13-81
-77            android:directBootAware="false"
-77-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:48:13-44
-78            android:enabled="@bool/enable_system_foreground_service_default"
-78-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:49:13-77
-79            android:exported="false" />
-79-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:50:13-37
-80
-81        <receiver
-81-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:54:9-59:35
-82            android:name="androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver"
-82-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:55:13-88
-83            android:directBootAware="false"
-83-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:56:13-44
-84            android:enabled="true"
-84-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:57:13-35
-85            android:exported="false" />
-85-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:58:13-37
-86        <receiver
-86-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:60:9-69:20
-87            android:name="androidx.work.impl.background.systemalarm.RescheduleReceiver"
-87-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:61:13-88
-88            android:directBootAware="false"
-88-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:62:13-44
-89            android:enabled="false"
-89-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:63:13-36
-90            android:exported="false" >
-90-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:64:13-37
-91            <intent-filter>
-91-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:66:13-68:29
-92                <action android:name="android.intent.action.BOOT_COMPLETED" />
-92-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:67:17-79
-92-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:67:25-76
-93            </intent-filter>
-94        </receiver>
-95        <receiver
-95-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:70:9-80:20
-96            android:name="androidx.work.impl.diagnostics.DiagnosticsReceiver"
-96-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:71:13-78
-97            android:directBootAware="false"
-97-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:72:13-44
-98            android:enabled="true"
-98-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:73:13-35
-99            android:exported="true"
-99-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:74:13-36
-100            android:permission="android.permission.DUMP" >
-100-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:75:13-57
-101            <intent-filter>
-101-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:77:13-79:29
-102                <action android:name="androidx.work.diagnostics.REQUEST_DIAGNOSTICS" />
-102-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:78:17-88
-102-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:78:25-85
-103            </intent-filter>
-104        </receiver>
-105
-106        <uses-library
-106-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
-107            android:name="androidx.window.extensions"
-107-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
-108            android:required="false" />
-108-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
-109        <uses-library
-109-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
-110            android:name="androidx.window.sidecar"
-110-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
-111            android:required="false" />
-111-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
-112
-113        <activity
-113-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:23:9-26:79
-114            android:name="androidx.activity.ComponentActivity"
-114-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:24:13-63
-115            android:exported="true"
-115-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:25:13-36
-116            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
-116-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:26:13-76
-117
-118        <service
-118-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:24:9-28:63
-119            android:name="androidx.room.MultiInstanceInvalidationService"
-119-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:25:13-74
-120            android:directBootAware="true"
-120-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:26:13-43
-121            android:exported="false" />
-121-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:27:13-37
-122
-123        <receiver
-123-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:34:9-52:20
-124            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-124-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:35:13-76
-125            android:directBootAware="false"
-125-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:36:13-44
-126            android:enabled="true"
-126-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:37:13-35
-127            android:exported="true"
-127-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:38:13-36
-128            android:permission="android.permission.DUMP" >
-128-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:39:13-57
-129            <intent-filter>
-129-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:40:13-42:29
-130                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-130-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:41:17-91
-130-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:41:25-88
-131            </intent-filter>
-132            <intent-filter>
-132-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:43:13-45:29
-133                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-133-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:44:17-85
-133-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:44:25-82
-134            </intent-filter>
-135            <intent-filter>
-135-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:46:13-48:29
-136                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-136-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:47:17-88
-136-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:47:25-85
-137            </intent-filter>
-138            <intent-filter>
-138-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:49:13-51:29
-139                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-139-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:50:17-95
-139-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:50:25-92
-140            </intent-filter>
-141        </receiver>
-142    </application>
-143
-144</manifest>
+32        android:testOnly="true"
+33        android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" >
+33-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:12:9-77
+34        <activity
+34-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:13:9-22:20
+35            android:name="apincer.mobile.tradings.MainActivity"
+35-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:14:13-41
+36            android:exported="true"
+36-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:15:13-36
+37            android:label="@string/app_name"
+37-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:16:13-45
+38            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" >
+38-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:17:13-81
+39            <intent-filter>
+39-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:18:13-21:29
+40                <action android:name="android.intent.action.MAIN" />
+40-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:19:17-69
+40-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:19:25-66
+41
+42                <category android:name="android.intent.category.LAUNCHER" />
+42-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:20:17-77
+42-->/Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:20:27-74
+43            </intent-filter>
+44        </activity>
+45        <activity
+45-->[androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
+46            android:name="androidx.compose.ui.tooling.PreviewActivity"
+46-->[androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:24:13-71
+47            android:exported="true" />
+47-->[androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:25:13-36
+48
+49        <provider
+49-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:29:9-37:20
+50            android:name="androidx.startup.InitializationProvider"
+50-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:30:13-67
+51            android:authorities="apincer.mobile.tradings.androidx-startup"
+51-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:31:13-68
+52            android:exported="false" >
+52-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:32:13-37
+53            <meta-data
+53-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:34:13-36:52
+54                android:name="androidx.work.WorkManagerInitializer"
+54-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:35:17-68
+55                android:value="androidx.startup" />
+55-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:36:17-49
+56            <meta-data
+56-->[androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+57                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+57-->[androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+58                android:value="androidx.startup" />
+58-->[androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+59            <meta-data
+59-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
+60                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+60-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
+61                android:value="androidx.startup" />
+61-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
+62            <meta-data
+62-->[com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:16:13-18:52
+63                android:name="okhttp3.internal.platform.PlatformInitializer"
+63-->[com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:17:17-77
+64                android:value="androidx.startup" />
+64-->[com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:18:17-49
+65            <meta-data
+65-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:29:13-31:52
+66                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+66-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:30:17-85
+67                android:value="androidx.startup" />
+67-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:31:17-49
+68        </provider>
+69
+70        <service
+70-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:39:9-45:35
+71            android:name="androidx.work.impl.background.systemjob.SystemJobService"
+71-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:40:13-84
+72            android:directBootAware="false"
+72-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:41:13-44
+73            android:enabled="@bool/enable_system_job_service_default"
+73-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:42:13-70
+74            android:exported="true"
+74-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:43:13-36
+75            android:permission="android.permission.BIND_JOB_SERVICE" />
+75-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:44:13-69
+76        <service
+76-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:46:9-52:35
+77            android:name="androidx.work.impl.foreground.SystemForegroundService"
+77-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:47:13-81
+78            android:directBootAware="false"
+78-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:48:13-44
+79            android:enabled="@bool/enable_system_foreground_service_default"
+79-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:49:13-77
+80            android:exported="false" />
+80-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:50:13-37
+81
+82        <receiver
+82-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:54:9-59:35
+83            android:name="androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver"
+83-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:55:13-88
+84            android:directBootAware="false"
+84-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:56:13-44
+85            android:enabled="true"
+85-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:57:13-35
+86            android:exported="false" />
+86-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:58:13-37
+87        <receiver
+87-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:60:9-69:20
+88            android:name="androidx.work.impl.background.systemalarm.RescheduleReceiver"
+88-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:61:13-88
+89            android:directBootAware="false"
+89-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:62:13-44
+90            android:enabled="false"
+90-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:63:13-36
+91            android:exported="false" >
+91-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:64:13-37
+92            <intent-filter>
+92-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:66:13-68:29
+93                <action android:name="android.intent.action.BOOT_COMPLETED" />
+93-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:67:17-79
+93-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:67:25-76
+94            </intent-filter>
+95        </receiver>
+96        <receiver
+96-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:70:9-80:20
+97            android:name="androidx.work.impl.diagnostics.DiagnosticsReceiver"
+97-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:71:13-78
+98            android:directBootAware="false"
+98-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:72:13-44
+99            android:enabled="true"
+99-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:73:13-35
+100            android:exported="true"
+100-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:74:13-36
+101            android:permission="android.permission.DUMP" >
+101-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:75:13-57
+102            <intent-filter>
+102-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:77:13-79:29
+103                <action android:name="androidx.work.diagnostics.REQUEST_DIAGNOSTICS" />
+103-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:78:17-88
+103-->[androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:78:25-85
+104            </intent-filter>
+105        </receiver>
+106
+107        <uses-library
+107-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+108            android:name="androidx.window.extensions"
+108-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+109            android:required="false" />
+109-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+110        <uses-library
+110-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+111            android:name="androidx.window.sidecar"
+111-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+112            android:required="false" />
+112-->[androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+113
+114        <activity
+114-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:23:9-26:79
+115            android:name="androidx.activity.ComponentActivity"
+115-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:24:13-63
+116            android:exported="true"
+116-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:25:13-36
+117            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+117-->[androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:26:13-76
+118
+119        <service
+119-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:24:9-28:63
+120            android:name="androidx.room.MultiInstanceInvalidationService"
+120-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:25:13-74
+121            android:directBootAware="true"
+121-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:26:13-43
+122            android:exported="false" />
+122-->[androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:27:13-37
+123
+124        <receiver
+124-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:34:9-52:20
+125            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+125-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:35:13-76
+126            android:directBootAware="false"
+126-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:36:13-44
+127            android:enabled="true"
+127-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:37:13-35
+128            android:exported="true"
+128-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:38:13-36
+129            android:permission="android.permission.DUMP" >
+129-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:39:13-57
+130            <intent-filter>
+130-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:40:13-42:29
+131                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+131-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:41:17-91
+131-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:41:25-88
+132            </intent-filter>
+133            <intent-filter>
+133-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:43:13-45:29
+134                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+134-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:44:17-85
+134-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:44:25-82
+135            </intent-filter>
+136            <intent-filter>
+136-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:46:13-48:29
+137                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+137-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:47:17-88
+137-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:47:25-85
+138            </intent-filter>
+139            <intent-filter>
+139-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:49:13-51:29
+140                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+140-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:50:17-95
+140-->[androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:50:25-92
+141            </intent-filter>
+142        </receiver>
+143    </application>
+144
+145</manifest>
