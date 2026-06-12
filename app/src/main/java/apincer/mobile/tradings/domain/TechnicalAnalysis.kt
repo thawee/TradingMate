@@ -168,46 +168,60 @@ object TechnicalAnalysis {
         // 1. SELL PRIORITY: Check for "Take Profit" or "Stop Loss"
         if (userCost != null && userCost > 0 && lastPrice != null) {
             val netProfitPercent = calculateNetProfitPercent(userCost, lastPrice)
-                       if (tradePurpose == "DIVIDEND") {
-                // DIVIDEND PLAYBOOK: Sell if fundamentals break or yield drops.
+            
+            var applySwingLogic = true
+            
+            if (tradePurpose == "DIVIDEND") {
                 val yield = dividendYield ?: 0.0
                 val isRoeBad = roe != null && roe < 15.0
-                if (yield < 3.0 || isRoeBad) {
+                
+                if (isRoeBad) {
                     return TradeSignal(
                         IndicatorSignal.SELL,
                         "${qualityPrefix}Fundamentals Broke",
-                        "Dividend rule broken. Yield is ${String.format(Locale.ENGLISH,"%.2f", yield)}% (<3%) or ROE is declining. Re-evaluate holding."
+                        "Dividend rule broken. Company fundamentals declining (ROE < 15%). Re-evaluate holding."
+                    )
+                }
+                
+                if (yield >= 3.0) {
+                    // Yield is good (>= 3%), keep it! Do not apply swing logic.
+                    applySwingLogic = false
+                } else {
+                    // Yield dropped below 3%. It loses its 'hold forever' status and we use Swing logic to exit.
+                    applySwingLogic = true
+                }
+            }
+            
+            if (applySwingLogic) {
+                // SWING PLAYBOOK: Take Profit if target reached or overbought
+                if (netProfitPercent > 10.0 || isRsiOverbought || isNearUpperBB) {
+                    return TradeSignal(
+                        IndicatorSignal.SELL,
+                        "${qualityPrefix}Exit Area (Target Reached)",
+                        "Technically, the stock is in a Selling Zone. RSI is high (${String.format(Locale.ENGLISH, "%.1f", rsi)}) or price is near resistance. " +
+                                if (netProfitPercent > 0) "Good area to lock in ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% profit." else "Consider exiting as trend is reaching resistance."
+                    )
+                }
+                
+                // Cut Loss if deep in red
+                if (netProfitPercent < -5.0) {
+                    val technicalWarning = when {
+                        !isPriceAboveSma200 -> "the price has crashed below the long-term trend (SMA 200)"
+                        !isPriceAboveSma50 -> "the price has broken below its 50-day average (SMA 50)"
+                        else -> "momentum is weakening significantly"
+                    }
+                    return TradeSignal(
+                        IndicatorSignal.SELL,
+                        "${qualityPrefix}Stop Loss (Cut Loss)",
+                        "Warning: Your net loss is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%. Technically, $technicalWarning. Cutting loss prevents a small loss from becoming a big one."
                     )
                 }
             }
-            
-            // SWING PLAYBOOK (Now also applied to DIVIDEND): Take Profit if target reached or overbought
-            if (netProfitPercent > 10.0 || isRsiOverbought || isNearUpperBB) {
-                return TradeSignal(
-                    IndicatorSignal.SELL,
-                    "${qualityPrefix}Exit Area (Target Reached)",
-                    "Technically, the stock is in a Selling Zone. RSI is high (${String.format(Locale.ENGLISH, "%.1f", rsi)}) or price is near resistance. " +
-                            if (netProfitPercent > 0) "Good area to lock in ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% profit." else "Consider exiting as trend is reaching resistance."
-                )
-            }
-            
-            // Cut Loss if deep in red
-            if (netProfitPercent < -5.0) {
-                val technicalWarning = when {
-                    !isPriceAboveSma200 -> "the price has crashed below the long-term trend (SMA 200)"
-                    !isPriceAboveSma50 -> "the price has broken below its 50-day average (SMA 50)"
-                    else -> "momentum is weakening significantly"
-                }
-                return TradeSignal(
-                    IndicatorSignal.SELL,
-                    "${qualityPrefix}Stop Loss (Cut Loss)",
-                    "Warning: Your net loss is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%. Technically, $technicalWarning. Cutting loss prevents a small loss from becoming a big one."
-                )
-            } }
         }
 
         // 2. SELL PRIORITY: Technical Overbought
-        if (tradePurpose != "DIVIDEND" && (isRsiOverbought || isNearUpperBB)) {
+        val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= 3.0
+        if (!isProtectedDividend && (isRsiOverbought || isNearUpperBB)) {
             return TradeSignal(
                 IndicatorSignal.SELL,
                 if (isRsiOverbought) "${qualityPrefix}Overbought" else "${qualityPrefix}Upper Band Resistance",
