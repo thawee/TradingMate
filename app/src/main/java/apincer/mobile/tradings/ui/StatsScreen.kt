@@ -186,15 +186,12 @@ fun StatsScreen(viewModel: StockViewModel) {
                             Button(
                                 onClick = {
                                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(promptBuilder.toString()))
-                                    android.widget.Toast.makeText(context, "Prompt copied!", android.widget.Toast.LENGTH_SHORT).show()
-                                    try {
-                                        uriHandler.openUri("https://gemini.google.com")
-                                    } catch (e: Exception) {}
+                                    android.widget.Toast.makeText(context, "Prompt copied! Paste it into your preferred AI.", android.widget.Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                             ) {
-                                Text("Copy Prompt & Open Gemini")
+                                Text("Copy AI Analysis Prompt")
                             }
                         }
                     }

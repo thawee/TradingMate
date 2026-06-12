@@ -90,11 +90,10 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                             """.trimIndent()
                             
                             clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                            android.widget.Toast.makeText(context, "Prompt copied! Paste it into Gemini.", android.widget.Toast.LENGTH_LONG).show()
-                            uriHandler.openUri("https://gemini.google.com/app")
+                            android.widget.Toast.makeText(context, "Prompt copied! Paste it into your preferred AI.", android.widget.Toast.LENGTH_LONG).show()
                         },
                         icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Ask AI") },
-                        text = { Text("Ask Gemini Web") },
+                        text = { Text("Copy AI Analysis Prompt") },
                         containerColor = MaterialTheme.colorScheme.tertiary,
                         contentColor = MaterialTheme.colorScheme.onTertiary,
                         shape = RoundedCornerShape(16.dp)

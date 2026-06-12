@@ -356,8 +356,7 @@ fun AiCopilotCard(
                         Output the final decision cleanly based on these subagent roles.
                     """.trimIndent()
                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                    android.widget.Toast.makeText(context, "Swing Prompt copied! Paste into Gemini.", android.widget.Toast.LENGTH_LONG).show()
-                    uriHandler.openUri("https://gemini.google.com/app")
+                    android.widget.Toast.makeText(context, "Swing Prompt copied! Paste into your preferred AI.", android.widget.Toast.LENGTH_LONG).show()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
@@ -394,8 +393,7 @@ fun AiCopilotCard(
                         Output the final decision cleanly based on these subagent roles.
                     """.trimIndent()
                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                    android.widget.Toast.makeText(context, "Dividend Prompt copied! Paste into Gemini.", android.widget.Toast.LENGTH_LONG).show()
-                    uriHandler.openUri("https://gemini.google.com/app")
+                    android.widget.Toast.makeText(context, "Dividend Prompt copied! Paste into your preferred AI.", android.widget.Toast.LENGTH_LONG).show()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
