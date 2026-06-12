@@ -207,7 +207,7 @@ fun AdvisorStockCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stock.info.symbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
                     if (stock.info.isFundamentalGood) {
@@ -256,35 +256,38 @@ fun AdvisorStockCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Line 1: Price
-                Row(
-                    verticalAlignment = Alignment.CenterVertically, 
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text("Price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                }
+                Text(
+                    text = String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black
+                )
 
                 Spacer(Modifier.height(4.dp))
 
-                // Line 2: Yield or P/L
-                Row(
-                    verticalAlignment = Alignment.CenterVertically, 
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (isSellAlert) {
-                        val net = stock.netProfitPercent
-                        Text("P/L", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${if (net > 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", net)}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (net >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                if (isSellAlert) {
+                    val net = stock.netProfitPercent
+                    Text(
+                        text = "P/L: ${if (net > 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", net)}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (net >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    val yield = stock.info.dividendYield ?: 0.0
+                    if (yield > 0) {
+                        Text(
+                            text = "Yield: ${String.format(Locale.ENGLISH, "%.2f", yield)}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
                     } else {
-                        val yield = stock.info.dividendYield ?: 0.0
-                        if (yield > 0) {
-                            Text("Yield", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${String.format(Locale.ENGLISH, "%.2f", yield)}%", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
-                        } else {
-                            Text("P/E", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(stock.info.pe?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "-", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        }
+                        Text(
+                            text = "P/E: ${stock.info.pe?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "-"}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
