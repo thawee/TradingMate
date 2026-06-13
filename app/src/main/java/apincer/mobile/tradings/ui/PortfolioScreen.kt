@@ -51,6 +51,7 @@ fun PortfolioScreen(
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isPrivacyMode by viewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
@@ -126,6 +127,7 @@ fun PortfolioScreen(
                     netProfit = netProfitValue,
                     netPercent = totalNetProfitPercent,
                     yieldOnCost = avgYieldOnCost,
+                    isPrivacyMode = isPrivacyMode,
                     onEditCash = { showCashDialog = true }
                 )
             }
@@ -279,7 +281,7 @@ fun PortfolioScreen(
                     }
                 }
             } else {
-                items(portfolioItems) { item ->
+                items(portfolioItems, key = { it.info.symbol }) { item ->
                     StockItemCard(
                         item = item,
                         onSelect = { onSelectStock(item.info.symbol) },
@@ -288,7 +290,8 @@ fun PortfolioScreen(
                         onEdit = { 
                             selectedStockForEdit = item
                             showBuyDialog = true
-                        }
+                        },
+                        isPrivacyMode = isPrivacyMode
                     )
                 }
             }
@@ -308,8 +311,10 @@ fun PortfolioScreen(
             },
             onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose ->
                 viewModel.addToWatchlist(symbol, cost, qty, purpose)
-                if (target > 0) {
+                if (purpose == "SWING" && target > 0) {
                     viewModel.addToFocusList(symbol, cost, target)
+                } else {
+                    viewModel.removeFromFocusList(symbol)
                 }
                 showBuyDialog = false
                 selectedStockForEdit = null
@@ -395,7 +400,7 @@ fun BuyStockDialog(
     var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: "") }
     var qty by remember { mutableStateOf(initialStock?.portfolio?.quantity?.toString() ?: "") }
     
-    var targetPrice by remember { mutableStateOf("") }
+    var targetPrice by remember { mutableStateOf(initialStock?.focusTargetPrice?.let { if (it > 0) it.toString() else "" } ?: "") }
     var stopLossPrice by remember { mutableStateOf("") }
     var playbookNote by remember { mutableStateOf("") }
     var tradePurpose by remember { mutableStateOf(initialStock?.portfolio?.tradePurpose ?: "SWING") }

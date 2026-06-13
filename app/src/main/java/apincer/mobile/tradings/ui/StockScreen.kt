@@ -75,25 +75,29 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                             val pe = state.stockInfo.pe ?: 0.0
                             val yield = state.stockInfo.dividendYield ?: 0.0
                             val prompt = """
-                                Act as my specialist subagents to evaluate $symbol (P/E: $pe, Yield: $yield%).
+                                Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) ticker $symbol (P/E: $pe, Yield: $yield%).
                                 
                                 CONSTRAINTS:
-                                - Focus purely on fundamental strength and technical support.
-                                - Disregard short-term intraday noise.
-                                - RISK: Assess max drawdown potential. Do not recommend if R/R is < $minRR.
+                                - Focus purely on fundamental quality and technical support.
+                                - RISK: Do not recommend if Risk/Reward is less than $minRR.
                                 
                                 DELEGATED TASKS:
-                                1. [market-researcher]: Search the web for their latest news. Is their business moat strong?
-                                2. [risk-manager]: Is this yield a 'trap' or safe? Identify any major downside scenarios.
+                                1. [market-researcher]: Perform a live web search for recent news (last 7 days) and catalysts on $symbol. Is their business moat strong?
+                                2. [risk-manager]: Is this setup safe? Identify major downside scenarios. Determine an exact Buy Zone and strict Stop Loss.
                                 
-                                Keep the final output under 3 short bullet points.
+                                EXPLAIN INSTRUCTIONS:
+                                - Break down the final decision step-by-step.
+                                - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                                - Provide a real-world analogy to describe the recommended action/situation.
+                                
+                                Keep the final response short and easy to read.
                             """.trimIndent()
                             
                             clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                            android.widget.Toast.makeText(context, "Prompt copied! Paste it into your preferred AI.", android.widget.Toast.LENGTH_LONG).show()
+                            android.widget.Toast.makeText(context, "Prompt copied! Paste it into your AI.", android.widget.Toast.LENGTH_LONG).show()
                         },
                         icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Ask AI") },
-                        text = { Text("Copy AI Analysis Prompt") },
+                        text = { Text("AI Prompt") },
                         containerColor = MaterialTheme.colorScheme.tertiary,
                         contentColor = MaterialTheme.colorScheme.onTertiary,
                         shape = RoundedCornerShape(16.dp)

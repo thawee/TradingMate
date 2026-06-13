@@ -73,18 +73,21 @@ object SetScraper {
 
     private val client = OkHttpClient.Builder()
         .cookieJar(object : CookieJar {
-            private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+            private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, MutableList<Cookie>>()
             override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
                 val host = url.host
-                val store = cookieStore.getOrPut(host) { mutableListOf() }
-                cookies.forEach { newCookie ->
-                    store.removeAll { it.name == newCookie.name }
-                    store.add(newCookie)
+                val store = cookieStore.getOrPut(host) { java.util.Collections.synchronizedList(mutableListOf()) }
+                synchronized(store) {
+                    cookies.forEach { newCookie ->
+                        store.removeAll { it.name == newCookie.name }
+                        store.add(newCookie)
+                    }
                 }
                 Log.d(TAG, "SET Cookies Saved [${host}]: total ${store.size}")
             }
             override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                return cookieStore[url.host] ?: emptyList()
+                val store = cookieStore[url.host] ?: return emptyList()
+                return synchronized(store) { store.toList() }
             }
         })
         .connectTimeout(15, TimeUnit.SECONDS)

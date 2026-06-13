@@ -4,6 +4,14 @@ import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
+@Serializable
+data class TradingBackup(
+    val stocks: List<StockEntity>,
+    val focusList: List<FocusEntity>,
+    val trades: List<TradeEntity>,
+    val cashBalance: Double
+)
+
 @Entity(tableName = "stocks")
 @Serializable
 data class StockEntity(
@@ -72,11 +80,17 @@ interface StockDao {
     @Query("SELECT * FROM stocks")
     fun getAllStocks(): Flow<List<StockEntity>>
 
+    @Query("SELECT * FROM stocks")
+    suspend fun getAllStocksSync(): List<StockEntity>
+
     @Query("SELECT * FROM stocks WHERE symbol = :symbol")
     suspend fun getStockBySymbol(symbol: String): StockEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStock(stock: StockEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStocks(stocks: List<StockEntity>)
 
     @Delete
     suspend fun deleteStock(stock: StockEntity)
@@ -90,8 +104,14 @@ interface TradeDao {
     @Query("SELECT * FROM trade_history ORDER BY dateMillis DESC")
     fun getAllTrades(): Flow<List<TradeEntity>>
 
+    @Query("SELECT * FROM trade_history ORDER BY dateMillis DESC")
+    suspend fun getAllTradesSync(): List<TradeEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTrade(trade: TradeEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrades(trades: List<TradeEntity>)
 
     @Query("DELETE FROM trade_history")
     suspend fun clearHistory()
@@ -102,6 +122,9 @@ interface CashDao {
     @Query("SELECT * FROM cash WHERE id = 1")
     fun getCash(): Flow<CashEntity?>
 
+    @Query("SELECT * FROM cash WHERE id = 1")
+    suspend fun getCashSync(): CashEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun updateCash(cash: CashEntity)
 }
@@ -111,8 +134,14 @@ interface FocusDao {
     @Query("SELECT * FROM focus_list ORDER BY addedAtMillis DESC")
     fun getAllFocusStocks(): Flow<List<FocusEntity>>
 
+    @Query("SELECT * FROM focus_list ORDER BY addedAtMillis DESC")
+    suspend fun getAllFocusStocksSync(): List<FocusEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFocusStock(focusStock: FocusEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFocusStocks(focusStocks: List<FocusEntity>)
 
     @Delete
     suspend fun deleteFocusStock(focusStock: FocusEntity)

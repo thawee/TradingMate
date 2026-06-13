@@ -70,6 +70,42 @@ fun SettingsScreen(
     val context = LocalContext.current
     var showConceptDialog by remember { mutableStateOf(false) }
 
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+        onResult = { uri ->
+            uri?.let {
+                viewModel.exportBackup(
+                    contentResolver = context.contentResolver,
+                    uri = it,
+                    onSuccess = {
+                        android.widget.Toast.makeText(context, "Backup exported successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { err ->
+                        android.widget.Toast.makeText(context, "Export failed: ${err.message}", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                )
+            }
+        }
+    )
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            uri?.let {
+                viewModel.importBackup(
+                    contentResolver = context.contentResolver,
+                    uri = it,
+                    onSuccess = {
+                        android.widget.Toast.makeText(context, "Backup restored successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { err ->
+                        android.widget.Toast.makeText(context, "Restore failed: ${err.message}", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                )
+            }
+        }
+    )
+
     if (showConceptDialog) {
         ConceptDialog(onDismiss = { showConceptDialog = false })
     }
@@ -262,6 +298,56 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
+            }
+
+            SectionContent(title = "App Preferences", icon = Icons.Default.ColorLens) {
+                val isPrivacyMode by viewModel.isPrivacyMode.collectAsState()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Privacy Mode", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text("Mask sensitive value counts and portfolio totals", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = isPrivacyMode, onCheckedChange = { viewModel.togglePrivacyMode() })
+                }
+            }
+
+            SectionContent(title = "Data Backup & Restore", icon = Icons.Default.History) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { exportLauncher.launch("trading_mate_backup.json") },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Icon(Icons.Default.FileDownload, contentDescription = "Export Backup")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Export JSON", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { importLauncher.launch(arrayOf("application/json")) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Icon(Icons.Default.FileUpload, contentDescription = "Import Backup")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Import JSON", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
 

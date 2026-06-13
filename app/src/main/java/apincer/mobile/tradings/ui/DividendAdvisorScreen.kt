@@ -49,8 +49,33 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
     }
     val isGapUp = { it: StockWatchlistInfo -> it.info.percentChange >= 4.0 && (isQual(it) || (it.info.netProfitMargin ?: 0.0) > 10.0) }
 
-    val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }.sortedByDescending { it.info.dividendYield }
+    val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
+        .sortedWith(
+            compareBy<StockWatchlistInfo> {
+                when (it.signal?.type) {
+                    IndicatorSignal.BUY -> 0
+                    IndicatorSignal.POTENTIAL -> 1
+                    IndicatorSignal.NEUTRAL -> 2
+                    else -> 3
+                }
+            }.thenByDescending {
+                it.info.dividendYield ?: 0.0
+            }
+        )
     val swingPlays = watchlist.filter { (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) }
+        .sortedWith(
+            compareBy<StockWatchlistInfo> {
+                when (it.signal?.type) {
+                    IndicatorSignal.BUY -> 0
+                    IndicatorSignal.POTENTIAL -> 1
+                    else -> 2
+                }
+            }.thenBy {
+                it.portfolio.rsi ?: 100.0
+            }.thenByDescending {
+                isQual(it)
+            }
+        )
     val gapPlays = watchlist.filter { isGapUp(it) }.sortedByDescending { it.info.percentChange }
 
     val sellAlerts = mutableListOf<SellAlertData>()
@@ -96,7 +121,7 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
-            title = { Text("AI Advisor Report", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            title = { Text("Smart Advisor Report", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
 
@@ -124,7 +149,7 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
                 maxOpenExposure, 
                 maxPortfolioAllocation
             )
-            SectionHeader(title = "Sell Alerts (Take Profit / Stop Loss)", icon = Icons.Default.Warning)
+            SectionHeader(title = "Sell Alerts", icon = Icons.Default.Warning)
             if (sellAlerts.isEmpty()) {
                 Text("No sell alerts active.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -335,10 +360,13 @@ fun AiCopilotCard(
                     val gapUpPlays = watchlist.filter { isGapUp(it) }
                     
                     val prompt = """
+                        Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade candidates.
+                        
                         CONSTRAINTS (Swing & Breakout):
                         - Price MUST be above the 50-day SMA.
                         - Risk/Reward ratio MUST be >= 2.0.
                         - Strict Stop Loss required below immediate support or gap.
+                        - Target holding period is 2–4 weeks.
                         - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
                         
                         I am loading the 'Swing/Breakout Playbook' and 'Earnings Gap Playbook' for the following candidates:
@@ -350,20 +378,25 @@ fun AiCopilotCard(
                         ${gapUpPlays.joinToString(", ") { it.info.symbol }}
 
                         DELEGATED TASKS:
-                        1. [market-researcher]: Search the web for upcoming earnings, news catalysts, and market structure for these tickers.
-                        2. [risk-manager]: Select the #1 Top Pick setup. Confirm its price is above the 50-day SMA. Define the exact Buy Zone and strict Stop Loss.
+                        1. [market-researcher]: Perform a live web search for upcoming earnings, recent news catalysts (last 7 days), and market structure/sentiment for these SET tickers.
+                        2. [risk-manager]: Select the #1 Top Pick setup. Confirm its price is above the 50-day SMA. Define the exact Buy Zone, target profit, and strict Stop Loss.
                         
-                        Output the final decision cleanly based on these subagent roles.
+                        EXPLAIN INSTRUCTIONS:
+                        - Break down the final recommendation step-by-step.
+                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                        - Provide a real-world analogy to describe the setup of the #1 pick.
+                        
+                        Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
                     """.trimIndent()
                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                    android.widget.Toast.makeText(context, "Swing Prompt copied! Paste into your preferred AI.", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(context, "Swing Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
             ) {
                 Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Generate Swing Trade Prompt")
+                Text("Swing Trade AI Prompt")
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -377,30 +410,38 @@ fun AiCopilotCard(
                         .joinToString(", ") { "${it.info.symbol} (Yield: ${it.info.dividendYield?.let { y -> String.format(Locale.ENGLISH, "%.2f", y) } ?: "N/A"}%)" }
 
                     val prompt = """
+                        Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) dividend candidates.
+                        
                         CONSTRAINTS (Dividend Accumulation):
                         - Starting Dividend Yield MUST be >= 5%.
                         - Company fundamentals must be strong (avoid yield traps).
                         - Hard rule: Never average down on a breaking technical trend.
+                        - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
                         - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
 
                         I am loading the 'Dividend Accumulation Playbook'.
                         Candidates Yielding > 5%: $dividendCandidates
                         
                         DELEGATED TASKS:
-                        1. [market-researcher]: Search the web to verify their dividend sustainability and ensure fundamentals are intact.
+                        1. [market-researcher]: Perform a live web search to verify the dividend sustainability (check payout ratio trend, recent earnings reports, and cash flow safety) for these SET tickers.
                         2. [risk-manager]: Recommend the single best addition. Calculate my 'Max Buy Price' to guarantee a >5% yield and ensure it fits my overall risk exposure.
                         
-                        Output the final decision cleanly based on these subagent roles.
+                        EXPLAIN INSTRUCTIONS:
+                        - Break down the final recommendation step-by-step.
+                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                        - Provide a real-world analogy to explain why the recommended stock is a reliable dividend payer.
+                        
+                        Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
                     """.trimIndent()
                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                    android.widget.Toast.makeText(context, "Dividend Prompt copied! Paste into your preferred AI.", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(context, "Dividend Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Generate Dividend Prompt")
+                Text("Dividend AI Prompt")
             }
         }
     }

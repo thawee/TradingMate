@@ -90,7 +90,7 @@
     <string name="label_backup_desc">Export your local data to a JSON file.</string>
     <string name="label_restore_desc">Import data from a backup file.</string>
     <string name="label_dynamic_theme">Dynamic Theme (System Default)</string>
-    <string name="label_app_version">Trading Mate v1.2.0</string>
+    <string name="label_app_version">Trading Mate v1.3.0</string>
     <string name="label_app_tagline">Your personal premium trading companion.</string>
     <string name="label_copyright">© 2024 apincer mobile</string>
     <string name="label_rr_calculator">Risk/Reward Calculator</string>
@@ -199,7 +199,7 @@
     <string name="edu_step2_title">2. Monitoring (The Traffic Lights)</string>
     <string name="edu_step2_content">Move stocks into your Watchlist. The app monitors them 24/7:\n\n• AMBER (Potential): RSI &lt; 42. The stock is getting cheap or testing support.\n• GREEN (Buy): RSI &lt; 35 or confirmed momentum. Confirmed value + confirmed momentum.</string>
     <string name="edu_step3_title">3. Execution (The Plan)</string>
-    <string name="edu_step3_content" formatted="false">When you see a Buy signal, use the \'Risk/Reward Calculator\'. Set a target (+10-20%) and a stop loss (-5%). If the math doesn\'t show at least 2x reward for your risk, wait for a better price.</string>
+    <string name="edu_step3_content" formatted="false">When you see a Buy signal, use the \'Risk/Reward Calculator\'. Set a target (+10-20%) and a stop loss (-5%). Swing trades are held for a short period of 2–4 weeks. If the math doesn\'t show at least 2x reward for your risk, wait for a better price.</string>
     <string name="edu_rsi_title">RSI (The Speedometer)</string>
     <string name="edu_rsi_content">The Relative Strength Index (14 days). \n\n• Target 35 (Value): The stock is oversold. Prices are \'compressed\' and ready to bounce.\n• Target 65 (Caution): The stock is overbought. Risk of a pullback is high.</string>
     <string name="edu_macd_title">MACD (The Momentum Switch)</string>
@@ -244,7 +244,7 @@
     <string name="edu_layer_2_title">Layer 2: VAL (Valuation)</string>
     <string name="edu_layer_2_content">Is the price fair? Even a great company is a bad investment if you pay too much. We compare Current P/E to Historical P/E and check Price-to-Book ratios.</string>
     <string name="edu_layer_3_title">Layer 3: DIV (Dividend)</string>
-    <string name="edu_layer_3_content" formatted="false">For income investors. We look for a dividend yield > 5% that is sustainable, meaning the company pays out a reasonable portion of its profits without starving its own growth.</string>
+    <string name="edu_layer_3_content" formatted="false">For income investors. We accumulate and compound high-yield stocks (&gt; 5%) indefinitely. Keep holding and reinvesting dividends unless fundamentals break (ROE &lt; 15% or high debt) or the dividend yield drops below 3%.</string>
     <string name="edu_layer_4_title">Layer 4: MOM (Momentum)</string>
     <string name="edu_layer_4_content">Are buyers stepping in? We use MACD crossovers and moving averages to confirm that the trend has actually shifted to the upside. Never catch a falling knife.</string>
     <string name="edu_layer_5_title">Layer 5: SUP (Support/Technicals)</string>

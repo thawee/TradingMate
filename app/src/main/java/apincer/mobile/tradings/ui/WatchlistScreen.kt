@@ -13,7 +13,9 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Sort
+import java.util.Locale
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,18 +51,28 @@ fun WatchlistScreen(
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isPrivacyMode by viewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
     var showAddDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var activeFilter by remember { mutableStateOf(WatchlistFilter.ALL) }
     var sortOrder by remember { mutableStateOf(WatchlistSortOrder.SYMBOL) }
+    var isSearching by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
-    val processedList = remember(watchlist, activeFilter, sortOrder) {
+    val processedList = remember(watchlist, activeFilter, sortOrder, searchQuery) {
         var list = when (activeFilter) {
             WatchlistFilter.ALL -> watchlist
             WatchlistFilter.FOCUS -> watchlist.filter { it.isFocused }
             WatchlistFilter.PORTFOLIO -> watchlist.filter { it.portfolio.quantity > 0 }
             WatchlistFilter.BUY_SIGNAL -> watchlist.filter { it.signal?.type == IndicatorSignal.BUY || it.signal?.type == IndicatorSignal.POTENTIAL }
+        }
+
+        if (searchQuery.isNotBlank()) {
+            val q = searchQuery.trim().uppercase(Locale.ROOT)
+            list = list.filter { 
+                it.info.symbol.contains(q) || (it.info.name?.uppercase(Locale.ROOT)?.contains(q) == true)
+            }
         }
 
         // Apply Sorting
@@ -83,20 +95,50 @@ fun WatchlistScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
             title = { 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.title_watchlist), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                    if (lastSync != "---") {
-                        Text(
-                            text = stringResource(R.string.label_last_sync, lastSync),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Medium
+                if (isSearching) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Filter watchlist...", fontSize = 14.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp, horizontal = 8.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        trailingIcon = {
+                            IconButton(onClick = { 
+                                searchQuery = ""
+                                isSearching = false
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
                         )
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(stringResource(R.string.title_watchlist), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                        if (lastSync != "---") {
+                            Text(
+                                text = stringResource(R.string.label_last_sync, lastSync),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
+                if (!isSearching) {
+                    IconButton(onClick = { isSearching = true }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search Watchlist", modifier = Modifier.size(24.dp))
+                    }
+                }
                 IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
                     Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.desc_refresh), modifier = Modifier.size(24.dp))
                 }
@@ -186,11 +228,12 @@ fun WatchlistScreen(
                     }
                 }
             } else {
-                items(processedList) { item ->
+                items(processedList, key = { it.info.symbol }) { item ->
                     StockItemCard(
                         item = item,
                         onSelect = { onSelectStock(item.info.symbol) },
-                        onDelete = { viewModel.removeFromWatchlist(item.info.symbol) }
+                        onDelete = { viewModel.removeFromWatchlist(item.info.symbol) },
+                        isPrivacyMode = isPrivacyMode
                     )
                 }
             }

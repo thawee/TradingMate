@@ -32,6 +32,10 @@ class StockRepository(
         return focusDao.getFocusStockBySymbol(symbol.uppercase())
     }
 
+    suspend fun getStockBySymbol(symbol: String): StockEntity? {
+        return stockDao.getStockBySymbol(symbol.uppercase())
+    }
+
     suspend fun addStock(
         symbol: String, 
         cost: Double = 0.0, 
@@ -90,5 +94,17 @@ class StockRepository(
 
     suspend fun clearHistory() {
         tradeDao.clearHistory()
+    }
+
+    suspend fun getAllStocksSync(): List<StockEntity> = stockDao.getAllStocksSync()
+    suspend fun getAllTradesSync(): List<TradeEntity> = tradeDao.getAllTradesSync()
+    suspend fun getAllFocusStocksSync(): List<FocusEntity> = focusDao.getAllFocusStocksSync()
+    suspend fun getCashSync(): CashEntity? = cashDao.getCashSync()
+
+    suspend fun restoreBackup(backup: TradingBackup) {
+        stockDao.insertStocks(backup.stocks)
+        focusDao.insertFocusStocks(backup.focusList)
+        tradeDao.insertTrades(backup.trades)
+        cashDao.updateCash(CashEntity(balance = backup.cashBalance))
     }
 }

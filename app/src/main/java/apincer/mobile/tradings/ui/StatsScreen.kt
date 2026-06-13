@@ -186,12 +186,12 @@ fun StatsScreen(viewModel: StockViewModel) {
                             Button(
                                 onClick = {
                                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(promptBuilder.toString()))
-                                    android.widget.Toast.makeText(context, "Prompt copied! Paste it into your preferred AI.", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, "Prompt copied! Paste it into your AI.", android.widget.Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                             ) {
-                                Text("Copy AI Analysis Prompt")
+                                Text("AI Prompt")
                             }
                         }
                     }
