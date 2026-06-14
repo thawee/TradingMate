@@ -65,7 +65,8 @@ import apincer.mobile.tradings.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: StockViewModel
+    viewModel: StockViewModel,
+    showSnackbar: (String) -> Unit
 ) {
     val context = LocalContext.current
     var showConceptDialog by remember { mutableStateOf(false) }
@@ -78,10 +79,10 @@ fun SettingsScreen(
                     contentResolver = context.contentResolver,
                     uri = it,
                     onSuccess = {
-                        android.widget.Toast.makeText(context, "Backup exported successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                        showSnackbar("Backup exported successfully!")
                     },
                     onError = { err ->
-                        android.widget.Toast.makeText(context, "Export failed: ${err.message}", android.widget.Toast.LENGTH_LONG).show()
+                        showSnackbar("Export failed: ${err.message}")
                     }
                 )
             }
@@ -96,10 +97,10 @@ fun SettingsScreen(
                     contentResolver = context.contentResolver,
                     uri = it,
                     onSuccess = {
-                        android.widget.Toast.makeText(context, "Backup restored successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                        showSnackbar("Backup restored successfully!")
                     },
                     onError = { err ->
-                        android.widget.Toast.makeText(context, "Restore failed: ${err.message}", android.widget.Toast.LENGTH_LONG).show()
+                        showSnackbar("Restore failed: ${err.message}")
                     }
                 )
             }
@@ -350,8 +351,6 @@ fun SettingsScreen(
                 }
             }
 
-
-
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
@@ -363,7 +362,7 @@ fun SettingsScreen(
                     Text(stringResource(R.string.label_app_tagline), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     
-                    Text(stringResource(R.string.label_copyright), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    Text(stringResource(R.string.label_copyright), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                 }
             }
             

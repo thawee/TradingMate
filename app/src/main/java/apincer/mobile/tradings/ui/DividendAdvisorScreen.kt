@@ -1,18 +1,21 @@
 package apincer.mobile.tradings.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,10 +46,12 @@ enum class AdvisorFilter(val label: String) {
 @Composable
 fun DividendAdvisorScreen(
     viewModel: StockViewModel,
-    onNavigateToAcademy: () -> Unit
+    onNavigateToAcademy: () -> Unit,
+    showSnackbar: (String) -> Unit
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
+    val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     // Logic helpers to match thai-set-cli definitions
     val isQual = { it: StockWatchlistInfo -> (it.info.roe ?: 0.0) > 15.0 }
@@ -147,16 +152,11 @@ fun DividendAdvisorScreen(
         }
     }
 
-    var swingDailyDone by rememberSaveable { mutableStateOf(false) }
-    var swingWeeklyDone by rememberSaveable { mutableStateOf(false) }
-    var swingAiDone by rememberSaveable { mutableStateOf(false) }
-    
-    var divDailyDone by rememberSaveable { mutableStateOf(false) }
-    var divWeeklyDone by rememberSaveable { mutableStateOf(false) }
-    var divMonthlyDone by rememberSaveable { mutableStateOf(false) }
-    var divAiDone by rememberSaveable { mutableStateOf(false) }
+    val checklist by viewModel.checklist.collectAsState()
 
     var playbookMode by remember { mutableStateOf(PlaybookMode.SWING) }
+
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
@@ -226,13 +226,18 @@ fun DividendAdvisorScreen(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshWatchlistInfo() },
+            modifier = Modifier.fillMaxSize()
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             val maxRiskPerTrade by viewModel.maxRiskPerTrade.collectAsState()
             val maxOpenExposure by viewModel.maxOpenExposure.collectAsState()
             val maxPortfolioAllocation by viewModel.maxPortfolioAllocation.collectAsState()
@@ -249,29 +254,33 @@ fun DividendAdvisorScreen(
                 isGapUp = isGapUp,
                 maxRiskPerTrade = maxRiskPerTrade,
                 maxOpenExposure = maxOpenExposure,
-                maxPortfolioAllocation = maxPortfolioAllocation
+                maxPortfolioAllocation = maxPortfolioAllocation,
+                showSnackbar = showSnackbar
             )
 
+            val activeAlerts = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
             RoutineChecklistCard(
                 playbookMode = playbookMode,
-                swingDaily = swingDailyDone,
-                onSwingDailyChange = { swingDailyDone = it },
-                swingWeekly = swingWeeklyDone,
-                onSwingWeeklyChange = { swingWeeklyDone = it },
-                swingAi = swingAiDone,
-                onSwingAiChange = { swingAiDone = it },
-                divDaily = divDailyDone,
-                onDivDailyChange = { divDailyDone = it },
-                divWeekly = divWeeklyDone,
-                onDivWeeklyChange = { divWeeklyDone = it },
-                divMonthly = divMonthlyDone,
-                onDivMonthlyChange = { divMonthlyDone = it },
-                divAi = divAiDone,
-                onDivAiChange = { divAiDone = it }
+                swingDaily = checklist.swingDailyDone,
+                onSwingDailyChange = { checked -> viewModel.updateChecklistState { it.copy(swingDailyDone = checked) } },
+                swingWeekly = checklist.swingWeeklyDone,
+                onSwingWeeklyChange = { checked -> viewModel.updateChecklistState { it.copy(swingWeeklyDone = checked) } },
+                swingAi = checklist.swingAiDone,
+                onSwingAiChange = { checked -> viewModel.updateChecklistState { it.copy(swingAiDone = checked) } },
+                divWeekly = checklist.divWeeklyDone,
+                onDivWeeklyChange = { checked -> viewModel.updateChecklistState { it.copy(divWeeklyDone = checked) } },
+                divWeeklyPrices = checklist.divWeeklyPricesDone,
+                onDivWeeklyPricesChange = { checked -> viewModel.updateChecklistState { it.copy(divWeeklyPricesDone = checked) } },
+                divMonthly = checklist.divMonthlyDone,
+                onDivMonthlyChange = { checked -> viewModel.updateChecklistState { it.copy(divMonthlyDone = checked) } },
+                divAi = checklist.divAiDone,
+                onDivAiChange = { checked -> viewModel.updateChecklistState { it.copy(divAiDone = checked) } },
+                alertsCount = activeAlerts.size,
+                candidatesCount = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size,
+                lastSync = lastSync
             )
 
             SectionHeader(title = "Sell Alerts", icon = Icons.Default.Warning)
-            val activeAlerts = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
             if (activeAlerts.isEmpty()) {
                 Text(
                     text = if (playbookMode == PlaybookMode.SWING) "No active swing exit alerts." else "No fundamental quality alerts.",
@@ -307,6 +316,7 @@ fun DividendAdvisorScreen(
             }
             
             Spacer(Modifier.height(40.dp))
+        }
         }
     }
 }
@@ -355,7 +365,10 @@ fun AdvisorStockCard(
 
                 if (tags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
                         tags.forEach { tag ->
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
@@ -364,7 +377,7 @@ fun AdvisorStockCard(
                                 Text(
                                     text = tag,
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                    fontSize = 8.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
@@ -430,7 +443,8 @@ fun AiCopilotCard(
     isGapUp: (StockWatchlistInfo) -> Boolean,
     maxRiskPerTrade: Double,
     maxOpenExposure: Double,
-    maxPortfolioAllocation: Double
+    maxPortfolioAllocation: Double,
+    showSnackbar: (String) -> Unit
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
@@ -453,6 +467,7 @@ fun AiCopilotCard(
                 // Swing Trade Button
                 Button(
                     onClick = {
+                        val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
                         val swingPlays = watchlist.filter { 
                             (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) 
                         }
@@ -464,17 +479,29 @@ fun AiCopilotCard(
                         val gapUpCandidates = if (gapUpPlays.isEmpty()) "None" else gapUpPlays.joinToString("\n") {
                             "- ${it.info.symbol}: Price=${it.info.lastPrice}, Chg=${String.format(Locale.ENGLISH, "%.1f", it.info.percentChange)}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, NPM=${it.info.netProfitMargin?.let { npm -> String.format(Locale.ENGLISH, "%.1f", npm) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}"
                         }
-                        
                         val prompt = """
                             Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade and gap up candidates.
                             
-                            PLAYBOOK RULES & CONSTRAINTS:
-                            - Swing/Breakout Candidates: Price should ideally be above the 50-day SMA, showing active trend support.
-                            - Earnings Gap Candidates: Look for volume surge and strong catalyst support; entry is typically near the gap-up support line or on a breakout validation (even if catch-up indicators like 50-day SMA are lagging).
-                            - General Constraints: Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required.
-                            - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
+                            DATA FRESHNESS:
+                            - Metrics last updated/synced on: $lastSync
                             
-                            I am loading the 'Swing/Breakout Playbook' and 'Earnings Gap Playbook' for the following candidates:
+                            PLAYBOOK RULES & CONSTRAINTS:
+                            1. Swing/Breakout Candidates:
+                               - Holding Period: 2-4 weeks.
+                               - Technical Alignment: Entry near key moving average support (ideally price is above the 50-day SMA) or structural breakout levels.
+                            2. Earnings Gap Candidates:
+                               - Holding Period: Short-term momentum (typically 1-3 weeks).
+                               - Technical Alignment: Entry near the gap-up support line or on breakout validation. Prioritize volume surge and strong catalyst over lagging indicators like the 50-day SMA.
+                            3. General Risk Constraints:
+                               - Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required.
+                               - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
+                               
+                            GUARDRAILS & NEGATIVE CONSTRAINTS:
+                            - DO NOT recommend penny stocks (price < 1.0 THB) or highly illiquid assets.
+                            - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
+                            - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
+                            
+                            I am loading the 'Swing/Breakout Playbook' and 'Earnings Gap Playbook' for the candidates below:
                             
                             Swing Candidates:
                             $swingCandidates
@@ -483,7 +510,7 @@ fun AiCopilotCard(
                             $gapUpCandidates
 
                             DELEGATED TASKS:
-                            1. [market-researcher]: Perform a live web search for upcoming earnings, recent news catalysts (last 7 days), and market structure/sentiment for these SET tickers.
+                            1. [market-researcher]: Perform a live web search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also perform a query for current SET index level, sector trends, and interest rates to establish macro context.
                             2. [risk-manager]: Select and rank the Top 3 setups from either candidate list. For Swing plays, verify 50-day SMA support. For Gap Up plays, verify volume validation and entry zones (e.g. gap support or breakout levels). Define the exact Buy Zone, target profit, and strict Stop Loss for each setup.
                             
                             EXPLAIN INSTRUCTIONS:
@@ -491,10 +518,15 @@ fun AiCopilotCard(
                             - Use ELI10 style (Explain Like I'm 10) so it's super simple.
                             - Provide a real-world analogy to describe the setup of the ranked pick.
                             
-                            Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
+                            FORMAT REQUIREMENT:
+                            Output the final recommendation as a clean Markdown report with the following structure:
+                            ### Executive Summary (Swing vs Gap Candidates, Macro Environment)
+                            ### Top Ranked Setups (Markdown Table: Ticker, Playbook Type, Buy Zone, Target, Stop Loss)
+                            ### Subagent Analysis Details (catalysts, technical support, risk parameters)
+                            ### Analogous Story (The real-world analogy)
                         """.trimIndent()
                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                        android.widget.Toast.makeText(context, "Swing Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
+                        showSnackbar("Swing Prompt copied! Paste into your AI.")
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
@@ -504,9 +536,9 @@ fun AiCopilotCard(
                     Text("Swing Trade AI Prompt")
                 }
             } else {
-                // Dividend Button
                 Button(
                     onClick = {
+                        val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
                         val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
                         val dividendCandidates = if (dividendPlays.isEmpty()) "None" else dividendPlays
                             .sortedByDescending { it.info.dividendYield }
@@ -517,19 +549,29 @@ fun AiCopilotCard(
                         val prompt = """
                             Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) dividend candidates.
                             
-                            CONSTRAINTS (Dividend Accumulation):
-                            - Starting Dividend Yield MUST be >= 5%.
-                            - Company fundamentals must be strong (avoid yield traps).
+                            DATA FRESHNESS:
+                            - Metrics last updated/synced on: $lastSync
+                            
+                            CONSTRAINTS & PLAYBOOK (Dividend Accumulation):
+                            - Holding Period: Long-term (indefinite hold for compound growth).
+                            - Yield Threshold: Starting Dividend Yield MUST be >= 5%.
                             - Hard rule: Never average down on a breaking technical trend.
                             - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
                             - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
+                            
+                            GUARDRAILS & NEGATIVE CONSTRAINTS:
+                            - DO NOT recommend penny stocks or highly illiquid assets.
+                            - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
+                            - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
 
-                            I am loading the 'Dividend Accumulation Playbook'.
+                            I am loading the 'Dividend Accumulation Playbook' for the candidates below.
+                            Note: All candidates have already passed static baseline filters (ROE > 15%, D/E < 1.5, NPM > 10%).
+                            
                             Candidates Yielding > 5%:
                             $dividendCandidates
                             
                             DELEGATED TASKS:
-                            1. [market-researcher]: Perform a live web search to verify the dividend sustainability (check payout ratio trend, recent earnings reports, and cash flow safety) for these SET tickers.
+                            1. [market-researcher]: Perform a live web search for forward-looking dividend safety (check cash flow trend, forward payout ratio, and upcoming earnings outlook) for these SET tickers. Also perform a query for current SET index level and general market sentiment.
                             2. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure.
                             
                             EXPLAIN INSTRUCTIONS:
@@ -537,10 +579,15 @@ fun AiCopilotCard(
                             - Use ELI10 style (Explain Like I'm 10) so it's super simple.
                             - Provide a real-world analogy to explain why the ranked stock is a reliable dividend payer.
                             
-                            Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
+                            FORMAT REQUIREMENT:
+                            Output the final recommendation as a clean Markdown report with the following structure:
+                            ### Executive Summary (Dividend Outlook, Macro Environment)
+                            ### Top Ranked Dividend Additions (Markdown Table: Ticker, Yield, Max Buy Price, Target Allocation)
+                            ### Subagent Safety & Cash Flow Analysis (Payout safety, cash flow metrics)
+                            ### Analogous Story (The real-world analogy)
                         """.trimIndent()
                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                        android.widget.Toast.makeText(context, "Dividend Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
+                        showSnackbar("Dividend Prompt copied! Paste into your AI.")
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -563,15 +610,26 @@ fun RoutineChecklistCard(
     onSwingWeeklyChange: (Boolean) -> Unit,
     swingAi: Boolean,
     onSwingAiChange: (Boolean) -> Unit,
-    divDaily: Boolean,
-    onDivDailyChange: (Boolean) -> Unit,
     divWeekly: Boolean,
     onDivWeeklyChange: (Boolean) -> Unit,
+    divWeeklyPrices: Boolean,
+    onDivWeeklyPricesChange: (Boolean) -> Unit,
     divMonthly: Boolean,
     onDivMonthlyChange: (Boolean) -> Unit,
     divAi: Boolean,
-    onDivAiChange: (Boolean) -> Unit
+    onDivAiChange: (Boolean) -> Unit,
+    alertsCount: Int,
+    candidatesCount: Int,
+    lastSync: String
 ) {
+    val totalItems = if (playbookMode == PlaybookMode.SWING) 3 else 4
+    val completedItems = if (playbookMode == PlaybookMode.SWING) {
+        (if (swingDaily) 1 else 0) + (if (swingWeekly) 1 else 0) + (if (swingAi) 1 else 0)
+    } else {
+        (if (divWeekly) 1 else 0) + (if (divWeeklyPrices) 1 else 0) + (if (divMonthly) 1 else 0) + (if (divAi) 1 else 0)
+    }
+    val progress = completedItems.toFloat() / totalItems.toFloat()
+
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
@@ -583,115 +641,226 @@ fun RoutineChecklistCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Assignment,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (playbookMode == PlaybookMode.SWING) "Swing Routine Checklist" else "Dividend Routine Checklist",
+                        text = "✅ Mission Today",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Text(
-                    text = "Discipline First",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontWeight = FontWeight.Bold
-                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = "$completedItems of $totalItems ⭐",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (playbookMode == PlaybookMode.SWING) {
-                RoutineItem(
-                    checked = swingDaily,
-                    onCheckedChange = onSwingDailyChange,
-                    title = "Daily: Check Exit Signals",
-                    description = "Review 'Sell Alerts' at the top for Take Profit (+10%) or Stop Loss (-5%)."
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
-                RoutineItem(
-                    checked = swingWeekly,
-                    onCheckedChange = onSwingWeeklyChange,
-                    title = "Daily: Scan Candidates",
-                    description = "Browse the 'Swing & Gap Candidates' list below for fresh entries."
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
-                RoutineItem(
-                    checked = swingAi,
-                    onCheckedChange = onSwingAiChange,
-                    title = "Daily: Run AI Copilot Prompt",
-                    description = "Copy the Swing Trade AI prompt below to analyze news & catalysts."
-                )
-            } else {
-                RoutineItem(
-                    checked = divDaily,
-                    onCheckedChange = onDivDailyChange,
-                    title = "Weekly: Audit Core Quality",
-                    description = "Check if any active holding has broken quality standards (ROE < 15%)."
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
-                RoutineItem(
-                    checked = divWeekly,
-                    onCheckedChange = onDivWeeklyChange,
-                    title = "Weekly: Scan Cheap Entry Prices",
-                    description = "Check Dividend Stars below for low price tags (low RSI or near support) to buy cheap."
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
-                RoutineItem(
-                    checked = divMonthly,
-                    onCheckedChange = onDivMonthlyChange,
-                    title = "Monthly: Plan Reinvestments",
-                    description = "Deploy fresh cash or payouts into 'High-Yield Dividend Stars'."
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
-                RoutineItem(
-                    checked = divAi,
-                    onCheckedChange = onDivAiChange,
-                    title = "Monthly: Run AI Dividend Prompt",
-                    description = "Copy the Dividend AI prompt to audit payout sustainability."
-                )
+            // Progress bar and feedback
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (playbookMode == PlaybookMode.SWING) {
+                    RoutineItemCard(
+                        stepNumber = 1,
+                        emoji = "🚨",
+                        checked = swingDaily,
+                        onCheckedChange = onSwingDailyChange,
+                        title = "Check for Danger",
+                        description = "Are any of your stocks turning red? Like checking if your toys are broken. (Current alerts: $alertsCount)"
+                    )
+                    RoutineItemCard(
+                        stepNumber = 2,
+                        emoji = "🔍",
+                        checked = swingWeekly,
+                        onCheckedChange = onSwingWeeklyChange,
+                        title = "Find Cheap Stocks",
+                        description = "Look for stocks on sale — like finding toys at a discount! (Current candidates: $candidatesCount)"
+                    )
+                    RoutineItemCard(
+                        stepNumber = 3,
+                        emoji = "🤖",
+                        checked = swingAi,
+                        onCheckedChange = onSwingAiChange,
+                        title = "Ask the Robot",
+                        description = "Let the AI robot help you decide which one to buy. (Data updated: $lastSync)"
+                    )
+                } else {
+                    RoutineItemCard(
+                        stepNumber = 1,
+                        emoji = "🛡️",
+                        checked = divWeekly,
+                        onCheckedChange = onDivWeeklyChange,
+                        title = "Check My Shields",
+                        description = "Make sure your money machines are still strong and healthy."
+                    )
+                    RoutineItemCard(
+                        stepNumber = 2,
+                        emoji = "💰",
+                        checked = divWeeklyPrices,
+                        onCheckedChange = onDivWeeklyPricesChange,
+                        title = "Find Bargains",
+                        description = "Find the best money machines that are on sale right now. (Current stars: $candidatesCount)"
+                    )
+                    RoutineItemCard(
+                        stepNumber = 3,
+                        emoji = "🏦",
+                        checked = divMonthly,
+                        onCheckedChange = onDivMonthlyChange,
+                        title = "Save More Money",
+                        description = "Put your pocket money into the best machines."
+                    )
+                    RoutineItemCard(
+                        stepNumber = 4,
+                        emoji = "🤖",
+                        checked = divAi,
+                        onCheckedChange = onDivAiChange,
+                        title = "Ask the Robot",
+                        description = "Let the AI robot double-check your choices."
+                    )
+                }
+            }
+
+            if (completedItems == totalItems) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "🎉 All Done! Great Job, Champ!",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun RoutineItem(
+fun RoutineItemCard(
+    stepNumber: Int,
+    emoji: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     title: String,
     description: String
 ) {
-    Row(
-        verticalAlignment = Alignment.Top,
-        modifier = Modifier.fillMaxWidth()
+    val cardColor = if (checked) {
+        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+    }
+
+    val borderColor = if (checked) {
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    }
+
+    Surface(
+        onClick = { onCheckedChange(!checked) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = cardColor,
+        border = BorderStroke(1.dp, borderColor)
     ) {
-        Checkbox(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = CheckboxDefaults.colors(
-                checkedColor = MaterialTheme.colorScheme.primary,
-                uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            ),
-            modifier = Modifier.offset(y = (-4).dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Column {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Big Step Number Circle
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(
+                        color = if (checked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        shape = CircleShape
+                    )
+            ) {
+                Text(
+                    text = stepNumber.toString(),
+                    color = if (checked) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Emoji
             Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (checked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                text = emoji,
+                fontSize = 22.sp,
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Text Content
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (checked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (checked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Done Badge
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (checked) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                    border = BorderStroke(
+                        0.5.dp,
+                        if (checked) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (checked) "✅ Done!" else "⬜ Todo",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (checked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
     }
 }

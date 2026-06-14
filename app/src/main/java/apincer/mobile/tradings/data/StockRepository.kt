@@ -6,12 +6,18 @@ class StockRepository(
     private val stockDao: StockDao,
     private val tradeDao: TradeDao,
     private val cashDao: CashDao,
-    private val focusDao: FocusDao
+    private val focusDao: FocusDao,
+    private val checklistDao: ChecklistDao
 ) {
     val allStocks: Flow<List<StockEntity>> = stockDao.getAllStocks()
     val allTrades: Flow<List<TradeEntity>> = tradeDao.getAllTrades()
     val cashBalance: Flow<CashEntity?> = cashDao.getCash()
     val allFocusStocks: Flow<List<FocusEntity>> = focusDao.getAllFocusStocks()
+    val checklist: Flow<ChecklistEntity?> = checklistDao.getChecklistFlow()
+
+    suspend fun updateChecklist(checklist: ChecklistEntity) {
+        checklistDao.insertChecklist(checklist)
+    }
 
     suspend fun updateCash(balance: Double) {
         cashDao.updateCash(CashEntity(balance = balance))
@@ -41,6 +47,9 @@ class StockRepository(
         cost: Double = 0.0, 
         quantity: Int = 0, 
         tradePurpose: String = "SWING",
+        buyFees: Double = 0.0,
+        stopLoss: Double = 0.0,
+        playbookNote: String = "",
         name: String? = null, 
         description: String? = null
     ) {
@@ -51,6 +60,9 @@ class StockRepository(
                 cost = cost,
                 quantity = quantity,
                 tradePurpose = tradePurpose,
+                buyFees = buyFees,
+                stopLoss = stopLoss,
+                playbookNote = playbookNote,
                 name = name ?: existing.name,
                 businessDescription = description ?: existing.businessDescription
             ) ?: StockEntity(
@@ -59,7 +71,10 @@ class StockRepository(
                 businessDescription = description,
                 cost = cost,
                 quantity = quantity,
-                tradePurpose = tradePurpose
+                tradePurpose = tradePurpose,
+                buyFees = buyFees,
+                stopLoss = stopLoss,
+                playbookNote = playbookNote
             )
         )
     }

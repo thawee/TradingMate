@@ -139,7 +139,7 @@ fun GlassTag(
         Text(
             text = text,
             color = color,
-            fontSize = 9.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
@@ -285,7 +285,10 @@ fun StockItemCard(
 
                     if (tags.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             tags.forEach { tag ->
                                 Surface(
                                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
@@ -294,7 +297,7 @@ fun StockItemCard(
                                     Text(
                                         text = tag,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                        fontSize = 8.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
                                     )
@@ -357,7 +360,7 @@ fun StockItemCard(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         
-                        Text("Start", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text("Start", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         
                         Text(
                             text = if (isPrivacyMode) "฿••••" else "฿${item.focusStartPrice}", 
@@ -369,7 +372,7 @@ fun StockItemCard(
                     val startDiff = ((item.info.lastPrice - item.focusStartPrice) / item.focusStartPrice) * 100
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         
-                        Text("Move", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text("Move", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         
                         Text(
                             text = "${if (startDiff >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", startDiff)}%",
@@ -381,7 +384,7 @@ fun StockItemCard(
 
                     Column(horizontalAlignment = Alignment.End) {
                         
-                        Text("Target", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text("Target", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         
                         Text(
                             text = if (isPrivacyMode) "฿••••" else if ((item.focusTargetPrice ?: 0.0) > 0) "฿${item.focusTargetPrice}" else "---",
@@ -396,7 +399,7 @@ fun StockItemCard(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         
-                        Text("Cost", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text("Cost", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         
                         Text(
                             text = if (isPrivacyMode) "฿••••" else "฿${item.portfolio.cost}", 
@@ -406,7 +409,7 @@ fun StockItemCard(
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         
-                        Text("Net Profit", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text("Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         
                         Text(
                             text = if (isPrivacyMode) "••••%" else "${if (item.netProfitPercent >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.netProfitPercent)}%",
@@ -456,7 +459,7 @@ fun StockItemCard(
                             text = signalText,
                             color = signalColor,
                             fontWeight = FontWeight.Black,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
@@ -618,7 +621,7 @@ fun PortfolioSummaryCard(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     
-                    Text("Stocks Value", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text("Stocks Value", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     
                     Text(
                         text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", stockValue)}",
@@ -628,7 +631,7 @@ fun PortfolioSummaryCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     
-                    Text("Cash Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text("Cash Balance", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     
                     Text(
                         text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", cashBalance)}",
@@ -652,7 +655,7 @@ fun PortfolioSummaryCard(
                 ) {
                     Column {
                         
-                        Text("Total Net Profit", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text("Total Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             
                             Text(
@@ -675,7 +678,7 @@ fun PortfolioSummaryCard(
                     yieldOnCost?.let {
                         Column(horizontalAlignment = Alignment.End) {
                             
-                            Text("Avg Yield", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            Text("Avg Yield", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                             
                             Text("${String.format(Locale.ENGLISH, "%.2f", it)}%", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                         }
@@ -686,9 +689,9 @@ fun PortfolioSummaryCard(
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 
-                Text("Gross: ฿${String.format(Locale.ENGLISH, "%,.2f", grossProfit)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Gross: ฿${String.format(Locale.ENGLISH, "%,.2f", grossProfit)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 
-                Text("Fees: ฿${String.format(Locale.ENGLISH, "%,.2f", totalFees)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Fees: ฿${String.format(Locale.ENGLISH, "%,.2f", totalFees)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

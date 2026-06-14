@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,7 +47,8 @@ import java.util.Locale
 @Composable
 fun PortfolioScreen(
     viewModel: StockViewModel,
-    onSelectStock: (String) -> Unit
+    onSelectStock: (String) -> Unit,
+    showSnackbar: (String) -> Unit
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
@@ -64,7 +66,13 @@ fun PortfolioScreen(
     val totalAssetValue = stockValue + cashBalance
     
     val totalCost = portfolioItems.sumOf { it.portfolio.cost * it.portfolio.quantity }
-    val buyFees = TechnicalAnalysis.calculateFees(totalCost, false)
+    val buyFees = portfolioItems.sumOf { item ->
+        if (item.portfolio.buyFees > 0.0) {
+            item.portfolio.buyFees
+        } else {
+            TechnicalAnalysis.calculateFees(item.portfolio.cost * item.portfolio.quantity, false)
+        }
+    }
     val sellFees = TechnicalAnalysis.calculateFees(stockValue, true)
     val totalFees = buyFees + sellFees
     
@@ -73,12 +81,20 @@ fun PortfolioScreen(
     val totalNetProfitPercent = if (totalCost > 0) (netProfitValue / (totalCost + buyFees)) * 100 else 0.0
 
     val avgYieldOnCost = if (totalCost > 0) {
-        portfolioItems.sumOf { (it.info.dividendYield ?: 0.0) * (it.info.lastPrice * it.portfolio.quantity) } / totalCost
+        portfolioItems.sumOf { item ->
+            val dps = item.portfolio.dividendPerShare ?: if (item.info.dividendYield != null && item.info.lastPrice != 0.0) {
+                item.info.lastPrice * (item.info.dividendYield / 100.0)
+            } else 0.0
+            dps * item.portfolio.quantity
+        } / totalCost * 100.0
     } else null
 
-    val dividendItems = portfolioItems.filter { (it.info.dividendYield ?: 0.0) > 0.0 }
-    val totalYearlyDividend = dividendItems.sumOf { 
-        it.portfolio.quantity * it.info.lastPrice * ((it.info.dividendYield ?: 0.0) / 100.0)
+    val dividendItems = portfolioItems.filter { (it.portfolio.dividendPerShare ?: 0.0) > 0.0 || (it.info.dividendYield ?: 0.0) > 0.0 }
+    val totalYearlyDividend = dividendItems.sumOf { item ->
+        val dps = item.portfolio.dividendPerShare ?: if (item.info.dividendYield != null && item.info.lastPrice != 0.0) {
+            item.info.lastPrice * (item.info.dividendYield / 100.0)
+        } else 0.0
+        item.portfolio.quantity * dps
     }
 
     val targetMonthlyDividend by viewModel.targetMonthlyDividend.collectAsState()
@@ -102,21 +118,23 @@ fun PortfolioScreen(
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
-                IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.desc_refresh), modifier = Modifier.size(24.dp))
-                }
                 IconButton(onClick = { showBuyDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.desc_buy_stock), modifier = Modifier.size(24.dp))
                 }
             }
         )
         
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshWatchlistInfo() },
+            modifier = Modifier.fillMaxSize()
         ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             item {
                 PortfolioSummaryCard(
                     totalAssetValue = totalAssetValue,
@@ -130,6 +148,50 @@ fun PortfolioScreen(
                     isPrivacyMode = isPrivacyMode,
                     onEditCash = { showCashDialog = true }
                 )
+            }
+
+            if (portfolioItems.isNotEmpty()) {
+                item {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Portfolio Allocation",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            portfolioItems.forEach { item ->
+                                val pct = if (stockValue > 0) (item.info.lastPrice * item.portfolio.quantity / stockValue) * 100 else 0.0
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(item.info.symbol, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        LinearProgressIndicator(
+                                            progress = { (pct / 100f).toFloat().coerceIn(0f, 1f) },
+                                            modifier = Modifier.width(80.dp).height(6.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = String.format(Locale.ENGLISH, "%.1f%%", pct),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             if (targetYearlyDividend > 0) {
@@ -272,11 +334,28 @@ fun PortfolioScreen(
             if (portfolioItems.isEmpty()) {
                 item {
                     GlassCard(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
                     ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(stringResource(R.string.label_portfolio_empty), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(R.string.label_portfolio_empty),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+                            Button(
+                                onClick = { showBuyDialog = true },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.action_add_to_portfolio))
+                            }
                         }
                     }
                 }
@@ -300,6 +379,7 @@ fun PortfolioScreen(
                 Spacer(Modifier.height(40.dp))
             }
         }
+        }
     }
 
     if (showBuyDialog) {
@@ -310,7 +390,7 @@ fun PortfolioScreen(
                 selectedStockForEdit = null
             },
             onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose ->
-                viewModel.addToWatchlist(symbol, cost, qty, purpose)
+                viewModel.addToWatchlist(symbol, cost, qty, purpose, stopLoss, note)
                 if (purpose == "SWING" && target > 0) {
                     viewModel.addToFocusList(symbol, cost, target)
                 } else {
@@ -358,12 +438,17 @@ fun AdjustCashDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.title_adjust_cash),
         confirmButton = {
+            val amountVal = amount.toDoubleOrNull() ?: 0.0
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onConfirm(amount.toDoubleOrNull() ?: 0.0, false) }) {
+                TextButton(
+                    enabled = amountVal > 0.0,
+                    onClick = { onConfirm(amountVal, false) }
+                ) {
                     Text(stringResource(R.string.action_add_funds))
                 }
                 Button(
-                    onClick = { onConfirm(amount.toDoubleOrNull() ?: 0.0, true) }, 
+                    enabled = amountVal >= 0.0 && amount.isNotBlank(),
+                    onClick = { onConfirm(amountVal, true) }, 
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(stringResource(R.string.action_set_balance))
@@ -401,9 +486,10 @@ fun BuyStockDialog(
     var qty by remember { mutableStateOf(initialStock?.portfolio?.quantity?.toString() ?: "") }
     
     var targetPrice by remember { mutableStateOf(initialStock?.focusTargetPrice?.let { if (it > 0) it.toString() else "" } ?: "") }
-    var stopLossPrice by remember { mutableStateOf("") }
-    var playbookNote by remember { mutableStateOf("") }
+    var stopLossPrice by remember { mutableStateOf(initialStock?.portfolio?.stopLoss?.let { if (it > 0) it.toString() else "" } ?: "") }
+    var playbookNote by remember { mutableStateOf(initialStock?.portfolio?.playbookNote ?: "") }
     var tradePurpose by remember { mutableStateOf(initialStock?.portfolio?.tradePurpose ?: "SWING") }
+    var acceptLowRR by remember { mutableStateOf(false) }
 
     val entry = entryPrice.toDoubleOrNull() ?: 0.0
     val amount = qty.toIntOrNull() ?: 0
@@ -419,7 +505,7 @@ fun BuyStockDialog(
     val rrRatio = if (riskPerShare > 0) rewardPerShare / riskPerShare else 0.0
     val isValidDividend = tradePurpose == "DIVIDEND" || playbookNote.lowercase().contains("dividend")
     val isFormValid = symbol.isNotBlank() && entry > 0 && amount > 0 && 
-                      (isValidDividend || (target > 0 && stopLoss > 0 && rrRatio >= 2.0))
+                      (isValidDividend || (target > 0 && stopLoss > 0 && (rrRatio >= 2.0 || acceptLowRR)))
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -527,14 +613,14 @@ fun BuyStockDialog(
                             Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
                                 Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.action_set_suggested), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Text(stringResource(R.string.action_set_suggested), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
                             }
                         }
                     }
                 }
                 
                 suggestion?.let { sug ->
-                    Text(text = sug.third, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
+                    Text(text = sug.third, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -583,19 +669,39 @@ fun BuyStockDialog(
                                 progress = { (rrRatio / 5f).toFloat().coerceIn(0.1f, 1f) },
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                 color = if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
-                                trackColor = Color.White.copy(alpha = 0.2f)
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             Spacer(Modifier.height(8.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column {
-                                    Text(stringResource(R.string.label_potential_gain), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.label_potential_gain), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text("฿${String.format(Locale.ENGLISH, "%,.2f", netReward)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text(stringResource(R.string.label_potential_risk), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.label_potential_risk), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text("฿${String.format(Locale.ENGLISH, "%,.2f", totalRisk)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                                 }
                             }
+                        }
+                    }
+                }
+
+                if (tradePurpose == "SWING" && rrRatio < 2.0) {
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Checkbox(
+                                checked = acceptLowRR,
+                                onCheckedChange = { acceptLowRR = it }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Override: Accept low Risk/Reward ratio (< 2.0)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -629,7 +735,7 @@ fun SellStockDialog(
     onConfirm: (String, Double, Int, String) -> Unit
 ) {
     var price by remember { mutableStateOf(stock.info.lastPrice.toString()) }
-    var qty by remember { mutableStateOf(stock.portfolio.quantity.toString()) }
+    var qty by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -682,14 +788,20 @@ fun SellStockDialog(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
                 Spacer(Modifier.width(8.dp))
+                val sellQty = qty.toIntOrNull() ?: 0
+                val sellPrice = price.toDoubleOrNull() ?: 0.0
+                val isValid = sellQty > 0 && sellQty <= stock.portfolio.quantity && sellPrice > 0.0
                 Button(
+                    enabled = isValid,
                     onClick = { 
-                        val sellQty = qty.toIntOrNull() ?: 0
-                        if (sellQty > 0 && sellQty <= stock.portfolio.quantity) {
-                            onConfirm(stock.info.symbol, price.toDoubleOrNull() ?: 0.0, sellQty, note)
+                        if (isValid) {
+                            onConfirm(stock.info.symbol, sellPrice, sellQty, note)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                    ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(stringResource(R.string.action_confirm_sell), color = Color.White)

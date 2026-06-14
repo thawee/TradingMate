@@ -100,6 +100,11 @@ object TechnicalAnalysis {
         val isNearLowerBB = if (bb != null) lastPrice <= bb.lower * 1.05 else false // Within 5% of lower band
         val isNearUpperBB = if (bb != null) lastPrice >= bb.upper * 0.95 else false // Within 5% of upper band
         
+        // Selling Zone: Overbought OR Near Upper Resistance
+        if (isRsiOverbought || isNearUpperBB || (!isMacdBullish && !isPriceAboveSma50)) {
+            return TradingZone.SELLING_ZONE
+        }
+
         // Buying Zone: Oversold (Extreme Value) OR (Positive Momentum near support)
         if (isRsiOversold || (isMacdBullish && (isNearLowerBB || isPriceAboveSma50))) {
             return TradingZone.BUYING_ZONE
@@ -108,11 +113,6 @@ object TechnicalAnalysis {
         // Potential Zone: Nearing Buy thresholds
         if (isRsiPotential || isNearLowerBB) {
             return TradingZone.POTENTIAL_ZONE
-        }
-        
-        // Selling Zone: Overbought OR Near Upper Resistance
-        if (isRsiOverbought || isNearUpperBB || (!isMacdBullish && !isPriceAboveSma50)) {
-            return TradingZone.SELLING_ZONE
         }
         
         return TradingZone.NEUTRAL

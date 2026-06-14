@@ -11,6 +11,7 @@ import apincer.mobile.tradings.data.StockEntity
 import apincer.mobile.tradings.data.StockRepository
 import apincer.mobile.tradings.data.TradeEntity
 import apincer.mobile.tradings.data.TradingBackup
+import apincer.mobile.tradings.data.ChecklistEntity
 import apincer.mobile.tradings.domain.BollingerBands
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
@@ -59,7 +60,7 @@ sealed class StockUiState {
         val focusTargetPrice: Double = 0.0,
         val historicalPrices: List<Double> = emptyList()
     ) : StockUiState()
-    data class Error(val message: String) : StockUiState()
+    data class Error(val message: String, val symbol: String) : StockUiState()
 }
 
 data class StockWatchlistInfo(
@@ -85,7 +86,13 @@ data class StockFocusInfo(
 
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val database = StockDatabase.getDatabase(application)
-    private val repository = StockRepository(database.stockDao(), database.tradeDao(), database.cashDao(), database.focusDao())
+    private val repository = StockRepository(
+        database.stockDao(), 
+        database.tradeDao(), 
+        database.cashDao(), 
+        database.focusDao(), 
+        database.checklistDao()
+    )
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
 
 
@@ -388,150 +395,223 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
+    private val _checklist = MutableStateFlow(ChecklistEntity())
+    val checklist: StateFlow<ChecklistEntity> = _checklist
+
+    fun updateChecklistState(update: (ChecklistEntity) -> ChecklistEntity) {
+        viewModelScope.launch {
+            val current = _checklist.value
+            val next = update(current)
+            repository.updateChecklist(next)
+        }
+    }
+
+    private fun checkAndResetChecklist(existing: ChecklistEntity): ChecklistEntity {
+        val zoneId = java.time.ZoneId.of("Asia/Bangkok")
+        val now = java.time.ZonedDateTime.now(zoneId)
+        val disciplineDateTime = if (now.toLocalTime().isBefore(java.time.LocalTime.of(9, 30))) {
+            now.minusDays(1)
+        } else {
+            now
+        }
+        val todayStr = disciplineDateTime.toLocalDate().toString()
+        val currentWeek = disciplineDateTime.get(java.time.temporal.WeekFields.of(java.util.Locale.US).weekOfWeekBasedYear())
+        val currentMonth = disciplineDateTime.monthValue
+
+        var updated = existing.copy(
+            lastResetDate = todayStr,
+            lastResetWeek = currentWeek,
+            lastResetMonth = currentMonth
+        )
+
+        // Reset daily if date changed
+        if (existing.lastResetDate != todayStr) {
+            updated = updated.copy(swingDailyDone = false)
+        }
+        // Reset weekly if week changed
+        if (existing.lastResetWeek != currentWeek) {
+            updated = updated.copy(
+                swingWeeklyDone = false,
+                swingAiDone = false,
+                divWeeklyDone = false,
+                divWeeklyPricesDone = false
+            )
+        }
+        // Reset monthly if month changed
+        if (existing.lastResetMonth != currentMonth) {
+            updated = updated.copy(
+                divMonthlyDone = false,
+                divAiDone = false
+            )
+        }
+        return updated
+    }
+
     init {
+        // Observe checklist and handle resets
+        viewModelScope.launch {
+            repository.checklist.collect { entity ->
+                val currentChecklist = entity ?: ChecklistEntity()
+                val targetChecklist = checkAndResetChecklist(currentChecklist)
+                if (targetChecklist != currentChecklist || entity == null) {
+                    repository.updateChecklist(targetChecklist)
+                }
+                _checklist.value = targetChecklist
+            }
+        }
         // Trigger background refresh on start
         refreshWatchlistInfo()
     }
 
     fun refreshWatchlistInfo() {
         viewModelScope.launch {
-            if (_isRefreshing.value) return@launch
-            _isRefreshing.value = true
+            if (!_isRefreshing.compareAndSet(false, true)) return@launch
+            try {
+                val stocks = watchlistInfo.value.map { it.portfolio }
+                if (stocks.isEmpty()) return@launch
 
-            val stocks = watchlistInfo.value.map { it.portfolio }
-            if (stocks.isEmpty()) {
-                _isRefreshing.value = false
-                return@launch
-            }
-
-            // 1. Ultra-Fast Batch Update (Prices, Changes, basic ratios)
-            withContext(Dispatchers.IO) {
-                val batchResults = SetScraper.fetchBatchQuotes(stocks.map { it.symbol })
-                batchResults.forEach { updated ->
-                    stocks.find { it.symbol == updated.symbol }?.let { original ->
-                        repository.updateStockCache(original.copy(
-                            name = updated.name ?: original.name,
-                            lastPrice = updated.lastPrice,
-                            change = updated.change,
-                            percentChange = updated.percentChange,
-                            pe = updated.pe ?: original.pe,
-                            pbv = updated.pbv ?: original.pbv,
-                            dividendYield = updated.dividendYield ?: original.dividendYield,
-                            lastUpdated = updated.lastUpdated
-                        ))
+                // 1. Ultra-Fast Batch Update (Prices, Changes, basic ratios)
+                withContext(Dispatchers.IO) {
+                    val batchResults = try {
+                        SetScraper.fetchBatchQuotes(stocks.map { it.symbol })
+                    } catch (e: Exception) {
+                        android.util.Log.e("StockViewModel", "Error fetching batch quotes", e)
+                        emptyList()
                     }
-                }
-            }
-
-            // 2. Deep Update (Technical Analysis & Fundamentals from SET)
-            val semaphore = Semaphore(3) 
-            withContext(Dispatchers.IO) {
-                val jobs = stocks.map { stock ->
-                    async {
-                        semaphore.withPermit {
-                            try {
-                                val latestStock = repository.getStockBySymbol(stock.symbol) ?: stock
-                                val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.lastUpdated)
-                                val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.lastUpdated)
-
-                                if (needsDeepFetch || needsIndicators) {
-                                    val info = if (needsDeepFetch) {
-                                        SetScraper.fetchStockInfo(stock.symbol)
-                                    } else {
-                                        apincer.mobile.tradings.data.ScrapedStockInfo(
-                                            symbol = latestStock.symbol,
-                                            name = latestStock.name,
-                                            nameTH = latestStock.nameTH,
-                                            businessDescription = latestStock.businessDescription,
-                                            sector = latestStock.sector,
-                                            industry = latestStock.industry,
-                                            lastPrice = latestStock.lastPrice,
-                                            change = latestStock.change,
-                                            percentChange = latestStock.percentChange,
-                                            pe = latestStock.pe,
-                                            pbv = latestStock.pbv,
-                                            roe = latestStock.roe,
-                                            eps = latestStock.eps,
-                                            netProfit = latestStock.netProfit,
-                                            debtToEquity = latestStock.debtToEquity,
-                                            dividendYield = latestStock.dividendYield,
-                                            dividendDate = latestStock.dividendDate,
-                                            lastUpdated = latestStock.lastUpdated ?: ""
-                                        )
-                                    }
-
-                                    val indicators = if (needsIndicators) {
-                                        SetScraper.fetchTechnicalIndicators(stock.symbol)
-                                    } else {
-                                        apincer.mobile.tradings.domain.Indicators(
-                                            sma50 = null,
-                                            sma200 = null,
-                                            rsi = latestStock.rsi,
-                                            macd = null,
-                                            signal = null,
-                                            histogram = latestStock.macdHist,
-                                            bollingerBands = null,
-                                            isVolumeSurge = false
-                                        )
-                                    }
-
-                                    val signal = if (needsIndicators) {
-                                        TechnicalAnalysis.getDetailedSignal(
-                                            rsi = indicators.rsi, 
-                                            macdHist = indicators.histogram, 
-                                            lastPrice = info.lastPrice, 
-                                            sma50 = indicators.sma50,
-                                            sma200 = indicators.sma200,
-                                            bb = indicators.bollingerBands,
-                                            isVolumeSurge = indicators.isVolumeSurge,
-                                            userCost = if (stock.cost > 0) stock.cost else null,
-                                            isFundamentalGood = info.isFundamentalGood,
-                                            tradePurpose = stock.tradePurpose,
-                                            dividendYield = info.dividendYield,
-                                            roe = info.roe
-                                        )
-                                    } else {
-                                        TradeSignal(
-                                            type = IndicatorSignal.valueOf(latestStock.signalType ?: "NEUTRAL"),
-                                            reason = latestStock.signalReason ?: "",
-                                            description = latestStock.signalDescription ?: ""
-                                        )
-                                    }
-
-                                    repository.updateStockCache(
-                                        latestStock.copy(
-                                            name = info.name ?: latestStock.name,
-                                            businessDescription = info.businessDescription ?: latestStock.businessDescription,
-                                            sector = info.sector ?: latestStock.sector,
-                                            industry = info.industry ?: latestStock.industry,
-                                            lastPrice = info.lastPrice,
-                                            change = info.change,
-                                            percentChange = info.percentChange,
-                                            pe = info.pe ?: latestStock.pe,
-                                            pbv = info.pbv ?: latestStock.pbv,
-                                            roe = info.roe,
-                                            eps = info.eps,
-                                            netProfit = info.netProfit,
-                                            equity = info.equity,
-                                            debtToEquity = info.debtToEquity,
-                                            dividendYield = info.dividendYield ?: latestStock.dividendYield,
-                                            dividendDate = info.dividendDate,
-                                            rsi = if (needsIndicators) indicators.rsi else latestStock.rsi,
-                                            macdHist = if (needsIndicators) indicators.histogram else latestStock.macdHist,
-                                            signalType = signal.type.name,
-                                            signalReason = signal.reason,
-                                            signalDescription = signal.description,
-                                            lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: latestStock.lastUpdated
-                                        )
-                                    )
-                                }
-                            } catch (e: Exception) { }
+                    batchResults.forEach { updated ->
+                        stocks.find { it.symbol == updated.symbol }?.let { original ->
+                            repository.updateStockCache(original.copy(
+                                name = updated.name ?: original.name,
+                                lastPrice = updated.lastPrice,
+                                change = updated.change,
+                                percentChange = updated.percentChange,
+                                pe = updated.pe ?: original.pe,
+                                pbv = updated.pbv ?: original.pbv,
+                                dividendYield = updated.dividendYield ?: original.dividendYield,
+                                lastUpdated = updated.lastUpdated
+                            ))
                         }
                     }
                 }
-                jobs.awaitAll()
+
+                // 2. Deep Update (Technical Analysis & Fundamentals from SET)
+                val semaphore = Semaphore(3) 
+                withContext(Dispatchers.IO) {
+                    val jobs = stocks.map { stock ->
+                        async {
+                            semaphore.withPermit {
+                                try {
+                                    val latestStock = repository.getStockBySymbol(stock.symbol) ?: stock
+                                    val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.lastUpdated)
+                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.lastUpdated)
+
+                                    if (needsDeepFetch || needsIndicators) {
+                                        val info = if (needsDeepFetch) {
+                                            SetScraper.fetchStockInfo(stock.symbol)
+                                        } else {
+                                            apincer.mobile.tradings.data.ScrapedStockInfo(
+                                                symbol = latestStock.symbol,
+                                                name = latestStock.name,
+                                                nameTH = latestStock.nameTH,
+                                                businessDescription = latestStock.businessDescription,
+                                                sector = latestStock.sector,
+                                                industry = latestStock.industry,
+                                                lastPrice = latestStock.lastPrice,
+                                                change = latestStock.change,
+                                                percentChange = latestStock.percentChange,
+                                                pe = latestStock.pe,
+                                                pbv = latestStock.pbv,
+                                                roe = latestStock.roe,
+                                                eps = latestStock.eps,
+                                                netProfit = latestStock.netProfit,
+                                                debtToEquity = latestStock.debtToEquity,
+                                                dividendYield = latestStock.dividendYield,
+                                                dividendDate = latestStock.dividendDate,
+                                                lastUpdated = latestStock.lastUpdated ?: ""
+                                            )
+                                        }
+
+                                        val indicators = if (needsIndicators) {
+                                            SetScraper.fetchTechnicalIndicators(stock.symbol)
+                                        } else {
+                                            apincer.mobile.tradings.domain.Indicators(
+                                                sma50 = null,
+                                                sma200 = null,
+                                                rsi = latestStock.rsi,
+                                                macd = null,
+                                                signal = null,
+                                                histogram = latestStock.macdHist,
+                                                bollingerBands = null,
+                                                isVolumeSurge = false
+                                            )
+                                        }
+
+                                        val signal = if (needsIndicators) {
+                                            TechnicalAnalysis.getDetailedSignal(
+                                                rsi = indicators.rsi, 
+                                                macdHist = indicators.histogram, 
+                                                lastPrice = info.lastPrice, 
+                                                sma50 = indicators.sma50,
+                                                sma200 = indicators.sma200,
+                                                bb = indicators.bollingerBands,
+                                                isVolumeSurge = indicators.isVolumeSurge,
+                                                userCost = if (stock.cost > 0) stock.cost else null,
+                                                isFundamentalGood = info.isFundamentalGood,
+                                                tradePurpose = stock.tradePurpose,
+                                                dividendYield = info.dividendYield,
+                                                roe = info.roe
+                                            )
+                                        } else {
+                                            TradeSignal(
+                                                type = IndicatorSignal.valueOf(latestStock.signalType ?: "NEUTRAL"),
+                                                reason = latestStock.signalReason ?: "",
+                                                description = latestStock.signalDescription ?: ""
+                                            )
+                                        }
+
+                                        repository.updateStockCache(
+                                            latestStock.copy(
+                                                name = info.name ?: latestStock.name,
+                                                businessDescription = info.businessDescription ?: latestStock.businessDescription,
+                                                sector = info.sector ?: latestStock.sector,
+                                                industry = info.industry ?: latestStock.industry,
+                                                lastPrice = info.lastPrice,
+                                                change = info.change,
+                                                percentChange = info.percentChange,
+                                                pe = info.pe ?: latestStock.pe,
+                                                pbv = info.pbv ?: latestStock.pbv,
+                                                roe = info.roe,
+                                                eps = info.eps,
+                                                netProfit = info.netProfit,
+                                                equity = info.equity,
+                                                debtToEquity = info.debtToEquity,
+                                                dividendYield = info.dividendYield ?: latestStock.dividendYield,
+                                                dividendDate = info.dividendDate,
+                                                dividendPerShare = if (info.dividendYield != null && info.lastPrice != 0.0) {
+                                                    info.lastPrice * (info.dividendYield / 100.0)
+                                                } else latestStock.dividendPerShare,
+                                                rsi = if (needsIndicators) indicators.rsi else latestStock.rsi,
+                                                macdHist = if (needsIndicators) indicators.histogram else latestStock.macdHist,
+                                                signalType = signal.type.name,
+                                                signalReason = signal.reason,
+                                                signalDescription = signal.description,
+                                                lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: latestStock.lastUpdated
+                                            )
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("StockViewModel", "Error deep refreshing stock ${stock.symbol}", e)
+                                }
+                            }
+                        }
+                    }
+                    jobs.awaitAll()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("StockViewModel", "Error refreshing watchlist info", e)
+            } finally {
+                _isRefreshing.value = false
             }
-            _isRefreshing.value = false
         }
     }
 
@@ -556,15 +636,31 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addToWatchlist(symbol: String, cost: Double = 0.0, quantity: Int = 0, tradePurpose: String = "SWING") {
+    fun addToWatchlist(
+        symbol: String, 
+        cost: Double = 0.0, 
+        quantity: Int = 0, 
+        tradePurpose: String = "SWING",
+        stopLoss: Double = 0.0,
+        playbookNote: String = ""
+    ) {
         viewModelScope.launch {
+            var fees = 0.0
             // Deduct cash if it's a purchase (quantity > 0)
             if (quantity > 0) {
                 val totalCostRaw = cost * quantity
-                val fees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
+                fees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
                 adjustCash(-(totalCostRaw + fees))
             }
-            repository.addStock(symbol, cost, quantity, tradePurpose)
+            repository.addStock(
+                symbol = symbol, 
+                cost = cost, 
+                quantity = quantity, 
+                tradePurpose = tradePurpose, 
+                buyFees = fees,
+                stopLoss = stopLoss,
+                playbookNote = playbookNote
+            )
         }
     }
 
@@ -618,7 +714,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                 // Buying fees already paid when adding to portfolio, we only pay selling fees now
                 val sellFees = TechnicalAnalysis.calculateFees(sellValueRaw, true)
-                val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
+                val buyFees = if (item.portfolio.quantity > 0) {
+                    (item.portfolio.buyFees * sellQuantity.toDouble()) / item.portfolio.quantity
+                } else 0.0
                 val totalFees = buyFees + sellFees
 
                 val netProfitValue = (sellValueRaw - totalCostRaw) - totalFees
@@ -644,10 +742,14 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 if (item.portfolio.quantity == sellQuantity) {
                     repository.removeStock(symbol)
                 } else {
+                    val remainingQty = item.portfolio.quantity - sellQuantity
+                    val remainingBuyFees = (item.portfolio.buyFees * remainingQty.toDouble()) / item.portfolio.quantity
                     repository.addStock(
                         symbol = symbol, 
                         cost = buyPrice, 
-                        quantity = item.portfolio.quantity - sellQuantity
+                        quantity = remainingQty,
+                        tradePurpose = item.portfolio.tradePurpose,
+                        buyFees = remainingBuyFees
                     )
                 }
             }
@@ -697,8 +799,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             repository.clearHistory()
         }
     }
-
-
 
     fun importFromCollection(category: String) {
         viewModelScope.launch {
@@ -852,7 +952,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _uiState.value = result
             } catch (e: Exception) {
-                _uiState.value = StockUiState.Error(e.message ?: "Failed to scrape data")
+                _uiState.value = StockUiState.Error(e.message ?: "Failed to scrape data", symbol)
             }
         }
     }

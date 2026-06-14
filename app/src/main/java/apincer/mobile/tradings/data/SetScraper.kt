@@ -50,7 +50,8 @@ data class ScrapedStockInfo(
     val isFundamentalGood: Boolean
         get() = (roe ?: 0.0) > 15.0 && 
                 (debtToEquity ?: 100.0) < 1.5 && 
-                (netProfitMargin ?: 0.0) > 10.0
+                (netProfitMargin ?: 0.0) > 10.0 &&
+                (profitGrowth3Y ?: 0.0) > 10.0
 
     val isPartialData: Boolean
         get() = (name.isNullOrBlank() && nameTH.isNullOrBlank()) || lastPrice == 0.0 || (pe == null && pbv == null)

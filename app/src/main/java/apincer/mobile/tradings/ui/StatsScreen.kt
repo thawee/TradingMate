@@ -29,7 +29,10 @@ import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(viewModel: StockViewModel) {
+fun StatsScreen(
+    viewModel: StockViewModel,
+    showSnackbar: (String) -> Unit
+) {
     val history by viewModel.tradeHistory.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -128,12 +131,12 @@ fun StatsScreen(viewModel: StockViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-                                Text(stringResource(R.string.label_beginning_cash), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.label_beginning_cash), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                                 Text("฿${String.format(Locale.ENGLISH,"%,.2f", beginningCash)}", fontSize = 18.sp, fontWeight = FontWeight.Black)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(stringResource(R.string.label_win_rate), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                                Text("${String.format(Locale.ENGLISH,"%.1f", winRate)}%", fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                Text(stringResource(R.string.label_win_rate), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                Text("${String.format(Locale.ENGLISH,"%,.1f", winRate)}%", fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                             }
                         }
 
@@ -156,8 +159,18 @@ fun StatsScreen(viewModel: StockViewModel) {
                 item {
                     val promptBuilder = StringBuilder()
                     promptBuilder.appendLine("Act as my Trading Journal Analyzer.")
-                    promptBuilder.appendLine("Review my recent trades below. Identify my top 3 recurring mistakes, my best performing setup type, and the one rule I break most often.")
-                    promptBuilder.appendLine("Format as a structured report.\\n")
+                    promptBuilder.appendLine("Review my recent trades below. Identify my top 3 recurring mistakes, my best performing setup type (defined as the trade purpose/setup with the highest win rate and average gain), and the one rule I break most often.")
+                    promptBuilder.appendLine("GUARDRAILS & NEGATIVE CONSTRAINTS:")
+                    promptBuilder.appendLine("- DO NOT recommend penny stocks or leveraged DW products.")
+                    promptBuilder.appendLine("- DO NOT provide direct financial advice; frame all recommendations as educational analysis.")
+                    promptBuilder.appendLine("")
+                    promptBuilder.appendLine("FORMAT REQUIREMENT:")
+                    promptBuilder.appendLine("Output the analysis as a structured Markdown report with the following sections:")
+                    promptBuilder.appendLine("### Executive Summary")
+                    promptBuilder.appendLine("### Top 3 Psychological/Strategic Mistakes (with examples from my trade list)")
+                    promptBuilder.appendLine("### Best Performing Setup Type (based on win rate/avg gain)")
+                    promptBuilder.appendLine("### Actionable Psychological Guardrail (one rule to implement next)")
+                    promptBuilder.appendLine("")
                     history.take(30).forEach { trade ->
                         val isWin = trade.netProfitBaht > 0
                         val resultStr = if (isWin) "WIN" else "LOSS"
@@ -186,7 +199,7 @@ fun StatsScreen(viewModel: StockViewModel) {
                             Button(
                                 onClick = {
                                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(promptBuilder.toString()))
-                                    android.widget.Toast.makeText(context, "Prompt copied! Paste it into your AI.", android.widget.Toast.LENGTH_SHORT).show()
+                                    showSnackbar("Prompt copied! Paste it into your AI.")
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
@@ -212,19 +225,19 @@ fun StatsScreen(viewModel: StockViewModel) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
 
-                                Text(stringResource(R.string.label_avg_win), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.label_avg_win), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
 
                                 Text("฿${String.format(Locale.ENGLISH,"%,.0f", avgWin)}", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                                Text(stringResource(R.string.label_avg_loss), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.label_avg_loss), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
 
                                 Text("฿${String.format(Locale.ENGLISH,"%,.0f", avgLoss)}", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
                             }
                             Column(horizontalAlignment = Alignment.End) {
 
-                                Text(stringResource(R.string.label_total_fees), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.label_total_fees), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
 
                                 Text("฿${String.format(Locale.ENGLISH,"%,.0f", totalFees)}", fontSize = 16.sp, fontWeight = FontWeight.Black)
                             }
@@ -279,7 +292,7 @@ fun StatsScreen(viewModel: StockViewModel) {
 fun StatMetric(label: String, value: Double) {
     Column {
 
-        Text(text = label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+        Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
 
         Text(
             text = "${if (value >= 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%,.0f", value)}",
@@ -309,7 +322,7 @@ fun TradeHistoryCard(trade: TradeEntity) {
 
                     Text(text = trade.symbol, fontWeight = FontWeight.Black, fontSize = 20.sp, letterSpacing = (-0.5).sp)
 
-                    Text(text = dateStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(text = dateStr, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
 
                     Spacer(Modifier.height(4.dp))
 
@@ -337,7 +350,7 @@ fun TradeHistoryCard(trade: TradeEntity) {
                         color = if (isWin) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                     )
 
-                    Text(text = "${trade.quantity} Shares", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(text = "${trade.quantity} Shares", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -351,7 +364,7 @@ fun TradeHistoryCard(trade: TradeEntity) {
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
 
-                        Text(text = stringResource(R.string.label_lesson_learned), fontSize = 9.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        Text(text = stringResource(R.string.label_lesson_learned), fontSize = 12.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
 
                         Spacer(Modifier.height(4.dp))
 

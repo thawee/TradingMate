@@ -24,6 +24,8 @@ data class StockEntity(
     val cost: Double = 0.0,
     val quantity: Int = 0,
     val tradePurpose: String = "SWING",
+    val buyFees: Double = 0.0,
+    val dividendPerShare: Double? = null,
     // Cached dynamic data for offline-first display
     val lastPrice: Double = 0.0,
     val change: Double = 0.0,
@@ -42,7 +44,9 @@ data class StockEntity(
     val signalType: String? = null, // BUY, SELL, NEUTRAL
     val signalReason: String? = null,
     val signalDescription: String? = null,
-    val lastUpdated: String? = null
+    val lastUpdated: String? = null,
+    val stopLoss: Double = 0.0,
+    val playbookNote: String = ""
 )
 
 @Entity(tableName = "trade_history")
@@ -95,7 +99,7 @@ interface StockDao {
     @Delete
     suspend fun deleteStock(stock: StockEntity)
 
-    @Query("DELETE FROM stocks WHERE quantity = 0")
+    @Query("DELETE FROM stocks WHERE quantity = 0 AND cost = 0.0")
     suspend fun deleteWatchlistStocks()
 }
 
@@ -153,12 +157,41 @@ interface FocusDao {
     suspend fun clearFocusList()
 }
 
-@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class], version = 13)
+@Entity(tableName = "discipline_checklist")
+@Serializable
+data class ChecklistEntity(
+    @PrimaryKey val id: Int = 1,
+    val lastResetDate: String = "",
+    val lastResetWeek: Int = 0,
+    val lastResetMonth: Int = 0,
+    val swingDailyDone: Boolean = false,
+    val swingWeeklyDone: Boolean = false,
+    val swingAiDone: Boolean = false,
+    val divWeeklyDone: Boolean = false,
+    val divWeeklyPricesDone: Boolean = false,
+    val divMonthlyDone: Boolean = false,
+    val divAiDone: Boolean = false
+)
+
+@Dao
+interface ChecklistDao {
+    @Query("SELECT * FROM discipline_checklist WHERE id = 1")
+    fun getChecklistFlow(): Flow<ChecklistEntity?>
+
+    @Query("SELECT * FROM discipline_checklist WHERE id = 1")
+    suspend fun getChecklist(): ChecklistEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChecklist(checklist: ChecklistEntity)
+}
+
+@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class, ChecklistEntity::class], version = 16)
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
     abstract fun tradeDao(): TradeDao
     abstract fun cashDao(): CashDao
     abstract fun focusDao(): FocusDao
+    abstract fun checklistDao(): ChecklistDao
 
     companion object {
         @Volatile
@@ -170,6 +203,41 @@ abstract class StockDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_13_14 = object : androidx.room.migration.Migration(13, 14) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stocks ADD COLUMN buyFees REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE stocks ADD COLUMN dividendPerShare REAL")
+            }
+        }
+
+        val MIGRATION_14_15 = object : androidx.room.migration.Migration(14, 15) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `discipline_checklist` (
+                        `id` INTEGER NOT NULL, 
+                        `lastResetDate` TEXT NOT NULL, 
+                        `lastResetWeek` INTEGER NOT NULL, 
+                        `lastResetMonth` INTEGER NOT NULL, 
+                        `swingDailyDone` INTEGER NOT NULL, 
+                        `swingWeeklyDone` INTEGER NOT NULL, 
+                        `swingAiDone` INTEGER NOT NULL, 
+                        `divWeeklyDone` INTEGER NOT NULL, 
+                        `divWeeklyPricesDone` INTEGER NOT NULL, 
+                        `divMonthlyDone` INTEGER NOT NULL, 
+                        `divAiDone` INTEGER NOT NULL, 
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_15_16 = object : androidx.room.migration.Migration(15, 16) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stocks ADD COLUMN stopLoss REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE stocks ADD COLUMN playbookNote TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getDatabase(context: android.content.Context): StockDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -177,8 +245,7 @@ abstract class StockDatabase : RoomDatabase() {
                     StockDatabase::class.java,
                     "stock_database"
                 )
-                .addMigrations(MIGRATION_12_13)
-                .fallbackToDestructiveMigration() // Simple migration for early dev
+                .addMigrations(MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                 .build()
                 INSTANCE = instance
                 instance

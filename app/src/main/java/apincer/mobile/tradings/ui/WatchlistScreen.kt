@@ -14,9 +14,13 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.Sort
 import java.util.Locale
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
 import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.StockEntity
 import apincer.mobile.tradings.domain.IndicatorSignal
@@ -47,7 +52,8 @@ enum class WatchlistFilter(val label: String) {
 @Composable
 fun WatchlistScreen(
     viewModel: StockViewModel,
-    onSelectStock: (String) -> Unit
+    onSelectStock: (String) -> Unit,
+    showSnackbar: (String) -> Unit
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -59,8 +65,9 @@ fun WatchlistScreen(
     var sortOrder by remember { mutableStateOf(WatchlistSortOrder.SYMBOL) }
     var isSearching by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var isSortAscending by remember { mutableStateOf(false) }
 
-    val processedList = remember(watchlist, activeFilter, sortOrder, searchQuery) {
+    val processedList = remember(watchlist, activeFilter, sortOrder, searchQuery, isSortAscending) {
         var list = when (activeFilter) {
             WatchlistFilter.ALL -> watchlist
             WatchlistFilter.FOCUS -> watchlist.filter { it.isFocused }
@@ -77,17 +84,20 @@ fun WatchlistScreen(
 
         // Apply Sorting
         when (sortOrder) {
-            WatchlistSortOrder.SYMBOL -> list.sortedBy { it.info.symbol }
-            WatchlistSortOrder.CHANGE -> list.sortedByDescending { it.info.percentChange }
-            WatchlistSortOrder.PROFIT -> list.sortedByDescending { it.netProfitPercent }
-            WatchlistSortOrder.SIGNAL -> list.sortedByDescending { 
-                when (it.signal?.type) {
-                    IndicatorSignal.BUY -> 3
-                    IndicatorSignal.POTENTIAL -> 2
-                    IndicatorSignal.NEUTRAL -> 1
-                    IndicatorSignal.SELL -> 0
-                    null -> -1
+            WatchlistSortOrder.SYMBOL -> if (isSortAscending) list.sortedBy { it.info.symbol } else list.sortedByDescending { it.info.symbol }
+            WatchlistSortOrder.CHANGE -> if (isSortAscending) list.sortedBy { it.info.percentChange } else list.sortedByDescending { it.info.percentChange }
+            WatchlistSortOrder.PROFIT -> if (isSortAscending) list.sortedBy { it.netProfitPercent } else list.sortedByDescending { it.netProfitPercent }
+            WatchlistSortOrder.SIGNAL -> {
+                val selector = { it: StockWatchlistInfo ->
+                    when (it.signal?.type) {
+                        IndicatorSignal.BUY -> 3
+                        IndicatorSignal.POTENTIAL -> 2
+                        IndicatorSignal.NEUTRAL -> 1
+                        IndicatorSignal.SELL -> 0
+                        null -> -1
+                    }
                 }
+                if (isSortAscending) list.sortedBy(selector) else list.sortedByDescending(selector)
             }
         }
     }
@@ -138,15 +148,12 @@ fun WatchlistScreen(
                     IconButton(onClick = { isSearching = true }) {
                         Icon(Icons.Default.Search, contentDescription = "Search Watchlist", modifier = Modifier.size(24.dp))
                     }
-                }
-                IconButton(onClick = { viewModel.refreshWatchlistInfo() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.desc_refresh), modifier = Modifier.size(24.dp))
-                }
-                IconButton(onClick = { showImportDialog = true }) {
-                    Icon(Icons.Default.CloudDownload, contentDescription = stringResource(R.string.desc_import_set), modifier = Modifier.size(24.dp))
-                }
-                IconButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.desc_add_stock), modifier = Modifier.size(24.dp))
+                    IconButton(onClick = { showImportDialog = true }) {
+                        Icon(Icons.Default.CloudDownload, contentDescription = stringResource(R.string.desc_import_set), modifier = Modifier.size(24.dp))
+                    }
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.desc_add_stock), modifier = Modifier.size(24.dp))
+                    }
                 }
             }
         )
@@ -164,27 +171,37 @@ fun WatchlistScreen(
                 FilterChip(
                     selected = activeFilter == filter,
                     onClick = { activeFilter = filter },
-                    label = { Text(filter.label, fontSize = 10.sp) },
+                    label = { Text(filter.label, fontSize = 12.sp) },
                     shape = CircleShape,
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
             }
             item {
                 Spacer(Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(
+                    onClick = { isSortAscending = !isSortAscending },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isSortAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                        contentDescription = "Toggle Sort Direction",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             items(WatchlistSortOrder.entries.toList()) { order ->
                 FilterChip(
                     selected = sortOrder == order,
                     onClick = { sortOrder = order },
-                    label = { Text(order.label, fontSize = 10.sp) },
+                    label = { Text(order.label, fontSize = 12.sp) },
                     shape = CircleShape,
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
             }
@@ -207,39 +224,79 @@ fun WatchlistScreen(
             )
         }
         
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshWatchlistInfo() },
+            modifier = Modifier.fillMaxSize()
         ) {
-            if (processedList.isEmpty()) {
-                item {
-                    GlassCard(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = if (activeFilter == WatchlistFilter.FOCUS) stringResource(R.string.label_no_focused_stocks) else stringResource(R.string.label_no_matches_found), 
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (processedList.isEmpty()) {
+                    item {
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth().height(220.dp),
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                if (watchlist.isEmpty()) {
+                                    Text(
+                                        text = "Your watchlist is empty.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = "Add your first stock to get started!",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(Modifier.height(16.dp))
+                                    Button(
+                                        onClick = { showAddDialog = true },
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Add Stock")
+                                    }
+                                } else {
+                                    Text(
+                                        text = if (activeFilter == WatchlistFilter.FOCUS) stringResource(R.string.label_no_focused_stocks) else stringResource(R.string.label_no_matches_found),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
                         }
                     }
+                } else {
+                    items(processedList, key = { it.info.symbol }) { item ->
+                        StockItemCard(
+                            item = item,
+                            onSelect = { onSelectStock(item.info.symbol) },
+                            onDelete = { 
+                                viewModel.removeFromWatchlist(item.info.symbol) 
+                                showSnackbar("Removed ${item.info.symbol} from watchlist")
+                            },
+                            isPrivacyMode = isPrivacyMode
+                        )
+                    }
                 }
-            } else {
-                items(processedList, key = { it.info.symbol }) { item ->
-                    StockItemCard(
-                        item = item,
-                        onSelect = { onSelectStock(item.info.symbol) },
-                        onDelete = { viewModel.removeFromWatchlist(item.info.symbol) },
-                        isPrivacyMode = isPrivacyMode
-                    )
+
+                item {
+                    Spacer(Modifier.height(80.dp))
                 }
-            }
-            
-            item {
-                Spacer(Modifier.height(80.dp))
             }
         }
     }
@@ -249,6 +306,7 @@ fun WatchlistScreen(
             onDismiss = { showAddDialog = false },
             onConfirm = { symbol ->
                 viewModel.addToWatchlist(symbol)
+                showSnackbar("Added $symbol to watchlist")
                 showAddDialog = false
             },
             viewModel = viewModel
@@ -260,8 +318,10 @@ fun WatchlistScreen(
             onDismiss = { showImportDialog = false },
             onImport = { category ->
                 viewModel.importFromCollection(category)
+                showSnackbar("Importing $category collection...")
                 showImportDialog = false
-            }
+            },
+            watchlistSymbols = watchlist.map { it.info.symbol }.toSet()
         )
     }
 }
@@ -269,8 +329,39 @@ fun WatchlistScreen(
 @Composable
 fun ImportCollectionDialog(
     onDismiss: () -> Unit,
-    onImport: (String) -> Unit
+    onImport: (String) -> Unit,
+    watchlistSymbols: Set<String>
 ) {
+    val collections = mapOf(
+        "SET50" to listOf(
+            "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BGRIM", "BH",
+            "CBG", "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO",
+            "GLOBAL", "GPSC", "GULF", "GUNKUL", "HMPRO", "INTUCH", "IVL", "JMART", "JMT", "KBANK",
+            "KCE", "KKP", "KTB", "KTC", "LH", "MINT", "MTC", "OR", "OSP", "PTT",
+            "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TOP",
+            "TRUE", "TTB", "TU", "WHA"
+        ),
+        "SET100" to listOf(
+            "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BGRIM", "BH",
+            "CBG", "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO",
+            "GLOBAL", "GPSC", "GULF", "GUNKUL", "HMPRO", "INTUCH", "IVL", "JMART", "JMT", "KBANK",
+            "KCE", "KKP", "KTB", "KTC", "LH", "MINT", "MTC", "OR", "OSP", "PTT",
+            "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TOP",
+            "TRUE", "TTB", "TU", "WHA"
+        ),
+        "SETHD" to listOf(
+            "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
+            "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
+        ),
+        "DIVIDEND" to listOf(
+            "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
+            "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
+        ),
+        "BLUECHIP" to listOf(
+            "AOT", "BBL", "BDMS", "CPALL", "DELTA", "GULF", "KBANK", "PTT", "PTTEP", "SCB", "SCC"
+        )
+    )
+
     GlassDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.title_import_set),
@@ -278,14 +369,17 @@ fun ImportCollectionDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         }
     ) {
-        val collections = listOf("SET50", "SET100", "SETHD", "DIVIDEND", "BLUECHIP")
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.label_import_desc), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             
-            collections.forEach { category ->
+            collections.keys.forEach { category ->
+                val categorySymbols = collections[category] ?: emptyList()
+                val importedCount = categorySymbols.count { watchlistSymbols.contains(it) }
+                val isFullyImported = categorySymbols.isNotEmpty() && importedCount == categorySymbols.size
+                
                 Surface(
                     onClick = { onImport(category) },
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    color = if (isFullyImported) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
@@ -295,8 +389,21 @@ fun ImportCollectionDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = category, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Column {
+                            Text(text = category, fontWeight = FontWeight.Black, color = if (isFullyImported) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
+                            if (categorySymbols.isNotEmpty()) {
+                                Text(
+                                    text = if (isFullyImported) "All stocks imported" else "$importedCount/${categorySymbols.size} stocks imported",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                        if (isFullyImported) {
+                            Icon(Icons.Default.Check, contentDescription = "Imported", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                        } else {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
             }
