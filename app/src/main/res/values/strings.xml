@@ -90,7 +90,7 @@
     <string name="label_backup_desc">Export your local data to a JSON file.</string>
     <string name="label_restore_desc">Import data from a backup file.</string>
     <string name="label_dynamic_theme">Dynamic Theme (System Default)</string>
-    <string name="label_app_version">Trading Mate v1.3.0</string>
+    <string name="label_app_version">Trading Mate v1.3.1</string>
     <string name="label_app_tagline">Your personal premium trading companion.</string>
     <string name="label_copyright">© 2024 apincer mobile</string>
     <string name="label_rr_calculator">Risk/Reward Calculator</string>

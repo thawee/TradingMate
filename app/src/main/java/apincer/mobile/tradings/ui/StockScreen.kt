@@ -252,7 +252,10 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                             when (currentScreen) {
                                 Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
                                 Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) })
-                                Screen.ADVISOR -> DividendAdvisorScreen(viewModel)
+                                Screen.ADVISOR -> DividendAdvisorScreen(
+                                    viewModel = viewModel,
+                                    onNavigateToAcademy = { currentScreen = Screen.EDUCATION }
+                                )
                                 Screen.STATS -> StatsScreen(viewModel)
                                 Screen.SETTINGS -> SettingsScreen(viewModel)
                                 Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.ADVISOR })

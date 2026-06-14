@@ -1,5 +1,7 @@
 package apincer.mobile.tradings.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -8,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +28,11 @@ data class SellAlertData(
     val reason: String
 )
 
+enum class PlaybookMode(val label: String) {
+    SWING("Swing Playbook"),
+    DIVIDEND("Dividend Playbook")
+}
+
 enum class AdvisorFilter(val label: String) {
     SWING("Swing Trades"),
     GAP("Earnings Gap"),
@@ -33,7 +41,10 @@ enum class AdvisorFilter(val label: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DividendAdvisorScreen(viewModel: StockViewModel) {
+fun DividendAdvisorScreen(
+    viewModel: StockViewModel,
+    onNavigateToAcademy: () -> Unit
+) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
 
@@ -77,8 +88,24 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
             }
         )
     val gapPlays = watchlist.filter { isGapUp(it) }.sortedByDescending { it.info.percentChange }
+    val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
+        .sortedWith(
+            compareBy<StockWatchlistInfo> {
+                when (it.signal?.type) {
+                    IndicatorSignal.BUY -> 0
+                    IndicatorSignal.POTENTIAL -> 1
+                    else -> 2
+                }
+            }.thenByDescending {
+                it.info.percentChange
+            }.thenBy {
+                it.portfolio.rsi ?: 100.0
+            }
+        )
 
-    val sellAlerts = mutableListOf<SellAlertData>()
+    val swingSellAlerts = mutableListOf<SellAlertData>()
+    val dividendSellAlerts = mutableListOf<SellAlertData>()
+
     portfolioItems.forEach { stock ->
         val tradePurpose = stock.portfolio.tradePurpose
         
@@ -90,13 +117,13 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
             val roe = stock.info.roe ?: 0.0
             
             if (roe < 15.0) {
-                sellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
+                dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
             } 
             
             if (yield >= 3.0) {
                 applySwingLogic = false
             } else {
-                sellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%)"))
+                swingSellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%) (Transition to Swing)"))
                 applySwingLogic = true
             }
         }
@@ -106,24 +133,98 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
             val netProfit = stock.netProfitPercent
             val rsi = stock.portfolio.rsi ?: 50.0
             
+            val targetAlerts = swingSellAlerts
+            
             if (netProfit >= 10.0) {
-                // Using 10% to match TechnicalAnalysis target
-                sellAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
+                targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
             } else if (netProfit <= -5.0) {
-                sellAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
+                targetAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
             } else if (rsi >= 65.0) { // Using 65.0 to match TechnicalAnalysis OVERBOUGHT
-                sellAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
+                targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
             } else if (stock.signal?.type == IndicatorSignal.SELL) {
-                sellAlerts.add(SellAlertData(stock, stock.signal.reason))
+                targetAlerts.add(SellAlertData(stock, stock.signal.reason))
             }
         }
     }
 
+    var swingDailyDone by rememberSaveable { mutableStateOf(false) }
+    var swingWeeklyDone by rememberSaveable { mutableStateOf(false) }
+    var swingAiDone by rememberSaveable { mutableStateOf(false) }
+    
+    var divDailyDone by rememberSaveable { mutableStateOf(false) }
+    var divWeeklyDone by rememberSaveable { mutableStateOf(false) }
+    var divMonthlyDone by rememberSaveable { mutableStateOf(false) }
+    var divAiDone by rememberSaveable { mutableStateOf(false) }
+
+    var playbookMode by remember { mutableStateOf(PlaybookMode.SWING) }
+
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
             title = { Text("Smart Advisor Report", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+            actions = {
+                IconButton(onClick = onNavigateToAcademy) {
+                    Icon(Icons.Default.School, contentDescription = "Academy")
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
+
+        // Custom segmented glass control selector
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f),
+            shape = CircleShape,
+            border = BorderStroke(
+                width = 0.5.dp,
+                brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.3f),
+                        Color.White.copy(alpha = 0.05f)
+                    )
+                )
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                PlaybookMode.entries.forEach { mode ->
+                    val isSelected = playbookMode == mode
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        onClick = { playbookMode = mode },
+                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color.Transparent,
+                        shape = CircleShape,
+                        border = if (isSelected) BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (mode == PlaybookMode.SWING) Icons.AutoMirrored.Filled.TrendingUp else Icons.Default.Savings,
+                                    contentDescription = null,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = mode.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -137,74 +238,70 @@ fun DividendAdvisorScreen(viewModel: StockViewModel) {
             val maxPortfolioAllocation by viewModel.maxPortfolioAllocation.collectAsState()
 
             AiCopilotCard(
-                watchlist, 
-                portfolioItems, 
-                isQual, 
-                isVal, 
-                isDiv, 
-                isMom, 
-                isSup, 
-                isGapUp, 
-                maxRiskPerTrade, 
-                maxOpenExposure, 
-                maxPortfolioAllocation
+                playbookMode = playbookMode,
+                watchlist = watchlist,
+                portfolioItems = portfolioItems,
+                isQual = isQual,
+                isVal = isVal,
+                isDiv = isDiv,
+                isMom = isMom,
+                isSup = isSup,
+                isGapUp = isGapUp,
+                maxRiskPerTrade = maxRiskPerTrade,
+                maxOpenExposure = maxOpenExposure,
+                maxPortfolioAllocation = maxPortfolioAllocation
             )
+
+            RoutineChecklistCard(
+                playbookMode = playbookMode,
+                swingDaily = swingDailyDone,
+                onSwingDailyChange = { swingDailyDone = it },
+                swingWeekly = swingWeeklyDone,
+                onSwingWeeklyChange = { swingWeeklyDone = it },
+                swingAi = swingAiDone,
+                onSwingAiChange = { swingAiDone = it },
+                divDaily = divDailyDone,
+                onDivDailyChange = { divDailyDone = it },
+                divWeekly = divWeeklyDone,
+                onDivWeeklyChange = { divWeeklyDone = it },
+                divMonthly = divMonthlyDone,
+                onDivMonthlyChange = { divMonthlyDone = it },
+                divAi = divAiDone,
+                onDivAiChange = { divAiDone = it }
+            )
+
             SectionHeader(title = "Sell Alerts", icon = Icons.Default.Warning)
-            if (sellAlerts.isEmpty()) {
-                Text("No sell alerts active.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val activeAlerts = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
+            if (activeAlerts.isEmpty()) {
+                Text(
+                    text = if (playbookMode == PlaybookMode.SWING) "No active swing exit alerts." else "No fundamental quality alerts.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
-                sellAlerts.forEach { alert ->
+                activeAlerts.forEach { alert ->
                     AdvisorStockCard(alert.stock, viewModel, isSellAlert = true, sellReason = alert.reason)
                 }
             }
 
-            var activeFilter by remember { mutableStateOf(AdvisorFilter.SWING) }
+            Spacer(Modifier.height(8.dp))
 
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items(AdvisorFilter.entries.toTypedArray()) { filter ->
-                    FilterChip(
-                        selected = activeFilter == filter,
-                        onClick = { activeFilter = filter },
-                        label = { Text(filter.label, fontSize = 12.sp) },
-                        shape = CircleShape,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            selectedLabelColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
-            }
-
-            when (activeFilter) {
-                AdvisorFilter.SWING -> {
-                    if (swingPlays.isEmpty()) {
-                        Text("No setups found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        swingPlays.forEach { stock ->
-                            AdvisorStockCard(stock, viewModel)
-                        }
+            if (playbookMode == PlaybookMode.SWING) {
+                SectionHeader(title = "Swing & Gap Candidates", icon = Icons.AutoMirrored.Filled.TrendingUp)
+                if (combinedSwingPlays.isEmpty()) {
+                    Text("No swing setups or gap ups found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    combinedSwingPlays.forEach { stock ->
+                        AdvisorStockCard(stock, viewModel)
                     }
                 }
-                AdvisorFilter.GAP -> {
-                    if (gapPlays.isEmpty()) {
-                        Text("No gap ups found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        gapPlays.forEach { stock ->
-                            AdvisorStockCard(stock, viewModel)
-                        }
-                    }
-                }
-                AdvisorFilter.DIVIDEND -> {
-                    if (dividendPlays.isEmpty()) {
-                        Text("No candidates found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        dividendPlays.forEach { stock ->
-                            AdvisorStockCard(stock, viewModel)
-                        }
+            } else {
+                SectionHeader(title = "High-Yield Dividend Stars", icon = Icons.Default.Savings)
+                if (dividendPlays.isEmpty()) {
+                    Text("No candidates found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    dividendPlays.forEach { stock ->
+                        AdvisorStockCard(stock, viewModel)
                     }
                 }
             }
@@ -322,6 +419,7 @@ fun AdvisorStockCard(
 
 @Composable
 fun AiCopilotCard(
+    playbookMode: PlaybookMode,
     watchlist: List<StockWatchlistInfo>,
     portfolioItems: List<StockWatchlistInfo>,
     isQual: (StockWatchlistInfo) -> Boolean,
@@ -351,98 +449,249 @@ fun AiCopilotCard(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Swing Trade Button
-            Button(
-                onClick = {
-                    val swingPlays = watchlist.filter { 
-                        (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) 
-                    }
-                    val gapUpPlays = watchlist.filter { isGapUp(it) }
-                    
-                    val prompt = """
-                        Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade candidates.
+            if (playbookMode == PlaybookMode.SWING) {
+                // Swing Trade Button
+                Button(
+                    onClick = {
+                        val swingPlays = watchlist.filter { 
+                            (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) 
+                        }
+                        val gapUpPlays = watchlist.filter { isGapUp(it) }
                         
-                        CONSTRAINTS (Swing & Breakout):
-                        - Price MUST be above the 50-day SMA.
-                        - Risk/Reward ratio MUST be >= 2.0.
-                        - Strict Stop Loss required below immediate support or gap.
-                        - Target holding period is 2–4 weeks.
-                        - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
+                        val swingCandidates = if (swingPlays.isEmpty()) "None" else swingPlays.joinToString("\n") {
+                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, P/BV=${it.info.pbv?.let { pbv -> String.format(Locale.ENGLISH, "%.1f", pbv) } ?: "N/A"}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
+                        }
+                        val gapUpCandidates = if (gapUpPlays.isEmpty()) "None" else gapUpPlays.joinToString("\n") {
+                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Chg=${String.format(Locale.ENGLISH, "%.1f", it.info.percentChange)}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, NPM=${it.info.netProfitMargin?.let { npm -> String.format(Locale.ENGLISH, "%.1f", npm) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}"
+                        }
                         
-                        I am loading the 'Swing/Breakout Playbook' and 'Earnings Gap Playbook' for the following candidates:
-                        
-                        Swing Candidates:
-                        ${swingPlays.joinToString(", ") { "${it.info.symbol} (Price: ${it.info.lastPrice}, P/E: ${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.2f", pe) } ?: "N/A"})" }}
-                        
-                        Gap Up Candidates (Earnings Playbook):
-                        ${gapUpPlays.joinToString(", ") { it.info.symbol }}
+                        val prompt = """
+                            Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade and gap up candidates.
+                            
+                            PLAYBOOK RULES & CONSTRAINTS:
+                            - Swing/Breakout Candidates: Price should ideally be above the 50-day SMA, showing active trend support.
+                            - Earnings Gap Candidates: Look for volume surge and strong catalyst support; entry is typically near the gap-up support line or on a breakout validation (even if catch-up indicators like 50-day SMA are lagging).
+                            - General Constraints: Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required.
+                            - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
+                            
+                            I am loading the 'Swing/Breakout Playbook' and 'Earnings Gap Playbook' for the following candidates:
+                            
+                            Swing Candidates:
+                            $swingCandidates
+                            
+                            Gap Up Candidates (Earnings Playbook):
+                            $gapUpCandidates
 
-                        DELEGATED TASKS:
-                        1. [market-researcher]: Perform a live web search for upcoming earnings, recent news catalysts (last 7 days), and market structure/sentiment for these SET tickers.
-                        2. [risk-manager]: Select the #1 Top Pick setup. Confirm its price is above the 50-day SMA. Define the exact Buy Zone, target profit, and strict Stop Loss.
-                        
-                        EXPLAIN INSTRUCTIONS:
-                        - Break down the final recommendation step-by-step.
-                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
-                        - Provide a real-world analogy to describe the setup of the #1 pick.
-                        
-                        Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
-                    """.trimIndent()
-                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                    android.widget.Toast.makeText(context, "Swing Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Swing Trade AI Prompt")
+                            DELEGATED TASKS:
+                            1. [market-researcher]: Perform a live web search for upcoming earnings, recent news catalysts (last 7 days), and market structure/sentiment for these SET tickers.
+                            2. [risk-manager]: Select and rank the Top 3 setups from either candidate list. For Swing plays, verify 50-day SMA support. For Gap Up plays, verify volume validation and entry zones (e.g. gap support or breakout levels). Define the exact Buy Zone, target profit, and strict Stop Loss for each setup.
+                            
+                            EXPLAIN INSTRUCTIONS:
+                            - Break down the recommendations step-by-step, referencing the math/technical metrics provided.
+                            - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                            - Provide a real-world analogy to describe the setup of the ranked pick.
+                            
+                            Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
+                        """.trimIndent()
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
+                        android.widget.Toast.makeText(context, "Swing Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Swing Trade AI Prompt")
+                }
+            } else {
+                // Dividend Button
+                Button(
+                    onClick = {
+                        val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
+                        val dividendCandidates = if (dividendPlays.isEmpty()) "None" else dividendPlays
+                            .sortedByDescending { it.info.dividendYield }
+                            .joinToString("\n") {
+                                "- ${it.info.symbol}: Price=${it.info.lastPrice}, Yield=${it.info.dividendYield?.let { y -> String.format(Locale.ENGLISH, "%.1f", y) } ?: "N/A"}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, D/E=${it.info.debtToEquity?.let { de -> String.format(Locale.ENGLISH, "%.2f", de) } ?: "N/A"}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"} (Updated=${it.info.lastUpdated})"
+                            }
+
+                        val prompt = """
+                            Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) dividend candidates.
+                            
+                            CONSTRAINTS (Dividend Accumulation):
+                            - Starting Dividend Yield MUST be >= 5%.
+                            - Company fundamentals must be strong (avoid yield traps).
+                            - Hard rule: Never average down on a breaking technical trend.
+                            - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
+                            - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
+
+                            I am loading the 'Dividend Accumulation Playbook'.
+                            Candidates Yielding > 5%:
+                            $dividendCandidates
+                            
+                            DELEGATED TASKS:
+                            1. [market-researcher]: Perform a live web search to verify the dividend sustainability (check payout ratio trend, recent earnings reports, and cash flow safety) for these SET tickers.
+                            2. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure.
+                            
+                            EXPLAIN INSTRUCTIONS:
+                            - Break down the recommendations step-by-step, referencing the math/financial metrics provided.
+                            - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                            - Provide a real-world analogy to explain why the ranked stock is a reliable dividend payer.
+                            
+                            Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
+                        """.trimIndent()
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
+                        android.widget.Toast.makeText(context, "Dividend Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Dividend AI Prompt")
+                }
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Dividend Button
-            Button(
-                onClick = {
-                    val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
-                    val dividendCandidates = dividendPlays
-                        .sortedByDescending { it.info.dividendYield }
-                        .joinToString(", ") { "${it.info.symbol} (Yield: ${it.info.dividendYield?.let { y -> String.format(Locale.ENGLISH, "%.2f", y) } ?: "N/A"}%)" }
-
-                    val prompt = """
-                        Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) dividend candidates.
-                        
-                        CONSTRAINTS (Dividend Accumulation):
-                        - Starting Dividend Yield MUST be >= 5%.
-                        - Company fundamentals must be strong (avoid yield traps).
-                        - Hard rule: Never average down on a breaking technical trend.
-                        - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
-                        - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
-
-                        I am loading the 'Dividend Accumulation Playbook'.
-                        Candidates Yielding > 5%: $dividendCandidates
-                        
-                        DELEGATED TASKS:
-                        1. [market-researcher]: Perform a live web search to verify the dividend sustainability (check payout ratio trend, recent earnings reports, and cash flow safety) for these SET tickers.
-                        2. [risk-manager]: Recommend the single best addition. Calculate my 'Max Buy Price' to guarantee a >5% yield and ensure it fits my overall risk exposure.
-                        
-                        EXPLAIN INSTRUCTIONS:
-                        - Break down the final recommendation step-by-step.
-                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
-                        - Provide a real-world analogy to explain why the recommended stock is a reliable dividend payer.
-                        
-                        Output the final decision cleanly based on these subagent roles. Keep it short and easy to read.
-                    """.trimIndent()
-                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                    android.widget.Toast.makeText(context, "Dividend Prompt copied! Paste into your AI.", android.widget.Toast.LENGTH_LONG).show()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+@Composable
+fun RoutineChecklistCard(
+    playbookMode: PlaybookMode,
+    swingDaily: Boolean,
+    onSwingDailyChange: (Boolean) -> Unit,
+    swingWeekly: Boolean,
+    onSwingWeeklyChange: (Boolean) -> Unit,
+    swingAi: Boolean,
+    onSwingAiChange: (Boolean) -> Unit,
+    divDaily: Boolean,
+    onDivDailyChange: (Boolean) -> Unit,
+    divWeekly: Boolean,
+    onDivWeeklyChange: (Boolean) -> Unit,
+    divMonthly: Boolean,
+    onDivMonthlyChange: (Boolean) -> Unit,
+    divAi: Boolean,
+    onDivAiChange: (Boolean) -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Dividend AI Prompt")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Assignment,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (playbookMode == PlaybookMode.SWING) "Swing Routine Checklist" else "Dividend Routine Checklist",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = "Discipline First",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.Bold
+                )
             }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (playbookMode == PlaybookMode.SWING) {
+                RoutineItem(
+                    checked = swingDaily,
+                    onCheckedChange = onSwingDailyChange,
+                    title = "Daily: Check Exit Signals",
+                    description = "Review 'Sell Alerts' at the top for Take Profit (+10%) or Stop Loss (-5%)."
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
+                RoutineItem(
+                    checked = swingWeekly,
+                    onCheckedChange = onSwingWeeklyChange,
+                    title = "Daily: Scan Candidates",
+                    description = "Browse the 'Swing & Gap Candidates' list below for fresh entries."
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
+                RoutineItem(
+                    checked = swingAi,
+                    onCheckedChange = onSwingAiChange,
+                    title = "Daily: Run AI Copilot Prompt",
+                    description = "Copy the Swing Trade AI prompt below to analyze news & catalysts."
+                )
+            } else {
+                RoutineItem(
+                    checked = divDaily,
+                    onCheckedChange = onDivDailyChange,
+                    title = "Weekly: Audit Core Quality",
+                    description = "Check if any active holding has broken quality standards (ROE < 15%)."
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
+                RoutineItem(
+                    checked = divWeekly,
+                    onCheckedChange = onDivWeeklyChange,
+                    title = "Weekly: Scan Cheap Entry Prices",
+                    description = "Check Dividend Stars below for low price tags (low RSI or near support) to buy cheap."
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
+                RoutineItem(
+                    checked = divMonthly,
+                    onCheckedChange = onDivMonthlyChange,
+                    title = "Monthly: Plan Reinvestments",
+                    description = "Deploy fresh cash or payouts into 'High-Yield Dividend Stars'."
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
+                RoutineItem(
+                    checked = divAi,
+                    onCheckedChange = onDivAiChange,
+                    title = "Monthly: Run AI Dividend Prompt",
+                    description = "Copy the Dividend AI prompt to audit payout sustainability."
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RoutineItem(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    title: String,
+    description: String
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = CheckboxDefaults.colors(
+                checkedColor = MaterialTheme.colorScheme.primary,
+                uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            ),
+            modifier = Modifier.offset(y = (-4).dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (checked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            )
         }
     }
 }

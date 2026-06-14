@@ -15,6 +15,44 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
     override suspend fun doWork(): Result {
         Log.d("StockAlertWorker", "Background work started")
+
+        // Check for Prime Time Reminders (Monday to Friday, Asia/Bangkok time)
+        val tz = java.util.TimeZone.getTimeZone("Asia/Bangkok")
+        val now = java.util.Calendar.getInstance(tz)
+        val dayOfWeek = now.get(java.util.Calendar.DAY_OF_WEEK)
+        
+        var hasActiveSwingSellAlert = false
+
+        if (dayOfWeek != java.util.Calendar.SATURDAY && dayOfWeek != java.util.Calendar.SUNDAY) {
+            val hour = now.get(java.util.Calendar.HOUR_OF_DAY)
+            val minute = now.get(java.util.Calendar.MINUTE)
+            val currentTime = hour * 100 + minute
+
+            val prefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
+            val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+
+            // 2. Afternoon Entry Window: 15:30 - 16:30 PM (Thai time)
+            if (currentTime in 1530..1630) {
+                val key = "afternoon_alert_$todayStr"
+                if (!prefs.getBoolean(key, false)) {
+                    NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = false)
+                    prefs.edit().putBoolean(key, true).apply()
+                }
+            }
+
+            // 3. Dividend Accumulation Season Reminder (January & June)
+            val month = now.get(java.util.Calendar.MONTH)
+            if (month == java.util.Calendar.JANUARY || month == java.util.Calendar.JUNE) {
+                val seasonKey = "dividend_season_${month}_$todayStr"
+                if (!prefs.getBoolean(seasonKey, false)) {
+                    NotificationHelper.showDividendSeasonNotification(
+                        context = applicationContext,
+                        isFirstSeason = month == java.util.Calendar.JANUARY
+                    )
+                    prefs.edit().putBoolean(seasonKey, true).apply()
+                }
+            }
+        }
         
         // 1. Only run notifications during market hours to avoid spamming
         if (TechnicalAnalysis.getMarketStatus() == apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
@@ -83,8 +121,67 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     )
                 )
 
+                // 6. Check for upcoming Ex-Dividend (XD) date alerts (next 7 days)
+                val xdDateStr = scraped.dividendDate
+                if (!xdDateStr.isNullOrEmpty()) {
+                    try {
+                        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                        val xdDate = sdf.parse(xdDateStr)
+                        if (xdDate != null) {
+                            val diffMs = xdDate.time - System.currentTimeMillis()
+                            val diffDays = diffMs / (1000 * 60 * 60 * 24)
+                            
+                            // If XD is in the next 1 to 7 days
+                            if (diffDays >= -1 && diffDays <= 7) {
+                                val xdPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
+                                val key = "xd_alert_${entity.symbol}_$xdDateStr"
+                                if (!xdPrefs.getBoolean(key, false)) {
+                                    NotificationHelper.showXdAlertNotification(
+                                        context = applicationContext,
+                                        symbol = entity.symbol,
+                                        dividendDate = xdDateStr
+                                    )
+                                    xdPrefs.edit().putBoolean(key, true).apply()
+                                }
+                            }
+                        }
+                    } catch (e: java.lang.Exception) {
+                        Log.e("StockAlertWorker", "Failed to parse XD date $xdDateStr for ${entity.symbol}: ${e.message}")
+                    }
+                }
+
+                // 7. Check if this stock is currently in a swing exit condition
+                val isSwingHold = entity.tradePurpose == "SWING"
+                val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" && (scraped.dividendYield ?: 0.0) < 3.0
+                
+                if (entity.quantity > 0 && (isSwingHold || isDividendTransitionHold)) {
+                    val netProfit = TechnicalAnalysis.calculateNetProfitPercent(entity.cost, scraped.lastPrice)
+                    val rsi = indicators.rsi ?: 50.0
+                    val isSell = signal.type == IndicatorSignal.SELL
+                    
+                    if (netProfit >= 10.0 || netProfit <= -5.0 || rsi >= 65.0 || isSell) {
+                        hasActiveSwingSellAlert = true
+                    }
+                }
             } catch (e: Exception) {
                 Log.e("StockAlertWorker", "Failed to process ${entity.symbol}: ${e.message}")
+            }
+        }
+
+        // Trigger Morning Swing Exit Alert if we have active swing sell alerts during 10:00 - 11:00 AM
+        if (dayOfWeek != java.util.Calendar.SATURDAY && dayOfWeek != java.util.Calendar.SUNDAY) {
+            val hour = now.get(java.util.Calendar.HOUR_OF_DAY)
+            val minute = now.get(java.util.Calendar.MINUTE)
+            val currentTime = hour * 100 + minute
+
+            if (currentTime in 1000..1100 && hasActiveSwingSellAlert) {
+                val prefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
+                val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+                val key = "morning_alert_$todayStr"
+                if (!prefs.getBoolean(key, false)) {
+                    NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = true)
+                    prefs.edit().putBoolean(key, true).apply()
+                }
             }
         }
 

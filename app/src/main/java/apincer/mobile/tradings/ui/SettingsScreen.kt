@@ -358,7 +358,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     
-                    Text(stringResource(R.string.label_app_version), fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
+                    Text(apincer.mobile.tradings.util.AppUtils.getAppVersion(context), fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp)
                     
                     Text(stringResource(R.string.label_app_tagline), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))

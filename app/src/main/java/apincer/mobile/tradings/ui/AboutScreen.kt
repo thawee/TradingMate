@@ -26,6 +26,7 @@ import apincer.mobile.tradings.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     AppBackground {
         Scaffold(
             containerColor = Color.Transparent,
@@ -76,7 +77,7 @@ fun AboutScreen(onBack: () -> Unit) {
                         letterSpacing = (-1).sp
                     )
                     Text(
-                        text = stringResource(R.string.label_app_version), 
+                        text = apincer.mobile.tradings.util.AppUtils.getAppVersion(context), 
                         fontSize = 14.sp, 
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold
