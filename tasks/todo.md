@@ -233,5 +233,24 @@ Add weights to SectionHeaders to prevent long titles from pushing the checkbox c
 - **Verification:**
   - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
 
+# Plan - Restrict Watchlist Pull-to-Refresh
+
+Add a guard to prevent redundant watchlist refreshes when the market is closed and data is already up-to-date.
+
+## Tasks
+
+- [x] **1. Add market status and cache freshness check to `refreshWatchlistInfo()`**
+  - [x] Update [StockViewModel.kt](file:///Users/thawee.p/Workspaces/github/tradingMate/app/src/main/java/apincer/mobile/tradings/ui/StockViewModel.kt) to check if the market is closed and the data is up-to-date. If so, return early.
+- [x] **2. Verification**
+  - [x] Compile the project using `./gradlew compileDebugKotlin` to ensure all changes compile successfully.
+
+## Review Section - Restrict Watchlist Pull-to-Refresh
+
+- **Refreshes Guard Implementation:**
+  - Added a conditional check at the start of the `refreshWatchlistInfo()` method in `StockViewModel.kt`. It retrieves the `MarketStatus` and the maximum `lastUpdated` time across the watchlist.
+  - If the market is closed and the cache is not expired (less than 12 hours old), it skips the network and deep API operations, resolving immediately.
+- **Verification:**
+  - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
+
 
 

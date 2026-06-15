@@ -482,6 +482,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             if (!_isRefreshing.compareAndSet(false, true)) return@launch
             try {
+                val isMarketOpen = TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED
+                val lastSync = watchlistInfo.value.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull()
+                if (!isMarketOpen && lastSync != null && !isTechnicalCacheExpired(lastSync)) {
+                    android.util.Log.d("StockViewModel", "Market is closed and data is up-to-date. Skipping refresh.")
+                    return@launch
+                }
+
                 val stocks = watchlistInfo.value.map { it.portfolio }
                 if (stocks.isEmpty()) return@launch
 
