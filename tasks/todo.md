@@ -215,5 +215,23 @@ Remap "Find Dividend Stars" to monthly frequency and restore the 3-step workflow
 - **Verification:**
   - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
 
+# Plan - Fix Checklist Layout Overflow
+
+Add weights to SectionHeaders to prevent long titles from pushing the checkbox circle off the screen.
+
+## Tasks
+
+- [x] **1. Add weight modifier to Step 1 and Step 2 SectionHeaders**
+  - [x] Update [DividendAdvisorScreen.kt](file:///Users/thawee.p/Workspaces/github/tradingMate/app/src/main/java/apincer/mobile/tradings/ui/DividendAdvisorScreen.kt) to pass `modifier = Modifier.weight(1f)` to Step 1 and Step 2 `SectionHeader` calls.
+- [x] **2. Verification**
+  - [x] Compile the project using `./gradlew compileDebugKotlin` to ensure all changes compile successfully.
+
+## Review Section - Checklist Layout Overflow Fixes
+
+- **Layout Constraints Fix:**
+  - Added `modifier = Modifier.weight(1f)` to the `SectionHeader` calls for Step 1 and Step 2. This prevents long titles from pushing the circular `StepCheckbox` off the right edge of the screen, ensuring visual consistency across all screen widths.
+- **Verification:**
+  - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
+
 
 

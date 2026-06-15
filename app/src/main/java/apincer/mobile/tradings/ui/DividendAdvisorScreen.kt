@@ -292,6 +292,7 @@ fun DividendAdvisorScreen(
                 ) {
                     val alertsCount = activeAlerts.size
                     SectionHeader(
+                        modifier = Modifier.weight(1f),
                         title = if (playbookMode == PlaybookMode.SWING) {
                             "🚨 Check for Danger ($alertsCount alerts)"
                         } else {
@@ -336,9 +337,17 @@ fun DividendAdvisorScreen(
                 ) {
                     val candidatesCount = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size
                     if (playbookMode == PlaybookMode.SWING) {
-                        SectionHeader(title = "🔍 Find Candidates ($candidatesCount setups)", icon = Icons.AutoMirrored.Filled.List)
+                        SectionHeader(
+                            modifier = Modifier.weight(1f),
+                            title = "🔍 Find Candidates ($candidatesCount setups)",
+                            icon = Icons.AutoMirrored.Filled.List
+                        )
                     } else {
-                        SectionHeader(title = "💰 Find Dividend Stars ($candidatesCount stars)", icon = Icons.AutoMirrored.Filled.List)
+                        SectionHeader(
+                            modifier = Modifier.weight(1f),
+                            title = "💰 Find Dividend Stars ($candidatesCount stars)",
+                            icon = Icons.AutoMirrored.Filled.List
+                        )
                     }
                     StepCheckbox(
                         isDone = (playbookMode == PlaybookMode.SWING && checklist.swingWeeklyDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divMonthlyDone),
