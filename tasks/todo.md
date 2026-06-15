@@ -189,5 +189,31 @@ Incorporate the checklist progress feedback, inline metadata, and monthly resear
 - **Verification:**
   - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
 
+# Plan - Correct Dividend Playbook Checklist Frequencies
+
+Remap "Find Dividend Stars" to monthly frequency and restore the 3-step workflow.
+
+## Tasks
+
+- [x] **1. Map Step 2 (Find Dividend Stars) to `divMonthlyDone`**
+  - [x] Update [DividendAdvisorScreen.kt](file:///Users/thawee.p/Workspaces/github/tradingMate/app/src/main/java/apincer/mobile/tradings/ui/DividendAdvisorScreen.kt) Step 2 checkbox to bind to `checklist.divMonthlyDone` (monthly routine) instead of `divWeeklyPricesDone`.
+- [x] **2. Remove redundant Step 4 section**
+  - [x] Remove the Step 4 Monthly Stars Re-evaluation section from the scrollable column in [DividendAdvisorScreen.kt](file:///Users/thawee.p/Workspaces/github/tradingMate/app/src/main/java/apincer/mobile/tradings/ui/DividendAdvisorScreen.kt).
+- [x] **3. Revert WizardStepBar to 3 steps**
+  - [x] Update `WizardStepBar` in [DividendAdvisorScreen.kt](file:///Users/thawee.p/Workspaces/github/tradingMate/app/src/main/java/apincer/mobile/tradings/ui/DividendAdvisorScreen.kt) to display 3 steps, mapping Step 2 for Dividend to `checklist.divMonthlyDone`.
+- [x] **4. Verification**
+  - [x] Compile the project using `./gradlew compileDebugKotlin` to ensure no errors.
+
+## Review Section - Checklist Frequency Corrections
+
+- **Frequencies Mapping Fix:**
+  - Remapped Step 2 of the Dividend Playbook ("Find Dividend Stars") from a weekly check to the monthly routine `checklist.divMonthlyDone`.
+- **Flow Restoration:**
+  - Reverted the Dividend Playbook workflow from 4 steps back to the clean, symmetrical 3-step bottom bar wizard structure (`Shields` (Weekly) -> `Stars` (Monthly) -> `AI` (Monthly)).
+- **Code Cleanups:**
+  - Removed the redundant Step 4 UI block and its associated `monthlyOffset` navigation handlers.
+- **Verification:**
+  - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
+
 
 

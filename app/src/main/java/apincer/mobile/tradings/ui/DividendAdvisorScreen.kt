@@ -192,7 +192,6 @@ fun DividendAdvisorScreen(
     var sellAlertsOffset by remember { mutableIntStateOf(0) }
     var candidatesOffset by remember { mutableIntStateOf(0) }
     var aiOffset by remember { mutableIntStateOf(0) }
-    var monthlyOffset by remember { mutableIntStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -342,12 +341,12 @@ fun DividendAdvisorScreen(
                         SectionHeader(title = "💰 Find Dividend Stars ($candidatesCount stars)", icon = Icons.AutoMirrored.Filled.List)
                     }
                     StepCheckbox(
-                        isDone = (playbookMode == PlaybookMode.SWING && checklist.swingWeeklyDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divWeeklyPricesDone),
+                        isDone = (playbookMode == PlaybookMode.SWING && checklist.swingWeeklyDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divMonthlyDone),
                         onClick = {
                             if (playbookMode == PlaybookMode.SWING) {
                                 viewModel.updateChecklistState { it.copy(swingWeeklyDone = !checklist.swingWeeklyDone) }
                             } else {
-                                viewModel.updateChecklistState { it.copy(divWeeklyPricesDone = !checklist.divWeeklyPricesDone) }
+                                viewModel.updateChecklistState { it.copy(divMonthlyDone = !checklist.divMonthlyDone) }
                             }
                         }
                     )
@@ -402,41 +401,6 @@ fun DividendAdvisorScreen(
                 )
             }
 
-            if (playbookMode == PlaybookMode.DIVIDEND) {
-                Spacer(Modifier.height(8.dp))
-                Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-                    monthlyOffset = coordinates.positionInWindow().y.toInt()
-                }) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        SectionHeader(
-                            title = "📅 Monthly Stars Re-evaluation",
-                            icon = Icons.AutoMirrored.Filled.List
-                        )
-                        StepCheckbox(
-                            isDone = checklist.divMonthlyDone,
-                            onClick = {
-                                viewModel.updateChecklistState { it.copy(divMonthlyDone = !checklist.divMonthlyDone) }
-                            }
-                        )
-                    }
-                }
-                
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Review historical yields and payout ratios to ensure long-term stability.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
 
             Spacer(Modifier.height(40.dp))
         }
@@ -454,7 +418,6 @@ fun DividendAdvisorScreen(
                         1 -> sellAlertsOffset
                         2 -> candidatesOffset
                         3 -> aiOffset
-                        4 -> monthlyOffset
                         else -> 0
                     }
                     scrollState.animateScrollTo(targetOffset)
@@ -843,24 +806,14 @@ fun WizardStepBar(
     onStepClick: (Int) -> Unit
 ) {
     val step1Done = if (playbookMode == PlaybookMode.SWING) checklist.swingDailyDone else checklist.divWeeklyDone
-    val step2Done = if (playbookMode == PlaybookMode.SWING) checklist.swingWeeklyDone else checklist.divWeeklyPricesDone
+    val step2Done = if (playbookMode == PlaybookMode.SWING) checklist.swingWeeklyDone else checklist.divMonthlyDone
     val step3Done = if (playbookMode == PlaybookMode.SWING) checklist.swingAiDone else checklist.divAiDone
-    val step4Done = if (playbookMode == PlaybookMode.SWING) true else checklist.divMonthlyDone
 
-    val steps = if (playbookMode == PlaybookMode.SWING) {
-        listOf(
-            Triple(1, "🚨 Danger", step1Done),
-            Triple(2, "🔍 Find", step2Done),
-            Triple(3, "🤖 AI", step3Done)
-        )
-    } else {
-        listOf(
-            Triple(1, "🛡️ Shields", step1Done),
-            Triple(2, "💰 Stars", step2Done),
-            Triple(3, "🤖 AI", step3Done),
-            Triple(4, "📅 Monthly", step4Done)
-        )
-    }
+    val steps = listOf(
+        Triple(1, if (playbookMode == PlaybookMode.SWING) "🚨 Danger" else "🛡️ Shields", step1Done),
+        Triple(2, if (playbookMode == PlaybookMode.SWING) "🔍 Find" else "💰 Stars", step2Done),
+        Triple(3, "🤖 AI", step3Done)
+    )
 
     val currentStep = steps.indexOfFirst { !it.third }.coerceAtLeast(0)
     val allDone = steps.all { it.third }
