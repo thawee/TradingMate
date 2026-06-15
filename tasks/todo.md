@@ -154,4 +154,40 @@ Review and resolve why notifications are not working.
 - **Verification:**
   - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
 
+# Plan - Enhance Advisor Screen Checklist & Flow
+
+Incorporate the checklist progress feedback, inline metadata, and monthly research integration, acknowledging the choice to merge Earnings Gaps into Swing Trades.
+
+## Tasks
+
+- [x] **1. Remove unused AdvisorFilter enum**
+  - [x] Delete `AdvisorFilter` enum in [DividendAdvisorScreen.kt](file:///Users/thawee.p/Workspaces/github/tradingMate/app/src/main/java/apincer/mobile/tradings/ui/DividendAdvisorScreen.kt) since Earnings Gaps are merged into Swing Plays.
+- [x] **2. Integrate progress bar in the bottom floating bar**
+  - [x] Add a slim `LinearProgressIndicator` inside the bottom `WizardStepBar` to visually show completed steps fraction.
+- [x] **3. Display dynamic metadata inline in checklist headers**
+  - [x] Update Step 1 header to show active alert counts.
+  - [x] Update Step 2 header to show candidate counts.
+  - [x] Update Step 3 header (AI Copilot Card) to show the last sync timestamp.
+- [x] **4. Integrate monthly checklist item (`divMonthlyDone`)**
+  - [x] Render a new "Step 4: Monthly Stars Re-evaluation" step under the Dividend Playbook.
+  - [x] Update the `WizardStepBar` to support 4 steps when in Dividend Playbook mode.
+- [x] **5. Verification**
+  - [x] Compile the project using `./gradlew compileDebugKotlin` to ensure no errors.
+
+## Review Section - Advisor Screen Enhancements
+
+- **Unused Code Cleanup:**
+  - Removed the unused `AdvisorFilter` enum from `DividendAdvisorScreen.kt` as Earnings Gaps are merged into Swing Trades.
+- **Wizard Step Bar Progress Integration:**
+  - Added a `LinearProgressIndicator` directly inside the bottom `WizardStepBar` component that dynamically tracks and reflects progress.
+- **Dynamic Checklist Metadata:**
+  - Step 1 (Danger/Shields) now displays the count of active sell/shield alerts dynamically.
+  - Step 2 (Candidates) now displays the count of candidates/stars dynamically.
+  - Step 3 (AI Copilot) now displays the database last sync timestamp in its header.
+- **Monthly routine checklist integration:**
+  - Integrated `divMonthlyDone` into the Dividend Playbook checklist routine as Step 4 ("📅 Monthly Stars Re-evaluation") with its own offset and navigation handler.
+- **Verification:**
+  - Ran `./gradlew compileDebugKotlin` which compiled successfully with zero errors.
+
+
 

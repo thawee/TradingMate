@@ -68,11 +68,6 @@ enum class PlaybookMode(val label: String) {
     DIVIDEND("Dividend Playbook")
 }
 
-enum class AdvisorFilter(val label: String) {
-    SWING("Swing Trades"),
-    GAP("Earnings Gap"),
-    DIVIDEND("Dividend")
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -197,6 +192,7 @@ fun DividendAdvisorScreen(
     var sellAlertsOffset by remember { mutableIntStateOf(0) }
     var candidatesOffset by remember { mutableIntStateOf(0) }
     var aiOffset by remember { mutableIntStateOf(0) }
+    var monthlyOffset by remember { mutableIntStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -295,8 +291,15 @@ fun DividendAdvisorScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    //SectionHeader(title = if (playbookMode == PlaybookMode.SWING) "🚨 Check for Danger" else "🛡️ Check My Shields", icon = Icons.Default.Warning)
-                    SectionHeader(title = if (playbookMode == PlaybookMode.SWING) "🚨 Check for Danger" else "🛡️ Check My Shields", icon = Icons.AutoMirrored.Sharp.List)
+                    val alertsCount = activeAlerts.size
+                    SectionHeader(
+                        title = if (playbookMode == PlaybookMode.SWING) {
+                            "🚨 Check for Danger ($alertsCount alerts)"
+                        } else {
+                            "🛡️ Check My Shields ($alertsCount alerts)"
+                        },
+                        icon = Icons.AutoMirrored.Sharp.List
+                    )
                     StepCheckbox(
                         isDone = (playbookMode == PlaybookMode.SWING && checklist.swingDailyDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divWeeklyDone),
                         onClick = {
@@ -332,10 +335,11 @@ fun DividendAdvisorScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    val candidatesCount = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size
                     if (playbookMode == PlaybookMode.SWING) {
-                        SectionHeader(title = "🔍 Find Candidates", icon = Icons.AutoMirrored.Filled.List)
+                        SectionHeader(title = "🔍 Find Candidates ($candidatesCount setups)", icon = Icons.AutoMirrored.Filled.List)
                     } else {
-                        SectionHeader(title = "💰 Find Dividend Stars", icon = Icons.AutoMirrored.Filled.List)
+                        SectionHeader(title = "💰 Find Dividend Stars ($candidatesCount stars)", icon = Icons.AutoMirrored.Filled.List)
                     }
                     StepCheckbox(
                         isDone = (playbookMode == PlaybookMode.SWING && checklist.swingWeeklyDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divWeeklyPricesDone),
@@ -398,6 +402,42 @@ fun DividendAdvisorScreen(
                 )
             }
 
+            if (playbookMode == PlaybookMode.DIVIDEND) {
+                Spacer(Modifier.height(8.dp))
+                Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+                    monthlyOffset = coordinates.positionInWindow().y.toInt()
+                }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        SectionHeader(
+                            title = "📅 Monthly Stars Re-evaluation",
+                            icon = Icons.AutoMirrored.Filled.List
+                        )
+                        StepCheckbox(
+                            isDone = checklist.divMonthlyDone,
+                            onClick = {
+                                viewModel.updateChecklistState { it.copy(divMonthlyDone = !checklist.divMonthlyDone) }
+                            }
+                        )
+                    }
+                }
+                
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Review historical yields and payout ratios to ensure long-term stability.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(40.dp))
         }
         }
@@ -414,6 +454,7 @@ fun DividendAdvisorScreen(
                         1 -> sellAlertsOffset
                         2 -> candidatesOffset
                         3 -> aiOffset
+                        4 -> monthlyOffset
                         else -> 0
                     }
                     scrollState.animateScrollTo(targetOffset)
@@ -559,6 +600,7 @@ fun AiCopilotCard(
         modifier = Modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)
     ) {
+        val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -567,7 +609,7 @@ fun AiCopilotCard(
             ) {
                 SectionHeader(
                     modifier = Modifier.weight(1f),
-                    title = "🤖 AI Master Prompts",
+                    title = "🤖 AI Master Prompts (Synced: $lastSync)",
                    // icon = Icons.Default.AutoAwesome,
                     icon = Icons.AutoMirrored.Filled.List,
                     color = MaterialTheme.colorScheme.tertiary
@@ -803,15 +845,28 @@ fun WizardStepBar(
     val step1Done = if (playbookMode == PlaybookMode.SWING) checklist.swingDailyDone else checklist.divWeeklyDone
     val step2Done = if (playbookMode == PlaybookMode.SWING) checklist.swingWeeklyDone else checklist.divWeeklyPricesDone
     val step3Done = if (playbookMode == PlaybookMode.SWING) checklist.swingAiDone else checklist.divAiDone
+    val step4Done = if (playbookMode == PlaybookMode.SWING) true else checklist.divMonthlyDone
 
-    val steps = listOf(
-        Triple(1, if (playbookMode == PlaybookMode.SWING) "🚨 Danger" else "🛡️ Shields", step1Done),
-        Triple(2, if (playbookMode == PlaybookMode.SWING) "🔍 Find" else "💰 Stars", step2Done),
-        Triple(3, "🤖 AI", step3Done)
-    )
+    val steps = if (playbookMode == PlaybookMode.SWING) {
+        listOf(
+            Triple(1, "🚨 Danger", step1Done),
+            Triple(2, "🔍 Find", step2Done),
+            Triple(3, "🤖 AI", step3Done)
+        )
+    } else {
+        listOf(
+            Triple(1, "🛡️ Shields", step1Done),
+            Triple(2, "💰 Stars", step2Done),
+            Triple(3, "🤖 AI", step3Done),
+            Triple(4, "📅 Monthly", step4Done)
+        )
+    }
 
     val currentStep = steps.indexOfFirst { !it.third }.coerceAtLeast(0)
     val allDone = steps.all { it.third }
+    val totalSteps = steps.size
+    val completedCount = steps.count { it.third }
+    val progressPercent = completedCount.toFloat() / totalSteps
 
     Surface(
         modifier = modifier
@@ -841,7 +896,7 @@ fun WizardStepBar(
             // Left: current step info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (allDone) "✅ All 3 steps done! You're ready to trade." else "Step ${currentStep + 1} of 3",
+                    text = if (allDone) "✅ All $totalSteps steps done! You're ready to trade." else "Step ${currentStep + 1} of $totalSteps",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (allDone)
@@ -856,6 +911,14 @@ fun WizardStepBar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Spacer(Modifier.height(6.dp))
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { progressPercent },
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    color = if (allDone) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
             }
 
             // Right: next button or checkmark
