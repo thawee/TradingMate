@@ -1,9 +1,13 @@
 package apincer.mobile.tradings
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,21 +16,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import apincer.mobile.tradings.ui.StockScreen
 import apincer.mobile.tradings.ui.theme.TradingMateTheme
 import apincer.mobile.tradings.util.NotificationHelper
-import apincer.mobile.tradings.util.StockAlertWorker
-import java.util.concurrent.TimeUnit
+import apincer.mobile.tradings.util.StockAlertService
 
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
 
 class MainActivity : ComponentActivity() {
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            // Open system settings if denied
+            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            }
+            startActivity(intent)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -41,12 +51,15 @@ class MainActivity : ComponentActivity() {
 
         // 1. Initialize Notification Channel
         NotificationHelper.createNotificationChannel(this)
-        
+
         // 2. Request Permissions (Android 13+)
         checkNotificationPermission()
 
-        // 3. Schedule Background Alerts
-        scheduleStockAlerts()
+        // 3. Request battery optimization exemption
+        requestBatteryOptimizationExemption()
+
+        // 4. Start foreground service for reliable alerts
+        StockAlertService.start(this)
 
         setContent {
             TradingMateTheme {
@@ -63,27 +76,28 @@ class MainActivity : ComponentActivity() {
     private fun checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                registerForActivityResult(ActivityResultContracts.RequestPermission()) {}.launch(Manifest.permission.POST_NOTIFICATIONS)
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
 
-    private fun scheduleStockAlerts() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val alertRequest = PeriodicWorkRequestBuilder<StockAlertWorker>(
-            1, TimeUnit.HOURS, // Check every hour
-            15, TimeUnit.MINUTES // Flexibility period
-        )
-        .setConstraints(constraints)
-        .build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "stock_signal_alerts",
-            ExistingPeriodicWorkPolicy.KEEP, // Keep existing if already scheduled
-            alertRequest
-        )
+    private fun requestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(PowerManager::class.java)
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // Fallback: open battery optimization settings
+                    try {
+                        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        startActivity(intent)
+                    } catch (_: Exception) { }
+                }
+            }
+        }
     }
 }

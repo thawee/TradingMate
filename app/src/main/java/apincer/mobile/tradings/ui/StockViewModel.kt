@@ -313,7 +313,22 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     TechnicalAnalysis.calculateNetProfitPercent(stock.cost, stock.lastPrice)
                 } else 0.0
 
-                val signal = if (stock.signalType != null) {
+                val signal = if (stock.rsi != null && stock.macdHist != null && stock.lastPrice > 0) {
+                    TechnicalAnalysis.getDetailedSignal(
+                        rsi = stock.rsi,
+                        macdHist = stock.macdHist,
+                        lastPrice = stock.lastPrice,
+                        sma50 = null,
+                        sma200 = null,
+                        bb = null,
+                        isVolumeSurge = false,
+                        userCost = if (stock.cost > 0) stock.cost else null,
+                        isFundamentalGood = false,
+                        tradePurpose = stock.tradePurpose,
+                        dividendYield = stock.dividendYield,
+                        roe = stock.roe
+                    )
+                } else if (stock.signalType != null) {
                     TradeSignal(
                         type = IndicatorSignal.valueOf(stock.signalType),
                         reason = stock.signalReason ?: "",

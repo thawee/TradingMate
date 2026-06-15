@@ -61,6 +61,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
+import apincer.mobile.tradings.util.NotificationHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -161,6 +162,35 @@ fun SettingsScreen(
                     suffix = { Text("%") },
                     shape = RoundedCornerShape(14.dp)
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context, android.Manifest.permission.POST_NOTIFICATIONS
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        } else true
+
+                        if (hasPermission) {
+                            NotificationHelper.showSellReminderNotification(
+                                context = context,
+                                symbol = "TEST",
+                                reason = "This is a test notification. If you see this, notifications are working!"
+                            )
+                            showSnackbar("Test notification sent!")
+                        } else {
+                            showSnackbar("Notification permission not granted. Please allow in Settings.")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Test Notification")
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

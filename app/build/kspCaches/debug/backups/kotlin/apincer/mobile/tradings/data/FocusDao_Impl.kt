@@ -53,6 +53,10 @@ public class FocusDao_Impl(
     __insertAdapterOfFocusEntity.insert(_connection, focusStock)
   }
 
+  public override suspend fun insertFocusStocks(focusStocks: List<FocusEntity>): Unit = performSuspending(__db, false, true) { _connection ->
+    __insertAdapterOfFocusEntity.insert(_connection, focusStocks)
+  }
+
   public override suspend fun deleteFocusStock(focusStock: FocusEntity): Unit = performSuspending(__db, false, true) { _connection ->
     __deleteAdapterOfFocusEntity.handle(_connection, focusStock)
   }
@@ -60,6 +64,36 @@ public class FocusDao_Impl(
   public override fun getAllFocusStocks(): Flow<List<FocusEntity>> {
     val _sql: String = "SELECT * FROM focus_list ORDER BY addedAtMillis DESC"
     return createFlow(__db, false, arrayOf("focus_list")) { _connection ->
+      val _stmt: SQLiteStatement = _connection.prepare(_sql)
+      try {
+        val _columnIndexOfSymbol: Int = getColumnIndexOrThrow(_stmt, "symbol")
+        val _columnIndexOfStartPrice: Int = getColumnIndexOrThrow(_stmt, "startPrice")
+        val _columnIndexOfTargetPrice: Int = getColumnIndexOrThrow(_stmt, "targetPrice")
+        val _columnIndexOfAddedAtMillis: Int = getColumnIndexOrThrow(_stmt, "addedAtMillis")
+        val _result: MutableList<FocusEntity> = mutableListOf()
+        while (_stmt.step()) {
+          val _item: FocusEntity
+          val _tmpSymbol: String
+          _tmpSymbol = _stmt.getText(_columnIndexOfSymbol)
+          val _tmpStartPrice: Double
+          _tmpStartPrice = _stmt.getDouble(_columnIndexOfStartPrice)
+          val _tmpTargetPrice: Double
+          _tmpTargetPrice = _stmt.getDouble(_columnIndexOfTargetPrice)
+          val _tmpAddedAtMillis: Long
+          _tmpAddedAtMillis = _stmt.getLong(_columnIndexOfAddedAtMillis)
+          _item = FocusEntity(_tmpSymbol,_tmpStartPrice,_tmpTargetPrice,_tmpAddedAtMillis)
+          _result.add(_item)
+        }
+        _result
+      } finally {
+        _stmt.close()
+      }
+    }
+  }
+
+  public override suspend fun getAllFocusStocksSync(): List<FocusEntity> {
+    val _sql: String = "SELECT * FROM focus_list ORDER BY addedAtMillis DESC"
+    return performSuspending(__db, true, false) { _connection ->
       val _stmt: SQLiteStatement = _connection.prepare(_sql)
       try {
         val _columnIndexOfSymbol: Int = getColumnIndexOrThrow(_stmt, "symbol")

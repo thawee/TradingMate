@@ -1,29 +1,61 @@
 package apincer.mobile.tradings.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.automirrored.filled.Assignment
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.automirrored.sharp.List
+import androidx.compose.material.icons.filled.AddLink
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.sharp.List
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import apincer.mobile.tradings.data.ChecklistEntity
 import apincer.mobile.tradings.domain.IndicatorSignal
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 data class SellAlertData(
@@ -158,129 +190,125 @@ fun DividendAdvisorScreen(
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        CenterAlignedTopAppBar(
-            title = { Text("Smart Advisor Report", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
-            actions = {
-                IconButton(onClick = onNavigateToAcademy) {
-                    Icon(Icons.Default.School, contentDescription = "Academy")
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-        )
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
-        // Custom segmented glass control selector
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f),
-            shape = CircleShape,
-            border = BorderStroke(
-                width = 0.5.dp,
-                brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.3f),
-                        Color.White.copy(alpha = 0.05f)
+    // Section offsets for floating bar navigation
+    var sellAlertsOffset by remember { mutableIntStateOf(0) }
+    var candidatesOffset by remember { mutableIntStateOf(0) }
+    var aiOffset by remember { mutableIntStateOf(0) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            CenterAlignedTopAppBar(
+                title = { Text("Smart Advisor Report", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+                actions = {
+                    IconButton(onClick = onNavigateToAcademy) {
+                        Icon(Icons.Default.School, contentDescription = "Academy")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
+
+            // Custom segmented glass control selector
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f),
+                shape = CircleShape,
+                border = BorderStroke(
+                    width = 0.5.dp,
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.3f),
+                            Color.White.copy(alpha = 0.05f)
+                        )
                     )
                 )
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                PlaybookMode.entries.forEach { mode ->
-                    val isSelected = playbookMode == mode
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp),
-                        onClick = { playbookMode = mode },
-                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color.Transparent,
-                        shape = CircleShape,
-                        border = if (isSelected) BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (mode == PlaybookMode.SWING) Icons.AutoMirrored.Filled.TrendingUp else Icons.Default.Savings,
-                                    contentDescription = null,
-                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = mode.label,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
+                Row(
+                    modifier = Modifier.padding(4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    PlaybookMode.entries.forEach { mode ->
+                        val isSelected = playbookMode == mode
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
+                            onClick = { playbookMode = mode },
+                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color.Transparent,
+                            shape = CircleShape,
+                            border = if (isSelected) BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (mode == PlaybookMode.SWING) Icons.AutoMirrored.Filled.TrendingUp else Icons.Default.Savings,
+                                        contentDescription = null,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = mode.label,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    }
+}
                         }
                     }
                 }
             }
-        }
 
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshWatchlistInfo() },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refreshWatchlistInfo() },
+                modifier = Modifier.fillMaxSize()
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 80.dp), // Space for floating bar
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
             val maxRiskPerTrade by viewModel.maxRiskPerTrade.collectAsState()
             val maxOpenExposure by viewModel.maxOpenExposure.collectAsState()
             val maxPortfolioAllocation by viewModel.maxPortfolioAllocation.collectAsState()
 
-            AiCopilotCard(
-                playbookMode = playbookMode,
-                watchlist = watchlist,
-                portfolioItems = portfolioItems,
-                isQual = isQual,
-                isVal = isVal,
-                isDiv = isDiv,
-                isMom = isMom,
-                isSup = isSup,
-                isGapUp = isGapUp,
-                maxRiskPerTrade = maxRiskPerTrade,
-                maxOpenExposure = maxOpenExposure,
-                maxPortfolioAllocation = maxPortfolioAllocation,
-                showSnackbar = showSnackbar
-            )
-
             val activeAlerts = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
-            RoutineChecklistCard(
-                playbookMode = playbookMode,
-                swingDaily = checklist.swingDailyDone,
-                onSwingDailyChange = { checked -> viewModel.updateChecklistState { it.copy(swingDailyDone = checked) } },
-                swingWeekly = checklist.swingWeeklyDone,
-                onSwingWeeklyChange = { checked -> viewModel.updateChecklistState { it.copy(swingWeeklyDone = checked) } },
-                swingAi = checklist.swingAiDone,
-                onSwingAiChange = { checked -> viewModel.updateChecklistState { it.copy(swingAiDone = checked) } },
-                divWeekly = checklist.divWeeklyDone,
-                onDivWeeklyChange = { checked -> viewModel.updateChecklistState { it.copy(divWeeklyDone = checked) } },
-                divWeeklyPrices = checklist.divWeeklyPricesDone,
-                onDivWeeklyPricesChange = { checked -> viewModel.updateChecklistState { it.copy(divWeeklyPricesDone = checked) } },
-                divMonthly = checklist.divMonthlyDone,
-                onDivMonthlyChange = { checked -> viewModel.updateChecklistState { it.copy(divMonthlyDone = checked) } },
-                divAi = checklist.divAiDone,
-                onDivAiChange = { checked -> viewModel.updateChecklistState { it.copy(divAiDone = checked) } },
-                alertsCount = activeAlerts.size,
-                candidatesCount = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size,
-                lastSync = lastSync
-            )
 
-            SectionHeader(title = "Sell Alerts", icon = Icons.Default.Warning)
+            // Step 1: Sell Alerts
+            Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+                sellAlertsOffset = coordinates.positionInWindow().y.toInt()
+            }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    //SectionHeader(title = if (playbookMode == PlaybookMode.SWING) "🚨 Check for Danger" else "🛡️ Check My Shields", icon = Icons.Default.Warning)
+                    SectionHeader(title = if (playbookMode == PlaybookMode.SWING) "🚨 Check for Danger" else "🛡️ Check My Shields", icon = Icons.AutoMirrored.Sharp.List)
+                    StepCheckbox(
+                        isDone = (playbookMode == PlaybookMode.SWING && checklist.swingDailyDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divWeeklyDone),
+                        onClick = {
+                            if (playbookMode == PlaybookMode.SWING) {
+                                viewModel.updateChecklistState { it.copy(swingDailyDone = !checklist.swingDailyDone) }
+                            } else {
+                                viewModel.updateChecklistState { it.copy(divWeeklyDone = !checklist.divWeeklyDone) }
+                            }
+                        }
+                    )
+                }
+            }
             if (activeAlerts.isEmpty()) {
                 Text(
                     text = if (playbookMode == PlaybookMode.SWING) "No active swing exit alerts." else "No fundamental quality alerts.",
@@ -295,8 +323,33 @@ fun DividendAdvisorScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            // Step 2: Candidates
+            Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+                candidatesOffset = coordinates.positionInWindow().y.toInt()
+            }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (playbookMode == PlaybookMode.SWING) {
+                        SectionHeader(title = "🔍 Find Candidates", icon = Icons.AutoMirrored.Filled.List)
+                    } else {
+                        SectionHeader(title = "💰 Find Dividend Stars", icon = Icons.AutoMirrored.Filled.List)
+                    }
+                    StepCheckbox(
+                        isDone = (playbookMode == PlaybookMode.SWING && checklist.swingWeeklyDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divWeeklyPricesDone),
+                        onClick = {
+                            if (playbookMode == PlaybookMode.SWING) {
+                                viewModel.updateChecklistState { it.copy(swingWeeklyDone = !checklist.swingWeeklyDone) }
+                            } else {
+                                viewModel.updateChecklistState { it.copy(divWeeklyPricesDone = !checklist.divWeeklyPricesDone) }
+                            }
+                        }
+                    )
+                }
+            }
             if (playbookMode == PlaybookMode.SWING) {
-                SectionHeader(title = "Swing & Gap Candidates", icon = Icons.AutoMirrored.Filled.TrendingUp)
                 if (combinedSwingPlays.isEmpty()) {
                     Text("No swing setups or gap ups found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
@@ -305,7 +358,6 @@ fun DividendAdvisorScreen(
                     }
                 }
             } else {
-                SectionHeader(title = "High-Yield Dividend Stars", icon = Icons.Default.Savings)
                 if (dividendPlays.isEmpty()) {
                     Text("No candidates found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
@@ -314,10 +366,60 @@ fun DividendAdvisorScreen(
                     }
                 }
             }
-            
+
+            Spacer(Modifier.height(8.dp))
+
+            // Step 3: AI Master Prompts
+            Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+                aiOffset = coordinates.positionInWindow().y.toInt()
+            }) {
+                AiCopilotCard(
+                    playbookMode = playbookMode,
+                    checklist = checklist,
+                    onToggleAiDone = {
+                        if (playbookMode == PlaybookMode.SWING) {
+                            viewModel.updateChecklistState { it.copy(swingAiDone = !checklist.swingAiDone) }
+                        } else {
+                            viewModel.updateChecklistState { it.copy(divAiDone = !checklist.divAiDone) }
+                        }
+                    },
+                    watchlist = watchlist,
+                    portfolioItems = portfolioItems,
+                    isQual = isQual,
+                    isVal = isVal,
+                    isDiv = isDiv,
+                    isMom = isMom,
+                    isSup = isSup,
+                    isGapUp = isGapUp,
+                    maxRiskPerTrade = maxRiskPerTrade,
+                    maxOpenExposure = maxOpenExposure,
+                    maxPortfolioAllocation = maxPortfolioAllocation,
+                    showSnackbar = showSnackbar
+                )
+            }
+
             Spacer(Modifier.height(40.dp))
         }
         }
+        } // close outer Column
+
+        // Wizard Step Bar (navigation, direct child of Box)
+        WizardStepBar(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            playbookMode = playbookMode,
+            checklist = checklist,
+            onStepClick = { step ->
+                coroutineScope.launch {
+                    val targetOffset = when (step) {
+                        1 -> sellAlertsOffset
+                        2 -> candidatesOffset
+                        3 -> aiOffset
+                        else -> 0
+                    }
+                    scrollState.animateScrollTo(targetOffset)
+                }
+            }
+        )
     }
 }
 
@@ -433,6 +535,8 @@ fun AdvisorStockCard(
 @Composable
 fun AiCopilotCard(
     playbookMode: PlaybookMode,
+    checklist: ChecklistEntity,
+    onToggleAiDone: () -> Unit,
     watchlist: List<StockWatchlistInfo>,
     portfolioItems: List<StockWatchlistInfo>,
     isQual: (StockWatchlistInfo) -> Boolean,
@@ -456,11 +560,23 @@ fun AiCopilotCard(
         containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            SectionHeader(
-                title = "AI Master Prompts", 
-                icon = Icons.Default.AutoAwesome,
-                color = MaterialTheme.colorScheme.tertiary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                SectionHeader(
+                    modifier = Modifier.weight(1f),
+                    title = "🤖 AI Master Prompts",
+                   // icon = Icons.Default.AutoAwesome,
+                    icon = Icons.AutoMirrored.Filled.List,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                StepCheckbox(
+                    isDone = (playbookMode == PlaybookMode.SWING && checklist.swingAiDone) || (playbookMode == PlaybookMode.DIVIDEND && checklist.divAiDone),
+                    onClick = onToggleAiDone
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             if (playbookMode == PlaybookMode.SWING) {
@@ -602,262 +718,175 @@ fun AiCopilotCard(
 }
 
 @Composable
-fun RoutineChecklistCard(
-    playbookMode: PlaybookMode,
-    swingDaily: Boolean,
-    onSwingDailyChange: (Boolean) -> Unit,
-    swingWeekly: Boolean,
-    onSwingWeeklyChange: (Boolean) -> Unit,
-    swingAi: Boolean,
-    onSwingAiChange: (Boolean) -> Unit,
-    divWeekly: Boolean,
-    onDivWeeklyChange: (Boolean) -> Unit,
-    divWeeklyPrices: Boolean,
-    onDivWeeklyPricesChange: (Boolean) -> Unit,
-    divMonthly: Boolean,
-    onDivMonthlyChange: (Boolean) -> Unit,
-    divAi: Boolean,
-    onDivAiChange: (Boolean) -> Unit,
-    alertsCount: Int,
-    candidatesCount: Int,
-    lastSync: String
+fun StepCheckbox(
+    isDone: Boolean,
+    onClick: () -> Unit
 ) {
-    val totalItems = if (playbookMode == PlaybookMode.SWING) 3 else 4
-    val completedItems = if (playbookMode == PlaybookMode.SWING) {
-        (if (swingDaily) 1 else 0) + (if (swingWeekly) 1 else 0) + (if (swingAi) 1 else 0)
-    } else {
-        (if (divWeekly) 1 else 0) + (if (divWeeklyPrices) 1 else 0) + (if (divMonthly) 1 else 0) + (if (divAi) 1 else 0)
-    }
-    val progress = completedItems.toFloat() / totalItems.toFloat()
-
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp),
+        shape = CircleShape,
+        color = if (isDone)
+            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+        else
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        border = BorderStroke(
+            1.5.dp,
+            if (isDone)
+                MaterialTheme.colorScheme.tertiary
+            else
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "✅ Mission Today",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                ) {
-                    Text(
-                        text = "$completedItems of $totalItems ⭐",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Progress bar and feedback
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = if (isDone) "✓" else "",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.tertiary
             )
-            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (playbookMode == PlaybookMode.SWING) {
-                    RoutineItemCard(
-                        stepNumber = 1,
-                        emoji = "🚨",
-                        checked = swingDaily,
-                        onCheckedChange = onSwingDailyChange,
-                        title = "Check for Danger",
-                        description = "Are any of your stocks turning red? Like checking if your toys are broken. (Current alerts: $alertsCount)"
-                    )
-                    RoutineItemCard(
-                        stepNumber = 2,
-                        emoji = "🔍",
-                        checked = swingWeekly,
-                        onCheckedChange = onSwingWeeklyChange,
-                        title = "Find Cheap Stocks",
-                        description = "Look for stocks on sale — like finding toys at a discount! (Current candidates: $candidatesCount)"
-                    )
-                    RoutineItemCard(
-                        stepNumber = 3,
-                        emoji = "🤖",
-                        checked = swingAi,
-                        onCheckedChange = onSwingAiChange,
-                        title = "Ask the Robot",
-                        description = "Let the AI robot help you decide which one to buy. (Data updated: $lastSync)"
-                    )
-                } else {
-                    RoutineItemCard(
-                        stepNumber = 1,
-                        emoji = "🛡️",
-                        checked = divWeekly,
-                        onCheckedChange = onDivWeeklyChange,
-                        title = "Check My Shields",
-                        description = "Make sure your money machines are still strong and healthy."
-                    )
-                    RoutineItemCard(
-                        stepNumber = 2,
-                        emoji = "💰",
-                        checked = divWeeklyPrices,
-                        onCheckedChange = onDivWeeklyPricesChange,
-                        title = "Find Bargains",
-                        description = "Find the best money machines that are on sale right now. (Current stars: $candidatesCount)"
-                    )
-                    RoutineItemCard(
-                        stepNumber = 3,
-                        emoji = "🏦",
-                        checked = divMonthly,
-                        onCheckedChange = onDivMonthlyChange,
-                        title = "Save More Money",
-                        description = "Put your pocket money into the best machines."
-                    )
-                    RoutineItemCard(
-                        stepNumber = 4,
-                        emoji = "🤖",
-                        checked = divAi,
-                        onCheckedChange = onDivAiChange,
-                        title = "Ask the Robot",
-                        description = "Let the AI robot double-check your choices."
-                    )
-                }
-            }
-
-            if (completedItems == totalItems) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "🎉 All Done! Great Job, Champ!",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
-                }
+@Composable
+fun NavigationStepButton(
+    emoji: String,
+    label: String,
+    isDone: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isDone)
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+        else
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        border = BorderStroke(
+            1.dp,
+            if (isDone)
+                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+            else
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(text = emoji, fontSize = 14.sp)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (isDone)
+                    MaterialTheme.colorScheme.tertiary
+                else
+                    MaterialTheme.colorScheme.onSurface
+            )
+            if (isDone) {
+                Text("✅", fontSize = 12.sp)
             }
         }
     }
 }
 
 @Composable
-fun RoutineItemCard(
-    stepNumber: Int,
-    emoji: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    title: String,
-    description: String
+fun WizardStepBar(
+    modifier: Modifier = Modifier,
+    playbookMode: PlaybookMode,
+    checklist: ChecklistEntity,
+    onStepClick: (Int) -> Unit
 ) {
-    val cardColor = if (checked) {
-        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.12f)
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-    }
+    val step1Done = if (playbookMode == PlaybookMode.SWING) checklist.swingDailyDone else checklist.divWeeklyDone
+    val step2Done = if (playbookMode == PlaybookMode.SWING) checklist.swingWeeklyDone else checklist.divWeeklyPricesDone
+    val step3Done = if (playbookMode == PlaybookMode.SWING) checklist.swingAiDone else checklist.divAiDone
 
-    val borderColor = if (checked) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-    }
+    val steps = listOf(
+        Triple(1, if (playbookMode == PlaybookMode.SWING) "🚨 Danger" else "🛡️ Shields", step1Done),
+        Triple(2, if (playbookMode == PlaybookMode.SWING) "🔍 Find" else "💰 Stars", step2Done),
+        Triple(3, "🤖 AI", step3Done)
+    )
+
+    val currentStep = steps.indexOfFirst { !it.third }.coerceAtLeast(0)
+    val allDone = steps.all { it.third }
 
     Surface(
-        onClick = { onCheckedChange(!checked) },
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         shape = RoundedCornerShape(16.dp),
-        color = cardColor,
-        border = BorderStroke(1.dp, borderColor)
+        color = if (allDone)
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.95f)
+        else
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        shadowElevation = 8.dp,
+        border = BorderStroke(
+            1.dp,
+            if (allDone)
+                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+            else
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Big Step Number Circle
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(28.dp)
-                    .background(
-                        color = if (checked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        shape = CircleShape
-                    )
-            ) {
-                Text(
-                    text = stepNumber.toString(),
-                    color = if (checked) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Emoji
-            Text(
-                text = emoji,
-                fontSize = 22.sp,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Text Content
+            // Left: current step info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = if (allDone) "✅ All 3 steps done! You're ready to trade." else "Step ${currentStep + 1} of 3",
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (checked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                    color = if (allDone)
+                        MaterialTheme.colorScheme.tertiary
+                    else
+                        MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (checked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Done Badge
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (checked) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
-                    border = BorderStroke(
-                        0.5.dp,
-                        if (checked) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                if (!allDone) {
+                    Text(
+                        text = steps[currentStep].second,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            // Right: next button or checkmark
+            if (allDone) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("✓", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                    }
+                }
+            } else {
+                Surface(
+                    onClick = { onStepClick(currentStep + 1) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary
                 ) {
                     Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = if (checked) "✅ Done!" else "⬜ Todo",
-                            style = MaterialTheme.typography.labelSmall,
+                            text = "Next",
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = if (checked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
+                        Text("→", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }

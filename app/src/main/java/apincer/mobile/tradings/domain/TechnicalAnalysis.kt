@@ -105,7 +105,7 @@ object TechnicalAnalysis {
             return TradingZone.SELLING_ZONE
         }
 
-        // Buying Zone: Oversold (Extreme Value) OR (Positive Momentum near support)
+        // Buying Zone: Oversold (Extreme Value) OR (Positive Momentum near support) - but NOT if overbought
         if (isRsiOversold || (isMacdBullish && (isNearLowerBB || isPriceAboveSma50))) {
             return TradingZone.BUYING_ZONE
         }
@@ -193,17 +193,7 @@ object TechnicalAnalysis {
             }
             
             if (applySwingLogic) {
-                // SWING PLAYBOOK: Take Profit if target reached or overbought
-                if (netProfitPercent > 10.0 || isRsiOverbought || isNearUpperBB) {
-                    return TradeSignal(
-                        IndicatorSignal.SELL,
-                        "${qualityPrefix}Exit Area (Target Reached)",
-                        "Technically, the stock is in a Selling Zone. RSI is high (${String.format(Locale.ENGLISH, "%.1f", rsi)}) or price is near resistance. " +
-                                if (netProfitPercent > 0) "Good area to lock in ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% profit." else "Consider exiting as trend is reaching resistance."
-                    )
-                }
-                
-                // Cut Loss if deep in red
+                // CUT LOSS PRIORITY: Stop loss is more urgent than take profit
                 if (netProfitPercent < -5.0) {
                     val technicalWarning = when {
                         !isPriceAboveSma200 -> "the price has crashed below the long-term trend (SMA 200)"
@@ -214,6 +204,16 @@ object TechnicalAnalysis {
                         IndicatorSignal.SELL,
                         "${qualityPrefix}Stop Loss (Cut Loss)",
                         "Warning: Your net loss is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%. Technically, $technicalWarning. Cutting loss prevents a small loss from becoming a big one."
+                    )
+                }
+
+                // SWING PLAYBOOK: Take Profit if target reached or overbought
+                if (netProfitPercent > 10.0 || isRsiOverbought || isNearUpperBB) {
+                    return TradeSignal(
+                        IndicatorSignal.SELL,
+                        "${qualityPrefix}Exit Area (Target Reached)",
+                        "Technically, the stock is in a Selling Zone. RSI is high (${String.format(Locale.ENGLISH, "%.1f", rsi)}) or price is near resistance. " +
+                                if (netProfitPercent > 0) "Good area to lock in ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% profit." else "Consider exiting as trend is reaching resistance."
                     )
                 }
             }

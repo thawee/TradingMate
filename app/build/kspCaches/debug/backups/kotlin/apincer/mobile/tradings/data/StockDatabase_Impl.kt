@@ -41,15 +41,20 @@ public class StockDatabase_Impl : StockDatabase() {
     FocusDao_Impl(this)
   }
 
+  private val _checklistDao: Lazy<ChecklistDao> = lazy {
+    ChecklistDao_Impl(this)
+  }
+
   protected override fun createOpenDelegate(): RoomOpenDelegate {
-    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(13, "bb27f39f5ae27ac0ed0bbd2572566115", "7dc0994c8fda98e3ac0f2e902cb37ba7") {
+    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(16, "41a36d6a1eebc361f03bd7f029068eec", "7ec258088b81faf0c3eafd5175a00171") {
       public override fun createAllTables(connection: SQLiteConnection) {
-        connection.execSQL("CREATE TABLE IF NOT EXISTS `stocks` (`symbol` TEXT NOT NULL, `name` TEXT, `nameTH` TEXT, `businessDescription` TEXT, `sector` TEXT, `industry` TEXT, `cost` REAL NOT NULL, `quantity` INTEGER NOT NULL, `tradePurpose` TEXT NOT NULL, `lastPrice` REAL NOT NULL, `change` REAL NOT NULL, `percentChange` REAL NOT NULL, `pe` REAL, `pbv` REAL, `roe` REAL, `eps` REAL, `netProfit` REAL, `equity` REAL, `debtToEquity` REAL, `dividendYield` REAL, `dividendDate` TEXT, `rsi` REAL, `macdHist` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, PRIMARY KEY(`symbol`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `stocks` (`symbol` TEXT NOT NULL, `name` TEXT, `nameTH` TEXT, `businessDescription` TEXT, `sector` TEXT, `industry` TEXT, `cost` REAL NOT NULL, `quantity` INTEGER NOT NULL, `tradePurpose` TEXT NOT NULL, `buyFees` REAL NOT NULL, `dividendPerShare` REAL, `lastPrice` REAL NOT NULL, `change` REAL NOT NULL, `percentChange` REAL NOT NULL, `pe` REAL, `pbv` REAL, `roe` REAL, `eps` REAL, `netProfit` REAL, `equity` REAL, `debtToEquity` REAL, `dividendYield` REAL, `dividendDate` TEXT, `rsi` REAL, `macdHist` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, `stopLoss` REAL NOT NULL, `playbookNote` TEXT NOT NULL, PRIMARY KEY(`symbol`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `trade_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `symbol` TEXT NOT NULL, `buyPrice` REAL NOT NULL, `sellPrice` REAL NOT NULL, `quantity` INTEGER NOT NULL, `netProfitPercent` REAL NOT NULL, `netProfitBaht` REAL NOT NULL, `dateMillis` INTEGER NOT NULL, `note` TEXT NOT NULL)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `cash` (`id` INTEGER NOT NULL, `balance` REAL NOT NULL, PRIMARY KEY(`id`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `focus_list` (`symbol` TEXT NOT NULL, `startPrice` REAL NOT NULL, `targetPrice` REAL NOT NULL, `addedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`symbol`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `discipline_checklist` (`id` INTEGER NOT NULL, `lastResetDate` TEXT NOT NULL, `lastResetWeek` INTEGER NOT NULL, `lastResetMonth` INTEGER NOT NULL, `swingDailyDone` INTEGER NOT NULL, `swingWeeklyDone` INTEGER NOT NULL, `swingAiDone` INTEGER NOT NULL, `divWeeklyDone` INTEGER NOT NULL, `divWeeklyPricesDone` INTEGER NOT NULL, `divMonthlyDone` INTEGER NOT NULL, `divAiDone` INTEGER NOT NULL, PRIMARY KEY(`id`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bb27f39f5ae27ac0ed0bbd2572566115')")
+        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '41a36d6a1eebc361f03bd7f029068eec')")
       }
 
       public override fun dropAllTables(connection: SQLiteConnection) {
@@ -57,6 +62,7 @@ public class StockDatabase_Impl : StockDatabase() {
         connection.execSQL("DROP TABLE IF EXISTS `trade_history`")
         connection.execSQL("DROP TABLE IF EXISTS `cash`")
         connection.execSQL("DROP TABLE IF EXISTS `focus_list`")
+        connection.execSQL("DROP TABLE IF EXISTS `discipline_checklist`")
       }
 
       public override fun onCreate(connection: SQLiteConnection) {
@@ -84,6 +90,8 @@ public class StockDatabase_Impl : StockDatabase() {
         _columnsStocks.put("cost", TableInfo.Column("cost", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("quantity", TableInfo.Column("quantity", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("tradePurpose", TableInfo.Column("tradePurpose", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStocks.put("buyFees", TableInfo.Column("buyFees", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStocks.put("dividendPerShare", TableInfo.Column("dividendPerShare", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("lastPrice", TableInfo.Column("lastPrice", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("change", TableInfo.Column("change", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("percentChange", TableInfo.Column("percentChange", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
@@ -102,6 +110,8 @@ public class StockDatabase_Impl : StockDatabase() {
         _columnsStocks.put("signalReason", TableInfo.Column("signalReason", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("signalDescription", TableInfo.Column("signalDescription", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStocks.put("lastUpdated", TableInfo.Column("lastUpdated", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStocks.put("stopLoss", TableInfo.Column("stopLoss", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStocks.put("playbookNote", TableInfo.Column("playbookNote", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         val _foreignKeysStocks: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
         val _indicesStocks: MutableSet<TableInfo.Index> = mutableSetOf()
         val _infoStocks: TableInfo = TableInfo("stocks", _columnsStocks, _foreignKeysStocks, _indicesStocks)
@@ -172,6 +182,31 @@ public class StockDatabase_Impl : StockDatabase() {
               | Found:
               |""".trimMargin() + _existingFocusList)
         }
+        val _columnsDisciplineChecklist: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsDisciplineChecklist.put("id", TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("lastResetDate", TableInfo.Column("lastResetDate", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("lastResetWeek", TableInfo.Column("lastResetWeek", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("lastResetMonth", TableInfo.Column("lastResetMonth", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("swingDailyDone", TableInfo.Column("swingDailyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("swingWeeklyDone", TableInfo.Column("swingWeeklyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("swingAiDone", TableInfo.Column("swingAiDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("divWeeklyDone", TableInfo.Column("divWeeklyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("divWeeklyPricesDone", TableInfo.Column("divWeeklyPricesDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("divMonthlyDone", TableInfo.Column("divMonthlyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDisciplineChecklist.put("divAiDone", TableInfo.Column("divAiDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysDisciplineChecklist: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesDisciplineChecklist: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoDisciplineChecklist: TableInfo = TableInfo("discipline_checklist", _columnsDisciplineChecklist, _foreignKeysDisciplineChecklist, _indicesDisciplineChecklist)
+        val _existingDisciplineChecklist: TableInfo = read(connection, "discipline_checklist")
+        if (!_infoDisciplineChecklist.equals(_existingDisciplineChecklist)) {
+          return RoomOpenDelegate.ValidationResult(false, """
+              |discipline_checklist(apincer.mobile.tradings.data.ChecklistEntity).
+              | Expected:
+              |""".trimMargin() + _infoDisciplineChecklist + """
+              |
+              | Found:
+              |""".trimMargin() + _existingDisciplineChecklist)
+        }
         return RoomOpenDelegate.ValidationResult(true, null)
       }
     }
@@ -181,11 +216,11 @@ public class StockDatabase_Impl : StockDatabase() {
   protected override fun createInvalidationTracker(): InvalidationTracker {
     val _shadowTablesMap: MutableMap<String, String> = mutableMapOf()
     val _viewTables: MutableMap<String, Set<String>> = mutableMapOf()
-    return InvalidationTracker(this, _shadowTablesMap, _viewTables, "stocks", "trade_history", "cash", "focus_list")
+    return InvalidationTracker(this, _shadowTablesMap, _viewTables, "stocks", "trade_history", "cash", "focus_list", "discipline_checklist")
   }
 
   public override fun clearAllTables() {
-    super.performClear(false, "stocks", "trade_history", "cash", "focus_list")
+    super.performClear(false, "stocks", "trade_history", "cash", "focus_list", "discipline_checklist")
   }
 
   protected override fun getRequiredTypeConverterClasses(): Map<KClass<*>, List<KClass<*>>> {
@@ -194,6 +229,7 @@ public class StockDatabase_Impl : StockDatabase() {
     _typeConvertersMap.put(TradeDao::class, TradeDao_Impl.getRequiredConverters())
     _typeConvertersMap.put(CashDao::class, CashDao_Impl.getRequiredConverters())
     _typeConvertersMap.put(FocusDao::class, FocusDao_Impl.getRequiredConverters())
+    _typeConvertersMap.put(ChecklistDao::class, ChecklistDao_Impl.getRequiredConverters())
     return _typeConvertersMap
   }
 
@@ -214,4 +250,6 @@ public class StockDatabase_Impl : StockDatabase() {
   public override fun cashDao(): CashDao = _cashDao.value
 
   public override fun focusDao(): FocusDao = _focusDao.value
+
+  public override fun checklistDao(): ChecklistDao = _checklistDao.value
 }

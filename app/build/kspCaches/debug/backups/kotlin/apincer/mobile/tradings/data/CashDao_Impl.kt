@@ -62,6 +62,30 @@ public class CashDao_Impl(
     }
   }
 
+  public override suspend fun getCashSync(): CashEntity? {
+    val _sql: String = "SELECT * FROM cash WHERE id = 1"
+    return performSuspending(__db, true, false) { _connection ->
+      val _stmt: SQLiteStatement = _connection.prepare(_sql)
+      try {
+        val _columnIndexOfId: Int = getColumnIndexOrThrow(_stmt, "id")
+        val _columnIndexOfBalance: Int = getColumnIndexOrThrow(_stmt, "balance")
+        val _result: CashEntity?
+        if (_stmt.step()) {
+          val _tmpId: Int
+          _tmpId = _stmt.getLong(_columnIndexOfId).toInt()
+          val _tmpBalance: Double
+          _tmpBalance = _stmt.getDouble(_columnIndexOfBalance)
+          _result = CashEntity(_tmpId,_tmpBalance)
+        } else {
+          _result = null
+        }
+        _result
+      } finally {
+        _stmt.close()
+      }
+    }
+  }
+
   public companion object {
     public fun getRequiredConverters(): List<KClass<*>> = emptyList()
   }

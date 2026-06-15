@@ -48,9 +48,58 @@ public class TradeDao_Impl(
     __insertAdapterOfTradeEntity.insert(_connection, trade)
   }
 
+  public override suspend fun insertTrades(trades: List<TradeEntity>): Unit = performSuspending(__db, false, true) { _connection ->
+    __insertAdapterOfTradeEntity.insert(_connection, trades)
+  }
+
   public override fun getAllTrades(): Flow<List<TradeEntity>> {
     val _sql: String = "SELECT * FROM trade_history ORDER BY dateMillis DESC"
     return createFlow(__db, false, arrayOf("trade_history")) { _connection ->
+      val _stmt: SQLiteStatement = _connection.prepare(_sql)
+      try {
+        val _columnIndexOfId: Int = getColumnIndexOrThrow(_stmt, "id")
+        val _columnIndexOfSymbol: Int = getColumnIndexOrThrow(_stmt, "symbol")
+        val _columnIndexOfBuyPrice: Int = getColumnIndexOrThrow(_stmt, "buyPrice")
+        val _columnIndexOfSellPrice: Int = getColumnIndexOrThrow(_stmt, "sellPrice")
+        val _columnIndexOfQuantity: Int = getColumnIndexOrThrow(_stmt, "quantity")
+        val _columnIndexOfNetProfitPercent: Int = getColumnIndexOrThrow(_stmt, "netProfitPercent")
+        val _columnIndexOfNetProfitBaht: Int = getColumnIndexOrThrow(_stmt, "netProfitBaht")
+        val _columnIndexOfDateMillis: Int = getColumnIndexOrThrow(_stmt, "dateMillis")
+        val _columnIndexOfNote: Int = getColumnIndexOrThrow(_stmt, "note")
+        val _result: MutableList<TradeEntity> = mutableListOf()
+        while (_stmt.step()) {
+          val _item: TradeEntity
+          val _tmpId: Int
+          _tmpId = _stmt.getLong(_columnIndexOfId).toInt()
+          val _tmpSymbol: String
+          _tmpSymbol = _stmt.getText(_columnIndexOfSymbol)
+          val _tmpBuyPrice: Double
+          _tmpBuyPrice = _stmt.getDouble(_columnIndexOfBuyPrice)
+          val _tmpSellPrice: Double
+          _tmpSellPrice = _stmt.getDouble(_columnIndexOfSellPrice)
+          val _tmpQuantity: Int
+          _tmpQuantity = _stmt.getLong(_columnIndexOfQuantity).toInt()
+          val _tmpNetProfitPercent: Double
+          _tmpNetProfitPercent = _stmt.getDouble(_columnIndexOfNetProfitPercent)
+          val _tmpNetProfitBaht: Double
+          _tmpNetProfitBaht = _stmt.getDouble(_columnIndexOfNetProfitBaht)
+          val _tmpDateMillis: Long
+          _tmpDateMillis = _stmt.getLong(_columnIndexOfDateMillis)
+          val _tmpNote: String
+          _tmpNote = _stmt.getText(_columnIndexOfNote)
+          _item = TradeEntity(_tmpId,_tmpSymbol,_tmpBuyPrice,_tmpSellPrice,_tmpQuantity,_tmpNetProfitPercent,_tmpNetProfitBaht,_tmpDateMillis,_tmpNote)
+          _result.add(_item)
+        }
+        _result
+      } finally {
+        _stmt.close()
+      }
+    }
+  }
+
+  public override suspend fun getAllTradesSync(): List<TradeEntity> {
+    val _sql: String = "SELECT * FROM trade_history ORDER BY dateMillis DESC"
+    return performSuspending(__db, true, false) { _connection ->
       val _stmt: SQLiteStatement = _connection.prepare(_sql)
       try {
         val _columnIndexOfId: Int = getColumnIndexOrThrow(_stmt, "id")

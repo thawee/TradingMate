@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-25:12
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-25:12
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-25:12
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-25:12
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
 MERGED from [io.coil-kt.coil3:coil-compose-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f814ed043c11b63b610abac411058dcf/transformed/coil-compose/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt.coil3:coil-compose-core-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/dbab830c19048952744ec853bcf93063/transformed/coil-compose-core/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.animation:animation-core-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/26732d53084f38444d3876f9dba1af92/transformed/animation-core/AndroidManifest.xml:2:1-7:12
@@ -107,9 +107,33 @@ MERGED from [com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/
 MERGED from [com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:8:5-67
 	android:name
 		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:4:22-64
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:5:5-77
+MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:26:5-77
+MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:26:5-77
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:5:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_DATA_SYNC
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:6:5-87
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:6:22-84
+uses-permission#android.permission.WAKE_LOCK
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:7:5-68
+MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:23:5-68
+MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:23:5-68
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:7:22-65
+uses-permission#android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:8:5-95
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:8:22-92
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:9:5-77
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:9:22-74
 application
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:6:5-23:19
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:6:5-23:19
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:5-33:19
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:5-33:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:28:5-81:19
@@ -139,37 +163,45 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/thaw
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.19.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c67e74e8bc7760c48b8b7cabad6a3220/transformed/core-1.19.0/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:9-35
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:16:9-35
 	android:label
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:10:9-41
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:15:9-41
 	android:roundIcon
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:9:9-54
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:14:9-54
 	android:icon
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:8:9-43
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:13:9-43
 	android:allowBackup
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:7:9-35
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:12:9-35
 	android:theme
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:12:9-77
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:17:9-77
 activity#apincer.mobile.tradings.MainActivity
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:13:9-22:20
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:18:9-27:20
 	android:label
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:16:13-45
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:21:13-45
 	android:exported
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:15:13-36
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:20:13-36
 	android:theme
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:17:13-81
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:22:13-81
 	android:name
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:14:13-41
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:19:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:18:13-21:29
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:23:13-26:29
 action#android.intent.action.MAIN
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:19:17-69
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:24:17-69
 	android:name
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:19:25-66
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:24:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:20:17-77
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:25:17-77
 	android:name
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:20:27-74
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:25:27-74
+service#apincer.mobile.tradings.util.StockAlertService
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:29:9-32:56
+	android:exported
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:31:13-37
+	android:foregroundServiceType
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:32:13-53
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:30:13-51
 uses-sdk
 INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml
@@ -362,10 +394,6 @@ ADDED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.grad
 		ADDED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:25:13-36
 	android:name
 		ADDED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:24:13-71
-uses-permission#android.permission.WAKE_LOCK
-ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:23:5-68
-	android:name
-		ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:23:22-65
 uses-permission#android.permission.ACCESS_NETWORK_STATE
 ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:24:5-79
 	android:name
@@ -374,10 +402,6 @@ uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
 ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:25:5-81
 	android:name
 		ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:25:22-78
-uses-permission#android.permission.FOREGROUND_SERVICE
-ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:26:5-77
-	android:name
-		ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:26:22-74
 provider#androidx.startup.InitializationProvider
 ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:29:9-37:20
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20

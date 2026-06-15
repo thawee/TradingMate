@@ -85,7 +85,10 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     bb = indicators.bollingerBands,
                     isVolumeSurge = indicators.isVolumeSurge,
                     userCost = if (entity.quantity > 0) entity.cost else null,
-                    isFundamentalGood = scraped.isFundamentalGood
+                    isFundamentalGood = scraped.isFundamentalGood,
+                    tradePurpose = entity.tradePurpose,
+                    dividendYield = scraped.dividendYield,
+                    roe = scraped.roe
                 )
 
                 // 4. Check for state shift
@@ -98,6 +101,15 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         context = applicationContext,
                         symbol = entity.symbol,
                         signal = signal.type.name,
+                        reason = signal.reason
+                    )
+                }
+
+                // 4b. Send sell reminder for portfolio stocks with active SELL signal
+                if (entity.quantity > 0 && signal.type == IndicatorSignal.SELL) {
+                    NotificationHelper.showSellReminderNotification(
+                        context = applicationContext,
+                        symbol = entity.symbol,
                         reason = signal.reason
                     )
                 }
