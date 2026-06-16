@@ -1,5 +1,6 @@
 package apincer.mobile.tradings.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,8 +27,10 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,7 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
-import apincer.mobile.tradings.data.StockEntity
+import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.util.Locale
 
@@ -47,13 +51,16 @@ import java.util.Locale
 @Composable
 fun PortfolioScreen(
     viewModel: StockViewModel,
+    settingsViewModel: SettingsViewModel,
+    portfolioViewModel: PortfolioViewModel = viewModel(),
     onSelectStock: (String) -> Unit,
-    showSnackbar: (String) -> Unit
+    showSnackbar: (String) -> Unit,
+    scrollSymbol: String? = null
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
-    val cashBalance by viewModel.cashBalance.collectAsState()
+    val cashBalance by portfolioViewModel.cashBalance.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val isPrivacyMode by viewModel.isPrivacyMode.collectAsState()
+    val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
@@ -97,9 +104,19 @@ fun PortfolioScreen(
         item.portfolio.quantity * dps
     }
 
-    val targetMonthlyDividend by viewModel.targetMonthlyDividend.collectAsState()
+    val targetMonthlyDividend by settingsViewModel.targetMonthlyDividend.collectAsState()
     val targetYearlyDividend = targetMonthlyDividend * 12
     val dividendProgress = if (targetYearlyDividend > 0) (totalYearlyDividend / targetYearlyDividend).toFloat().coerceIn(0f, 1f) else 0f
+
+    val listState = rememberLazyListState()
+    LaunchedEffect(scrollSymbol, portfolioItems) {
+        scrollSymbol?.let { symbol ->
+            val index = portfolioItems.indexOfFirst { it.info.symbol == symbol }
+            if (index >= 0) {
+                listState.animateScrollToItem(index + 2)
+            }
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
@@ -130,6 +147,7 @@ fun PortfolioScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
@@ -163,29 +181,69 @@ fun PortfolioScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(Modifier.height(12.dp))
-                            portfolioItems.forEach { item ->
-                                val pct = if (stockValue > 0) (item.info.lastPrice * item.portfolio.quantity / stockValue) * 100 else 0.0
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(item.info.symbol, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        LinearProgressIndicator(
-                                            progress = { (pct / 100f).toFloat().coerceIn(0f, 1f) },
-                                            modifier = Modifier.width(80.dp).height(6.dp),
-                                            color = MaterialTheme.colorScheme.primary,
-                                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = String.format(Locale.ENGLISH, "%.1f%%", pct),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                            Spacer(Modifier.height(16.dp))
+                            
+                            val chartColors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary,
+                                MaterialTheme.colorScheme.tertiary,
+                                MaterialTheme.colorScheme.error,
+                                androidx.compose.ui.graphics.Color(0xFFFFA000),
+                                androidx.compose.ui.graphics.Color(0xFF00B0FF),
+                                androidx.compose.ui.graphics.Color(0xFFE040FB),
+                                androidx.compose.ui.graphics.Color(0xFF1DE9B6)
+                            )
+                            
+                            val values = portfolioItems.map { (it.info.lastPrice * it.portfolio.quantity).toFloat() }
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Chart on the left
+                                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                    DonutChart(
+                                        values = values,
+                                        colors = chartColors,
+                                        centerText = "฿${String.format(Locale.ENGLISH, "%,.0f", stockValue)}",
+                                        centerSubText = "Total Equity"
+                                    )
+                                }
+                                
+                                Spacer(Modifier.width(16.dp))
+                                
+                                // Legend on the right
+                                Column(modifier = Modifier.weight(1f)) {
+                                    portfolioItems.forEachIndexed { index, item ->
+                                        val pct = if (stockValue > 0) (item.info.lastPrice * item.portfolio.quantity / stockValue) * 100 else 0.0
+                                        if (pct > 0.1) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(vertical = 4.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .background(
+                                                            color = chartColors[index % chartColors.size],
+                                                            shape = androidx.compose.foundation.shape.CircleShape
+                                                        )
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    text = item.info.symbol,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Text(
+                                                    text = String.format(Locale.ENGLISH, "%.1f%%", pct),
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -407,8 +465,8 @@ fun PortfolioScreen(
             currentBalance = cashBalance,
             onDismiss = { showCashDialog = false },
             onConfirm = { amount, isSet ->
-                if (isSet) viewModel.updateCashBalance(amount)
-                else viewModel.adjustCash(amount)
+                if (isSet) portfolioViewModel.updateCashBalance(amount)
+                else portfolioViewModel.adjustCash(amount)
                 showCashDialog = false
             }
         )
@@ -419,7 +477,7 @@ fun PortfolioScreen(
             stock = stock,
             onDismiss = { selectedStockForSell = null },
             onConfirm = { symbol, price, qty, note ->
-                viewModel.recordSell(symbol, price, qty, note)
+                portfolioViewModel.recordSell(stock, price, qty, note)
                 selectedStockForSell = null
             }
         )

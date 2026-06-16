@@ -6,27 +6,36 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TradingBackup(
-    val stocks: List<StockEntity>,
+    val portfolios: List<PortfolioEntity>,
+    val caches: List<StockCacheEntity>,
+    val signals: List<StockSignalEntity>,
     val focusList: List<FocusEntity>,
     val trades: List<TradeEntity>,
     val cashBalance: Double
 )
 
-@Entity(tableName = "stocks")
+@Entity(tableName = "portfolio")
 @Serializable
-data class StockEntity(
+data class PortfolioEntity(
+    @PrimaryKey val symbol: String,
+    val cost: Double = 0.0,
+    val quantity: Int = 0,
+    val tradePurpose: String = "SWING",
+    val buyFees: Double = 0.0,
+    val stopLoss: Double = 0.0,
+    val playbookNote: String = ""
+)
+
+@Entity(tableName = "stock_cache")
+@Serializable
+data class StockCacheEntity(
     @PrimaryKey val symbol: String,
     val name: String? = null,
     val nameTH: String? = null,
     val businessDescription: String? = null,
     val sector: String? = null,
     val industry: String? = null,
-    val cost: Double = 0.0,
-    val quantity: Int = 0,
-    val tradePurpose: String = "SWING",
-    val buyFees: Double = 0.0,
     val dividendPerShare: Double? = null,
-    // Cached dynamic data for offline-first display
     val lastPrice: Double = 0.0,
     val change: Double = 0.0,
     val percentChange: Double = 0.0,
@@ -39,17 +48,75 @@ data class StockEntity(
     val debtToEquity: Double? = null,
     val dividendYield: Double? = null,
     val dividendDate: String? = null,
+    val netProfitMargin: Double? = null,
+    val profitGrowth3Y: Double? = null,
+    val lastUpdated: String? = null
+)
+
+@Entity(tableName = "stock_signal")
+@Serializable
+data class StockSignalEntity(
+    @PrimaryKey val symbol: String,
     val rsi: Double? = null,
     val macdHist: Double? = null,
     val signalType: String? = null, // BUY, SELL, NEUTRAL
     val signalReason: String? = null,
     val signalDescription: String? = null,
-    val lastUpdated: String? = null,
-    val stopLoss: Double = 0.0,
-    val playbookNote: String = ""
+    val lastUpdated: String? = null
 )
 
-@Entity(tableName = "trade_history")
+data class StockAggregate(
+    @Embedded val portfolio: PortfolioEntity,
+    @Relation(
+        parentColumn = "symbol",
+        entityColumn = "symbol"
+    )
+    val cache: StockCacheEntity?,
+    @Relation(
+        parentColumn = "symbol",
+        entityColumn = "symbol"
+    )
+    val signal: StockSignalEntity?
+) {
+    val symbol: String get() = portfolio.symbol
+    val name: String? get() = cache?.name
+    val nameTH: String? get() = cache?.nameTH
+    val businessDescription: String? get() = cache?.businessDescription
+    val sector: String? get() = cache?.sector
+    val industry: String? get() = cache?.industry
+    val cost: Double get() = portfolio.cost
+    val quantity: Int get() = portfolio.quantity
+    val tradePurpose: String get() = portfolio.tradePurpose
+    val buyFees: Double get() = portfolio.buyFees
+    val dividendPerShare: Double? get() = cache?.dividendPerShare
+    val lastPrice: Double get() = cache?.lastPrice ?: 0.0
+    val change: Double get() = cache?.change ?: 0.0
+    val percentChange: Double get() = cache?.percentChange ?: 0.0
+    val pe: Double? get() = cache?.pe
+    val pbv: Double? get() = cache?.pbv
+    val roe: Double? get() = cache?.roe
+    val eps: Double? get() = cache?.eps
+    val netProfit: Double? get() = cache?.netProfit
+    val equity: Double? get() = cache?.equity
+    val debtToEquity: Double? get() = cache?.debtToEquity
+    val dividendYield: Double? get() = cache?.dividendYield
+    val dividendDate: String? get() = cache?.dividendDate
+    val rsi: Double? get() = signal?.rsi
+    val macdHist: Double? get() = signal?.macdHist
+    val signalType: String? get() = signal?.signalType
+    val signalReason: String? get() = signal?.signalReason
+    val signalDescription: String? get() = signal?.signalDescription
+    val lastUpdated: String? get() = cache?.lastUpdated ?: signal?.lastUpdated
+    val stopLoss: Double get() = portfolio.stopLoss
+    val playbookNote: String get() = portfolio.playbookNote
+    val netProfitMargin: Double? get() = cache?.netProfitMargin
+    val profitGrowth3Y: Double? get() = cache?.profitGrowth3Y
+}
+
+@Entity(
+    tableName = "trade_history",
+    indices = [Index(value = ["dateMillis"])]
+)
 @Serializable
 data class TradeEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -81,26 +148,65 @@ data class FocusEntity(
 
 @Dao
 interface StockDao {
-    @Query("SELECT * FROM stocks")
-    fun getAllStocks(): Flow<List<StockEntity>>
+    @Transaction
+    @Query("SELECT * FROM portfolio")
+    fun getAllStocks(): Flow<List<StockAggregate>>
 
-    @Query("SELECT * FROM stocks")
-    suspend fun getAllStocksSync(): List<StockEntity>
+    @Transaction
+    @Query("SELECT * FROM portfolio")
+    suspend fun getAllStocksSync(): List<StockAggregate>
 
-    @Query("SELECT * FROM stocks WHERE symbol = :symbol")
-    suspend fun getStockBySymbol(symbol: String): StockEntity?
+    @Transaction
+    @Query("SELECT * FROM portfolio WHERE symbol = :symbol")
+    suspend fun getStockBySymbol(symbol: String): StockAggregate?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertStock(stock: StockEntity)
+    suspend fun insertPortfolio(portfolio: PortfolioEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertStocks(stocks: List<StockEntity>)
+    suspend fun insertCache(cache: StockCacheEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSignal(signal: StockSignalEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPortfolios(portfolios: List<PortfolioEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCaches(caches: List<StockCacheEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSignals(signals: List<StockSignalEntity>)
 
     @Delete
-    suspend fun deleteStock(stock: StockEntity)
+    suspend fun deletePortfolio(portfolio: PortfolioEntity)
 
-    @Query("DELETE FROM stocks WHERE quantity = 0 AND cost = 0.0")
+    @Delete
+    suspend fun deleteCache(cache: StockCacheEntity)
+
+    @Delete
+    suspend fun deleteSignal(signal: StockSignalEntity)
+
+    @Query("DELETE FROM portfolio WHERE quantity = 0 AND cost = 0.0")
     suspend fun deleteWatchlistStocks()
+    
+    @Query("SELECT * FROM portfolio")
+    suspend fun getAllPortfoliosSync(): List<PortfolioEntity>
+    
+    @Query("SELECT * FROM stock_cache")
+    suspend fun getAllCachesSync(): List<StockCacheEntity>
+    
+    @Query("SELECT * FROM stock_signal")
+    suspend fun getAllSignalsSync(): List<StockSignalEntity>
+    
+    @Query("SELECT * FROM portfolio WHERE symbol = :symbol")
+    suspend fun getPortfolioBySymbol(symbol: String): PortfolioEntity?
+    
+    @Query("SELECT * FROM stock_cache WHERE symbol = :symbol")
+    suspend fun getCacheBySymbol(symbol: String): StockCacheEntity?
+    
+    @Query("SELECT * FROM stock_signal WHERE symbol = :symbol")
+    suspend fun getSignalBySymbol(symbol: String): StockSignalEntity?
 }
 
 @Dao
@@ -131,6 +237,9 @@ interface CashDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun updateCash(cash: CashEntity)
+
+    @Query("UPDATE cash SET balance = balance + :amount WHERE id = 1")
+    suspend fun adjustCashBy(amount: Double)
 }
 
 @Dao
@@ -153,7 +262,7 @@ interface FocusDao {
     @Query("SELECT * FROM focus_list WHERE symbol = :symbol")
     suspend fun getFocusStockBySymbol(symbol: String): FocusEntity?
 
-    @Query("DELETE FROM focus_list WHERE symbol NOT IN (SELECT symbol FROM stocks WHERE quantity > 0)")
+    @Query("DELETE FROM focus_list WHERE symbol NOT IN (SELECT symbol FROM portfolio WHERE quantity > 0)")
     suspend fun clearFocusList()
 }
 
@@ -185,7 +294,18 @@ interface ChecklistDao {
     suspend fun insertChecklist(checklist: ChecklistEntity)
 }
 
-@Database(entities = [StockEntity::class, TradeEntity::class, CashEntity::class, FocusEntity::class, ChecklistEntity::class], version = 16)
+@Database(
+    entities = [
+        PortfolioEntity::class, 
+        StockCacheEntity::class, 
+        StockSignalEntity::class, 
+        TradeEntity::class, 
+        CashEntity::class, 
+        FocusEntity::class, 
+        ChecklistEntity::class
+    ], 
+    version = 19
+)
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
     abstract fun tradeDao(): TradeDao
@@ -238,6 +358,97 @@ abstract class StockDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_16_17 = object : androidx.room.migration.Migration(16, 17) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stocks ADD COLUMN netProfitMargin REAL")
+                db.execSQL("ALTER TABLE stocks ADD COLUMN profitGrowth3Y REAL")
+            }
+        }
+
+        val MIGRATION_17_18 = object : androidx.room.migration.Migration(17, 18) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_trade_history_dateMillis ON trade_history(dateMillis)")
+            }
+        }
+
+        val MIGRATION_18_19 = object : androidx.room.migration.Migration(18, 19) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // Create new tables
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `portfolio` (
+                        `symbol` TEXT NOT NULL, 
+                        `cost` REAL NOT NULL, 
+                        `quantity` INTEGER NOT NULL, 
+                        `tradePurpose` TEXT NOT NULL, 
+                        `buyFees` REAL NOT NULL, 
+                        `stopLoss` REAL NOT NULL, 
+                        `playbookNote` TEXT NOT NULL, 
+                        PRIMARY KEY(`symbol`)
+                    )
+                """.trimIndent())
+                
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `stock_cache` (
+                        `symbol` TEXT NOT NULL, 
+                        `name` TEXT, 
+                        `nameTH` TEXT, 
+                        `businessDescription` TEXT, 
+                        `sector` TEXT, 
+                        `industry` TEXT, 
+                        `dividendPerShare` REAL, 
+                        `lastPrice` REAL NOT NULL, 
+                        `change` REAL NOT NULL, 
+                        `percentChange` REAL NOT NULL, 
+                        `pe` REAL, 
+                        `pbv` REAL, 
+                        `roe` REAL, 
+                        `eps` REAL, 
+                        `netProfit` REAL, 
+                        `equity` REAL, 
+                        `debtToEquity` REAL, 
+                        `dividendYield` REAL, 
+                        `dividendDate` TEXT, 
+                        `netProfitMargin` REAL, 
+                        `profitGrowth3Y` REAL, 
+                        `lastUpdated` TEXT, 
+                        PRIMARY KEY(`symbol`)
+                    )
+                """.trimIndent())
+                
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `stock_signal` (
+                        `symbol` TEXT NOT NULL, 
+                        `rsi` REAL, 
+                        `macdHist` REAL, 
+                        `signalType` TEXT, 
+                        `signalReason` TEXT, 
+                        `signalDescription` TEXT, 
+                        `lastUpdated` TEXT, 
+                        PRIMARY KEY(`symbol`)
+                    )
+                """.trimIndent())
+
+                // Copy data from old stocks table
+                db.execSQL("""
+                    INSERT INTO portfolio (symbol, cost, quantity, tradePurpose, buyFees, stopLoss, playbookNote)
+                    SELECT symbol, cost, quantity, tradePurpose, buyFees, stopLoss, playbookNote FROM stocks
+                """.trimIndent())
+
+                db.execSQL("""
+                    INSERT INTO stock_cache (symbol, name, nameTH, businessDescription, sector, industry, dividendPerShare, lastPrice, change, percentChange, pe, pbv, roe, eps, netProfit, equity, debtToEquity, dividendYield, dividendDate, netProfitMargin, profitGrowth3Y, lastUpdated)
+                    SELECT symbol, name, nameTH, businessDescription, sector, industry, dividendPerShare, lastPrice, change, percentChange, pe, pbv, roe, eps, netProfit, equity, debtToEquity, dividendYield, dividendDate, netProfitMargin, profitGrowth3Y, lastUpdated FROM stocks
+                """.trimIndent())
+
+                db.execSQL("""
+                    INSERT INTO stock_signal (symbol, rsi, macdHist, signalType, signalReason, signalDescription, lastUpdated)
+                    SELECT symbol, rsi, macdHist, signalType, signalReason, signalDescription, lastUpdated FROM stocks
+                """.trimIndent())
+
+                // Drop old stocks table
+                db.execSQL("DROP TABLE stocks")
+            }
+        }
+
         fun getDatabase(context: android.content.Context): StockDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -245,7 +456,11 @@ abstract class StockDatabase : RoomDatabase() {
                     StockDatabase::class.java,
                     "stock_database"
                 )
-                .addMigrations(MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+                .addMigrations(
+                    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, 
+                    MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
+                    MIGRATION_18_19
+                )
                 .build()
                 INSTANCE = instance
                 instance

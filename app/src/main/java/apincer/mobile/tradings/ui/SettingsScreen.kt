@@ -67,6 +67,7 @@ import apincer.mobile.tradings.util.NotificationHelper
 @Composable
 fun SettingsScreen(
     viewModel: StockViewModel,
+    settingsViewModel: SettingsViewModel,
     showSnackbar: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -125,7 +126,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             SectionContent(title = stringResource(R.string.section_dividend_goal), icon = Icons.Default.Savings) {
-                val targetDividend by viewModel.targetMonthlyDividend.collectAsState()
+                val targetDividend by settingsViewModel.targetMonthlyDividend.collectAsState()
                 var editingTarget by remember(targetDividend) { mutableStateOf(targetDividend.toInt().toString()) }
 
                 OutlinedTextField(
@@ -133,7 +134,7 @@ fun SettingsScreen(
                     onValueChange = { 
                         editingTarget = it
                         it.toDoubleOrNull()?.let { amount ->
-                            viewModel.updateTargetMonthlyDividend(amount)
+                            settingsViewModel.updateTargetMonthlyDividend(amount)
                         }
                     },
                     label = { Text(stringResource(R.string.label_target_monthly_dividend)) },
@@ -145,7 +146,7 @@ fun SettingsScreen(
             }
 
             SectionContent(title = stringResource(R.string.section_price_alerts), icon = Icons.Default.NotificationsActive) {
-                val alertThreshold by viewModel.priceAlertThreshold.collectAsState()
+                val alertThreshold by settingsViewModel.priceAlertThreshold.collectAsState()
                 var editingThreshold by remember(alertThreshold) { mutableStateOf(alertThreshold.toInt().toString()) }
 
                 OutlinedTextField(
@@ -153,7 +154,7 @@ fun SettingsScreen(
                     onValueChange = { 
                         editingThreshold = it
                         it.toDoubleOrNull()?.let { percent ->
-                            viewModel.updatePriceAlertThreshold(percent)
+                            settingsViewModel.updatePriceAlertThreshold(percent)
                         }
                     },
                     label = { Text(stringResource(R.string.label_alert_threshold_percent)) },
@@ -194,16 +195,16 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val dividendWindow by viewModel.dividendAlertWindow.collectAsState()
+                val dividendWindow by settingsViewModel.dividendAlertWindow.collectAsState()
                 var editingWindow by remember(dividendWindow) { mutableStateOf(dividendWindow.toString()) }
-                val isEndYear by viewModel.isDividendAlertEndYear.collectAsState()
+                val isEndYear by settingsViewModel.isDividendAlertEndYear.collectAsState()
 
                 OutlinedTextField(
                     value = editingWindow,
                     onValueChange = { 
                         editingWindow = it
                         it.toIntOrNull()?.let { days ->
-                            viewModel.updateDividendAlertWindow(days)
+                            settingsViewModel.updateDividendAlertWindow(days)
                         }
                     },
                     label = { Text(stringResource(R.string.label_dividend_alert_window)) },
@@ -220,7 +221,7 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(stringResource(R.string.label_dividend_alert_end_year), style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = isEndYear, onCheckedChange = { viewModel.toggleDividendAlertEndYear() })
+                    Switch(checked = isEndYear, onCheckedChange = { settingsViewModel.toggleDividendAlertEndYear() })
                 }
             }
             
@@ -237,14 +238,14 @@ fun SettingsScreen(
             }
 
             SectionContent(title = "Risk Management", icon = Icons.Default.Warning) {
-                val maxRiskPerTrade by viewModel.maxRiskPerTrade.collectAsState()
+                val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
                 var editingMaxRisk by remember(maxRiskPerTrade) { mutableStateOf(maxRiskPerTrade.toString()) }
 
                 OutlinedTextField(
                     value = editingMaxRisk,
                     onValueChange = { 
                         editingMaxRisk = it
-                        it.toDoubleOrNull()?.let { percent -> viewModel.updateMaxRiskPerTrade(percent) }
+                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxRiskPerTrade(percent) }
                     },
                     label = { Text("Max Risk Per Trade") },
                     modifier = Modifier.fillMaxWidth(),
@@ -261,14 +262,14 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val maxOpenExposure by viewModel.maxOpenExposure.collectAsState()
+                val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
                 var editingMaxOpen by remember(maxOpenExposure) { mutableStateOf(maxOpenExposure.toString()) }
 
                 OutlinedTextField(
                     value = editingMaxOpen,
                     onValueChange = { 
                         editingMaxOpen = it
-                        it.toDoubleOrNull()?.let { percent -> viewModel.updateMaxOpenExposure(percent) }
+                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxOpenExposure(percent) }
                     },
                     label = { Text("Max Open Risk Exposure") },
                     modifier = Modifier.fillMaxWidth(),
@@ -285,14 +286,14 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val maxAllocation by viewModel.maxPortfolioAllocation.collectAsState()
+                val maxAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
                 var editingMaxAlloc by remember(maxAllocation) { mutableStateOf(maxAllocation.toString()) }
 
                 OutlinedTextField(
                     value = editingMaxAlloc,
                     onValueChange = { 
                         editingMaxAlloc = it
-                        it.toDoubleOrNull()?.let { percent -> viewModel.updateMaxPortfolioAllocation(percent) }
+                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxPortfolioAllocation(percent) }
                     },
                     label = { Text("Max Portfolio Allocation per Asset") },
                     modifier = Modifier.fillMaxWidth(),
@@ -309,14 +310,14 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val minRR by viewModel.minRiskRewardRatio.collectAsState()
+                val minRR by settingsViewModel.minRiskRewardRatio.collectAsState()
                 var editingMinRR by remember(minRR) { mutableStateOf(minRR.toString()) }
 
                 OutlinedTextField(
                     value = editingMinRR,
                     onValueChange = { 
                         editingMinRR = it
-                        it.toDoubleOrNull()?.let { ratio -> viewModel.updateMinRiskRewardRatio(ratio) }
+                        it.toDoubleOrNull()?.let { ratio -> settingsViewModel.updateMinRiskRewardRatio(ratio) }
                     },
                     label = { Text("Minimum Risk/Reward Ratio") },
                     modifier = Modifier.fillMaxWidth(),
@@ -332,7 +333,7 @@ fun SettingsScreen(
             }
 
             SectionContent(title = "App Preferences", icon = Icons.Default.ColorLens) {
-                val isPrivacyMode by viewModel.isPrivacyMode.collectAsState()
+                val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -342,7 +343,7 @@ fun SettingsScreen(
                         Text("Privacy Mode", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         Text("Mask sensitive value counts and portfolio totals", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = isPrivacyMode, onCheckedChange = { viewModel.togglePrivacyMode() })
+                    Switch(checked = isPrivacyMode, onCheckedChange = { settingsViewModel.togglePrivacyMode() })
                 }
             }
 

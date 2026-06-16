@@ -25,11 +25,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
 
 class MainActivity : ComponentActivity() {
+    private var openSymbol: String? = null
+
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (!granted) {
-            // Open system settings if denied
             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                 putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
             }
@@ -40,6 +41,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        openSymbol = intent?.getStringExtra("OPEN_SYMBOL")
+
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
                 android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
@@ -49,16 +52,9 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        // 1. Initialize Notification Channel
         NotificationHelper.createNotificationChannel(this)
-
-        // 2. Request Permissions (Android 13+)
         checkNotificationPermission()
-
-        // 3. Request battery optimization exemption
         requestBatteryOptimizationExemption()
-
-        // 4. Start foreground service for reliable alerts
         StockAlertService.start(this)
 
         setContent {
@@ -67,7 +63,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    StockScreen()
+                    StockScreen(openSymbol = openSymbol)
                 }
             }
         }
@@ -91,7 +87,6 @@ class MainActivity : ComponentActivity() {
                     }
                     startActivity(intent)
                 } catch (e: Exception) {
-                    // Fallback: open battery optimization settings
                     try {
                         val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                         startActivity(intent)

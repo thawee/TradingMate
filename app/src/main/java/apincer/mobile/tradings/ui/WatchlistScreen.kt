@@ -22,6 +22,7 @@ import java.util.Locale
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,8 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import apincer.mobile.tradings.R
-import apincer.mobile.tradings.data.StockEntity
+import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.domain.IndicatorSignal
 
 enum class WatchlistSortOrder(val label: String) {
@@ -52,22 +55,31 @@ enum class WatchlistFilter(val label: String) {
 @Composable
 fun WatchlistScreen(
     viewModel: StockViewModel,
+    settingsViewModel: SettingsViewModel,
+    watchlistViewModel: WatchlistViewModel = viewModel(),
     onSelectStock: (String) -> Unit,
     showSnackbar: (String) -> Unit
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val isPrivacyMode by viewModel.isPrivacyMode.collectAsState()
+    val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
     var showAddDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
-    var activeFilter by remember { mutableStateOf(WatchlistFilter.ALL) }
-    var sortOrder by remember { mutableStateOf(WatchlistSortOrder.SYMBOL) }
-    var isSearching by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    var isSortAscending by remember { mutableStateOf(false) }
+    var activeFilter by rememberSaveable { mutableStateOf(WatchlistFilter.ALL) }
+    var sortOrder by rememberSaveable { mutableStateOf(WatchlistSortOrder.SYMBOL) }
+    var isSearching by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var isSortAscending by rememberSaveable { mutableStateOf(false) }
 
-    val processedList = remember(watchlist, activeFilter, sortOrder, searchQuery, isSortAscending) {
+    var debouncedSearchQuery by remember { mutableStateOf(searchQuery) }
+
+    LaunchedEffect(searchQuery) {
+        kotlinx.coroutines.delay(300) // 300ms debounce
+        debouncedSearchQuery = searchQuery
+    }
+
+    val processedList = remember(watchlist, activeFilter, sortOrder, debouncedSearchQuery, isSortAscending) {
         var list = when (activeFilter) {
             WatchlistFilter.ALL -> watchlist
             WatchlistFilter.FOCUS -> watchlist.filter { it.isFocused }
@@ -75,8 +87,8 @@ fun WatchlistScreen(
             WatchlistFilter.BUY_SIGNAL -> watchlist.filter { it.signal?.type == IndicatorSignal.BUY || it.signal?.type == IndicatorSignal.POTENTIAL }
         }
 
-        if (searchQuery.isNotBlank()) {
-            val q = searchQuery.trim().uppercase(Locale.ROOT)
+        if (debouncedSearchQuery.isNotBlank()) {
+            val q = debouncedSearchQuery.trim().uppercase(Locale.ROOT)
             list = list.filter { 
                 it.info.symbol.contains(q) || (it.info.name?.uppercase(Locale.ROOT)?.contains(q) == true)
             }
@@ -267,7 +279,7 @@ fun WatchlistScreen(
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        Text("Add Stock")
+                                        Text(stringResource(R.string.title_add_stock))
                                     }
                                 } else {
                                     Text(
@@ -309,7 +321,7 @@ fun WatchlistScreen(
                 showSnackbar("Added $symbol to watchlist")
                 showAddDialog = false
             },
-            viewModel = viewModel
+            watchlistViewModel = watchlistViewModel
         )
     }
 
@@ -317,7 +329,9 @@ fun WatchlistScreen(
         ImportCollectionDialog(
             onDismiss = { showImportDialog = false },
             onImport = { category ->
-                viewModel.importFromCollection(category)
+                watchlistViewModel.importFromCollection(category) {
+                    viewModel.refreshWatchlistInfo()
+                }
                 showSnackbar("Importing $category collection...")
                 showImportDialog = false
             },
@@ -332,35 +346,7 @@ fun ImportCollectionDialog(
     onImport: (String) -> Unit,
     watchlistSymbols: Set<String>
 ) {
-    val collections = mapOf(
-        "SET50" to listOf(
-            "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BGRIM", "BH",
-            "CBG", "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO",
-            "GLOBAL", "GPSC", "GULF", "GUNKUL", "HMPRO", "INTUCH", "IVL", "JMART", "JMT", "KBANK",
-            "KCE", "KKP", "KTB", "KTC", "LH", "MINT", "MTC", "OR", "OSP", "PTT",
-            "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TOP",
-            "TRUE", "TTB", "TU", "WHA"
-        ),
-        "SET100" to listOf(
-            "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BGRIM", "BH",
-            "CBG", "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO",
-            "GLOBAL", "GPSC", "GULF", "GUNKUL", "HMPRO", "INTUCH", "IVL", "JMART", "JMT", "KBANK",
-            "KCE", "KKP", "KTB", "KTC", "LH", "MINT", "MTC", "OR", "OSP", "PTT",
-            "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TOP",
-            "TRUE", "TTB", "TU", "WHA"
-        ),
-        "SETHD" to listOf(
-            "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
-            "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
-        ),
-        "DIVIDEND" to listOf(
-            "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
-            "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
-        ),
-        "BLUECHIP" to listOf(
-            "AOT", "BBL", "BDMS", "CPALL", "DELTA", "GULF", "KBANK", "PTT", "PTTEP", "SCB", "SCC"
-        )
-    )
+    val collections = apincer.mobile.tradings.data.SetScraper.FALLBACK_COLLECTIONS
 
     GlassDialog(
         onDismissRequest = onDismiss,
@@ -394,7 +380,7 @@ fun ImportCollectionDialog(
                             if (categorySymbols.isNotEmpty()) {
                                 Text(
                                     text = if (isFullyImported) "All stocks imported" else "$importedCount/${categorySymbols.size} stocks imported",
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
                             }
@@ -415,10 +401,10 @@ fun ImportCollectionDialog(
 fun AddStockDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
-    viewModel: StockViewModel
+    watchlistViewModel: WatchlistViewModel
 ) {
     var query by remember { mutableStateOf("") }
-    val searchResults by viewModel.searchResults.collectAsState()
+    val searchResults by watchlistViewModel.searchResults.collectAsState()
 
     GlassDialog(
         onDismissRequest = onDismiss,
@@ -445,7 +431,7 @@ fun AddStockDialog(
                 value = query,
                 onValueChange = { 
                     query = it
-                    viewModel.searchStocks(it)
+                    watchlistViewModel.searchStocks(it)
                 },
                 label = { Text(stringResource(R.string.label_search_stock)) },
                 modifier = Modifier.fillMaxWidth(),

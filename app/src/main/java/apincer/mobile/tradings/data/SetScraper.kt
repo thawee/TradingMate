@@ -69,8 +69,42 @@ object SetScraper {
     private const val YAHOO_FINANCE_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
     private const val YAHOO_SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
     private const val YAHOO_QUOTE_URL = "https://query1.finance.yahoo.com/v7/finance/quote"
-    private const val USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/Consumer-Agent"
     private const val SEC_CH_UA = "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\""
+
+    val FALLBACK_COLLECTIONS = mapOf(
+        "SET50" to listOf(
+            "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BGRIM", "BH",
+            "CBG", "CENTEL", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO", "GLOBAL",
+            "GPSC", "GULF", "HMPRO", "INTUCH", "ITC", "IVL", "KBANK", "KCE", "KTB", "KTC",
+            "LH", "MINT", "MTC", "OR", "OSP", "PTT", "PTTEP", "PTTGC", "RATCH", "SAWAD",
+            "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TOP", "TRUE", "TTB", "TU", "WHA"
+        ),
+        "SET100" to listOf(
+            "ADVANC", "AMATA", "AOT", "AP", "AWC", "BA", "BAM", "BANPU", "BBL", "BCP",
+            "BCPG", "BDMS", "BEM", "BGRIM", "BH", "BJC", "BLA", "BPP", "BTG", "BYD",
+            "CBG", "CENTEL", "CHG", "CK", "CKP", "COM7", "CPALL", "CPF", "CPN", "CRC",
+            "DELTA", "DOHOME", "EA", "EGCO", "ERW", "FORTH", "GLOBAL", "GPSC", "GULF", "HANA",
+            "HMPRO", "ICHI", "INTUCH", "ITC", "IVL", "JMART", "JMT", "KAMART", "KBANK", "KCE",
+            "KEX", "KKP", "KTB", "KTC", "LH", "MEGA", "MINT", "MOSHI", "MTC", "NEX",
+            "OR", "ORI", "OSP", "PLANB", "PRM", "PSL", "PTG", "PTT", "PTTEP", "PTTGC",
+            "QH", "RATCH", "RCL", "RS", "SABINA", "SAK", "SAPPE", "SAWAD", "SCB", "SCC",
+            "SCGP", "SINGER", "SIRI", "SJWD", "SKY", "SPALI", "SPRC", "STA", "STEC", "SUPER",
+            "TASCO", "TCAP", "THG", "TIDLOR", "TISCO", "TKN", "TOP", "TRUE", "TTB", "TU", "WHA"
+        ),
+        "SETHD" to listOf(
+            "ADVANC", "AP", "BAM", "BANPU", "BBL", "BCP", "BCPG", "EGCO", "INTUCH", "KBANK",
+            "KKP", "KTB", "LH", "ORI", "PSH", "PTG", "PTT", "PTTEP", "QH", "RATCH",
+            "SCB", "SCC", "SIRI", "SPALI", "TASCO", "TCAP", "TISCO", "TOP", "TTB", "TU"
+        ),
+        "DIVIDEND" to listOf(
+            "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
+            "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
+        ),
+        "BLUECHIP" to listOf(
+            "AOT", "BBL", "BDMS", "CPALL", "DELTA", "GULF", "KBANK", "PTT", "PTTEP", "SCB", "SCC"
+        )
+    )
 
     private val client = OkHttpClient.Builder()
         .cookieJar(object : CookieJar {
@@ -94,6 +128,25 @@ object SetScraper {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
+
+    // Retry mechanism for network resilience
+    private fun <T> withRetry(maxRetries: Int = 3, initialDelayMs: Long = 1000, block: () -> T): T {
+        var currentDelay = initialDelayMs
+        var lastException: Exception? = null
+        for (attempt in 1..maxRetries) {
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastException = e
+                Log.w(TAG, "Network attempt $attempt failed, retrying in ${currentDelay}ms...", e)
+                if (attempt < maxRetries) {
+                    Thread.sleep(currentDelay)
+                    currentDelay *= 2
+                }
+            }
+        }
+        throw lastException ?: Exception("Max retries exceeded")
+    }
 
     private fun ensureSession(url: String) {
         try {
@@ -302,64 +355,71 @@ object SetScraper {
 
     private fun fetchJson(url: String, symbol: String, referer: String? = null): Any? {
         return try {
-            val requestReferer = referer ?: "$SET_BASE_URL/th/market/product/stock/quote/$symbol/factsheet"
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", USER_AGENT)
-                .header("Host", "www.set.or.th")
-                .header("Origin", SET_BASE_URL)
-                .header("Referer", requestReferer)
-                .header("Accept", "application/json, text/plain, */*")
-                .header("Accept-Language", "en-US,en;q=0.9,th;q=0.8")
-                .header("Sec-Ch-Ua", SEC_CH_UA)
-                .header("Sec-Ch-Ua-Mobile", "?0")
-                .header("Sec-Ch-Ua-Platform", "\"macOS\"")
-                .header("X-Requested-With", "XMLHttpRequest")
-                .header("Sec-Fetch-Site", "same-origin")
-                .header("Sec-Fetch-Mode", "cors")
-                .header("Sec-Fetch-Dest", "empty")
-                .build()
-            
-            client.newCall(request).execute().use { response ->
-                val body = response.body?.string()
-                Log.d(TAG, "SET API Response [$url]: Code=${response.code}, Length=${body?.length ?: 0}")
-                if (!response.isSuccessful || body.isNullOrBlank()) return null
-                JSONTokener(body).nextValue()
+            withRetry {
+                val requestReferer = referer ?: "$SET_BASE_URL/th/market/product/stock/quote/$symbol/factsheet"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Host", "www.set.or.th")
+                    .header("Origin", SET_BASE_URL)
+                    .header("Referer", requestReferer)
+                    .header("Accept", "application/json, text/plain, */*")
+                    .header("Accept-Language", "en-US,en;q=0.9,th;q=0.8")
+                    .header("Sec-Ch-Ua", SEC_CH_UA)
+                    .header("Sec-Ch-Ua-Mobile", "?0")
+                    .header("Sec-Ch-Ua-Platform", "\"macOS\"")
+                    .header("X-Requested-With", "XMLHttpRequest")
+                    .header("Sec-Fetch-Site", "same-origin")
+                    .header("Sec-Fetch-Mode", "cors")
+                    .header("Sec-Fetch-Dest", "empty")
+                    .build()
+                
+                client.newCall(request).execute().use { response ->
+                    val body = response.body?.string()
+                    Log.d(TAG, "SET API Response [$url]: Code=${response.code}, Length=${body?.length ?: 0}")
+                    if (!response.isSuccessful) throw java.io.IOException("HTTP error ${response.code}")
+                    if (body.isNullOrBlank()) return@use null
+                    JSONTokener(body).nextValue()
+                }
             }
         } catch (e: Exception) { 
-            Log.e(TAG, "fetchJson failed for $url", e)
+            Log.e(TAG, "fetchJson failed for $url after retries", e)
             null 
         }
     }
 
     fun fetchBatchQuotes(symbols: List<String>): List<ScrapedStockInfo> {
         return try {
-            val yahooSymbols = symbols.joinToString(",") { "${it.uppercase()}.BK" }
-            val url = "$YAHOO_QUOTE_URL?symbols=$yahooSymbols"
-            Log.v(TAG, "Fetching Batch Quotes: $url")
-            val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute().body()
-            val json = JSONObject(response)
-            val results = json.getJSONObject("quoteResponse").getJSONArray("result")
-            
-            val infoList = mutableListOf<ScrapedStockInfo>()
-            for (i in 0 until results.length()) {
-                val quote = results.getJSONObject(i)
-                val symbol = quote.getString("symbol").replace(".BK", "")
-                infoList.add(ScrapedStockInfo(
-                    symbol = symbol,
-                    name = quote.optString("longName", quote.optString("shortName", null)),
-                    lastPrice = quote.optDouble("regularMarketPrice", 0.0),
-                    change = quote.optDouble("regularMarketChange", 0.0),
-                    percentChange = quote.optDouble("regularMarketChangePercent", 0.0),
-                    pe = quote.optDouble("trailingPE", 0.0).takeIf { it > 0 },
-                    pbv = quote.optDouble("priceToBook", 0.0).takeIf { it > 0 },
-                    dividendYield = quote.optDouble("trailingAnnualDividendYield", 0.0) * 100, // Yahoo returns decimal
-                    lastUpdated = getCurrentTimestamp()
-                ))
+            withRetry {
+                val yahooSymbols = symbols.joinToString(",") { "${it.uppercase()}.BK" }
+                val url = "$YAHOO_QUOTE_URL?symbols=$yahooSymbols"
+                Log.v(TAG, "Fetching Batch Quotes: $url")
+                val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute()
+                if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
+                
+                val json = JSONObject(response.body())
+                val results = json.getJSONObject("quoteResponse").getJSONArray("result")
+                
+                val infoList = mutableListOf<ScrapedStockInfo>()
+                for (i in 0 until results.length()) {
+                    val quote = results.getJSONObject(i)
+                    val symbol = quote.getString("symbol").replace(".BK", "")
+                    infoList.add(ScrapedStockInfo(
+                        symbol = symbol,
+                        name = quote.optString("longName", quote.optString("shortName", null)),
+                        lastPrice = quote.optDouble("regularMarketPrice", 0.0),
+                        change = quote.optDouble("regularMarketChange", 0.0),
+                        percentChange = quote.optDouble("regularMarketChangePercent", 0.0),
+                        pe = quote.optDouble("trailingPE", 0.0).takeIf { it > 0 },
+                        pbv = quote.optDouble("priceToBook", 0.0).takeIf { it > 0 },
+                        dividendYield = quote.optDouble("trailingAnnualDividendYield", 0.0) * 100, // Yahoo returns decimal
+                        lastUpdated = getCurrentTimestamp()
+                    ))
+                }
+                infoList
             }
-            infoList
         } catch (e: Exception) {
-            Log.e(TAG, "Batch Quote Error", e)
+            Log.e(TAG, "Batch Quote Error after retries", e)
             emptyList()
         }
     }
@@ -407,43 +467,84 @@ object SetScraper {
 
     private fun fetchStockNameFallback(symbol: String): String? {
         return try {
-            val url = "https://www.set.or.th/th/market/product/stock/quote/${symbol.uppercase()}/overview"
-            val doc = Jsoup.connect(url).userAgent(USER_AGENT).timeout(10000).get()
-            val name = doc.select(".quote-symbol").first()?.parent()?.select("div")?.first()?.text()
-                ?: doc.select("h1").first()?.text()?.substringAfter(" - ")
-            cleanName(name)
-        } catch (e: Exception) { null }
+            withRetry(maxRetries = 2) {
+                val url = "https://www.set.or.th/th/market/product/stock/quote/${symbol.uppercase()}/overview"
+                val response = Jsoup.connect(url).userAgent(USER_AGENT).timeout(10000).execute()
+                if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
+                val doc = response.parse()
+                
+                val nameElement = doc.selectFirst("h1.text-white.mb-1")
+                val nameText = nameElement?.text()?.trim()
+                if (nameText.isNullOrBlank() || nameText == symbol.uppercase()) {
+                    null
+                } else {
+                    nameText
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "fetchStockNameFallback error for $symbol", e)
+            null
+        }
     }
 
     fun fetchHistoricalPrices(symbol: String): List<ScrapedHistoricalPrice> {
-        val url = "$YAHOO_FINANCE_URL/${symbol.uppercase()}.BK?range=1y&interval=1d"
-        try {
-            val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute().body()
-            val prices = mutableListOf<ScrapedHistoricalPrice>()
-            val json = JSONObject(response)
-            val result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0)
-            val timestamps = result.getJSONArray("timestamp")
-            val indicators = result.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0)
-            val closePrices = indicators.getJSONArray("close")
-            val volumes = indicators.getJSONArray("volume")
-
-            for (i in 0 until timestamps.length()) {
-                val timestamp = timestamps.getLong(i)
-                val close = if (closePrices.isNull(i)) null else closePrices.getDouble(i)
-                val volume = if (volumes.isNull(i)) 0L else volumes.getLong(i)
-                if (close != null) {
-                    val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(timestamp * 1000))
-                    prices.add(ScrapedHistoricalPrice(date, close, volume))
+        return try {
+            withRetry {
+                val symbolBK = "${symbol.uppercase()}.BK"
+                val endDate = System.currentTimeMillis() / 1000
+                // Fetch roughly 1 year of daily data (31536000 seconds)
+                val startDate = endDate - 31536000
+                
+                val url = "$YAHOO_FINANCE_URL/$symbolBK?period1=$startDate&period2=$endDate&interval=1d&events=history"
+                Log.d(TAG, "Fetching Historical Prices: $url")
+                
+                val response = Jsoup.connect(url)
+                    .userAgent(USER_AGENT)
+                    .ignoreContentType(true)
+                    .timeout(15000)
+                    .execute()
+                    
+                if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
+                
+                val json = JSONObject(response.body())
+                val result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0)
+                
+                if (!result.has("timestamp")) return@withRetry emptyList()
+                
+                val timestamps = result.getJSONArray("timestamp")
+                val indicators = result.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0)
+                val closes = indicators.getJSONArray("close")
+                val volumes = indicators.getJSONArray("volume")
+                
+                val prices = mutableListOf<ScrapedHistoricalPrice>()
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                
+                for (i in 0 until timestamps.length()) {
+                    if (closes.isNull(i)) continue
+                    val ts = timestamps.getLong(i) * 1000
+                    val close = closes.getDouble(i)
+                    val volume = if (!volumes.isNull(i)) volumes.getLong(i) else 0L
+                    
+                    prices.add(ScrapedHistoricalPrice(
+                        date = dateFormat.format(Date(ts)),
+                        close = close,
+                        volume = volume
+                    ))
                 }
+                
+                prices
             }
-            return prices
-        } catch (e: Exception) { return emptyList() }
+        } catch (e: Exception) {
+            Log.e(TAG, "Historical Price Fetch Error after retries", e)
+            emptyList()
+        }
     }
 
     fun fetchTechnicalIndicators(symbol: String): apincer.mobile.tradings.domain.Indicators {
         val history = fetchHistoricalPrices(symbol)
-        val prices = history.map { it.close }.reversed()
-        val volumes = history.map { it.volume }.reversed()
+        // Prices are in chronological order (oldest→newest) as required by TA functions
+        val prices = history.map { it.close }
+        val volumes = history.map { it.volume }
 
         val sma50 = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSMA(prices, 50)
         val sma200 = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSMA(prices, 200)
@@ -504,37 +605,20 @@ object SetScraper {
     }
 
     fun getCuratedCollection(category: String): List<String> {
-        val dividendStars = listOf(
-            "ADVANC", "BBL", "CPALL", "EGCO", "INTUCH", "KBANK", "KTB", "LH", "PTT", 
-            "PTTEP", "RATCH", "SCB", "SCC", "TISCO", "TOP", "TU", "WHA"
-        )
         return when (category.uppercase()) {
-            "DIVIDEND" -> dividendStars
-            "BLUECHIP" -> listOf(
-                "AOT", "BBL", "BDMS", "CPALL", "DELTA", "GULF", "KBANK", "PTT", "PTTEP", "SCB", "SCC"
-            )
+            "DIVIDEND" -> FALLBACK_COLLECTIONS["DIVIDEND"] ?: emptyList()
+            "BLUECHIP" -> FALLBACK_COLLECTIONS["BLUECHIP"] ?: emptyList()
             "SET50" -> {
                 val dynamicList = fetchIndexComposition("SET50")
-                if (dynamicList.isNotEmpty()) {
-                    dynamicList
-                } else {
-                    listOf(
-                        "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BGRIM", "BH",
-                        "CBG", "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO",
-                        "GLOBAL", "GPSC", "GULF", "GUNKUL", "HMPRO", "INTUCH", "IVL", "JMART", "JMT", "KBANK",
-                        "KCE", "KKP", "KTB", "KTC", "LH", "MINT", "MTC", "OR", "OSP", "PTT",
-                        "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TOP",
-                        "TRUE", "TTB", "TU", "WHA"
-                    )
-                }
+                if (dynamicList.isNotEmpty()) dynamicList else FALLBACK_COLLECTIONS["SET50"] ?: emptyList()
             }
             "SET100" -> {
                 val dynamicList = fetchIndexComposition("SET100")
-                if (dynamicList.isNotEmpty()) dynamicList else getCuratedCollection("SET50")
+                if (dynamicList.isNotEmpty()) dynamicList else FALLBACK_COLLECTIONS["SET100"] ?: emptyList()
             }
             "SETHD" -> {
                 val dynamicList = fetchIndexComposition("SETHD")
-                if (dynamicList.isNotEmpty()) dynamicList else dividendStars
+                if (dynamicList.isNotEmpty()) dynamicList else FALLBACK_COLLECTIONS["SETHD"] ?: emptyList()
             }
             else -> emptyList()
         }

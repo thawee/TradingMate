@@ -6,7 +6,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import apincer.mobile.tradings.data.SetScraper
 import apincer.mobile.tradings.data.StockDatabase
-import apincer.mobile.tradings.data.StockEntity
+import apincer.mobile.tradings.data.StockAggregate
+import apincer.mobile.tradings.data.StockRepository
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import kotlinx.coroutines.flow.firstOrNull
@@ -61,8 +62,15 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         }
 
         val database = StockDatabase.getDatabase(applicationContext)
-        val stockDao = database.stockDao()
-        val allStocks = stockDao.getAllStocks().firstOrNull() ?: emptyList()
+        val repository = StockRepository(
+            database,
+            database.stockDao(), 
+            database.tradeDao(), 
+            database.cashDao(), 
+            database.focusDao(), 
+            database.checklistDao()
+        )
+        val allStocks = repository.allStocks.firstOrNull() ?: emptyList()
 
         if (allStocks.isEmpty()) {
             Log.d("StockAlertWorker", "No stocks in watchlist. Skipping.")
@@ -80,12 +88,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     rsi = indicators.rsi,
                     macdHist = indicators.histogram,
                     lastPrice = scraped.lastPrice,
-                    sma50 = indicators.sma50,
-                    sma200 = indicators.sma200,
-                    bb = indicators.bollingerBands,
-                    isVolumeSurge = indicators.isVolumeSurge,
+                    sma50 = null,
+                    sma200 = null,
+                    bb = null,
+                    isVolumeSurge = false,
                     userCost = if (entity.quantity > 0) entity.cost else null,
-                    isFundamentalGood = scraped.isFundamentalGood,
+                    isFundamentalGood = false,
                     tradePurpose = entity.tradePurpose,
                     dividendYield = scraped.dividendYield,
                     roe = scraped.roe
@@ -115,8 +123,9 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
 
                 // 5. Update cache in DB
-                stockDao.insertStock(
-                    entity.copy(
+                val cache = entity.cache ?: apincer.mobile.tradings.data.StockCacheEntity(entity.symbol)
+                repository.updateStockCache(
+                    cache.copy(
                         lastPrice = scraped.lastPrice,
                         change = scraped.change,
                         percentChange = scraped.percentChange,
@@ -124,6 +133,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         debtToEquity = scraped.debtToEquity,
                         dividendYield = scraped.dividendYield,
                         dividendDate = scraped.dividendDate,
+                        lastUpdated = scraped.lastUpdated
+                    )
+                )
+                val sig = entity.signal ?: apincer.mobile.tradings.data.StockSignalEntity(entity.symbol)
+                repository.updateStockSignal(
+                    sig.copy(
                         rsi = indicators.rsi,
                         macdHist = indicators.histogram,
                         signalType = newSignalType,

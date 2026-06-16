@@ -21,6 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,6 +44,13 @@ fun GlassCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+    )
+
     val border = androidx.compose.foundation.BorderStroke(
         width = 0.5.dp,
         brush = Brush.linearGradient(
@@ -54,13 +65,19 @@ fun GlassCard(
         )
     )
 
+    val animatedModifier = modifier.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+
     if (onClick != null) {
         Surface(
             onClick = onClick,
-            modifier = modifier,
+            modifier = animatedModifier,
             color = containerColor,
             shape = shape,
-            border = border
+            border = border,
+            interactionSource = interactionSource
         ) {
             Column(content = content)
         }
@@ -212,9 +229,10 @@ fun StockItemCard(
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     if (showDeleteConfirm) {
+        val hasPosition = item.portfolio.quantity > 0
         GlassDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = "Remove from Watchlist?",
+            title = if (hasPosition) "Sell & Remove Stock?" else "Remove from Watchlist?",
             confirmButton = {
                 Button(
                     onClick = { 
@@ -224,7 +242,7 @@ fun StockItemCard(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Remove", color = Color.White)
+                    Text(if (hasPosition) "Sell & Remove" else "Remove", color = Color.White)
                 }
             },
             dismissButton = {
@@ -234,8 +252,11 @@ fun StockItemCard(
                 }
             }
         ) {
-            
-            Text("Are you sure you want to remove ${item.info.symbol} from your watchlist?")
+            if (hasPosition) {
+                Text("⚠️ You have ${item.portfolio.quantity} shares of ${item.info.symbol} at cost ฿${"%.2f".format(item.portfolio.cost)}. Removing will auto-record a sale at the current market price (฿${"%.2f".format(item.info.lastPrice)}). This cannot be undone.")
+            } else {
+                Text("Are you sure you want to remove ${item.info.symbol} from your watchlist?")
+            }
         }
     }
 

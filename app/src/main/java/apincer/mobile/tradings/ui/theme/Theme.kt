@@ -42,30 +42,31 @@ private val LightColorScheme = lightColorScheme(
     outline = Gray.copy(alpha = 0.5f)
 )
 
+// Premium Glassy Obsidian Dark Mode
 private val DarkColorScheme = darkColorScheme(
-    primary = NightPrimary,
-    onPrimary = NightBackground,
-    primaryContainer = NightPrimary.copy(alpha = 0.15f),
-    onPrimaryContainer = NightPrimary,
+    primary = Color(0xFF00E5FF),          // Cyan/Neon Teal for accents (Tech, Data-driven)
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFF004D40), // Deep teal container
+    onPrimaryContainer = Color(0xFF84FFFF),
     
-    secondary = NightSecondary,
-    onSecondary = NightBackground,
-    secondaryContainer = NightSecondary.copy(alpha = 0.15f),
-    onSecondaryContainer = NightSecondary,
+    secondary = Color(0xFFB388FF),        // Soft Neon Purple
+    onSecondary = Color(0xFF000000),
+    secondaryContainer = Color(0xFF311B92),
+    onSecondaryContainer = Color(0xFFD1C4E9),
     
-    tertiary = NightSuccess,
-    onTertiary = NightBackground,
+    tertiary = Color(0xFF00E676),         // Neon Green (Profit)
+    onTertiary = Color(0xFF000000),
     
-    error = NightError,
-    onError = NightBackground,
+    error = Color(0xFFFF1744),            // Neon Red (Loss)
+    onError = Color(0xFF000000),
     
-    background = NightBackground,
-    onBackground = OffWhite,
-    surface = NightSurface,
-    onSurface = OffWhite,
-    surfaceVariant = NightSurface.copy(alpha = 0.7f),
-    onSurfaceVariant = LightGray.copy(alpha = 0.6f),
-    outline = GlassBorder
+    background = Color(0xFF050505),       // Pitch Black for OLED
+    onBackground = Color(0xFFFBFBFB),
+    surface = Color(0xFF121212),          // Slightly elevated surface
+    onSurface = Color(0xFFFBFBFB),
+    surfaceVariant = Color(0xFF1E1E1E),   // For cards
+    onSurfaceVariant = Color(0xFFBDBDBD),
+    outline = Color(0xFF333333)           // Subtle borders
 )
 
 @Composable
@@ -88,6 +89,7 @@ fun TradingMateTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = Typography,
         content = content
     )
 }

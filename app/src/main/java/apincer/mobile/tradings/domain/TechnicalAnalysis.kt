@@ -95,7 +95,7 @@ object TechnicalAnalysis {
         val isRsiPotential = rsi < RSI_POTENTIAL_THRESHOLD
         val isRsiOverbought = rsi > RSI_OVERBOUGHT_THRESHOLD
         val isMacdBullish = macdHist > 0.0
-        val isPriceAboveSma50 = if (sma50 != null) lastPrice > sma50 else true
+        val isPriceAboveSma50 = if (sma50 != null) lastPrice > sma50 else false // Unknown: conservative default
         val isPriceAboveSma200 = if (sma200 != null) lastPrice > sma200 else true
         val isNearLowerBB = if (bb != null) lastPrice <= bb.lower * 1.05 else false // Within 5% of lower band
         val isNearUpperBB = if (bb != null) lastPrice >= bb.upper * 0.95 else false // Within 5% of upper band
@@ -207,13 +207,12 @@ object TechnicalAnalysis {
                     )
                 }
 
-                // SWING PLAYBOOK: Take Profit if target reached or overbought
-                if (netProfitPercent > 10.0 || isRsiOverbought || isNearUpperBB) {
+                // SWING PLAYBOOK: Take Profit if target reached
+                if (netProfitPercent > 10.0) {
                     return TradeSignal(
                         IndicatorSignal.SELL,
                         "${qualityPrefix}Exit Area (Target Reached)",
-                        "Technically, the stock is in a Selling Zone. RSI is high (${String.format(Locale.ENGLISH, "%.1f", rsi)}) or price is near resistance. " +
-                                if (netProfitPercent > 0) "Good area to lock in ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% profit." else "Consider exiting as trend is reaching resistance."
+                        "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%. Good area to lock in gains."
                     )
                 }
             }
@@ -221,11 +220,18 @@ object TechnicalAnalysis {
 
         // 2. SELL PRIORITY: Technical Overbought
         val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= 3.0
-        if (!isProtectedDividend && (isRsiOverbought || isNearUpperBB)) {
+        if (!isProtectedDividend && isRsiOverbought) {
             return TradeSignal(
                 IndicatorSignal.SELL,
-                if (isRsiOverbought) "${qualityPrefix}Overbought" else "${qualityPrefix}Upper Band Resistance",
-                "The stock is overextended. RSI is ${String.format(Locale.ENGLISH,"%.1f", rsi)} or price is hitting the upper Bollinger Band. High risk of a pullback."
+                "${qualityPrefix}Overbought",
+                "RSI is ${String.format(Locale.ENGLISH,"%.1f", rsi)} (above 65). The stock is overextended and likely to pull back. Consider selling to lock in gains."
+            )
+        }
+        if (!isProtectedDividend && isNearUpperBB) {
+            return TradeSignal(
+                IndicatorSignal.SELL,
+                "${qualityPrefix}Upper Band Resistance",
+                "Price is near the upper Bollinger Band — a resistance zone. Stocks often pull back from this level. Consider selling or tightening your stop-loss."
             )
         }
 

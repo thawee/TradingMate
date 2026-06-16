@@ -7,7 +7,7 @@ import apincer.mobile.tradings.data.FocusEntity
 import apincer.mobile.tradings.data.ScrapedStockInfo
 import apincer.mobile.tradings.data.SetScraper
 import apincer.mobile.tradings.data.StockDatabase
-import apincer.mobile.tradings.data.StockEntity
+import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.data.StockRepository
 import apincer.mobile.tradings.data.TradeEntity
 import apincer.mobile.tradings.data.TradingBackup
@@ -42,7 +42,7 @@ sealed class StockUiState {
     object Loading : StockUiState()
     data class Success(
         val stockInfo: ScrapedStockInfo,
-        val portfolio: StockEntity?,
+        val portfolio: StockAggregate?,
         val sma50: Double?,
         val sma200: Double?,
         val bb: BollingerBands?,
@@ -65,7 +65,7 @@ sealed class StockUiState {
 
 data class StockWatchlistInfo(
     val info: ScrapedStockInfo,
-    val portfolio: StockEntity,
+    val portfolio: StockAggregate,
     val netProfitPercent: Double = 0.0,
     val signal: TradeSignal? = null,
     val isFocused: Boolean = false,
@@ -87,6 +87,7 @@ data class StockFocusInfo(
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val database = StockDatabase.getDatabase(application)
     private val repository = StockRepository(
+        database,
         database.stockDao(), 
         database.tradeDao(), 
         database.cashDao(), 
@@ -95,71 +96,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     )
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
 
-
-    val targetMonthlyDividend: StateFlow<Double> = 
-        preferenceRepository.targetMonthlyDividend.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 10000.0
-        )
-
-    fun updateTargetMonthlyDividend(amount: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setTargetMonthlyDividend(amount)
-        }
-    }
-
-    val priceAlertThreshold: StateFlow<Double> = 
-        preferenceRepository.priceAlertThreshold.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 10.0
-        )
-
-    fun updatePriceAlertThreshold(percent: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setPriceAlertThreshold(percent)
-        }
-    }
-
-    val dividendAlertWindow: StateFlow<Int> = 
-        preferenceRepository.dividendAlertWindow.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 14
-        )
-
-    fun updateDividendAlertWindow(days: Int) {
-        viewModelScope.launch {
-            preferenceRepository.setDividendAlertWindow(days)
-        }
-    }
-
-    val isDividendAlertEndYear: StateFlow<Boolean> = 
-        preferenceRepository.isDividendAlertEndYear.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    fun toggleDividendAlertEndYear() {
-        viewModelScope.launch {
-            preferenceRepository.setDividendAlertEndYear(!isDividendAlertEndYear.value)
-        }
-    }
-
-    val isPrivacyMode: StateFlow<Boolean> = 
-        preferenceRepository.isPrivacyMode.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    fun togglePrivacyMode() {
-        viewModelScope.launch {
-            preferenceRepository.setPrivacyMode(!isPrivacyMode.value)
-        }
-    }
 
     fun exportBackup(
         contentResolver: android.content.ContentResolver,
@@ -175,7 +111,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 val cashBalanceVal = repository.getCashSync()?.balance ?: 0.0
                 
                 val backup = TradingBackup(
-                    stocks = stocks,
+                    portfolios = stocks.map { it.portfolio },
+                    caches = stocks.mapNotNull { it.cache },
+                    signals = stocks.mapNotNull { it.signal },
                     focusList = focusList,
                     trades = trades,
                     cashBalance = cashBalanceVal
@@ -226,60 +164,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    val maxRiskPerTrade: StateFlow<Double> = 
-        preferenceRepository.maxRiskPerTrade.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 1.0
-        )
-
-    fun updateMaxRiskPerTrade(percent: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setMaxRiskPerTrade(percent)
-        }
-    }
-
-    val maxOpenExposure: StateFlow<Double> = 
-        preferenceRepository.maxOpenExposure.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 5.0
-        )
-
-    fun updateMaxOpenExposure(percent: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setMaxOpenExposure(percent)
-        }
-    }
-
-    val maxPortfolioAllocation: StateFlow<Double> = 
-        preferenceRepository.maxPortfolioAllocation.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 10.0
-        )
-
-    fun updateMaxPortfolioAllocation(percent: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setMaxPortfolioAllocation(percent)
-        }
-    }
-
-    val minRiskRewardRatio: StateFlow<Double> = 
-        preferenceRepository.minRiskRewardRatio.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 2.0
-        )
-
-    fun updateMinRiskRewardRatio(ratio: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setMinRiskRewardRatio(ratio)
-        }
-    }
-
     private val _uiState = MutableStateFlow<StockUiState>(StockUiState.Initial)
     val uiState: StateFlow<StockUiState> = _uiState
+
+    private val _refreshError = MutableStateFlow<String?>(null)
+    val refreshError: StateFlow<String?> = _refreshError
+
+    fun clearRefreshError() {
+        _refreshError.value = null
+    }
 
     private val _searchResults = MutableStateFlow<List<ScrapedStockInfo>>(emptyList())
     val searchResults: StateFlow<List<ScrapedStockInfo>> = _searchResults
@@ -303,6 +196,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     roe = stock.roe,
                     eps = stock.eps,
                     netProfit = stock.netProfit,
+                    netProfitMargin = stock.netProfitMargin,
+                    profitGrowth3Y = stock.profitGrowth3Y,
                     equity = stock.equity,
                     debtToEquity = stock.debtToEquity,
                     dividendYield = stock.dividendYield,
@@ -330,7 +225,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 } else if (stock.signalType != null) {
                     TradeSignal(
-                        type = IndicatorSignal.valueOf(stock.signalType),
+                        type = IndicatorSignal.valueOf(stock.signalType!!),
                         reason = stock.signalReason ?: "",
                         description = stock.signalDescription ?: ""
                     )
@@ -396,19 +291,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
-    val cashBalance: StateFlow<Double> = 
-        repository.cashBalance.map { it?.balance ?: 0.0 }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0.0
-        )
 
-    val tradeHistory: StateFlow<List<TradeEntity>> = 
-        repository.allTrades.stateIn(
-            scope = viewModelScope, 
-            started = SharingStarted.Lazily, 
-            initialValue = emptyList()
-        )
 
     private val _checklist = MutableStateFlow(ChecklistEntity())
     val checklist: StateFlow<ChecklistEntity> = _checklist
@@ -481,6 +364,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshWatchlistInfo() {
         viewModelScope.launch {
             if (!_isRefreshing.compareAndSet(false, true)) return@launch
+            _refreshError.value = null
             try {
                 val isMarketOpen = TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED
                 val lastSync = watchlistInfo.value.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull()
@@ -502,14 +386,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     batchResults.forEach { updated ->
                         stocks.find { it.symbol == updated.symbol }?.let { original ->
-                            repository.updateStockCache(original.copy(
-                                name = updated.name ?: original.name,
+                            val cache = original.cache ?: apincer.mobile.tradings.data.StockCacheEntity(original.symbol)
+                            repository.updateStockCache(cache.copy(
+                                name = updated.name ?: cache.name,
                                 lastPrice = updated.lastPrice,
                                 change = updated.change,
                                 percentChange = updated.percentChange,
-                                pe = updated.pe ?: original.pe,
-                                pbv = updated.pbv ?: original.pbv,
-                                dividendYield = updated.dividendYield ?: original.dividendYield,
+                                pe = updated.pe ?: cache.pe,
+                                pbv = updated.pbv ?: cache.pbv,
+                                dividendYield = updated.dividendYield ?: cache.dividendYield,
                                 lastUpdated = updated.lastUpdated
                             ))
                         }
@@ -591,33 +476,43 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             )
                                         }
 
+                                        val cache = latestStock.cache ?: apincer.mobile.tradings.data.StockCacheEntity(latestStock.symbol)
                                         repository.updateStockCache(
-                                            latestStock.copy(
-                                                name = info.name ?: latestStock.name,
-                                                businessDescription = info.businessDescription ?: latestStock.businessDescription,
-                                                sector = info.sector ?: latestStock.sector,
-                                                industry = info.industry ?: latestStock.industry,
+                                            cache.copy(
+                                                name = info.name ?: cache.name,
+                                                businessDescription = info.businessDescription ?: cache.businessDescription,
+                                                sector = info.sector ?: cache.sector,
+                                                industry = info.industry ?: cache.industry,
                                                 lastPrice = info.lastPrice,
                                                 change = info.change,
                                                 percentChange = info.percentChange,
-                                                pe = info.pe ?: latestStock.pe,
-                                                pbv = info.pbv ?: latestStock.pbv,
+                                                pe = info.pe ?: cache.pe,
+                                                pbv = info.pbv ?: cache.pbv,
                                                 roe = info.roe,
                                                 eps = info.eps,
                                                 netProfit = info.netProfit,
+                                                netProfitMargin = info.netProfitMargin ?: cache.netProfitMargin,
+                                                profitGrowth3Y = info.profitGrowth3Y ?: cache.profitGrowth3Y,
                                                 equity = info.equity,
                                                 debtToEquity = info.debtToEquity,
-                                                dividendYield = info.dividendYield ?: latestStock.dividendYield,
+                                                dividendYield = info.dividendYield ?: cache.dividendYield,
                                                 dividendDate = info.dividendDate,
                                                 dividendPerShare = if (info.dividendYield != null && info.lastPrice != 0.0) {
                                                     info.lastPrice * (info.dividendYield / 100.0)
-                                                } else latestStock.dividendPerShare,
-                                                rsi = if (needsIndicators) indicators.rsi else latestStock.rsi,
-                                                macdHist = if (needsIndicators) indicators.histogram else latestStock.macdHist,
+                                                } else cache.dividendPerShare,
+                                                lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: cache.lastUpdated
+                                            )
+                                        )
+
+                                        val sig = latestStock.signal ?: apincer.mobile.tradings.data.StockSignalEntity(latestStock.symbol)
+                                        repository.updateStockSignal(
+                                            sig.copy(
+                                                rsi = if (needsIndicators) indicators.rsi else sig.rsi,
+                                                macdHist = if (needsIndicators) indicators.histogram else sig.macdHist,
                                                 signalType = signal.type.name,
                                                 signalReason = signal.reason,
                                                 signalDescription = signal.description,
-                                                lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: latestStock.lastUpdated
+                                                lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
                                             )
                                         )
                                     }
@@ -631,6 +526,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("StockViewModel", "Error refreshing watchlist info", e)
+                _refreshError.value = e.localizedMessage ?: "Failed to refresh watchlist"
             } finally {
                 _isRefreshing.value = false
             }
@@ -645,18 +541,19 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         } else info
     }
 
-    fun updateCashBalance(amount: Double) {
+    private fun adjustCash(amount: Double) {
         viewModelScope.launch {
-            repository.updateCash(amount)
+            repository.adjustCashBy(amount)
         }
     }
 
-    fun adjustCash(amount: Double) {
-        viewModelScope.launch {
-            val current = cashBalance.value
-            repository.updateCash(current + amount)
-        }
-    }
+
+
+
+
+
+
+
 
     fun addToWatchlist(
         symbol: String, 
@@ -683,6 +580,40 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 stopLoss = stopLoss,
                 playbookNote = playbookNote
             )
+        }
+    }
+
+    fun removeFromWatchlist(symbol: String) {
+        viewModelScope.launch {
+            val item = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }
+            if (item != null && item.portfolio.quantity > 0) {
+                // If it was in portfolio, record the trade history as a "Sale" at current market price
+                val totalCostRaw = item.portfolio.cost * item.portfolio.quantity
+                val currentTotalValue = item.info.lastPrice * item.portfolio.quantity
+
+                val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
+                val sellFees = TechnicalAnalysis.calculateFees(currentTotalValue, true)
+                val stockTotalFees = buyFees + sellFees
+                val netProfitValue = (currentTotalValue - totalCostRaw) - stockTotalFees
+
+                // Add proceeds to cash
+                val proceeds = currentTotalValue - sellFees
+                adjustCash(proceeds)
+
+                repository.insertTrade(
+                    TradeEntity(
+                        symbol = symbol.uppercase(),
+                        buyPrice = item.portfolio.cost,
+                        sellPrice = item.info.lastPrice,
+                        quantity = item.portfolio.quantity,
+                        netProfitPercent = item.netProfitPercent,
+                        netProfitBaht = netProfitValue,
+                        dateMillis = System.currentTimeMillis(),
+                        note = "Stock removed from watchlist"
+                    )
+                )
+            }
+            repository.removeStock(symbol)
         }
     }
 
@@ -726,134 +657,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun recordSell(symbol: String, sellPrice: Double, sellQuantity: Int, note: String = "") {
-        viewModelScope.launch {
-            val item = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }
-            if (item != null && item.portfolio.quantity >= sellQuantity) {
-                val buyPrice = item.portfolio.cost
-                val totalCostRaw = buyPrice * sellQuantity
-                val sellValueRaw = sellPrice * sellQuantity
-
-                // Buying fees already paid when adding to portfolio, we only pay selling fees now
-                val sellFees = TechnicalAnalysis.calculateFees(sellValueRaw, true)
-                val buyFees = if (item.portfolio.quantity > 0) {
-                    (item.portfolio.buyFees * sellQuantity.toDouble()) / item.portfolio.quantity
-                } else 0.0
-                val totalFees = buyFees + sellFees
-
-                val netProfitValue = (sellValueRaw - totalCostRaw) - totalFees
-                val netProfitPercent = ((sellValueRaw - sellFees - (totalCostRaw + buyFees)) / (totalCostRaw + buyFees)) * 100
-
-                // Add proceeds to cash (after selling fees and tax)
-                val proceeds = sellValueRaw - sellFees
-                adjustCash(proceeds)
-
-                repository.insertTrade(
-                    TradeEntity(
-                        symbol = symbol.uppercase(),
-                        buyPrice = buyPrice,
-                        sellPrice = sellPrice,
-                        quantity = sellQuantity,
-                        netProfitPercent = netProfitPercent,
-                        netProfitBaht = netProfitValue,
-                        dateMillis = System.currentTimeMillis(),
-                        note = note
-                    )
-                )
-
-                if (item.portfolio.quantity == sellQuantity) {
-                    repository.removeStock(symbol)
-                } else {
-                    val remainingQty = item.portfolio.quantity - sellQuantity
-                    val remainingBuyFees = (item.portfolio.buyFees * remainingQty.toDouble()) / item.portfolio.quantity
-                    repository.addStock(
-                        symbol = symbol, 
-                        cost = buyPrice, 
-                        quantity = remainingQty,
-                        tradePurpose = item.portfolio.tradePurpose,
-                        buyFees = remainingBuyFees
-                    )
-                }
-            }
-        }
-    }
-
-    fun removeFromWatchlist(symbol: String) {
-        viewModelScope.launch {
-            val item = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }
-            if (item != null && item.portfolio.quantity > 0) {
-                // If it was in portfolio, record the trade history as a "Sale" at current market price
-                val totalCostRaw = item.portfolio.cost * item.portfolio.quantity
-                val currentTotalValue = item.info.lastPrice * item.portfolio.quantity
-
-                val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
-                val sellFees = TechnicalAnalysis.calculateFees(currentTotalValue, true)
-                val stockTotalFees = buyFees + sellFees
-                val netProfitValue = (currentTotalValue - totalCostRaw) - stockTotalFees
-
-                // Add proceeds to cash
-                val proceeds = currentTotalValue - sellFees
-                adjustCash(proceeds)
-
-                repository.insertTrade(
-                    TradeEntity(
-                        symbol = symbol.uppercase(),
-                        buyPrice = item.portfolio.cost,
-                        sellPrice = item.info.lastPrice,
-                        quantity = item.portfolio.quantity,
-                        netProfitPercent = item.netProfitPercent,
-                        netProfitBaht = netProfitValue,
-                        dateMillis = System.currentTimeMillis(),
-                        note = "Stock removed from watchlist"
-                    )
-                )
-            }
-            repository.removeStock(symbol)
-        }
-    }
-
     fun resetToInitial() {
         _uiState.value = StockUiState.Initial
     }
 
-    fun clearTradeHistory() {
-        viewModelScope.launch {
-            repository.clearHistory()
-        }
-    }
 
-    fun importFromCollection(category: String) {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            val symbols = withContext(Dispatchers.IO) {
-                SetScraper.getCuratedCollection(category)
-            }
-            android.util.Log.d("StockViewModel", "Importing ${symbols.size} symbols from $category collection")
-            symbols.forEach { symbol ->
-                repository.addStockIfMissing(symbol)
-            }
-            // Trigger refresh after import to get prices for new stocks
-            _isRefreshing.value = false
-            refreshWatchlistInfo()
-        }
-    }
 
-    fun resetSearchResults() {
-        _searchResults.value = emptyList()
-    }
 
-    fun searchStocks(query: String) {
-        if (query.length < 2) {
-            _searchResults.value = emptyList()
-            return
-        }
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                SetScraper.searchYahoo(query)
-            }
-            _searchResults.value = result
-        }
-    }
 
     fun fetchStockData(symbol: String) {
         if (symbol.isBlank()) {
@@ -878,21 +688,22 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     ))
 
                     val history = SetScraper.fetchHistoricalPrices(symbol)
-                    val prices = history.map { it.close }.reversed()
-                    val volumes = history.map { it.volume }.reversed()
+                    // Prices are in chronological order (oldest→newest) as required by TA functions
+                    val prices = history.map { it.close }
+                    val volumes = history.map { it.volume }
 
                     val sma50 = TechnicalAnalysis.calculateSMA(prices, 50)
                     val sma200 = TechnicalAnalysis.calculateSMA(prices, 200)
                     val bb = TechnicalAnalysis.calculateBollingerBands(prices)
                     val isVolumeSurge = TechnicalAnalysis.isVolumeSurge(volumes)
 
-                    // Calculate Returns for different periods
+                    // Calculate Returns for different periods (prices are oldest→newest)
                     val returns = mutableMapOf<Int, Double>()
                     val periods = listOf(3, 7, 15, 30)
                     periods.forEach { days ->
                         if (prices.size >= days + 1) {
-                            val current = prices.first()
-                            val past = prices[days]
+                            val current = prices.last()
+                            val past = prices[prices.size - 1 - days]
                             val ret = ((current - past) / past) * 100
                             returns[days] = Math.round(ret * 100.0) / 100.0
                         }
@@ -922,8 +733,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, sma200, bb)
 
-                    val buyPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices.reversed(), 35.0)
-                    val sellPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices.reversed(), 65.0)
+                    val buyPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 35.0)
+                    val sellPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 65.0)
 
                     val focusEntry = repository.getFocusStock(symbol)
                     val isFocused = focusEntry != null
@@ -932,16 +743,23 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     // Optional: Update cache for this single stock too
                     if (local != null) {
-                        repository.updateStockCache(local.copy(
+                        val cache = local.cache ?: apincer.mobile.tradings.data.StockCacheEntity(local.symbol)
+                        repository.updateStockCache(cache.copy(
                             name = updatedInfo.name,
                             businessDescription = updatedInfo.businessDescription,
-                            sector = updatedInfo.sector ?: local.sector,
-                            industry = updatedInfo.industry ?: local.industry,
+                            sector = updatedInfo.sector ?: cache.sector,
+                            industry = updatedInfo.industry ?: cache.industry,
                             lastPrice = updatedInfo.lastPrice,
                             change = updatedInfo.change,
                             percentChange = updatedInfo.percentChange,
                             pe = updatedInfo.pe,
                             pbv = updatedInfo.pbv,
+                            netProfitMargin = updatedInfo.netProfitMargin ?: cache.netProfitMargin,
+                            profitGrowth3Y = updatedInfo.profitGrowth3Y ?: cache.profitGrowth3Y,
+                            lastUpdated = updatedInfo.lastUpdated
+                        ))
+                        val sig = local.signal ?: apincer.mobile.tradings.data.StockSignalEntity(local.symbol)
+                        repository.updateStockSignal(sig.copy(
                             rsi = rsi,
                             macdHist = macd.third,
                             signalType = signal.type.name,

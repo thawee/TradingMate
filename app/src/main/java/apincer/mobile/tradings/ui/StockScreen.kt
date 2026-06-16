@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -35,7 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.ScrapedStockInfo
-import apincer.mobile.tradings.data.StockEntity
+import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import apincer.mobile.tradings.domain.TradeSignal
@@ -54,17 +55,35 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StockScreen(viewModel: StockViewModel = viewModel()) {
-    var currentScreen by remember { mutableStateOf(Screen.WATCHLIST) }
+fun StockScreen(
+    viewModel: StockViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel = viewModel(),
+    openSymbol: String? = null
+) {
+    var currentScreen by rememberSaveable { mutableStateOf(Screen.WATCHLIST) }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val minRR by viewModel.minRiskRewardRatio.collectAsState()
+    val minRR by settingsViewModel.minRiskRewardRatio.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val showSnackbar: (String) -> Unit = { message ->
         coroutineScope.launch {
             snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    val refreshError by viewModel.refreshError.collectAsState()
+    LaunchedEffect(refreshError) {
+        refreshError?.let { msg ->
+            snackbarHostState.showSnackbar("Refresh failed: $msg")
+            viewModel.clearRefreshError()
+        }
+    }
+
+    LaunchedEffect(openSymbol) {
+        openSymbol?.let {
+            currentScreen = Screen.PORTFOLIO
         }
     }
 
@@ -304,15 +323,16 @@ fun StockScreen(viewModel: StockViewModel = viewModel()) {
                         }
                         is StockUiState.Initial -> {
                             when (currentScreen) {
-                                Screen.PORTFOLIO -> PortfolioScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar)
-                                Screen.WATCHLIST -> WatchlistScreen(viewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar)
+                                Screen.PORTFOLIO -> PortfolioScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar, scrollSymbol = openSymbol)
+                                Screen.WATCHLIST -> WatchlistScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar)
                                 Screen.ADVISOR -> DividendAdvisorScreen(
                                     viewModel = viewModel,
+                                    settingsViewModel = settingsViewModel,
                                     onNavigateToAcademy = { currentScreen = Screen.EDUCATION },
                                     showSnackbar = showSnackbar
                                 )
                                 Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar)
-                                Screen.SETTINGS -> SettingsScreen(viewModel, showSnackbar = showSnackbar)
+                                Screen.SETTINGS -> SettingsScreen(viewModel, settingsViewModel, showSnackbar = showSnackbar)
                                 Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.ADVISOR })
                                 Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.ADVISOR })
                             }
@@ -416,7 +436,7 @@ fun StockDashboard(state: StockUiState.Success, onEditFocus: () -> Unit) {
                     Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     
-                    Text(stringResource(R.string.label_partial_data_warning), fontSize = 11.sp, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.label_partial_data_warning), fontSize = 12.sp, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -790,7 +810,7 @@ fun TechnicalIndicatorItem(label: String, value: String, meaning: String) {
 }
 
 @Composable
-fun StockPortfolioSummaryCard(portfolio: StockEntity, info: ScrapedStockInfo, netProfitPercent: Double) {
+fun StockPortfolioSummaryCard(portfolio: StockAggregate, info: ScrapedStockInfo, netProfitPercent: Double) {
     val totalCostRaw = portfolio.cost * portfolio.quantity
     val currentTotalValue = info.lastPrice * portfolio.quantity
     val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)

@@ -69,10 +69,18 @@ enum class PlaybookMode(val label: String) {
 }
 
 
+data class AdvisorData(
+    val dividendPlays: List<StockWatchlistInfo>,
+    val combinedSwingPlays: List<StockWatchlistInfo>,
+    val swingSellAlerts: List<SellAlertData>,
+    val dividendSellAlerts: List<SellAlertData>
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DividendAdvisorScreen(
     viewModel: StockViewModel,
+    settingsViewModel: SettingsViewModel,
     onNavigateToAcademy: () -> Unit,
     showSnackbar: (String) -> Unit
 ) {
@@ -92,92 +100,101 @@ fun DividendAdvisorScreen(
     }
     val isGapUp = { it: StockWatchlistInfo -> it.info.percentChange >= 4.0 && (isQual(it) || (it.info.netProfitMargin ?: 0.0) > 10.0) }
 
-    val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
-        .sortedWith(
-            compareBy<StockWatchlistInfo> {
-                when (it.signal?.type) {
-                    IndicatorSignal.BUY -> 0
-                    IndicatorSignal.POTENTIAL -> 1
-                    IndicatorSignal.NEUTRAL -> 2
-                    else -> 3
+    val advisorData = remember(watchlist) {
+        val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
+            .sortedWith(
+                compareBy<StockWatchlistInfo> {
+                    when (it.signal?.type) {
+                        IndicatorSignal.BUY -> 0
+                        IndicatorSignal.POTENTIAL -> 1
+                        IndicatorSignal.NEUTRAL -> 2
+                        else -> 3
+                    }
+                }.thenByDescending {
+                    it.info.dividendYield ?: 0.0
                 }
-            }.thenByDescending {
-                it.info.dividendYield ?: 0.0
-            }
-        )
-    val swingPlays = watchlist.filter { (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) }
-        .sortedWith(
-            compareBy<StockWatchlistInfo> {
-                when (it.signal?.type) {
-                    IndicatorSignal.BUY -> 0
-                    IndicatorSignal.POTENTIAL -> 1
-                    else -> 2
+            )
+        val swingPlays = watchlist.filter { (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) }
+            .sortedWith(
+                compareBy<StockWatchlistInfo> {
+                    when (it.signal?.type) {
+                        IndicatorSignal.BUY -> 0
+                        IndicatorSignal.POTENTIAL -> 1
+                        else -> 2
+                    }
+                }.thenBy {
+                    it.portfolio.rsi ?: 100.0
+                }.thenByDescending {
+                    isQual(it)
                 }
-            }.thenBy {
-                it.portfolio.rsi ?: 100.0
-            }.thenByDescending {
-                isQual(it)
-            }
-        )
-    val gapPlays = watchlist.filter { isGapUp(it) }.sortedByDescending { it.info.percentChange }
-    val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
-        .sortedWith(
-            compareBy<StockWatchlistInfo> {
-                when (it.signal?.type) {
-                    IndicatorSignal.BUY -> 0
-                    IndicatorSignal.POTENTIAL -> 1
-                    else -> 2
+            )
+        val gapPlays = watchlist.filter { isGapUp(it) }.sortedByDescending { it.info.percentChange }
+        val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
+            .sortedWith(
+                compareBy<StockWatchlistInfo> {
+                    when (it.signal?.type) {
+                        IndicatorSignal.BUY -> 0
+                        IndicatorSignal.POTENTIAL -> 1
+                        else -> 2
+                    }
+                }.thenByDescending {
+                    it.info.percentChange
+                }.thenBy {
+                    it.portfolio.rsi ?: 100.0
                 }
-            }.thenByDescending {
-                it.info.percentChange
-            }.thenBy {
-                it.portfolio.rsi ?: 100.0
-            }
-        )
+            )
 
-    val swingSellAlerts = mutableListOf<SellAlertData>()
-    val dividendSellAlerts = mutableListOf<SellAlertData>()
+        val swingSellAlerts = mutableListOf<SellAlertData>()
+        val dividendSellAlerts = mutableListOf<SellAlertData>()
 
-    portfolioItems.forEach { stock ->
-        val tradePurpose = stock.portfolio.tradePurpose
-        
-        var applySwingLogic = true
-        
-        // Dividend checks
-        if (tradePurpose == "DIVIDEND") {
-            val yield = stock.info.dividendYield ?: 0.0
-            val roe = stock.info.roe ?: 0.0
+        portfolioItems.forEach { stock ->
+            val tradePurpose = stock.portfolio.tradePurpose
             
-            if (roe < 15.0) {
-                dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
-            } 
+            var applySwingLogic = true
             
-            if (yield >= 3.0) {
-                applySwingLogic = false
-            } else {
-                swingSellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%) (Transition to Swing)"))
-                applySwingLogic = true
+            // Dividend checks
+            if (tradePurpose == "DIVIDEND") {
+                val yield = stock.info.dividendYield ?: 0.0
+                val roe = stock.info.roe ?: 0.0
+                
+                if (roe < 15.0) {
+                    dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
+                } 
+                
+                if (yield >= 3.0) {
+                    applySwingLogic = false
+                } else {
+                    swingSellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%) (Transition to Swing)"))
+                    applySwingLogic = true
+                }
+            }
+            
+            // Swing checks
+            if (applySwingLogic) {
+                val netProfit = stock.netProfitPercent
+                val rsi = stock.portfolio.rsi ?: 50.0
+                
+                val targetAlerts = swingSellAlerts
+                
+                if (netProfit >= 10.0) {
+                    targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
+                } else if (netProfit <= -5.0) {
+                    targetAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
+                } else if (rsi >= 65.0) { // Using 65.0 to match TechnicalAnalysis OVERBOUGHT
+                    targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
+                } else if (stock.signal?.type == IndicatorSignal.SELL) {
+                    targetAlerts.add(SellAlertData(stock, stock.signal.reason))
+                }
             }
         }
         
-        // Swing checks
-        if (applySwingLogic) {
-            val netProfit = stock.netProfitPercent
-            val rsi = stock.portfolio.rsi ?: 50.0
-            
-            val targetAlerts = swingSellAlerts
-            
-            if (netProfit >= 10.0) {
-                targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
-            } else if (netProfit <= -5.0) {
-                targetAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
-            } else if (rsi >= 65.0) { // Using 65.0 to match TechnicalAnalysis OVERBOUGHT
-                targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
-            } else if (stock.signal?.type == IndicatorSignal.SELL) {
-                targetAlerts.add(SellAlertData(stock, stock.signal.reason))
-            }
-        }
+        AdvisorData(dividendPlays, combinedSwingPlays, swingSellAlerts, dividendSellAlerts)
     }
+    
+    val dividendPlays = advisorData.dividendPlays
+    val combinedSwingPlays = advisorData.combinedSwingPlays
+    val swingSellAlerts = advisorData.swingSellAlerts
+    val dividendSellAlerts = advisorData.dividendSellAlerts
 
     val checklist by viewModel.checklist.collectAsState()
 
@@ -275,9 +292,9 @@ fun DividendAdvisorScreen(
                         .padding(bottom = 80.dp), // Space for floating bar
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-            val maxRiskPerTrade by viewModel.maxRiskPerTrade.collectAsState()
-            val maxOpenExposure by viewModel.maxOpenExposure.collectAsState()
-            val maxPortfolioAllocation by viewModel.maxPortfolioAllocation.collectAsState()
+            val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
+            val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
+            val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
 
             val activeAlerts = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
 
@@ -294,7 +311,7 @@ fun DividendAdvisorScreen(
                     SectionHeader(
                         modifier = Modifier.weight(1f),
                         title = if (playbookMode == PlaybookMode.SWING) {
-                            "🚨 Check for Danger ($alertsCount alerts)"
+                            "🚨 Check Exits ($alertsCount alerts)"
                         } else {
                             "🛡️ Check My Shields ($alertsCount alerts)"
                         },
@@ -339,7 +356,7 @@ fun DividendAdvisorScreen(
                     if (playbookMode == PlaybookMode.SWING) {
                         SectionHeader(
                             modifier = Modifier.weight(1f),
-                            title = "🔍 Find Candidates ($candidatesCount setups)",
+                            title = "🔍 Scan Setups ($candidatesCount setups)",
                             icon = Icons.AutoMirrored.Filled.List
                         )
                     } else {
@@ -459,7 +476,7 @@ fun AdvisorStockCard(
                     Text(stock.info.symbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
                     if (stock.info.isFundamentalGood) {
                         Spacer(Modifier.width(4.dp))
-                        Text("⭐", fontSize = 10.sp)
+                        Text("⭐", fontSize = 12.sp)
                     }
                 }
                 if (isSellAlert) {
@@ -819,9 +836,9 @@ fun WizardStepBar(
     val step3Done = if (playbookMode == PlaybookMode.SWING) checklist.swingAiDone else checklist.divAiDone
 
     val steps = listOf(
-        Triple(1, if (playbookMode == PlaybookMode.SWING) "🚨 Danger" else "🛡️ Shields", step1Done),
-        Triple(2, if (playbookMode == PlaybookMode.SWING) "🔍 Find" else "💰 Stars", step2Done),
-        Triple(3, "🤖 AI", step3Done)
+        Triple(1, if (playbookMode == PlaybookMode.SWING) "🚨 Exits" else "🛡️ Shields", step1Done),
+        Triple(2, if (playbookMode == PlaybookMode.SWING) "🔍 Setups" else "💰 Stars", step2Done),
+        Triple(3, "🤖 Ask AI", step3Done)
     )
 
     val currentStep = steps.indexOfFirst { !it.third }.coerceAtLeast(0)

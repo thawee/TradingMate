@@ -32,6 +32,7 @@ object NotificationHelper {
     fun showSignalNotification(context: Context, symbol: String, signal: String, reason: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("OPEN_SYMBOL", symbol)
         }
         val pendingIntent = PendingIntent.getActivity(
             context, 0, intent, 
@@ -101,6 +102,7 @@ object NotificationHelper {
     fun showSellReminderNotification(context: Context, symbol: String, reason: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("OPEN_SYMBOL", symbol)
         }
         val pendingIntent = PendingIntent.getActivity(
             context, symbol.hashCode() + 2000, intent,

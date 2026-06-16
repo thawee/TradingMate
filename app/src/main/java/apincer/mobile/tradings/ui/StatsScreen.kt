@@ -26,19 +26,24 @@ import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.platform.LocalLocale
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     viewModel: StockViewModel,
+    portfolioViewModel: PortfolioViewModel = viewModel(),
     showSnackbar: (String) -> Unit
 ) {
-    val history by viewModel.tradeHistory.collectAsState()
-    val cashBalance by viewModel.cashBalance.collectAsState()
+    val history by portfolioViewModel.tradeHistory.collectAsState()
+    val cashBalance by portfolioViewModel.cashBalance.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
+    val watchlist by viewModel.watchlistInfo.collectAsState()
 
     val totalProfit = history.sumOf { it.netProfitBaht }
-    val beginningCash = cashBalance - totalProfit
+    // Beginning cash = current cash + invested capital (cost basis of current holdings) - total profit from trades
+    val investedCapital = watchlist.filter { it.portfolio.quantity > 0 }.sumOf { it.portfolio.cost * it.portfolio.quantity }
+    val beginningCash = cashBalance + investedCapital - totalProfit
 
     // Period Calculations
     val now = Calendar.getInstance()
@@ -74,7 +79,7 @@ fun StatsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.clearTradeHistory()
+                        portfolioViewModel.clearTradeHistory()
                         showConfirmDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
