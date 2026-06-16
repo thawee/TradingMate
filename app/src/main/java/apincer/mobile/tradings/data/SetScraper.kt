@@ -11,8 +11,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 import org.jsoup.Jsoup
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -172,8 +172,10 @@ object SetScraper {
         }
     }
 
+    private val timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
     private fun getCurrentTimestamp(): String {
-        return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        return LocalDateTime.now().format(timestampFormatter)
     }
 
     fun fetchStockInfo(symbol: String): ScrapedStockInfo {
@@ -517,7 +519,7 @@ object SetScraper {
                 val volumes = indicators.getJSONArray("volume")
                 
                 val prices = mutableListOf<ScrapedHistoricalPrice>()
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
                 
                 for (i in 0 until timestamps.length()) {
                     if (closes.isNull(i)) continue
@@ -526,7 +528,7 @@ object SetScraper {
                     val volume = if (!volumes.isNull(i)) volumes.getLong(i) else 0L
                     
                     prices.add(ScrapedHistoricalPrice(
-                        date = dateFormat.format(Date(ts)),
+                        date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(dateFormatter),
                         close = close,
                         volume = volume
                     ))

@@ -218,7 +218,12 @@ fun StatsScreen(
 
             // Trading Efficiency Section
             item {
-                SectionHeader(title = stringResource(R.string.section_trading_efficiency), icon = Icons.AutoMirrored.Filled.TrendingUp)
+                val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+                SectionHeader(
+                    title = stringResource(R.string.section_trading_efficiency),
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    subtitle = "${history.size} trades • Synced $lastSync"
+                )
             }
 
             item {
@@ -265,7 +270,11 @@ fun StatsScreen(
             }
 
             item {
-                SectionHeader(title = stringResource(R.string.section_recent_trades), icon = Icons.Default.History)
+                SectionHeader(
+                    title = stringResource(R.string.section_recent_trades),
+                    icon = Icons.Default.History,
+                    subtitle = "${history.size} records"
+                )
             }
 
             if (history.isEmpty()) {

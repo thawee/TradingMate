@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -65,45 +66,87 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     )
                 }
 
-                // --- SECTION 1: THE WORKFLOW ---
-                SectionHeader(stringResource(R.string.section_success_path), Icons.AutoMirrored.Filled.MenuBook, color = MaterialTheme.colorScheme.primary)
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_step1_title),
-                    content = stringResource(R.string.edu_step1_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.Search
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_yoc_title),
-                    content = stringResource(R.string.edu_yoc_content),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.Verified
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_step2_title),
-                    content = stringResource(R.string.edu_step2_content),
-                    color = MaterialTheme.colorScheme.secondary,
-                    icon = Icons.Default.Traffic
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_step3_title),
-                    content = stringResource(R.string.edu_step3_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.AssignmentTurnedIn
-                )
+                // --- SECTION 1: THE BASICS (Trading Psychology) ---
+                SectionHeader("The Basics", Icons.Default.Shield, color = MaterialTheme.colorScheme.error)
                 
-                // --- SECTION 2: RISK MANAGEMENT ---
-                SectionHeader(stringResource(R.string.section_risk_management), Icons.Default.Shield, color = MaterialTheme.colorScheme.error)
-                
+                GlassCard(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
+                        Icon(
+                            Icons.Default.Warning, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                stringResource(R.string.edu_golden_rule_title), 
+                                fontWeight = FontWeight.Black, 
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 16.sp
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                stringResource(R.string.edu_golden_rule_content),
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
                 EducationGlassCard(
                     title = stringResource(R.string.edu_risk_mgmt_title),
                     content = stringResource(R.string.edu_risk_mgmt_content),
                     color = MaterialTheme.colorScheme.error,
                     icon = Icons.Default.ContentCut
+                )
+
+                // --- SECTION 2: THE 5-LAYER FILTER SYSTEM ---
+                SectionHeader(stringResource(R.string.title_education_concept), Icons.Default.Layers, color = MaterialTheme.colorScheme.tertiary)
+                
+                Text(
+                    text = stringResource(R.string.edu_5_layers_intro),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_layer_1_title),
+                    content = stringResource(R.string.edu_layer_1_content),
+                    color = Color(0xFF4CAF50),
+                    icon = Icons.Default.Verified
+                )
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_layer_2_title),
+                    content = stringResource(R.string.edu_layer_2_content),
+                    color = Color(0xFF2196F3),
+                    icon = Icons.Default.AccountBalanceWallet
+                )
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_layer_3_title),
+                    content = stringResource(R.string.edu_layer_3_content),
+                    color = Color(0xFFFF9800),
+                    icon = Icons.Default.Savings
+                )
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_layer_4_title),
+                    content = stringResource(R.string.edu_layer_4_content),
+                    color = Color(0xFF9C27B0),
+                    icon = Icons.AutoMirrored.Filled.TrendingUp
+                )
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_layer_5_title),
+                    content = stringResource(R.string.edu_layer_5_content),
+                    color = Color(0xFFF44336),
+                    icon = Icons.AutoMirrored.Filled.ShowChart
                 )
 
                 // --- SECTION 3: THE SENSORS ---
@@ -136,38 +179,30 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     icon = Icons.Default.BlurOn
                 )
-                
-                // --- THE GOLDEN RULE ---
-                GlassCard(
-                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Default.Warning, 
-                            contentDescription = null, 
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                stringResource(R.string.edu_golden_rule_title), 
-                                fontWeight = FontWeight.Black, 
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 16.sp
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                stringResource(R.string.edu_golden_rule_content),
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
+
+                // --- SECTION 4: THE WORKFLOW ---
+                SectionHeader(stringResource(R.string.section_success_path), Icons.AutoMirrored.Filled.MenuBook, color = MaterialTheme.colorScheme.primary)
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_step1_title),
+                    content = stringResource(R.string.edu_step1_content),
+                    color = MaterialTheme.colorScheme.primary,
+                    icon = Icons.Default.Search
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_step2_title),
+                    content = stringResource(R.string.edu_step2_content),
+                    color = MaterialTheme.colorScheme.secondary,
+                    icon = Icons.Default.Traffic
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_step3_title),
+                    content = stringResource(R.string.edu_step3_content),
+                    color = MaterialTheme.colorScheme.primary,
+                    icon = Icons.Default.AssignmentTurnedIn
+                )
 
                 Button(
                     onClick = onBack,

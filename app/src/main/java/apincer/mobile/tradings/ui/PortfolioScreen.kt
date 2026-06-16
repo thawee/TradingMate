@@ -383,8 +383,9 @@ fun PortfolioScreen(
 
             item {
                 SectionHeader(
-                    title = stringResource(R.string.section_active_holdings), 
+                    title = stringResource(R.string.section_active_holdings),
                     icon = Icons.Default.AccountBalance,
+                    subtitle = "${portfolioItems.size} stocks • Synced $lastSync",
                     modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                 )
             }

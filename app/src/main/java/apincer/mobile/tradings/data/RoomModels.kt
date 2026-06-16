@@ -111,6 +111,30 @@ data class StockAggregate(
     val playbookNote: String get() = portfolio.playbookNote
     val netProfitMargin: Double? get() = cache?.netProfitMargin
     val profitGrowth3Y: Double? get() = cache?.profitGrowth3Y
+
+    fun toScrapedStockInfo(): ScrapedStockInfo = ScrapedStockInfo(
+        symbol = symbol,
+        name = name,
+        nameTH = nameTH,
+        businessDescription = businessDescription,
+        sector = sector,
+        industry = industry,
+        lastPrice = lastPrice,
+        change = change,
+        percentChange = percentChange,
+        pe = pe,
+        pbv = pbv,
+        roe = roe,
+        eps = eps,
+        netProfit = netProfit,
+        netProfitMargin = netProfitMargin,
+        profitGrowth3Y = profitGrowth3Y,
+        equity = equity,
+        debtToEquity = debtToEquity,
+        dividendYield = dividendYield,
+        dividendDate = dividendDate,
+        lastUpdated = lastUpdated ?: ""
+    )
 }
 
 @Entity(

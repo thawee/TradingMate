@@ -191,7 +191,7 @@
     <string name="edu_workflow_title">Master the Workflow</string>
     <string name="edu_workflow_subtitle">Disciplined steps for consistent profit.</string>
     <string name="edu_step1_title">1. Discovery (Quality First)</string>
-    <string name="edu_step1_content" formatted="false">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections like \'Dividend Stars\' or \'Bluechips\'. Look for the \'Solid Financials\' badge—these companies have high ROE (&gt;15%), low debt (D/E &lt; 1.5), and strong profit margins.</string>
+    <string name="edu_step1_content" formatted="false">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections or use the AI Advisor to find stocks that have already passed our strict 5-Layer filter.</string>
     <string name="edu_risk_mgmt_title">The Art of the \'Cut Loss\'</string>
     <string name="edu_risk_mgmt_content" formatted="false">The most important rule in trading is preserving your capital. \n\n• Why: Small losses are easy to recover. A -50% loss requires a +100% gain just to break even.\n• When: If a stock drops -5% from your cost, the app will trigger a SELL signal. This is your cue to exit and protect your remaining cash.</string>
     <string name="edu_yoc_title">Fundamental Guardrails</string>
@@ -238,17 +238,17 @@
 
     <!-- Education - 5 Layers -->
     <string name="title_education_concept">TradingMate Concept: The 5 Layers</string>
-    <string name="edu_5_layers_intro">Our system evaluates stocks through 5 distinct \"Layers\" of analysis. A stock must pass the earlier layers before the later layers matter. We use these tags to quickly identify the current state of a stock.</string>
+    <string name="edu_5_layers_intro" formatted="false">Our system evaluates a company\'s DNA through a strict 5-Layer filter. Swing Plays must pass (Qual OR Val) AND (Mom OR Sup). Dividend Stars must pass (Div AND Qual).</string>
     <string name="edu_layer_1_title">Layer 1: QUAL (Quality/Fundamentals)</string>
     <string name="edu_layer_1_content" formatted="false">The foundation. Does the company make money? We look for ROE > 15%, Net Profit Margin > 10%, consistent 3Y profit growth, and low debt (D/E &lt; 1.5).</string>
     <string name="edu_layer_2_title">Layer 2: VAL (Valuation)</string>
-    <string name="edu_layer_2_content">Is the price fair? Even a great company is a bad investment if you pay too much. We compare Current P/E to Historical P/E and check Price-to-Book ratios.</string>
+    <string name="edu_layer_2_content" formatted="false">Is the price fair? Even a great company is a bad investment if you pay too much. We look for underpriced or fair-value stocks using strict criteria: P/E Ratio between 0.1 and 15.0, and P/BV between 0.1 and 1.0.</string>
     <string name="edu_layer_3_title">Layer 3: DIV (Dividend)</string>
     <string name="edu_layer_3_content" formatted="false">For income investors. We accumulate and compound high-yield stocks (&gt; 5%) indefinitely. Keep holding and reinvesting dividends unless fundamentals break (ROE &lt; 15% or high debt) or the dividend yield drops below 3%.</string>
     <string name="edu_layer_4_title">Layer 4: MOM (Momentum)</string>
-    <string name="edu_layer_4_content">Are buyers stepping in? We use MACD crossovers and moving averages to confirm that the trend has actually shifted to the upside. Never catch a falling knife.</string>
+    <string name="edu_layer_4_content" formatted="false">Are buyers stepping in? We detect early trend shifts and positive price momentum by checking if the MACD Histogram > 0.0. Never catch a falling knife.</string>
     <string name="edu_layer_5_title">Layer 5: SUP (Support/Technicals)</string>
-    <string name="edu_layer_5_content">The trigger. We use RSI (Relative Strength Index) to find when prices are \'oversold\' (RSI &lt; 35) at major support levels, providing a low-risk entry point.</string>
+    <string name="edu_layer_5_content" formatted="false">The trigger. We locate ideal entry zones or extreme discounts by finding when prices are \'oversold\' (RSI &lt; 35) or when our proprietary BUY/POTENTIAL zone signals flash.</string>
     <string name="action_read_concept">Read Concept (The 5 Layers)</string>
 
     <string name="about_tagline">Happy Trading! 🚀</string>

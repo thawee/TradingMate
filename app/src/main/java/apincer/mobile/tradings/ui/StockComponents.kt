@@ -528,6 +528,7 @@ fun SectionHeader(
     title: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     color: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
@@ -541,21 +542,31 @@ fun SectionHeader(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = icon, 
-                    contentDescription = null, 
-                    tint = color, 
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
                     modifier = Modifier.size(16.dp)
                 )
             }
         }
         Spacer(Modifier.width(12.dp))
-        Text(
-            text = title, 
-            fontSize = 20.sp, 
-            fontWeight = FontWeight.Black, 
-            letterSpacing = (-0.5).sp,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Column {
+            Text(
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-0.5).sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
     }
 }
 

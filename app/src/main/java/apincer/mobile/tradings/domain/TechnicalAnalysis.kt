@@ -56,7 +56,6 @@ object TechnicalAnalysis {
     const val MARKET_FEE_RATE = 0.00007
     const val VAT_RATE = 0.07
     const val SELLING_TAX_RATE = 0.0011
-    const val MIN_DAILY_COMMISSION = 50.0
 
     // Alignment with snapshot Strategy: Focus on RSI (35/65 targets)
     const val RSI_OVERSOLD_THRESHOLD = 35.0

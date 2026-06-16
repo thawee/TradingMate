@@ -71,7 +71,6 @@ fun SettingsScreen(
     showSnackbar: (String) -> Unit
 ) {
     val context = LocalContext.current
-    var showConceptDialog by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -108,10 +107,6 @@ fun SettingsScreen(
             }
         }
     )
-
-    if (showConceptDialog) {
-        ConceptDialog(onDismiss = { showConceptDialog = false })
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         CenterAlignedTopAppBar(
@@ -164,37 +159,6 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(14.dp)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = {
-                        val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context, android.Manifest.permission.POST_NOTIFICATIONS
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        } else true
-
-                        if (hasPermission) {
-                            NotificationHelper.showSellReminderNotification(
-                                context = context,
-                                symbol = "TEST",
-                                reason = "This is a test notification. If you see this, notifications are working!"
-                            )
-                            showSnackbar("Test notification sent!")
-                        } else {
-                            showSnackbar("Notification permission not granted. Please allow in Settings.")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Test Notification")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 val dividendWindow by settingsViewModel.dividendAlertWindow.collectAsState()
                 var editingWindow by remember(dividendWindow) { mutableStateOf(dividendWindow.toString()) }
                 val isEndYear by settingsViewModel.isDividendAlertEndYear.collectAsState()
@@ -225,17 +189,6 @@ fun SettingsScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = { showConceptDialog = true },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.School, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.action_read_concept), fontWeight = FontWeight.Bold)
-            }
 
             SectionContent(title = "Risk Management", icon = Icons.Default.Warning) {
                 val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
@@ -436,120 +389,6 @@ fun SettingsItem(title: String, description: String, icon: ImageVector, onClick:
                 }
                 Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ConceptDialog(onDismiss: () -> Unit) {
-    androidx.compose.ui.window.Dialog(
-        onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.8f),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.title_education_concept),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black
-                    )
-                    androidx.compose.material3.IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                    }
-                }
-
-                // Content
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.edu_5_layers_intro),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    ConceptLayerItem(
-                        title = stringResource(R.string.edu_layer_1_title),
-                        content = stringResource(R.string.edu_layer_1_content),
-                        icon = Icons.Default.Verified,
-                        color = Color(0xFF4CAF50)
-                    )
-                    ConceptLayerItem(
-                        title = stringResource(R.string.edu_layer_2_title),
-                        content = stringResource(R.string.edu_layer_2_content),
-                        icon = Icons.Default.AccountBalanceWallet,
-                        color = Color(0xFF2196F3)
-                    )
-                    ConceptLayerItem(
-                        title = stringResource(R.string.edu_layer_3_title),
-                        content = stringResource(R.string.edu_layer_3_content),
-                        icon = Icons.Default.Savings,
-                        color = Color(0xFFFF9800)
-                    )
-                    ConceptLayerItem(
-                        title = stringResource(R.string.edu_layer_4_title),
-                        content = stringResource(R.string.edu_layer_4_content),
-                        icon = Icons.Default.TrendingUp,
-                        color = Color(0xFF9C27B0)
-                    )
-                    ConceptLayerItem(
-                        title = stringResource(R.string.edu_layer_5_title),
-                        content = stringResource(R.string.edu_layer_5_content),
-                        icon = Icons.Default.ShowChart,
-                        color = Color(0xFFF44336)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConceptLayerItem(title: String, content: String, icon: ImageVector, color: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Surface(
-            shape = androidx.compose.foundation.shape.CircleShape,
-            color = color.copy(alpha = 0.1f),
-            modifier = Modifier.size(40.dp)
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
-        Column {
-            Text(text = title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = content, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

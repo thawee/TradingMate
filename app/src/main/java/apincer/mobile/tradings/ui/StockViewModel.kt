@@ -3,13 +3,11 @@ package apincer.mobile.tradings.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import apincer.mobile.tradings.data.FocusEntity
 import apincer.mobile.tradings.data.ScrapedStockInfo
 import apincer.mobile.tradings.data.SetScraper
 import apincer.mobile.tradings.data.StockDatabase
 import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.data.StockRepository
-import apincer.mobile.tradings.data.TradeEntity
 import apincer.mobile.tradings.data.TradingBackup
 import apincer.mobile.tradings.data.ChecklistEntity
 import apincer.mobile.tradings.domain.BollingerBands
@@ -24,8 +22,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -183,29 +179,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         combine(repository.allStocks, repository.allFocusStocks) { stocks, focusStocks ->
             stocks.map { stock ->
                 val focus = focusStocks.find { it.symbol == stock.symbol }
-                val info = ScrapedStockInfo(
-                    symbol = stock.symbol,
-                    name = stock.name,
-                    nameTH = stock.nameTH,
-                    businessDescription = stock.businessDescription,
-                    sector = stock.sector,
-                    industry = stock.industry,
-                    lastPrice = stock.lastPrice,
-                    change = stock.change,
-                    percentChange = stock.percentChange,
-                    pe = stock.pe,
-                    pbv = stock.pbv,
-                    roe = stock.roe,
-                    eps = stock.eps,
-                    netProfit = stock.netProfit,
-                    netProfitMargin = stock.netProfitMargin,
-                    profitGrowth3Y = stock.profitGrowth3Y,
-                    equity = stock.equity,
-                    debtToEquity = stock.debtToEquity,
-                    dividendYield = stock.dividendYield,
-                    dividendDate = stock.dividendDate,
-                    lastUpdated = stock.lastUpdated ?: ""
-                )
+                val info = stock.toScrapedStockInfo()
                 val netProfit = if (stock.cost > 0) {
                     TechnicalAnalysis.calculateNetProfitPercent(stock.cost, stock.lastPrice)
                 } else 0.0
@@ -227,7 +201,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 } else if (stock.signalType != null) {
                     TradeSignal(
-                        type = IndicatorSignal.valueOf(stock.signalType!!),
+                        type = runCatching { IndicatorSignal.valueOf(stock.signalType!!) }.getOrDefault(IndicatorSignal.NEUTRAL),
                         reason = stock.signalReason ?: "",
                         description = stock.signalDescription ?: ""
                     )
@@ -272,16 +246,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     currentPrice = currentPrice,
                     movementPercent = movement,
                     addedAtMillis = focus.addedAtMillis,
-                    info = stock?.let {
-                        ScrapedStockInfo(
-                            symbol = it.symbol,
-                            name = it.name,
-                            lastPrice = it.lastPrice,
-                            change = it.change,
-                            percentChange = it.percentChange,
-                            lastUpdated = it.lastUpdated ?: ""
-                        )
-                    }
+                    info = stock?.toScrapedStockInfo()
                 )
             }
         }.stateIn(
@@ -418,26 +383,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                         val info = if (needsDeepFetch) {
                                             SetScraper.fetchStockInfo(stock.symbol)
                                         } else {
-                                            apincer.mobile.tradings.data.ScrapedStockInfo(
-                                                symbol = latestStock.symbol,
-                                                name = latestStock.name,
-                                                nameTH = latestStock.nameTH,
-                                                businessDescription = latestStock.businessDescription,
-                                                sector = latestStock.sector,
-                                                industry = latestStock.industry,
-                                                lastPrice = latestStock.lastPrice,
-                                                change = latestStock.change,
-                                                percentChange = latestStock.percentChange,
-                                                pe = latestStock.pe,
-                                                pbv = latestStock.pbv,
-                                                roe = latestStock.roe,
-                                                eps = latestStock.eps,
-                                                netProfit = latestStock.netProfit,
-                                                debtToEquity = latestStock.debtToEquity,
-                                                dividendYield = latestStock.dividendYield,
-                                                dividendDate = latestStock.dividendDate,
-                                                lastUpdated = latestStock.lastUpdated ?: ""
-                                            )
+                                            latestStock.toScrapedStockInfo()
                                         }
 
                                         val indicators = if (needsIndicators) {
@@ -472,7 +418,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             )
                                         } else {
                                             TradeSignal(
-                                                type = IndicatorSignal.valueOf(latestStock.signalType ?: "NEUTRAL"),
+                                                type = runCatching { IndicatorSignal.valueOf(latestStock.signalType ?: "NEUTRAL") }.getOrDefault(IndicatorSignal.NEUTRAL),
                                                 reason = latestStock.signalReason ?: "",
                                                 description = latestStock.signalDescription ?: ""
                                             )
@@ -543,20 +489,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         } else info
     }
 
-    private fun adjustCash(amount: Double) {
-        viewModelScope.launch {
-            repository.adjustCashBy(amount)
-        }
-    }
-
-
-
-
-
-
-
-
-
     fun addToWatchlist(
         symbol: String, 
         cost: Double = 0.0, 
@@ -566,22 +498,14 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         playbookNote: String = ""
     ) {
         viewModelScope.launch {
-            var fees = 0.0
-            // Deduct cash if it's a purchase (quantity > 0)
-            if (quantity > 0) {
-                val totalCostRaw = cost * quantity
-                fees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
-                adjustCash(-(totalCostRaw + fees))
+            val fees = if (quantity > 0) {
+                TechnicalAnalysis.calculateFees(cost * quantity, false)
+            } else 0.0
+            try {
+                repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+            } catch (e: IllegalStateException) {
+                _refreshError.value = e.message
             }
-            repository.addStock(
-                symbol = symbol, 
-                cost = cost, 
-                quantity = quantity, 
-                tradePurpose = tradePurpose, 
-                buyFees = fees,
-                stopLoss = stopLoss,
-                playbookNote = playbookNote
-            )
         }
     }
 
@@ -589,31 +513,16 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val item = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }
             if (item != null && item.portfolio.quantity > 0) {
-                // If it was in portfolio, record the trade history as a "Sale" at current market price
-                val totalCostRaw = item.portfolio.cost * item.portfolio.quantity
-                val currentTotalValue = item.info.lastPrice * item.portfolio.quantity
-
-                val buyFees = TechnicalAnalysis.calculateFees(totalCostRaw, false)
-                val sellFees = TechnicalAnalysis.calculateFees(currentTotalValue, true)
-                val stockTotalFees = buyFees + sellFees
-                val netProfitValue = (currentTotalValue - totalCostRaw) - stockTotalFees
-
-                // Add proceeds to cash
-                val proceeds = currentTotalValue - sellFees
-                adjustCash(proceeds)
-
-                repository.insertTrade(
-                    TradeEntity(
-                        symbol = symbol.uppercase(),
-                        buyPrice = item.portfolio.cost,
+                try {
+                    repository.executeSell(
+                        symbol = symbol,
                         sellPrice = item.info.lastPrice,
-                        quantity = item.portfolio.quantity,
-                        netProfitPercent = item.netProfitPercent,
-                        netProfitBaht = netProfitValue,
-                        dateMillis = System.currentTimeMillis(),
+                        sellQuantity = item.portfolio.quantity,
                         note = "Stock removed from watchlist"
                     )
-                )
+                } catch (e: Exception) {
+                    android.util.Log.e("StockViewModel", "Error selling ${symbol}: ${e.message}", e)
+                }
             }
             repository.removeStock(symbol)
         }
@@ -799,12 +708,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val cacheDateTimeFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
     private fun isCacheExpired(lastUpdated: String?): Boolean {
         if (lastUpdated.isNullOrBlank()) return true
         return try {
-            val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-            val date = format.parse(lastUpdated) ?: return true
-            val diffMs = System.currentTimeMillis() - date.time
+            val dateTime = java.time.LocalDateTime.parse(lastUpdated, cacheDateTimeFormatter)
+            val diffMs = System.currentTimeMillis() - java.time.ZoneId.systemDefault().let { dateTime.atZone(it).toInstant().toEpochMilli() }
             diffMs > 24L * 60L * 60L * 1000L // 24 Hours
         } catch (e: Exception) {
             true
@@ -814,9 +724,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private fun isTechnicalCacheExpired(lastUpdated: String?): Boolean {
         if (lastUpdated.isNullOrBlank()) return true
         return try {
-            val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-            val date = format.parse(lastUpdated) ?: return true
-            val diffMs = System.currentTimeMillis() - date.time
+            val dateTime = java.time.LocalDateTime.parse(lastUpdated, cacheDateTimeFormatter)
+            val diffMs = System.currentTimeMillis() - java.time.ZoneId.systemDefault().let { dateTime.atZone(it).toInstant().toEpochMilli() }
             val isMarketClosed = TechnicalAnalysis.getMarketStatus() == apincer.mobile.tradings.domain.MarketStatus.CLOSED
             if (isMarketClosed) {
                 diffMs > 12L * 60L * 60L * 1000L // 12 Hours

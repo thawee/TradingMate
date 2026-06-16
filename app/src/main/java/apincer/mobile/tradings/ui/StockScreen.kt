@@ -45,7 +45,7 @@ import java.util.Locale
 
 enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: Boolean = true) {
     WATCHLIST(R.string.title_watchlist, Icons.Default.QueryStats),
-    ADVISOR(R.string.title_advisor, Icons.Default.Savings),
+    ADVISOR(R.string.title_advisor, Icons.Default.AutoAwesome),
     PORTFOLIO(R.string.title_portfolio, Icons.Default.AccountBalance),
     STATS(R.string.title_history, Icons.Default.History),
     SETTINGS(R.string.title_settings, Icons.Default.Settings),

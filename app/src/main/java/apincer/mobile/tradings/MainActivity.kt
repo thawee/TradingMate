@@ -16,10 +16,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import apincer.mobile.tradings.ui.StockScreen
 import apincer.mobile.tradings.ui.theme.TradingMateTheme
 import apincer.mobile.tradings.util.NotificationHelper
-import apincer.mobile.tradings.util.StockAlertService
+import apincer.mobile.tradings.util.StockAlertWorker
+import java.util.concurrent.TimeUnit
 
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
@@ -55,7 +59,7 @@ class MainActivity : ComponentActivity() {
         NotificationHelper.createNotificationChannel(this)
         checkNotificationPermission()
         requestBatteryOptimizationExemption()
-        StockAlertService.start(this)
+        scheduleStockAlertWorker()
 
         setContent {
             TradingMateTheme {
@@ -94,5 +98,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun scheduleStockAlertWorker() {
+        val workRequest = PeriodicWorkRequestBuilder<StockAlertWorker>(
+            1, TimeUnit.HOURS
+        ).build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "stock_alert_worker",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }
