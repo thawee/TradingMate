@@ -14,7 +14,8 @@ android {
     defaultConfig {
         applicationId = "apincer.mobile.tradings"
         minSdk = 24
-        targetSdk = 37
+        //noinspection OldTargetApi
+        targetSdk = 36
         versionCode = 8
         versionName = "1.7.0"
 

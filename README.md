@@ -22,13 +22,24 @@ It specifically addresses common beginner challenges:
 - **Precise Fee Engine:** Accurate net profit/loss tracking using a detailed InnovestX fee structure (Commission + Market Fee + VAT + Selling Tax).
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
-## 🏛️ Quality & Fundamentals
+## 🧅 The 5-Layer Filter System (Stock DNA)
 
-TradingMate doesn't just look at price; it evaluates the "DNA" of a company. A stock is suggested in the Advisor or marked with the **"⭐ Quality"** badge only if it passes these strict guardrails:
-- **ROE > 15%:** Efficient management of shareholder capital.
-- **Net Profit Margin > 10%:** Healthy business profitability.
-- **D/E Ratio < 1.5:** Safe and sustainable debt levels.
-- **Profit Growth (3Y) > 10%:** Consistent performance over time.
+TradingMate doesn't just look at price; it evaluates the "DNA" of a company using a strict 5-Layer filter to classify stocks into Swing Plays or Dividend Stars.
+
+1. **Qual (Quality):** Evaluates management efficiency and profitability.
+   - *Indicators used:* ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
+2. **Val (Value):** Identifies underpriced or fair-value stocks.
+   - *Indicators used:* P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.0).
+3. **Div (Dividend):** Highlights strong passive income generators.
+   - *Indicators used:* Dividend Yield ≥ 5.0%.
+4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
+   - *Indicators used:* MACD Histogram > 0.0.
+5. **Sup (Support / Setup):** Locates ideal entry zones or extreme discounts.
+   - *Indicators used:* RSI < 35 (Oversold) or proprietary BUY/POTENTIAL zone signals.
+
+**How they combine:**
+- **Swing Plays:** Must pass `(Quality OR Value) AND (Momentum OR Support)`.
+- **Dividend Stars:** Must pass `Dividend AND Quality`.
 
 ## 📊 Technical Indicators Used
 
