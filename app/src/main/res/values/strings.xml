@@ -90,7 +90,7 @@
     <string name="label_backup_desc">Export your local data to a JSON file.</string>
     <string name="label_restore_desc">Import data from a backup file.</string>
     <string name="label_dynamic_theme">Dynamic Theme (System Default)</string>
-    <string name="label_app_version">Trading Mate v1.5.0</string>
+    <string name="label_app_version">Trading Mate v1.6.0</string>
     <string name="label_app_tagline">Your personal premium trading companion.</string>
     <string name="label_copyright">© 2024 apincer mobile</string>
     <string name="label_rr_calculator">Risk/Reward Calculator</string>
@@ -252,4 +252,8 @@
     <string name="action_read_concept">Read Concept (The 5 Layers)</string>
 
     <string name="about_tagline">Happy Trading! 🚀</string>
+
+    <!-- Disclaimer -->
+    <string name="about_disclaimer_title">Disclaimer</string>
+    <string name="about_disclaimer_content">This application is designed for educational and informational purposes only. It does not constitute financial advice, investment recommendation, or a solicitation to buy or sell any securities. All trading and investment decisions are made at your own risk. The creators and developers of TradingMate are not responsible for any financial losses, damages, or consequences arising from the use of this application. Past performance does not guarantee future results. Always consult with a qualified financial advisor before making investment decisions.</string>
 </resources>

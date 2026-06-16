@@ -108,6 +108,12 @@ fun AboutScreen(onBack: () -> Unit) {
                     content = stringResource(R.string.about_creator_content)
                 )
 
+                AboutSectionCard(
+                    title = stringResource(R.string.about_disclaimer_title),
+                    icon = Icons.Default.Info,
+                    content = stringResource(R.string.about_disclaimer_content)
+                )
+
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,

@@ -394,9 +394,19 @@ fun SettingsScreen(
                     Spacer(Modifier.height(8.dp))
                     
                     Text(stringResource(R.string.label_copyright), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = stringResource(R.string.about_disclaimer_content),
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
-            
+
             Spacer(Modifier.height(40.dp))
         }
     }

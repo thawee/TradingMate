@@ -53,4 +53,12 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance) ALWAYS override BUY momentum.
 
 ---
-*Disclaimer: TradingMate is an educational tool. All trading involves risk. Consult with a professional financial advisor before making investment decisions.*
+
+## ⚠️ Disclaimer
+
+TradingMate is designed for **educational and informational purposes only**. It does not constitute financial advice, investment recommendation, or a solicitation to buy or sell any securities.
+
+- All trading and investment decisions are made **at your own risk**.
+- The creators and developers of TradingMate are **not responsible** for any financial losses, damages, or consequences arising from the use of this application.
+- Past performance does not guarantee future results.
+- Always consult with a **qualified financial advisor** before making investment decisions.

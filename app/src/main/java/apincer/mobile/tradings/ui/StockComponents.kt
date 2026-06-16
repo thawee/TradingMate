@@ -376,25 +376,51 @@ fun StockItemCard(
                 }
             }
 
-            if (item.isFocused && item.focusStartPrice != null) {
+            if (item.portfolio.quantity > 0) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
-                        
-                        Text("Start", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        
+                        Text("Cost", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${item.focusStartPrice}", 
-                            fontSize = 14.sp, 
+                            text = if (isPrivacyMode) "฿••••" else "฿${item.portfolio.cost}",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    
-                    val startDiff = ((item.info.lastPrice - item.focusStartPrice) / item.focusStartPrice) * 100
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        
+                        Text("Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (isPrivacyMode) "••••%" else "${if (item.netProfitPercent >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.netProfitPercent)}%",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (item.netProfitPercent >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Take Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        val takeProfitPrice = item.portfolio.cost * 1.10
+                        Text(
+                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", takeProfitPrice)}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                }
+            } else if (item.isFocused && item.focusStartPrice != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Start", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (isPrivacyMode) "฿••••" else "฿${item.focusStartPrice}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Move", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        
+                        val startDiff = ((item.info.lastPrice - item.focusStartPrice) / item.focusStartPrice) * 100
                         Text(
                             text = "${if (startDiff >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", startDiff)}%",
                             fontSize = 14.sp,
@@ -402,41 +428,13 @@ fun StockItemCard(
                             color = if (startDiff >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                         )
                     }
-
                     Column(horizontalAlignment = Alignment.End) {
-                        
-                        Text("Target", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                        
+                        Text("Sell Target", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else if ((item.focusTargetPrice ?: 0.0) > 0) "฿${item.focusTargetPrice}" else "---",
+                            text = if (isPrivacyMode) "฿••••" else if ((item.focusTargetPrice ?: 0.0) > 0) "฿${String.format(Locale.ENGLISH, "%.2f", item.focusTargetPrice)}" else "---",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            } else if (item.portfolio.quantity > 0) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        
-                        Text("Cost", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        
-                        Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${item.portfolio.cost}", 
-                            fontSize = 14.sp, 
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        
-                        Text("Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        
-                        Text(
-                            text = if (isPrivacyMode) "••••%" else "${if (item.netProfitPercent >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.netProfitPercent)}%",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (item.netProfitPercent >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Black
                         )
                     }
                 }

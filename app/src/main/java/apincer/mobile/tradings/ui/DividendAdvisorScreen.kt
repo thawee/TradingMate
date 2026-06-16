@@ -292,6 +292,13 @@ fun DividendAdvisorScreen(
                         .padding(bottom = 80.dp), // Space for floating bar
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Text(
+                        text = "For educational purposes only. Not financial advice. Trade at your own risk.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        fontWeight = FontWeight.Medium
+                    )
             val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
             val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
             val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
@@ -609,6 +616,15 @@ fun AiCopilotCard(
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Tap the button below to copy a detailed prompt to your clipboard. Then paste it into your favorite AI (ChatGPT, Gemini, Claude) for deep analysis.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                lineHeight = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (playbookMode == PlaybookMode.SWING) {
                 // Swing Trade Button

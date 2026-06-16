@@ -71,7 +71,9 @@ data class StockWatchlistInfo(
     val isFocused: Boolean = false,
     val focusStartPrice: Double? = null,
     val focusTargetPrice: Double? = null,
-    val focusMovementPercent: Double? = null
+    val focusMovementPercent: Double? = null,
+    val buyPriceTarget: Double? = null,
+    val sellPriceTarget: Double? = null
 )
 
 data class StockFocusInfo(
