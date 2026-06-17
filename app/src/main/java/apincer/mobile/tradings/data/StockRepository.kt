@@ -138,11 +138,20 @@ class StockRepository(
 
     suspend fun restoreBackup(backup: TradingBackup) {
         database.withTransaction {
-            stockDao.insertPortfolios(backup.portfolios)
-            stockDao.insertCaches(backup.caches)
-            stockDao.insertSignals(backup.signals)
-            focusDao.insertFocusStocks(backup.focusList)
-            tradeDao.insertTrades(backup.trades)
+            // Add watchlist symbols (no position)
+            backup.watchlistSymbols.forEach { symbol ->
+                addStockIfMissing(symbol)
+            }
+            // Add/update portfolio items with position data
+            backup.portfolioItems.forEach { item ->
+                addStock(
+                    symbol = item.symbol,
+                    cost = item.cost,
+                    quantity = item.quantity,
+                    tradePurpose = item.tradePurpose
+                )
+            }
+            // Restore cash balance
             cashDao.updateCash(CashEntity(balance = backup.cashBalance))
         }
     }

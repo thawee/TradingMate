@@ -9,6 +9,7 @@ import apincer.mobile.tradings.data.StockDatabase
 import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.data.StockRepository
 import apincer.mobile.tradings.data.TradingBackup
+import apincer.mobile.tradings.data.SimplePortfolio
 import apincer.mobile.tradings.data.ChecklistEntity
 import apincer.mobile.tradings.domain.BollingerBands
 import apincer.mobile.tradings.domain.IndicatorSignal
@@ -155,16 +156,23 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val stocks = repository.getAllStocksSync()
-                val trades = repository.getAllTradesSync()
-                val focusList = repository.getAllFocusStocksSync()
                 val cashBalanceVal = repository.getCashSync()?.balance ?: 0.0
                 
+                val watchlistSymbols = stocks.map { it.portfolio.symbol }
+                val portfolioItems = stocks
+                    .filter { it.portfolio.quantity > 0 }
+                    .map {
+                        SimplePortfolio(
+                            symbol = it.portfolio.symbol,
+                            cost = it.portfolio.cost,
+                            quantity = it.portfolio.quantity,
+                            tradePurpose = it.portfolio.tradePurpose
+                        )
+                    }
+                
                 val backup = TradingBackup(
-                    portfolios = stocks.map { it.portfolio },
-                    caches = stocks.mapNotNull { it.cache },
-                    signals = stocks.mapNotNull { it.signal },
-                    focusList = focusList,
-                    trades = trades,
+                    watchlistSymbols = watchlistSymbols,
+                    portfolioItems = portfolioItems,
                     cashBalance = cashBalanceVal
                 )
                 

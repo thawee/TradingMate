@@ -6,12 +6,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TradingBackup(
-    val portfolios: List<PortfolioEntity>,
-    val caches: List<StockCacheEntity>,
-    val signals: List<StockSignalEntity>,
-    val focusList: List<FocusEntity>,
-    val trades: List<TradeEntity>,
+    val watchlistSymbols: List<String>,
+    val portfolioItems: List<SimplePortfolio>,
     val cashBalance: Double
+)
+
+@Serializable
+data class SimplePortfolio(
+    val symbol: String,
+    val cost: Double,
+    val quantity: Int,
+    val tradePurpose: String
 )
 
 @Entity(tableName = "portfolio")
