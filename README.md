@@ -63,7 +63,49 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **🔴 Sell - Stop Loss:** Automatically alerts you to cut losses at -5% net.
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance) ALWAYS override BUY momentum.
 
+## 📋 Swing Playbook (Daily Discipline Tracker)
+
+The Swing Playbook is a 3-step daily workflow to keep traders disciplined during market hours. It appears at the bottom of the Smart Advisor screen as a floating step bar.
+
+### The 3 Steps
+
+| Step | Name | What It Does |
+|------|------|--------------|
+| 1 | 🚨 Check Exits | Review sell alerts — Take Profit (≥10%), Stop Loss (≤-5%), Overbought (RSI ≥65), SELL signal |
+| 2 | 🔍 Scan Setups | Review swing/gap candidates filtered by Quality, Momentum, and Support criteria |
+| 3 | 🤖 Ask AI | Copy a detailed AI prompt to clipboard for external analysis (ChatGPT/Gemini/Claude) |
+
+- Each step has a checkbox. Tapping **"Next →"** scrolls to the next step.
+- When all 3 steps are checked, the bar shows **"✅ All 3 steps done! You're ready to trade."**
+- If no sell alerts exist, Step 1 auto-marks as done.
+
+### Reset Schedule
+
+All 3 steps reset **daily after market close (16:30)**:
+
+- **Before 16:30** (trading hours): Steps are still valid for today — no reset.
+- **After 16:30** (market closed): Opening the app triggers a fresh reset for the new trading day.
+
+This ensures your checklist stays intact during market hours and starts clean the next day.
+
+> Note: The Dividend Playbook does not have step tracking — only the Swing Playbook follows this discipline workflow. Dividend stocks require multiple reviews throughout the day and across the week (e.g., monitoring yield changes, XD dates, fundamental shifts), so a single daily checklist is not feasible for this strategy.
+
 ---
+
+## 🔔 Notification Alerts
+
+TradingMate sends push notifications during specific time windows on weekdays (Asia/Bangkok timezone):
+
+| Time Window | Alert | Description |
+|-------------|-------|-------------|
+| **10:00–11:00 AM** | 🌅 Morning Swing Exit | Reminds you to check active swing positions for Sell/Stop Loss alerts |
+| **15:30–16:30 PM** | 🌆 Afternoon Swing Entry | Reminds you to scan the Advisor for new daily Swing & Gap candidates |
+| **Within 7 days of XD date** | 💰 Ex-Dividend Alert | Per-stock alert when an ex-dividend date is approaching |
+| **January & June** | 📅 Dividend Season | Reminds you to accumulate dividend-paying stocks before payout season |
+
+**Deduplication:** Each alert fires at most once per day per type using daily SharedPreferences keys.
+
+> Note: Notifications are skipped on weekends and when the market is closed.
 
 ## ⚠️ Disclaimer
 

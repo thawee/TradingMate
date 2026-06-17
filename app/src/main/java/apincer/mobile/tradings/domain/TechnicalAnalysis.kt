@@ -217,16 +217,17 @@ object TechnicalAnalysis {
             }
         }
 
-        // 2. SELL PRIORITY: Technical Overbought
+        // 2. SELL PRIORITY: Technical Overbought (only if already profitable)
         val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= 3.0
-        if (!isProtectedDividend && isRsiOverbought) {
+        val hasProfit = userCost != null && userCost > 0 && lastPrice != null && calculateNetProfitPercent(userCost, lastPrice) > 0.0
+        if (!isProtectedDividend && hasProfit && isRsiOverbought) {
             return TradeSignal(
                 IndicatorSignal.SELL,
                 "${qualityPrefix}Overbought",
                 "RSI is ${String.format(Locale.ENGLISH,"%.1f", rsi)} (above 65). The stock is overextended and likely to pull back. Consider selling to lock in gains."
             )
         }
-        if (!isProtectedDividend && isNearUpperBB) {
+        if (!isProtectedDividend && hasProfit && isNearUpperBB) {
             return TradeSignal(
                 IndicatorSignal.SELL,
                 "${qualityPrefix}Upper Band Resistance",

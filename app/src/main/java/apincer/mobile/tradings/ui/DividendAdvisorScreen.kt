@@ -178,7 +178,7 @@ fun DividendAdvisorScreen(
                     targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
                 } else if (netProfit <= -5.0) {
                     targetAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
-                } else if (rsi >= 65.0) { // Using 65.0 to match TechnicalAnalysis OVERBOUGHT
+                } else if (netProfit > 0.0 && rsi >= 65.0) {
                     targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
                 } else if (stock.signal?.type == IndicatorSignal.SELL) {
                     targetAlerts.add(SellAlertData(stock, stock.signal.reason))

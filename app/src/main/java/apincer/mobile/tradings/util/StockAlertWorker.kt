@@ -99,12 +99,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     roe = scraped.roe
                 )
 
-                // 4. Check for state shift
+                // 4. Check for state shift (portfolio stocks only)
                 val oldSignalType = entity.signalType
                 val newSignalType = signal.type.name
 
-                if (newSignalType != oldSignalType && isActionable(signal.type)) {
-                    // Trigger notification
+                if (entity.quantity > 0 && newSignalType != oldSignalType && isActionable(signal.type)) {
                     NotificationHelper.showSignalNotification(
                         context = applicationContext,
                         symbol = entity.symbol,

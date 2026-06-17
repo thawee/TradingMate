@@ -274,7 +274,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private fun checkAndResetChecklist(existing: ChecklistEntity): ChecklistEntity {
         val zoneId = java.time.ZoneId.of("Asia/Bangkok")
         val now = java.time.ZonedDateTime.now(zoneId)
-        val disciplineDateTime = if (now.toLocalTime().isBefore(java.time.LocalTime.of(9, 30))) {
+        val disciplineDateTime = if (now.toLocalTime().isBefore(java.time.LocalTime.of(16, 30))) {
             now.minusDays(1)
         } else {
             now
@@ -291,13 +291,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
         // Reset daily if date changed
         if (existing.lastResetDate != todayStr) {
-            updated = updated.copy(swingDailyDone = false)
+            updated = updated.copy(
+                swingDailyDone = false,
+                swingWeeklyDone = false,
+                swingAiDone = false
+            )
         }
         // Reset weekly if week changed
         if (existing.lastResetWeek != currentWeek) {
             updated = updated.copy(
-                swingWeeklyDone = false,
-                swingAiDone = false,
                 divWeeklyDone = false,
                 divWeeklyPricesDone = false
             )

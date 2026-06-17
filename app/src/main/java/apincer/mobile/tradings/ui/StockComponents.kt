@@ -442,10 +442,13 @@ fun StockItemCard(
 
             val isPortfolioItem = item.portfolio.quantity > 0
             val isSellSignal = item.signal?.type == IndicatorSignal.SELL
+            val isSoftSell = isSellSignal && (item.signal?.reason?.contains("Overbought") == true || item.signal?.reason?.contains("Upper Band") == true)
             val showStatusBox = item.signal != null || isPortfolioItem
             
             if (showStatusBox) {
+                
                 val signalColor = when {
+                    isPortfolioItem && isSellSignal && isSoftSell -> MaterialTheme.colorScheme.tertiary
                     isPortfolioItem && isSellSignal -> MaterialTheme.colorScheme.error
                     isPortfolioItem && !isSellSignal -> MaterialTheme.colorScheme.tertiary
                     item.signal?.type == IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
@@ -454,7 +457,8 @@ fun StockItemCard(
                 }
                 
                 val signalText = when {
-                    isPortfolioItem && isSellSignal -> "ACTION: SELL"
+                    isPortfolioItem && isSellSignal && !isSoftSell -> "ACTION: SELL"
+                    isPortfolioItem && isSellSignal && isSoftSell -> "WARNING"
                     isPortfolioItem && !isSellSignal -> "ACTION: HOLD"
                     else -> item.signal?.type?.name ?: "MONITOR"
                 }
@@ -508,14 +512,14 @@ fun StockItemCard(
                     Button(
                         onClick = { onSell(item) },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSellSignal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (isSellSignal) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            containerColor = if (isSellSignal && !isSoftSell) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isSellSignal && !isSoftSell) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(Icons.Default.Sell, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(if (isSellSignal) "Execute Sell" else "Close Trade", fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        Text(if (isSellSignal && !isSoftSell) "Execute Sell" else "Close Trade", fontSize = 12.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
