@@ -67,13 +67,6 @@ enum class PlaybookMode(val label: String) {
 }
 
 
-data class AdvisorData(
-    val dividendPlays: List<StockWatchlistInfo>,
-    val combinedSwingPlays: List<StockWatchlistInfo>,
-    val swingSellAlerts: List<SellAlertData>,
-    val dividendSellAlerts: List<SellAlertData>
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DividendAdvisorScreen(
@@ -82,123 +75,31 @@ fun DividendAdvisorScreen(
     onNavigateToAcademy: () -> Unit,
     showSnackbar: (String) -> Unit
 ) {
+    val alertRoutineState by viewModel.alertRoutineState.collectAsState()
     val watchlist by viewModel.watchlistInfo.collectAsState()
-    val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
-    // Logic helpers to match thai-set-cli definitions
     val isQual = { it: StockWatchlistInfo -> (it.info.roe ?: 0.0) > 15.0 }
     val isVal = { it: StockWatchlistInfo -> (it.info.pe ?: 0.0) in 0.1..15.0 && (it.info.pbv ?: 0.0) in 0.1..1.0 }
     val isDiv = { it: StockWatchlistInfo -> (it.info.dividendYield ?: 0.0) >= 5.0 }
     val isMom = { it: StockWatchlistInfo -> (it.portfolio.macdHist ?: 0.0) > 0.0 }
-    val isSup = { it: StockWatchlistInfo -> 
-        it.signal?.type == IndicatorSignal.BUY || 
-        it.signal?.type == IndicatorSignal.POTENTIAL || 
-        (it.portfolio.rsi ?: 50.0) < 35.0 
+    val isSup = { it: StockWatchlistInfo ->
+        it.signal?.type == IndicatorSignal.BUY ||
+        it.signal?.type == IndicatorSignal.POTENTIAL ||
+        (it.portfolio.rsi ?: 50.0) < 35.0
     }
     val isGapUp = { it: StockWatchlistInfo -> it.info.percentChange >= 4.0 && (isQual(it) || (it.info.netProfitMargin ?: 0.0) > 10.0) }
 
-    val advisorData = remember(watchlist) {
-        val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
-            .sortedWith(
-                compareBy<StockWatchlistInfo> {
-                    when (it.signal?.type) {
-                        IndicatorSignal.BUY -> 0
-                        IndicatorSignal.POTENTIAL -> 1
-                        IndicatorSignal.NEUTRAL -> 2
-                        else -> 3
-                    }
-                }.thenByDescending {
-                    it.info.dividendYield ?: 0.0
-                }
-            )
-        val swingPlays = watchlist.filter { (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) }
-            .sortedWith(
-                compareBy<StockWatchlistInfo> {
-                    when (it.signal?.type) {
-                        IndicatorSignal.BUY -> 0
-                        IndicatorSignal.POTENTIAL -> 1
-                        else -> 2
-                    }
-                }.thenBy {
-                    it.portfolio.rsi ?: 100.0
-                }.thenByDescending {
-                    isQual(it)
-                }
-            )
-        val gapPlays = watchlist.filter { isGapUp(it) }.sortedByDescending { it.info.percentChange }
-        val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
-            .sortedWith(
-                compareBy<StockWatchlistInfo> {
-                    when (it.signal?.type) {
-                        IndicatorSignal.BUY -> 0
-                        IndicatorSignal.POTENTIAL -> 1
-                        else -> 2
-                    }
-                }.thenByDescending {
-                    it.info.percentChange
-                }.thenBy {
-                    it.portfolio.rsi ?: 100.0
-                }
-            )
-
-        val swingSellAlerts = mutableListOf<SellAlertData>()
-        val dividendSellAlerts = mutableListOf<SellAlertData>()
-
-        portfolioItems.forEach { stock ->
-            val tradePurpose = stock.portfolio.tradePurpose
-            
-            var applySwingLogic = true
-            
-            // Dividend checks
-            if (tradePurpose == "DIVIDEND") {
-                val yield = stock.info.dividendYield ?: 0.0
-                val roe = stock.info.roe ?: 0.0
-                
-                if (roe < 15.0) {
-                    dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
-                } 
-                
-                if (yield >= 3.0) {
-                    applySwingLogic = false
-                } else {
-                    swingSellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%) (Transition to Swing)"))
-                    applySwingLogic = true
-                }
-            }
-            
-            // Swing checks
-            if (applySwingLogic) {
-                val netProfit = stock.netProfitPercent
-                val rsi = stock.portfolio.rsi ?: 50.0
-                
-                val targetAlerts = swingSellAlerts
-                
-                if (netProfit >= 10.0) {
-                    targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
-                } else if (netProfit <= -5.0) {
-                    targetAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
-                } else if (netProfit > 0.0 && rsi >= 65.0) {
-                    targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
-                } else if (stock.signal?.type == IndicatorSignal.SELL) {
-                    targetAlerts.add(SellAlertData(stock, stock.signal.reason))
-                }
-            }
-        }
-        
-        AdvisorData(dividendPlays, combinedSwingPlays, swingSellAlerts, dividendSellAlerts)
-    }
-    
-    val dividendPlays = advisorData.dividendPlays
-    val combinedSwingPlays = advisorData.combinedSwingPlays
-    val swingSellAlerts = advisorData.swingSellAlerts
-    val dividendSellAlerts = advisorData.dividendSellAlerts
-
-    val checklist by viewModel.checklist.collectAsState()
-
-    var playbookMode by remember { mutableStateOf(PlaybookMode.SWING) }
+    val playbookMode = alertRoutineState.playbookMode
+    val checklist = alertRoutineState.checklist
+    val swingSellAlerts = alertRoutineState.swingSellAlerts
+    val dividendSellAlerts = alertRoutineState.dividendSellAlerts
+    val combinedSwingPlays = alertRoutineState.combinedSwingPlays
+    val dividendPlays = alertRoutineState.dividendPlays
+    val portfolioItems = alertRoutineState.portfolioItems
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isAfternoonScanAvailable by viewModel.isAfternoonScanAvailable.collectAsState()
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -247,7 +148,7 @@ fun DividendAdvisorScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp),
-                            onClick = { playbookMode = mode },
+                            onClick = { viewModel.setPlaybookMode(mode) },
                             color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color.Transparent,
                             shape = CircleShape,
                             border = if (isSelected) BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null
@@ -301,48 +202,43 @@ fun DividendAdvisorScreen(
             val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
             val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
 
-            val activeAlerts = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
-            val step1Done = if (playbookMode == PlaybookMode.SWING) checklist.swingDailyDone else checklist.divWeeklyDone
+            val activeAlerts = alertRoutineState.activeAlerts
+            val step1Done = alertRoutineState.step1Done
             
             androidx.compose.runtime.LaunchedEffect(activeAlerts.size, playbookMode) {
                 if (activeAlerts.isEmpty() && !step1Done) {
-                    if (playbookMode == PlaybookMode.SWING) {
-                        viewModel.updateChecklistState { it.copy(swingDailyDone = true) }
-                    } else {
-                        viewModel.updateChecklistState { it.copy(divWeeklyDone = true) }
-                    }
+                    viewModel.markAlertRoutineStepDone(1)
                 }
             }
 
-            if (playbookMode == PlaybookMode.DIVIDEND) {
-                Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-                    aiOffset = coordinates.positionInWindow().y.toInt() - 150
-                }) {
-                    AiCopilotCard(
-                        playbookMode = playbookMode,
-                        checklist = checklist,
-                        onToggleAiDone = {
-                            viewModel.updateChecklistState { it.copy(divAiDone = !checklist.divAiDone) }
-                        },
-                        onMarkAiDone = {
-                            viewModel.updateChecklistState { it.copy(divAiDone = true) }
-                        },
-                        watchlist = watchlist,
-                        portfolioItems = portfolioItems,
-                        isQual = isQual,
-                        isVal = isVal,
-                        isDiv = isDiv,
-                        isMom = isMom,
-                        isSup = isSup,
-                        isGapUp = isGapUp,
-                        maxRiskPerTrade = maxRiskPerTrade,
-                        maxOpenExposure = maxOpenExposure,
-                        maxPortfolioAllocation = maxPortfolioAllocation,
-                        showSnackbar = showSnackbar
-                    )
-                }
-                Spacer(Modifier.height(16.dp))
+            // AI Master Prompts - Always at top for easy access
+            Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+                aiOffset = coordinates.positionInWindow().y.toInt() - 150
+            }) {
+                AiCopilotCard(
+                    playbookMode = playbookMode,
+                    checklist = checklist,
+                    onToggleAiDone = {
+                        viewModel.toggleAlertRoutineStep(3)
+                    },
+                    onMarkAiDone = {
+                        viewModel.markAlertRoutineStepDone(3)
+                    },
+                    watchlist = watchlist,
+                    portfolioItems = portfolioItems,
+                    isQual = isQual,
+                    isVal = isVal,
+                    isDiv = isDiv,
+                    isMom = isMom,
+                    isSup = isSup,
+                    isGapUp = isGapUp,
+                    maxRiskPerTrade = maxRiskPerTrade,
+                    maxOpenExposure = maxOpenExposure,
+                    maxPortfolioAllocation = maxPortfolioAllocation,
+                    showSnackbar = showSnackbar
+                )
             }
+            Spacer(Modifier.height(16.dp))
 
             // Step 1: Sell Alerts
             Box(modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -368,7 +264,7 @@ fun DividendAdvisorScreen(
                         StepCheckbox(
                             isDone = checklist.swingDailyDone,
                             onClick = {
-                                viewModel.updateChecklistState { it.copy(swingDailyDone = !checklist.swingDailyDone) }
+                                viewModel.toggleAlertRoutineStep(1)
                             }
                         )
                     }
@@ -417,8 +313,8 @@ fun DividendAdvisorScreen(
                     if (playbookMode == PlaybookMode.SWING) {
                         SectionHeader(
                             modifier = Modifier.weight(1f),
-                            title = "🔍 Scan Setups",
-                            subtitle = "$candidatesCount setups (Quality + Momentum)",
+                            title = "🔍 Scan Setups" + if (isAfternoonScanAvailable) " 📢" else "",
+                            subtitle = "$candidatesCount setups (Quality + Momentum)" + if (isAfternoonScanAvailable) " — Afternoon scan ready" else "",
                             icon = Icons.AutoMirrored.Filled.List
                         )
                     } else {
@@ -433,7 +329,10 @@ fun DividendAdvisorScreen(
                         StepCheckbox(
                             isDone = checklist.swingWeeklyDone,
                             onClick = {
-                                viewModel.updateChecklistState { it.copy(swingWeeklyDone = !checklist.swingWeeklyDone) }
+                                viewModel.toggleAlertRoutineStep(2)
+                                if (isAfternoonScanAvailable) {
+                                    viewModel.clearAfternoonScanFlag()
+                                }
                             }
                         )
                     }
@@ -457,58 +356,26 @@ fun DividendAdvisorScreen(
                 }
             }
 
-            if (playbookMode == PlaybookMode.SWING) {
-                Spacer(Modifier.height(8.dp))
-    
-                // Step 3: AI Master Prompts
-                Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-                    aiOffset = coordinates.positionInWindow().y.toInt() - 150
-                }) {
-                    AiCopilotCard(
-                        playbookMode = playbookMode,
-                        checklist = checklist,
-                        onToggleAiDone = {
-                            viewModel.updateChecklistState { it.copy(swingAiDone = !checklist.swingAiDone) }
-                        },
-                        onMarkAiDone = {
-                            viewModel.updateChecklistState { it.copy(swingAiDone = true) }
-                        },
-                        watchlist = watchlist,
-                        portfolioItems = portfolioItems,
-                        isQual = isQual,
-                        isVal = isVal,
-                        isDiv = isDiv,
-                        isMom = isMom,
-                        isSup = isSup,
-                        isGapUp = isGapUp,
-                        maxRiskPerTrade = maxRiskPerTrade,
-                        maxOpenExposure = maxOpenExposure,
-                        maxPortfolioAllocation = maxPortfolioAllocation,
-                        showSnackbar = showSnackbar
-                    )
-                }
-            }
-
-
             Spacer(Modifier.height(40.dp))
         }
         }
         } // close outer Column
 
         // Wizard Step Bar or Floating Button (navigation, direct child of Box)
-        val activeAlertsCount = if (playbookMode == PlaybookMode.SWING) swingSellAlerts.size else dividendSellAlerts.size
         if (playbookMode == PlaybookMode.SWING) {
             WizardStepBar(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 playbookMode = playbookMode,
                 checklist = checklist,
-                alertsCount = activeAlertsCount,
+                alertsCount = alertRoutineState.exitAlertsCount,
+                candidatesCount = alertRoutineState.activeCandidatesCount,
+                isAfternoonScanAvailable = isAfternoonScanAvailable,
                 onStepClick = { step ->
                     coroutineScope.launch {
                         val targetOffset = when (step) {
-                            1 -> sellAlertsOffset
-                            2 -> candidatesOffset
-                            3 -> aiOffset
+                            1 -> aiOffset
+                            2 -> sellAlertsOffset
+                            3 -> candidatesOffset
                             else -> 0
                         }
                         scrollState.animateScrollTo(targetOffset)
@@ -939,19 +806,25 @@ fun WizardStepBar(
     playbookMode: PlaybookMode,
     checklist: ChecklistEntity,
     alertsCount: Int,
+    candidatesCount: Int,
+    isAfternoonScanAvailable: Boolean = false,
     onStepClick: (Int) -> Unit
 ) {
-    val step1Done = if (playbookMode == PlaybookMode.SWING) checklist.swingDailyDone else checklist.divWeeklyDone
-    val step2Done = if (playbookMode == PlaybookMode.SWING) checklist.swingWeeklyDone else checklist.divMonthlyDone
-    val step3Done = if (playbookMode == PlaybookMode.SWING) checklist.swingAiDone else checklist.divAiDone
+    val step1Done = checklist.swingAiDone
+    val step2Done = checklist.swingDailyDone
+    val step3Done = checklist.swingWeeklyDone
 
-    val step1Name = if (playbookMode == PlaybookMode.SWING) "🚨 Exits" else "🛡️ Shields"
-    val step1Label = if (alertsCount > 0) "$step1Name ($alertsCount)" else step1Name
+    val step1Label = "🤖 Ask AI"
+    val step2Name = if (playbookMode == PlaybookMode.SWING) "🚨 Exits" else "🛡️ Shields"
+    val step2Label = if (alertsCount > 0) "$step2Name ($alertsCount)" else step2Name
+    val step3Name = if (playbookMode == PlaybookMode.SWING) "🔍 Setups" else "💰 Stars"
+    val step3Badge = if (isAfternoonScanAvailable) " 📢" else ""
+    val step3Label = if (candidatesCount > 0) "$step3Name ($candidatesCount)$step3Badge" else "$step3Name$step3Badge"
 
     val steps = listOf(
         Triple(1, step1Label, step1Done),
-        Triple(2, if (playbookMode == PlaybookMode.SWING) "🔍 Setups" else "💰 Stars", step2Done),
-        Triple(3, "🤖 Ask AI", step3Done)
+        Triple(2, step2Label, step2Done),
+        Triple(3, step3Label, step3Done)
     )
 
     val currentStep = steps.indexOfFirst { !it.third }.coerceAtLeast(0)

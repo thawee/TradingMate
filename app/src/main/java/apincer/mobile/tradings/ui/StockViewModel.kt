@@ -33,6 +33,34 @@ import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream
 
+data class AlertRoutineState(
+    val playbookMode: PlaybookMode = PlaybookMode.SWING,
+    val swingSellAlerts: List<SellAlertData> = emptyList(),
+    val dividendSellAlerts: List<SellAlertData> = emptyList(),
+    val combinedSwingPlays: List<StockWatchlistInfo> = emptyList(),
+    val dividendPlays: List<StockWatchlistInfo> = emptyList(),
+    val portfolioItems: List<StockWatchlistInfo> = emptyList(),
+    val checklist: ChecklistEntity = ChecklistEntity()
+) {
+    val activeAlerts: List<SellAlertData>
+        get() = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
+
+    val activeCandidatesCount: Int
+        get() = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size
+
+    val exitAlertsCount: Int
+        get() = activeAlerts.size
+
+    val step1Done: Boolean
+        get() = checklist.swingDailyDone
+
+    val step2Done: Boolean
+        get() = checklist.swingWeeklyDone
+
+    val step3Done: Boolean
+        get() = checklist.swingAiDone
+}
+
 sealed class StockUiState {
     object Initial : StockUiState()
     object Loading : StockUiState()
@@ -93,6 +121,29 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         database.checklistDao()
     )
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
+    private val alertPrefs = application.getSharedPreferences("trading_mate_alerts", android.content.Context.MODE_PRIVATE)
+
+    private val _isAfternoonScanAvailable = MutableStateFlow(getAfternoonScanAvailable())
+    val isAfternoonScanAvailable: StateFlow<Boolean> = _isAfternoonScanAvailable
+
+    private fun getAfternoonScanAvailable(): Boolean {
+        val tz = java.util.TimeZone.getTimeZone("Asia/Bangkok")
+        val now = java.util.Calendar.getInstance(tz)
+        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+        return alertPrefs.getBoolean("afternoon_scan_available_$todayStr", false)
+    }
+
+    fun refreshAfternoonScanFlag() {
+        _isAfternoonScanAvailable.value = getAfternoonScanAvailable()
+    }
+
+    fun clearAfternoonScanFlag() {
+        val tz = java.util.TimeZone.getTimeZone("Asia/Bangkok")
+        val now = java.util.Calendar.getInstance(tz)
+        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+        alertPrefs.edit().remove("afternoon_scan_available_$todayStr").apply()
+        _isAfternoonScanAvailable.value = false
+    }
 
 
     fun exportBackup(
@@ -263,6 +314,147 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val _checklist = MutableStateFlow(ChecklistEntity())
     val checklist: StateFlow<ChecklistEntity> = _checklist
 
+    private val _playbookMode = MutableStateFlow(PlaybookMode.SWING)
+    val playbookMode: StateFlow<PlaybookMode> = _playbookMode
+
+    val alertRoutineState: StateFlow<AlertRoutineState> = 
+        combine(_playbookMode, watchlistInfo, _checklist) { mode, watchlist, checklist ->
+            val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
+
+            val isQual = { it: StockWatchlistInfo -> (it.info.roe ?: 0.0) > 15.0 }
+            val isVal = { it: StockWatchlistInfo -> (it.info.pe ?: 0.0) in 0.1..15.0 && (it.info.pbv ?: 0.0) in 0.1..1.0 }
+            val isDiv = { it: StockWatchlistInfo -> (it.info.dividendYield ?: 0.0) >= 5.0 }
+            val isMom = { it: StockWatchlistInfo -> (it.portfolio.macdHist ?: 0.0) > 0.0 }
+            val isSup = { it: StockWatchlistInfo ->
+                it.signal?.type == IndicatorSignal.BUY ||
+                it.signal?.type == IndicatorSignal.POTENTIAL ||
+                (it.portfolio.rsi ?: 50.0) < 35.0
+            }
+            val isGapUp = { it: StockWatchlistInfo -> it.info.percentChange >= 4.0 && (isQual(it) || (it.info.netProfitMargin ?: 0.0) > 10.0) }
+
+            val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
+                .sortedWith(
+                    compareBy<StockWatchlistInfo> {
+                        when (it.signal?.type) {
+                            IndicatorSignal.BUY -> 0
+                            IndicatorSignal.POTENTIAL -> 1
+                            IndicatorSignal.NEUTRAL -> 2
+                            else -> 3
+                        }
+                    }.thenByDescending {
+                        it.info.dividendYield ?: 0.0
+                    }
+                )
+
+            val swingPlays = watchlist.filter { (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) }
+                .sortedWith(
+                    compareBy<StockWatchlistInfo> {
+                        when (it.signal?.type) {
+                            IndicatorSignal.BUY -> 0
+                            IndicatorSignal.POTENTIAL -> 1
+                            else -> 2
+                        }
+                    }.thenBy {
+                        it.portfolio.rsi ?: 100.0
+                    }.thenByDescending {
+                        isQual(it)
+                    }
+                )
+
+            val gapPlays = watchlist.filter { isGapUp(it) }.sortedByDescending { it.info.percentChange }
+            val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
+                .sortedWith(
+                    compareBy<StockWatchlistInfo> {
+                        when (it.signal?.type) {
+                            IndicatorSignal.BUY -> 0
+                            IndicatorSignal.POTENTIAL -> 1
+                            else -> 2
+                        }
+                    }.thenByDescending {
+                        it.info.percentChange
+                    }.thenBy {
+                        it.portfolio.rsi ?: 100.0
+                    }
+                )
+
+            val swingSellAlerts = mutableListOf<SellAlertData>()
+            val dividendSellAlerts = mutableListOf<SellAlertData>()
+
+            portfolioItems.forEach { stock ->
+                val tradePurpose = stock.portfolio.tradePurpose
+
+                var applySwingLogic = true
+
+                if (tradePurpose == "DIVIDEND") {
+                    val yield = stock.info.dividendYield ?: 0.0
+                    val roe = stock.info.roe ?: 0.0
+
+                    if (roe < 15.0) {
+                        dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
+                    }
+
+                    if (yield >= 3.0) {
+                        applySwingLogic = false
+                    } else {
+                        swingSellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%) (Transition to Swing)"))
+                        applySwingLogic = true
+                    }
+                }
+
+                if (applySwingLogic) {
+                    val netProfit = stock.netProfitPercent
+                    val rsi = stock.portfolio.rsi ?: 50.0
+
+                    val targetAlerts = swingSellAlerts
+
+                    if (netProfit >= 10.0) {
+                        targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
+                    } else if (netProfit <= -5.0) {
+                        targetAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
+                    } else if (netProfit > 0.0 && rsi >= 65.0) {
+                        targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
+                    } else if (stock.signal?.type == IndicatorSignal.SELL) {
+                        targetAlerts.add(SellAlertData(stock, stock.signal.reason))
+                    }
+                }
+            }
+
+            AlertRoutineState(
+                playbookMode = mode,
+                swingSellAlerts = swingSellAlerts,
+                dividendSellAlerts = dividendSellAlerts,
+                combinedSwingPlays = combinedSwingPlays,
+                dividendPlays = dividendPlays,
+                portfolioItems = portfolioItems,
+                checklist = checklist
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AlertRoutineState()
+        )
+
+    fun setPlaybookMode(mode: PlaybookMode) {
+        _playbookMode.value = mode
+    }
+
+    fun toggleAlertRoutineStep(step: Int) {
+        val current = alertRoutineState.value
+        when (step) {
+            1 -> updateChecklistState { it.copy(swingDailyDone = !current.checklist.swingDailyDone) }
+            2 -> updateChecklistState { it.copy(swingWeeklyDone = !current.checklist.swingWeeklyDone) }
+            3 -> updateChecklistState { it.copy(swingAiDone = !current.checklist.swingAiDone) }
+        }
+    }
+
+    fun markAlertRoutineStepDone(step: Int) {
+        when (step) {
+            1 -> updateChecklistState { it.copy(swingDailyDone = true) }
+            2 -> updateChecklistState { it.copy(swingWeeklyDone = true) }
+            3 -> updateChecklistState { it.copy(swingAiDone = true) }
+        }
+    }
+
     fun updateChecklistState(update: (ChecklistEntity) -> ChecklistEntity) {
         viewModelScope.launch {
             val current = _checklist.value
@@ -280,14 +472,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             now
         }
         val todayStr = disciplineDateTime.toLocalDate().toString()
-        val currentWeek = disciplineDateTime.get(java.time.temporal.WeekFields.of(java.util.Locale.US).weekOfWeekBasedYear())
-        val currentMonth = disciplineDateTime.monthValue
 
-        var updated = existing.copy(
-            lastResetDate = todayStr,
-            lastResetWeek = currentWeek,
-            lastResetMonth = currentMonth
-        )
+        var updated = existing.copy(lastResetDate = todayStr)
 
         // Reset daily if date changed
         if (existing.lastResetDate != todayStr) {
@@ -295,20 +481,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 swingDailyDone = false,
                 swingWeeklyDone = false,
                 swingAiDone = false
-            )
-        }
-        // Reset weekly if week changed
-        if (existing.lastResetWeek != currentWeek) {
-            updated = updated.copy(
-                divWeeklyDone = false,
-                divWeeklyPricesDone = false
-            )
-        }
-        // Reset monthly if month changed
-        if (existing.lastResetMonth != currentMonth) {
-            updated = updated.copy(
-                divMonthlyDone = false,
-                divAiDone = false
             )
         }
         return updated
@@ -328,6 +500,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
         // Trigger background refresh on start
         refreshWatchlistInfo()
+        // Refresh afternoon scan flag
+        refreshAfternoonScanFlag()
     }
 
     fun refreshWatchlistInfo() {

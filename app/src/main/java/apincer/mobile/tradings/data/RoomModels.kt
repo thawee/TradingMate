@@ -295,15 +295,9 @@ interface FocusDao {
 data class ChecklistEntity(
     @PrimaryKey val id: Int = 1,
     val lastResetDate: String = "",
-    val lastResetWeek: Int = 0,
-    val lastResetMonth: Int = 0,
     val swingDailyDone: Boolean = false,
     val swingWeeklyDone: Boolean = false,
-    val swingAiDone: Boolean = false,
-    val divWeeklyDone: Boolean = false,
-    val divWeeklyPricesDone: Boolean = false,
-    val divMonthlyDone: Boolean = false,
-    val divAiDone: Boolean = false
+    val swingAiDone: Boolean = false
 )
 
 @Dao
@@ -328,7 +322,7 @@ interface ChecklistDao {
         FocusEntity::class, 
         ChecklistEntity::class
     ], 
-    version = 19
+    version = 20
 )
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
@@ -473,6 +467,34 @@ abstract class StockDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_19_20 = object : androidx.room.migration.Migration(19, 20) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // Create new checklist table without DIVIDEND columns and reset week/month
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `discipline_checklist_new` (
+                        `id` INTEGER NOT NULL, 
+                        `lastResetDate` TEXT NOT NULL, 
+                        `swingDailyDone` INTEGER NOT NULL, 
+                        `swingWeeklyDone` INTEGER NOT NULL, 
+                        `swingAiDone` INTEGER NOT NULL, 
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+                
+                // Copy data from old table
+                db.execSQL("""
+                    INSERT INTO discipline_checklist_new (id, lastResetDate, swingDailyDone, swingWeeklyDone, swingAiDone)
+                    SELECT id, lastResetDate, swingDailyDone, swingWeeklyDone, swingAiDone FROM discipline_checklist
+                """.trimIndent())
+                
+                // Drop old table
+                db.execSQL("DROP TABLE discipline_checklist")
+                
+                // Rename new table
+                db.execSQL("ALTER TABLE discipline_checklist_new RENAME TO discipline_checklist")
+            }
+        }
+
         fun getDatabase(context: android.content.Context): StockDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -483,7 +505,7 @@ abstract class StockDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, 
                     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
-                    MIGRATION_18_19
+                    MIGRATION_18_19, MIGRATION_19_20
                 )
                 .build()
                 INSTANCE = instance

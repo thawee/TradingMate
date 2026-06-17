@@ -38,6 +38,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 if (!prefs.getBoolean(key, false)) {
                     NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = false)
                     prefs.edit().putBoolean(key, true).apply()
+                    // Set flag for Step 2 badge
+                    prefs.edit().putBoolean("afternoon_scan_available_$todayStr", true).apply()
                 }
             }
 
