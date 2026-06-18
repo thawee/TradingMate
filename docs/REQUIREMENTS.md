@@ -17,7 +17,25 @@ TradingMate is a high-performance personal trading companion specifically design
 - **Smart Signal Logic:** Generate actionable signals (BUY, SELL, POTENTIAL, NEUTRAL) based on combined technical and fundamental criteria.
 - **Cache-first Refresh:** Show cached data instantly, refresh from API only if stale (>1 hour). Portfolio screen refreshes only portfolio stocks (quantity > 0).
 
-### 2.2 Portfolio Management
+### 2.2 Five-Layer Filter System (Stock DNA)
+A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
+
+1. **Qual (Quality):** Evaluates management efficiency and profitability.
+   - Indicators: ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
+2. **Val (Value):** Identifies underpriced or fair-value stocks.
+   - Indicators: P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.0).
+3. **Div (Dividend):** Highlights strong passive income generators.
+   - Indicators: Dividend Yield ≥ 5.0%.
+4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
+   - Indicators: MACD Histogram > 0.0.
+5. **Sup (Support / Setup):** Locates ideal entry zones or extreme discounts.
+   - Indicators: RSI < 35 (Oversold) or BUY/POTENTIAL zone signals.
+
+**Combination Rules:**
+- **Swing Plays:** Must pass `(Quality OR Value) AND (Momentum OR Support)`.
+- **Dividend Stars:** Must pass `Dividend AND Quality`.
+
+### 2.3 Portfolio Management
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.
 - **Transaction Recording:** Allow users to record buy and sell transactions with entry price and quantity.
 - **Fee Engine:** Automatically calculate trading fees (Commission, Market Fee, VAT, and Selling Tax) based on the InnovestX structure.
@@ -25,26 +43,26 @@ TradingMate is a high-performance personal trading companion specifically design
 - **Cash Management:** Provide a quick way to adjust or set the current cash balance.
 - **Yield-on-Cost:** Calculate and display dividend yield relative to purchase price.
 
-### 2.3 Watchlist & Focus Tracking
+### 2.4 Watchlist & Focus Tracking
 - **Multi-source Search:** Enable searching for stocks using both SET and Yahoo Finance data.
 - **Focus List:** Allow users to "Star" specific stocks to track them in a dedicated "Focus" tab.
 - **SET Collections Import:** Enable one-click import of curated stock groups (SET50, SET100, SETHD, Dividend Stars, Bluechips).
 - **Dynamic Sorting:** Sort stocks by Symbol, Change %, Profit %, or Signal strength.
 - **Advanced Filtering:** Filter list by Buy signals, Positive movement, or active Holdings.
 
-### 2.4 Smart Advisor
+### 2.5 Smart Advisor
 - **Playbook Modes:** Two modes — Swing Playbook and Dividend Playbook.
 - **3-Step Routine (SWING):**
     1. **Ask AI** — Copy AI prompt to clipboard (auto-marks step as done).
     2. **Check Exits** — Display sell alerts based on technical conditions (Take Profit, Stop Loss, Overbought, Yield Drop).
-    3. **Scan Setups** — Display candidate stocks filtered by Quality, Momentum, Value, and Gap criteria.
+    3. **Scan Setups** — Display candidate stocks filtered by Quality, Momentum, Value, and Gap criteria using the Five-Layer Filter System.
 - **AI Prompt Generation:** Generate structured prompts for ChatGPT/Gemini with candidate data, risk constraints, and playbook rules.
 - **Push Notifications:** Morning exit alerts (10:00-11:00 AM) and afternoon entry reminders (15:30-16:30).
 - **Afternoon Badge:** Visual indicator on Step 2 when afternoon scan notification has fired.
 - **Auto-mark:** Step 1 auto-checks when no sell alerts exist. Step 3 auto-checks when AI prompt is copied.
 - **Wizard Step Bar:** Bottom bar showing step progress, alert counts, and candidate counts.
 
-### 2.5 Alert & Notification System
+### 2.6 Alert & Notification System
 - **Signal Change Alerts:** Push notification when stock signal shifts (BUY → SELL, etc.).
 - **Sell Reminder Alerts:** Push notification for portfolio stocks with active SELL signal.
 - **XD Date Alerts:** Push notification for upcoming ex-dividend dates (within 7 days).
@@ -53,11 +71,11 @@ TradingMate is a high-performance personal trading companion specifically design
 - **Dividend Season Reminder:** Push notification in January and June for accumulation season.
 - **In-App Sell Alerts:** Reactive sell alerts displayed in Advisor screen (Take Profit ≥10%, Stop Loss ≤-5%, Overbought RSI ≥65, Yield Drop <3%).
 
-### 2.6 Trading Academy
+### 2.7 Trading Academy
 - **Educational Content:** In-app trading education with structured learning paths.
 - **Quick Reference:** Common trading concepts and strategies.
 
-### 2.7 User Experience & Discovery
+### 2.8 User Experience & Discovery
 - **Price Alerts:** Visual indicators for stocks nearing target prices (+/- 10%).
 - **Performance History:** Maintain a detailed log of past trades with "Lessons Learned" notes.
 - **Analytics:** Calculate Win Rate, Average Win/Loss, and overall trading efficiency metrics.
