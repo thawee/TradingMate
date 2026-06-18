@@ -39,7 +39,7 @@ import android.os.Build
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+    containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
     shape: RoundedCornerShape = RoundedCornerShape(24.dp),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -55,10 +55,10 @@ fun GlassCard(
         width = 0.5.dp,
         brush = Brush.linearGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.45f),
-                Color.White.copy(alpha = 0.05f),
-                Color.White.copy(alpha = 0.05f),
-                Color.White.copy(alpha = 0.25f)
+                Color.White.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.08f),
+                Color.White.copy(alpha = 0.08f),
+                Color.White.copy(alpha = 0.18f)
             ),
             start = Offset(0f, 0f),
             end = Offset(1000f, 1000f)
