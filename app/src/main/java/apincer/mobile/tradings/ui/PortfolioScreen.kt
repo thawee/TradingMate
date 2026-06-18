@@ -143,7 +143,7 @@ fun PortfolioScreen(
         
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshWatchlistInfo() },
+            onRefresh = { viewModel.refreshPortfolioOnly() },
             modifier = Modifier.fillMaxSize()
         ) {
             LazyColumn(

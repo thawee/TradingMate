@@ -690,23 +690,20 @@ fun PortfolioSummaryCard(
                     Column {
                         
                         Text("Total Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            
-                            Text(
-                                text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", netProfit)}", 
-                                fontSize = 20.sp, 
-                                fontWeight = FontWeight.Black,
-                                color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            
-                            Text(
-                                text = if (isPrivacyMode) "(••••%)" else "(${String.format(Locale.ENGLISH, "%,.2f", netPercent)}%)", 
-                                fontSize = 16.sp, 
-                                fontWeight = FontWeight.Bold,
-                                color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                            )
-                        }
+                        
+                        Text(
+                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", netProfit)}", 
+                            fontSize = 20.sp, 
+                            fontWeight = FontWeight.Black,
+                            color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        )
+                        
+                        Text(
+                            text = if (isPrivacyMode) "(••••%)" else "${String.format(Locale.ENGLISH, "%+.2f", netPercent)}%", 
+                            fontSize = 14.sp, 
+                            fontWeight = FontWeight.Bold,
+                            color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        )
                     }
                     
                     yieldOnCost?.let {

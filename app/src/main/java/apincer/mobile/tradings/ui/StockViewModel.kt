@@ -665,6 +665,129 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun refreshPortfolioOnly() {
+        viewModelScope.launch {
+            if (!_isRefreshing.compareAndSet(false, true)) return@launch
+            _refreshError.value = null
+            try {
+                val isMarketOpen = TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED
+                val lastSync = watchlistInfo.value.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull()
+                if (!isMarketOpen && lastSync != null && !isTechnicalCacheExpired(lastSync)) {
+                    return@launch
+                }
+
+                val portfolioStocks = watchlistInfo.value
+                    .filter { it.portfolio.quantity > 0 }
+                    .map { it.portfolio }
+                if (portfolioStocks.isEmpty()) return@launch
+
+                withContext(Dispatchers.IO) {
+                    val batchResults = try {
+                        SetScraper.fetchBatchQuotes(portfolioStocks.map { it.symbol })
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                    batchResults.forEach { updated ->
+                        portfolioStocks.find { it.symbol == updated.symbol }?.let { original ->
+                            val cache = original.cache ?: apincer.mobile.tradings.data.StockCacheEntity(original.symbol)
+                            repository.updateStockCache(cache.copy(
+                                name = updated.name ?: cache.name,
+                                lastPrice = updated.lastPrice,
+                                change = updated.change,
+                                percentChange = updated.percentChange,
+                                pe = updated.pe ?: cache.pe,
+                                pbv = updated.pbv ?: cache.pbv,
+                                dividendYield = updated.dividendYield ?: cache.dividendYield,
+                                dividendPerShare = if (updated.dividendYield != null && updated.lastPrice != 0.0) {
+                                    updated.lastPrice * (updated.dividendYield / 100.0)
+                                } else cache.dividendPerShare,
+                                lastUpdated = updated.lastUpdated
+                            ))
+                        }
+                    }
+
+                    val semaphore = Semaphore(3)
+                    val jobs = portfolioStocks.map { stock ->
+                        async {
+                            semaphore.withPermit {
+                                try {
+                                    val latestStock = repository.getStockBySymbol(stock.symbol) ?: stock
+                                    val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.lastUpdated)
+                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.lastUpdated)
+
+                                    if (needsDeepFetch || needsIndicators) {
+                                        val info = if (needsDeepFetch) {
+                                            SetScraper.fetchStockInfo(stock.symbol)
+                                        } else {
+                                            latestStock.toScrapedStockInfo()
+                                        }
+                                        val indicators = if (needsIndicators) {
+                                            SetScraper.fetchTechnicalIndicators(stock.symbol)
+                                        } else {
+                                            apincer.mobile.tradings.domain.Indicators(
+                                                sma50 = null, sma200 = null, rsi = latestStock.rsi,
+                                                macd = null, signal = null, histogram = latestStock.macdHist,
+                                                bollingerBands = null, isVolumeSurge = false
+                                            )
+                                        }
+                                        val signal = if (needsIndicators) {
+                                            TechnicalAnalysis.getDetailedSignal(
+                                                rsi = indicators.rsi, macdHist = indicators.histogram,
+                                                lastPrice = info.lastPrice, sma50 = indicators.sma50,
+                                                sma200 = indicators.sma200, bb = indicators.bollingerBands,
+                                                isVolumeSurge = indicators.isVolumeSurge,
+                                                userCost = if (stock.cost > 0) stock.cost else null,
+                                                isFundamentalGood = info.isFundamentalGood,
+                                                tradePurpose = stock.tradePurpose,
+                                                dividendYield = info.dividendYield, roe = info.roe
+                                            )
+                                        } else {
+                                            TradeSignal(
+                                                type = runCatching { IndicatorSignal.valueOf(latestStock.signalType ?: "NEUTRAL") }.getOrDefault(IndicatorSignal.NEUTRAL),
+                                                reason = latestStock.signalReason ?: "",
+                                                description = latestStock.signalDescription ?: ""
+                                            )
+                                        }
+                                        val cache = latestStock.cache ?: apincer.mobile.tradings.data.StockCacheEntity(latestStock.symbol)
+                                        repository.updateStockCache(cache.copy(
+                                            name = info.name ?: cache.name, sector = info.sector ?: cache.sector,
+                                            industry = info.industry ?: cache.industry, lastPrice = info.lastPrice,
+                                            change = info.change, percentChange = info.percentChange,
+                                            pe = info.pe ?: cache.pe, pbv = info.pbv ?: cache.pbv,
+                                            roe = info.roe, eps = info.eps, netProfit = info.netProfit,
+                                            netProfitMargin = info.netProfitMargin ?: cache.netProfitMargin,
+                                            profitGrowth3Y = info.profitGrowth3Y ?: cache.profitGrowth3Y,
+                                            equity = info.equity, debtToEquity = info.debtToEquity,
+                                            dividendYield = info.dividendYield ?: cache.dividendYield,
+                                            dividendDate = info.dividendDate,
+                                            dividendPerShare = if (info.dividendYield != null && info.lastPrice != 0.0) {
+                                                info.lastPrice * (info.dividendYield / 100.0)
+                                            } else cache.dividendPerShare,
+                                            lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: cache.lastUpdated
+                                        ))
+                                        val sig = latestStock.signal ?: apincer.mobile.tradings.data.StockSignalEntity(latestStock.symbol)
+                                        repository.updateStockSignal(sig.copy(
+                                            rsi = if (needsIndicators) indicators.rsi else sig.rsi,
+                                            macdHist = if (needsIndicators) indicators.histogram else sig.macdHist,
+                                            signalType = signal.type.name, signalReason = signal.reason,
+                                            signalDescription = signal.description,
+                                            lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
+                                        ))
+                                    }
+                                } catch (e: Exception) { }
+                            }
+                        }
+                    }
+                    jobs.awaitAll()
+                }
+            } catch (e: Exception) {
+                _refreshError.value = e.localizedMessage ?: "Failed to refresh portfolio"
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     private fun calculateManualPercent(info: ScrapedStockInfo): ScrapedStockInfo {
         return if (info.percentChange == 0.0 && info.lastPrice != 0.0) {
             val prevClose = info.lastPrice - info.change
@@ -770,10 +893,19 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = StockUiState.Loading
             try {
                 val result = withContext(Dispatchers.IO) {
-                    var info = SetScraper.fetchStockInfo(symbol)
+                    // 1. Try cached data first (instant)
+                    val local = repository.getStockBySymbol(symbol)
+                    val cachedInfo = local?.toScrapedStockInfo()
+                    val isCacheFresh = cachedInfo?.lastUpdated?.let {
+                        !isCacheExpired(it)
+                    } ?: false
 
-                    // Find if it's in local DB to get cached name/desc
-                    val local = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }?.portfolio
+                    // 2. Only call API if cache is stale
+                    val info = if (isCacheFresh && cachedInfo != null) {
+                        cachedInfo
+                    } else {
+                        SetScraper.fetchStockInfo(symbol)
+                    }
 
                     val updatedInfo = calculateManualPercent(info.copy(
                         name = info.name ?: local?.name,
@@ -783,7 +915,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     ))
 
                     val history = SetScraper.fetchHistoricalPrices(symbol)
-                    // Prices are in chronological order (oldest→newest) as required by TA functions
                     val prices = history.map { it.close }
                     val volumes = history.map { it.volume }
 
@@ -807,8 +938,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val rsi = TechnicalAnalysis.calculateRSI(prices, 14)
                     val macd = TechnicalAnalysis.calculateMACD(prices)
 
-                    val netProfit = if (local != null && local.cost > 0) {
-                        TechnicalAnalysis.calculateNetProfitPercent(local.cost, updatedInfo.lastPrice)
+                    val portfolio = local?.portfolio
+                    val netProfit = if (portfolio != null && portfolio.cost > 0) {
+                        TechnicalAnalysis.calculateNetProfitPercent(portfolio.cost, updatedInfo.lastPrice)
                     } else null
 
                     val signal = TechnicalAnalysis.getDetailedSignal(
@@ -819,9 +951,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         sma200 = sma200,
                         bb = bb,
                         isVolumeSurge = isVolumeSurge,
-                        userCost = local?.cost,
+                        userCost = portfolio?.cost,
                         isFundamentalGood = updatedInfo.isFundamentalGood,
-                        tradePurpose = local?.tradePurpose ?: "SWING",
+                        tradePurpose = portfolio?.tradePurpose ?: "SWING",
                         dividendYield = updatedInfo.dividendYield,
                         roe = updatedInfo.roe
                     )
@@ -836,9 +968,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val focusStart = focusEntry?.startPrice ?: 0.0
                     val focusTarget = focusEntry?.targetPrice ?: 0.0
 
-                    // Optional: Update cache for this single stock too
+                    // Update cache for this single stock too
                     if (local != null) {
-                        val cache = local.cache ?: apincer.mobile.tradings.data.StockCacheEntity(local.symbol)
+                        val cache = local.cache ?: apincer.mobile.tradings.data.StockCacheEntity(local.portfolio.symbol)
                         repository.updateStockCache(cache.copy(
                             name = updatedInfo.name,
                             businessDescription = updatedInfo.businessDescription,
@@ -849,11 +981,18 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             percentChange = updatedInfo.percentChange,
                             pe = updatedInfo.pe,
                             pbv = updatedInfo.pbv,
+                            roe = updatedInfo.roe,
+                            debtToEquity = updatedInfo.debtToEquity,
+                            dividendYield = updatedInfo.dividendYield,
+                            dividendDate = updatedInfo.dividendDate,
+                            dividendPerShare = if (updatedInfo.dividendYield != null && updatedInfo.lastPrice != 0.0) {
+                                updatedInfo.lastPrice * (updatedInfo.dividendYield / 100.0)
+                            } else cache.dividendPerShare,
                             netProfitMargin = updatedInfo.netProfitMargin ?: cache.netProfitMargin,
                             profitGrowth3Y = updatedInfo.profitGrowth3Y ?: cache.profitGrowth3Y,
                             lastUpdated = updatedInfo.lastUpdated
                         ))
-                        val sig = local.signal ?: apincer.mobile.tradings.data.StockSignalEntity(local.symbol)
+                        val sig = local.signal ?: apincer.mobile.tradings.data.StockSignalEntity(local.portfolio.symbol)
                         repository.updateStockSignal(sig.copy(
                             rsi = rsi,
                             macdHist = macd.third,
