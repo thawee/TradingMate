@@ -1,28 +1,32 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-35:12
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-39:12
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-39:12
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-39:12
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:2:1-39:12
+MERGED from [androidx.glance:glance:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f943fadc37a116e80f421ef2840f08cf/transformed/glance-1.1.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:17:1-61:12
+MERGED from [androidx.glance:glance-material3:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/36d34a09b964c64e0436e935bc1160eb/transformed/glance-material3-1.1.0/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt.coil3:coil-compose-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f814ed043c11b63b610abac411058dcf/transformed/coil-compose/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt.coil3:coil-compose-core-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/dbab830c19048952744ec853bcf93063/transformed/coil-compose-core/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.animation:animation-core-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/26732d53084f38444d3876f9dba1af92/transformed/animation-core/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.material:material-ripple-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/340ed6eb738590f3ae13493f05181189/transformed/material-ripple/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.animation:animation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1733e1fc79092b71cec9d261813baba9/transformed/animation/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b2872869ccd0f4097200349aefd62423/transformed/foundation-layout/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2def851803c5120bc0d80621304248d1/transformed/ui-tooling-data/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-unit-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/febe092e458d2ce0bc86e536e23f38a0/transformed/ui-unit/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-geometry-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/00bc6d30709bdd88548ac6283bece96d/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-util-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a1ed56f37fa39610ecb29b6c0cecbe29/transformed/ui-util/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-text-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2a411e54354b4ebd5f3376a3e78031d5/transformed/ui-text/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c17c573f9abe9c6418e93cfb504a52f5/transformed/ui-tooling-preview/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.compose.ui:ui-graphics-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/643462b2488e6214d4697d71e815bec3/transformed/ui-graphics/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.compose.animation:animation-core-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/491d68bb78d11fdc080e21b466bb2300/transformed/animation-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f36ef65fef21beb3102e580f5f9d8d4c/transformed/material-ripple/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8b25c958aa013dbe5f0287bcf18a3058/transformed/animation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/671e079a595250e990721722ef07bf81/transformed/foundation-layout/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/21d24459b119ece505697317bfc2c685/transformed/ui-tooling-data/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/738925590a6ac639bf99f3b21dc82723/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/5983e23a4675d2b9a3799a8a3ff062e9/transformed/ui-util/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e189bed845cedb8f335ed4bab5b9588c/transformed/ui-text/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ee77e115c5c89e0cb1542b26ca73506b/transformed/ui-unit/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/3a9b2674536cea6be3ba7feed35aff48/transformed/ui-tooling-preview/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/54024fb7e9c8898c007dd2ffd28f320b/transformed/ui-graphics/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:17:1-28:12
 MERGED from [androidx.compose.material3:material3-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c6d581c406bedd25e44e037b817f337/transformed/material3/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.compose.foundation:foundation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/4fb42d8e3bfe013209cd1a88f90d1d6f/transformed/foundation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c1596560b406f781f194ef0d1a2ba40d/transformed/foundation/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.work:work-runtime-ktx:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/efaf8a61161d2b37bf4a25a6ffba5c26/transformed/work-runtime-ktx-2.11.2/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:17:1-83:12
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:17:1-30:12
 MERGED from [androidx.autofill:autofill:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/daae513673c97ba26236be0b8fd1abd9/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.transition:transition:1.6.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e9e79bfb65a93031cfae75b5e89cfe5b/transformed/transition-1.6.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.window:window-core-android:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7d6ee664db3236c865a795decdd9092d/transformed/window-core/AndroidManifest.xml:2:1-7:12
@@ -41,32 +45,32 @@ MERGED from [androidx.loader:loader:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/
 MERGED from [androidx.core:core:1.19.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c67e74e8bc7760c48b8b7cabad6a3220/transformed/core-1.19.0/AndroidManifest.xml:17:1-30:12
 MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/90ffc5dadfbea2b85fe94242a5764e6f/transformed/navigationevent/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/41860f4c1cc734587a0178135d1fbdcf/transformed/navigationevent-compose/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.runtime:runtime-retain-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/41272f72ed5f2a42800059582a212d24/transformed/runtime-retain/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.runtime:runtime-annotation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b8fd2f677b4e2032b740943f9cac1c58/transformed/runtime-annotation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d9a5ba424db894fee5d82bb54db1b3c7/transformed/runtime-retain/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9a8034c72b56de13469f8ecadff7bcae/transformed/runtime-annotation/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.activity:activity-ktx:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/444d6af0f2716a5cc683be43a1546ead/transformed/activity-ktx-1.13.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2d417ced4203ddb0b8f315f25485292d/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b9f1cd4a3ed65c3591cf6bf244c1e2e4/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9802d5fd231074780beb49b5a3685c40/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:2:1-5:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e459b7e6620b7e88be9acf10f3efb65f/transformed/lifecycle-viewmodel/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/bab33cb63ca402e0817226bf6be437a6/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/0e5facea69243220999af66f76e985b4/transformed/lifecycle-livedata-core-2.11.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/34f91563379546631486ad8b6c28d50e/transformed/lifecycle-viewmodel-ktx-2.11.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/dd3229809b6fae1de0d427e4183ef2a3/transformed/lifecycle-viewmodel-2.11.0/AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/4c4e3f2ed8d33447e40019eb2f059b03/transformed/lifecycle-viewmodel/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9e4a4dba8f22ef23726a4e15ddb7f803/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7b658155e8b9902a8d6a2af8d6db2245/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.savedstate:savedstate-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6ef65831abd3eefb15b9d3cd70315176/transformed/savedstate/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/085220a880c9408203562c426f90541d/transformed/savedstate-compose/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.runtime:runtime-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1317ff4ddadd61a88c7e55215ec7192a/transformed/runtime/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/27a71f8d8e58ec11bb6df8cefc5c2417/transformed/runtime-saveable/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/21b0ad00f7d3fb634e462144730d3725/transformed/lifecycle-runtime-compose/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7420eddb8069c0e1da5648d261114174/transformed/lifecycle-runtime/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/95d5f4302e72a6c5fbb9ea3d5666d110/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:17:1-35:12
-MERGED from [androidx.lifecycle:lifecycle-service:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/5c3d7701da72997001a1de4923c9fe53/transformed/lifecycle-service-2.10.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2056ce87d61b74ba55a53e5a501437da/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/60eba27892f6682ef9e8c2cb8a553712/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/06532d3dd9a6d56579eff388a7da1cda/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/92a4dd3a98e1ba5453d2cfff8ffa0d56/transformed/runtime/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1f45b25b11969c99988cde9e4ba36b58/transformed/runtime-saveable/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/84b167608d475782c4a3b25d3451d3b8/transformed/lifecycle-runtime-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a55b0abecf5c1020c3c6fbd523079aba/transformed/lifecycle-runtime/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1ae3fd807677471c1d9e5da655823f8f/transformed/lifecycle-livedata-core-ktx-2.11.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-service:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f2b9aa68252ab800edb68af4d1d67b70/transformed/lifecycle-service-2.11.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d25b7fb25fe69e15879aa90539830407/transformed/lifecycle-livedata-2.11.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/73bd15a63c023960d8812f86353b48aa/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2e0bec311a4f6cd3cd69f47259ed92c0/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /Users/thawee.p/.gradle/caches/9.4.1/transforms/854aa3cdcbe8cd5d9b6e2eaa5c28e728/transformed/material-icons-extended-release/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a53522f073f327908291cd99a38b5207/transformed/material-icons-core-release/AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.accompanist:accompanist-drawablepainter:0.37.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a77a29f2d5304fb8fe9c722cce0c3935/transformed/accompanist-drawablepainter-0.37.3/AndroidManifest.xml:17:1-23:12
-MERGED from [androidx.compose.ui:ui-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7663be34dcc7263bcbb70640ea9b7610/transformed/ui/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:17:1-29:12
+MERGED from [androidx.compose.ui:ui-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a5c5baa8b9390f2782c8900c18e268e7/transformed/ui/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:17:1-29:12
 MERGED from [androidx.activity:activity:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ac63d8afc4a8e7c2b0cf3efdaa2eea26/transformed/activity-1.13.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.activity:activity-compose:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/16427bf953cd35de652a32504a0888aa/transformed/activity-compose-1.13.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6207b82bb7d3dc8900622a32357dc220/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
@@ -132,22 +136,26 @@ ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidMan
 	android:name
 		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:9:22-74
 application
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:5-33:19
-INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:5-33:19
-MERGED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:5-37:19
+INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:11:5-37:19
+MERGED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:22:5-59:19
+MERGED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:22:5-59:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:28:5-81:19
 MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:28:5-81:19
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:23:5-28:19
+MERGED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:23:5-28:19
 MERGED from [androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
 MERGED from [androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
 MERGED from [androidx.core:core:1.19.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c67e74e8bc7760c48b8b7cabad6a3220/transformed/core-1.19.0/AndroidManifest.xml:28:5-89
 MERGED from [androidx.core:core:1.19.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c67e74e8bc7760c48b8b7cabad6a3220/transformed/core-1.19.0/AndroidManifest.xml:28:5-89
-MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:22:5-27:19
-MERGED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:22:5-27:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:22:5-27:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:22:5-27:19
 MERGED from [androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:23:5-29:19
 MERGED from [androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:23:5-29:19
 MERGED from [com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:10:5-20:19
@@ -194,56 +202,74 @@ category#android.intent.category.LAUNCHER
 ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:25:17-77
 	android:name
 		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:25:27-74
-service#apincer.mobile.tradings.util.StockAlertService
-ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:29:9-32:56
+receiver#apincer.mobile.tradings.widget.TradingMateWidgetReceiver
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:29:9-36:20
 	android:exported
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:31:13-37
-	android:foregroundServiceType
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:32:13-53
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:29:68-91
 	android:name
-		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:30:13-51
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:29:19-67
+intent-filter#action:name:android.appwidget.action.APPWIDGET_UPDATE
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:30:13-32:29
+action#android.appwidget.action.APPWIDGET_UPDATE
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:31:17-84
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:31:25-81
+meta-data#android.appwidget.provider
+ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:33:13-35:68
+	android:resource
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:35:17-65
+	android:name
+		ADDED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml:34:17-58
 uses-sdk
 INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml
 INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml
+MERGED from [androidx.glance:glance:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f943fadc37a116e80f421ef2840f08cf/transformed/glance-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.glance:glance:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f943fadc37a116e80f421ef2840f08cf/transformed/glance-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.glance:glance-material3:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/36d34a09b964c64e0436e935bc1160eb/transformed/glance-material3-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.glance:glance-material3:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/36d34a09b964c64e0436e935bc1160eb/transformed/glance-material3-1.1.0/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt.coil3:coil-compose-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f814ed043c11b63b610abac411058dcf/transformed/coil-compose/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt.coil3:coil-compose-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f814ed043c11b63b610abac411058dcf/transformed/coil-compose/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt.coil3:coil-compose-core-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/dbab830c19048952744ec853bcf93063/transformed/coil-compose-core/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt.coil3:coil-compose-core-android:3.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/dbab830c19048952744ec853bcf93063/transformed/coil-compose-core/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-core-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/26732d53084f38444d3876f9dba1af92/transformed/animation-core/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-core-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/26732d53084f38444d3876f9dba1af92/transformed/animation-core/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-ripple-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/340ed6eb738590f3ae13493f05181189/transformed/material-ripple/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-ripple-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/340ed6eb738590f3ae13493f05181189/transformed/material-ripple/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1733e1fc79092b71cec9d261813baba9/transformed/animation/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1733e1fc79092b71cec9d261813baba9/transformed/animation/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b2872869ccd0f4097200349aefd62423/transformed/foundation-layout/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b2872869ccd0f4097200349aefd62423/transformed/foundation-layout/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2def851803c5120bc0d80621304248d1/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2def851803c5120bc0d80621304248d1/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-unit-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/febe092e458d2ce0bc86e536e23f38a0/transformed/ui-unit/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-unit-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/febe092e458d2ce0bc86e536e23f38a0/transformed/ui-unit/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-geometry-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/00bc6d30709bdd88548ac6283bece96d/transformed/ui-geometry/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-geometry-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/00bc6d30709bdd88548ac6283bece96d/transformed/ui-geometry/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-util-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a1ed56f37fa39610ecb29b6c0cecbe29/transformed/ui-util/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-util-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a1ed56f37fa39610ecb29b6c0cecbe29/transformed/ui-util/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-text-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2a411e54354b4ebd5f3376a3e78031d5/transformed/ui-text/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-text-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2a411e54354b4ebd5f3376a3e78031d5/transformed/ui-text/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c17c573f9abe9c6418e93cfb504a52f5/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c17c573f9abe9c6418e93cfb504a52f5/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-graphics-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/643462b2488e6214d4697d71e815bec3/transformed/ui-graphics/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-graphics-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/643462b2488e6214d4697d71e815bec3/transformed/ui-graphics/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/491d68bb78d11fdc080e21b466bb2300/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/491d68bb78d11fdc080e21b466bb2300/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f36ef65fef21beb3102e580f5f9d8d4c/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f36ef65fef21beb3102e580f5f9d8d4c/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8b25c958aa013dbe5f0287bcf18a3058/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8b25c958aa013dbe5f0287bcf18a3058/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/671e079a595250e990721722ef07bf81/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/671e079a595250e990721722ef07bf81/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/21d24459b119ece505697317bfc2c685/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/21d24459b119ece505697317bfc2c685/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/738925590a6ac639bf99f3b21dc82723/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/738925590a6ac639bf99f3b21dc82723/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/5983e23a4675d2b9a3799a8a3ff062e9/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/5983e23a4675d2b9a3799a8a3ff062e9/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e189bed845cedb8f335ed4bab5b9588c/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e189bed845cedb8f335ed4bab5b9588c/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ee77e115c5c89e0cb1542b26ca73506b/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ee77e115c5c89e0cb1542b26ca73506b/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/3a9b2674536cea6be3ba7feed35aff48/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/3a9b2674536cea6be3ba7feed35aff48/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/54024fb7e9c8898c007dd2ffd28f320b/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/54024fb7e9c8898c007dd2ffd28f320b/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:20:5-44
 MERGED from [androidx.compose.material3:material3-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c6d581c406bedd25e44e037b817f337/transformed/material3/AndroidManifest.xml:20:5-44
 MERGED from [androidx.compose.material3:material3-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c6d581c406bedd25e44e037b817f337/transformed/material3/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.foundation:foundation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/4fb42d8e3bfe013209cd1a88f90d1d6f/transformed/foundation/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/4fb42d8e3bfe013209cd1a88f90d1d6f/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c1596560b406f781f194ef0d1a2ba40d/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c1596560b406f781f194ef0d1a2ba40d/transformed/foundation/AndroidManifest.xml:5:5-44
 MERGED from [androidx.work:work-runtime-ktx:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/efaf8a61161d2b37bf4a25a6ffba5c26/transformed/work-runtime-ktx-2.11.2/AndroidManifest.xml:20:5-44
 MERGED from [androidx.work:work-runtime-ktx:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/efaf8a61161d2b37bf4a25a6ffba5c26/transformed/work-runtime-ktx-2.11.2/AndroidManifest.xml:20:5-44
 MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:21:5-44
 MERGED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:21:5-44
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:21:5-44
 MERGED from [androidx.autofill:autofill:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/daae513673c97ba26236be0b8fd1abd9/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.autofill:autofill:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/daae513673c97ba26236be0b8fd1abd9/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.transition:transition:1.6.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e9e79bfb65a93031cfae75b5e89cfe5b/transformed/transition-1.6.0/AndroidManifest.xml:5:5-44
@@ -280,58 +306,58 @@ MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /Users/thaw
 MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/90ffc5dadfbea2b85fe94242a5764e6f/transformed/navigationevent/AndroidManifest.xml:5:5-44
 MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/41860f4c1cc734587a0178135d1fbdcf/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
 MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/41860f4c1cc734587a0178135d1fbdcf/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-retain-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/41272f72ed5f2a42800059582a212d24/transformed/runtime-retain/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-retain-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/41272f72ed5f2a42800059582a212d24/transformed/runtime-retain/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-annotation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b8fd2f677b4e2032b740943f9cac1c58/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-annotation-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b8fd2f677b4e2032b740943f9cac1c58/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d9a5ba424db894fee5d82bb54db1b3c7/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d9a5ba424db894fee5d82bb54db1b3c7/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9a8034c72b56de13469f8ecadff7bcae/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9a8034c72b56de13469f8ecadff7bcae/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-ktx:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/444d6af0f2716a5cc683be43a1546ead/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-ktx:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/444d6af0f2716a5cc683be43a1546ead/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2d417ced4203ddb0b8f315f25485292d/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2d417ced4203ddb0b8f315f25485292d/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b9f1cd4a3ed65c3591cf6bf244c1e2e4/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/b9f1cd4a3ed65c3591cf6bf244c1e2e4/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9802d5fd231074780beb49b5a3685c40/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:4:5-43
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9802d5fd231074780beb49b5a3685c40/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:4:5-43
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e459b7e6620b7e88be9acf10f3efb65f/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/e459b7e6620b7e88be9acf10f3efb65f/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/bab33cb63ca402e0817226bf6be437a6/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/bab33cb63ca402e0817226bf6be437a6/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/0e5facea69243220999af66f76e985b4/transformed/lifecycle-livedata-core-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/0e5facea69243220999af66f76e985b4/transformed/lifecycle-livedata-core-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/34f91563379546631486ad8b6c28d50e/transformed/lifecycle-viewmodel-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/34f91563379546631486ad8b6c28d50e/transformed/lifecycle-viewmodel-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/dd3229809b6fae1de0d427e4183ef2a3/transformed/lifecycle-viewmodel-2.11.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/dd3229809b6fae1de0d427e4183ef2a3/transformed/lifecycle-viewmodel-2.11.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/4c4e3f2ed8d33447e40019eb2f059b03/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/4c4e3f2ed8d33447e40019eb2f059b03/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9e4a4dba8f22ef23726a4e15ddb7f803/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9e4a4dba8f22ef23726a4e15ddb7f803/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
 MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7b658155e8b9902a8d6a2af8d6db2245/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7b658155e8b9902a8d6a2af8d6db2245/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.savedstate:savedstate-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6ef65831abd3eefb15b9d3cd70315176/transformed/savedstate/AndroidManifest.xml:20:5-44
 MERGED from [androidx.savedstate:savedstate-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6ef65831abd3eefb15b9d3cd70315176/transformed/savedstate/AndroidManifest.xml:20:5-44
 MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/085220a880c9408203562c426f90541d/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
 MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/085220a880c9408203562c426f90541d/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1317ff4ddadd61a88c7e55215ec7192a/transformed/runtime/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1317ff4ddadd61a88c7e55215ec7192a/transformed/runtime/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/27a71f8d8e58ec11bb6df8cefc5c2417/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/27a71f8d8e58ec11bb6df8cefc5c2417/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/21b0ad00f7d3fb634e462144730d3725/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/21b0ad00f7d3fb634e462144730d3725/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7420eddb8069c0e1da5648d261114174/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7420eddb8069c0e1da5648d261114174/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/95d5f4302e72a6c5fbb9ea3d5666d110/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/95d5f4302e72a6c5fbb9ea3d5666d110/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-service:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/5c3d7701da72997001a1de4923c9fe53/transformed/lifecycle-service-2.10.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-service:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/5c3d7701da72997001a1de4923c9fe53/transformed/lifecycle-service-2.10.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2056ce87d61b74ba55a53e5a501437da/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2056ce87d61b74ba55a53e5a501437da/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/60eba27892f6682ef9e8c2cb8a553712/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/60eba27892f6682ef9e8c2cb8a553712/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/06532d3dd9a6d56579eff388a7da1cda/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/06532d3dd9a6d56579eff388a7da1cda/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/92a4dd3a98e1ba5453d2cfff8ffa0d56/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/92a4dd3a98e1ba5453d2cfff8ffa0d56/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1f45b25b11969c99988cde9e4ba36b58/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1f45b25b11969c99988cde9e4ba36b58/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/84b167608d475782c4a3b25d3451d3b8/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/84b167608d475782c4a3b25d3451d3b8/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a55b0abecf5c1020c3c6fbd523079aba/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a55b0abecf5c1020c3c6fbd523079aba/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1ae3fd807677471c1d9e5da655823f8f/transformed/lifecycle-livedata-core-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/1ae3fd807677471c1d9e5da655823f8f/transformed/lifecycle-livedata-core-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-service:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f2b9aa68252ab800edb68af4d1d67b70/transformed/lifecycle-service-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-service:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f2b9aa68252ab800edb68af4d1d67b70/transformed/lifecycle-service-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d25b7fb25fe69e15879aa90539830407/transformed/lifecycle-livedata-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d25b7fb25fe69e15879aa90539830407/transformed/lifecycle-livedata-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/73bd15a63c023960d8812f86353b48aa/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/73bd15a63c023960d8812f86353b48aa/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2e0bec311a4f6cd3cd69f47259ed92c0/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/2e0bec311a4f6cd3cd69f47259ed92c0/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /Users/thawee.p/.gradle/caches/9.4.1/transforms/854aa3cdcbe8cd5d9b6e2eaa5c28e728/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /Users/thawee.p/.gradle/caches/9.4.1/transforms/854aa3cdcbe8cd5d9b6e2eaa5c28e728/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a53522f073f327908291cd99a38b5207/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a53522f073f327908291cd99a38b5207/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
 MERGED from [com.google.accompanist:accompanist-drawablepainter:0.37.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a77a29f2d5304fb8fe9c722cce0c3935/transformed/accompanist-drawablepainter-0.37.3/AndroidManifest.xml:21:5-44
 MERGED from [com.google.accompanist:accompanist-drawablepainter:0.37.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a77a29f2d5304fb8fe9c722cce0c3935/transformed/accompanist-drawablepainter-0.37.3/AndroidManifest.xml:21:5-44
-MERGED from [androidx.compose.ui:ui-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7663be34dcc7263bcbb70640ea9b7610/transformed/ui/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7663be34dcc7263bcbb70640ea9b7610/transformed/ui/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a5c5baa8b9390f2782c8900c18e268e7/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/a5c5baa8b9390f2782c8900c18e268e7/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ac63d8afc4a8e7c2b0cf3efdaa2eea26/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ac63d8afc4a8e7c2b0cf3efdaa2eea26/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity-compose:1.13.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/16427bf953cd35de652a32504a0888aa/transformed/activity-compose-1.13.0/AndroidManifest.xml:5:5-44
@@ -388,12 +414,78 @@ MERGED from [androidx.print:print:1.0.0] /Users/thawee.p/.gradle/caches/9.4.1/tr
 		INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml
 	android:minSdkVersion
 		INJECTED from /Users/thawee.p/Workspaces/github/tradingMate/app/src/main/AndroidManifest.xml
-activity#androidx.compose.ui.tooling.PreviewActivity
-ADDED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
+activity#androidx.glance.appwidget.action.ActionTrampolineActivity
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:23:9-28:62
+	android:enabled
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:25:13-35
+	android:excludeFromRecents
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:26:13-46
 	android:exported
-		ADDED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:25:13-36
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:27:13-37
+	android:theme
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:28:13-59
 	android:name
-		ADDED from [androidx.compose.ui:ui-tooling-android:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/6b1aa3f10a36ede8f23e9b304dbbc988/transformed/ui-tooling/AndroidManifest.xml:24:13-71
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:24:13-85
+activity#androidx.glance.appwidget.action.InvisibleActionTrampolineActivity
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:29:9-36:81
+	android:enabled
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:31:13-35
+	android:launchMode
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:33:13-48
+	android:noHistory
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:34:13-37
+	android:exported
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:32:13-37
+	android:theme
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:36:13-78
+	android:taskAffinity
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:35:13-91
+	android:name
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:30:13-94
+receiver#androidx.glance.appwidget.action.ActionCallbackBroadcastReceiver
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:38:9-41:40
+	android:enabled
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:40:13-35
+	android:exported
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:41:13-37
+	android:name
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:39:13-92
+receiver#androidx.glance.appwidget.UnmanagedSessionReceiver
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:42:9-45:40
+	android:enabled
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:44:13-35
+	android:exported
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:45:13-37
+	android:name
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:43:13-78
+receiver#androidx.glance.appwidget.MyPackageReplacedReceiver
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:46:9-53:20
+	android:enabled
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:48:13-35
+	android:exported
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:49:13-37
+	android:name
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:47:13-79
+intent-filter#action:name:android.intent.action.MY_PACKAGE_REPLACED
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:50:13-52:29
+action#android.intent.action.MY_PACKAGE_REPLACED
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:51:17-84
+	android:name
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:51:25-81
+service#androidx.glance.appwidget.GlanceRemoteViewsService
+ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:55:9-58:72
+	android:exported
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:57:13-36
+	android:permission
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:58:13-69
+	android:name
+		ADDED from [androidx.glance:glance-appwidget:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/cdf3f39f3270d4c78f4a0488dd5b294d/transformed/glance-appwidget-1.1.0/AndroidManifest.xml:56:13-78
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/382703d343d6806053b4204a60a951b5/transformed/ui-tooling/AndroidManifest.xml:24:13-71
 uses-permission#android.permission.ACCESS_NETWORK_STATE
 ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:24:5-79
 	android:name
@@ -406,8 +498,8 @@ provider#androidx.startup.InitializationProvider
 ADDED from [androidx.work:work-runtime:2.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d6ab844bac6bc9e49b1406d8522f8fd0/transformed/work-runtime-2.11.2/AndroidManifest.xml:29:9-37:20
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
 MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:24:9-32:20
 MERGED from [com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:11:9-19:20
 MERGED from [com.squareup.okhttp3:okhttp-android:5.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/ef48c85b923dea5e1e504c1074141ea2/transformed/okhttp/AndroidManifest.xml:11:9-19:20
 MERGED from [androidx.profileinstaller:profileinstaller:1.4.1] /Users/thawee.p/.gradle/caches/9.4.1/transforms/9ba498ec8c55a08ce420e88c87fcb7b4/transformed/profileinstaller-1.4.1/AndroidManifest.xml:24:9-32:20
@@ -512,6 +604,14 @@ ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/t
 		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
 	android:name
 		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/8c233223bbb00f285707a0f5383f463b/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+service#androidx.core.widget.RemoteViewsCompatService
+ADDED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:24:9-27:63
+	tools:ignore
+		ADDED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:27:13-60
+	android:permission
+		ADDED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:26:13-69
+	android:name
+		ADDED from [androidx.core:core-remoteviews:1.1.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/594c0118dbc132418111a6bc212ca903/transformed/core-remoteviews-1.1.0/AndroidManifest.xml:25:13-73
 uses-library#androidx.window.extensions
 ADDED from [androidx.window:window:1.5.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/100602b69707b510051dd17facd16af6/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
 	android:required
@@ -545,19 +645,19 @@ ADDED from [androidx.core:core:1.19.0] /Users/thawee.p/.gradle/caches/9.4.1/tran
 	android:name
 		ADDED from [androidx.core:core:1.19.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/c67e74e8bc7760c48b8b7cabad6a3220/transformed/core-1.19.0/AndroidManifest.xml:26:22-94
 meta-data#androidx.lifecycle.ProcessLifecycleInitializer
-ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
+ADDED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:29:13-31:52
 	android:value
-		ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
+		ADDED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:31:17-49
 	android:name
-		ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/f8f9f40b18c1fa50658928850ad1e31d/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
+		ADDED from [androidx.lifecycle:lifecycle-process:2.11.0] /Users/thawee.p/.gradle/caches/9.4.1/transforms/d92158f60a28dcb279864cf6eb96ef19/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:30:17-78
 activity#androidx.activity.ComponentActivity
-ADDED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:23:9-26:79
+ADDED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:23:9-26:79
 	android:exported
-		ADDED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:25:13-36
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:25:13-36
 	android:theme
-		ADDED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:26:13-76
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:26:13-76
 	android:name
-		ADDED from [androidx.compose.ui:ui-test-manifest:1.11.2] /Users/thawee.p/.gradle/caches/9.4.1/transforms/7c1b72efa68f8b07db1efb0f10d93d86/transformed/ui-test-manifest-1.11.2/AndroidManifest.xml:24:13-63
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.11.3] /Users/thawee.p/.gradle/caches/9.4.1/transforms/140f14203ad2ce7f4dd16efc196cca34/transformed/ui-test-manifest-1.11.3/AndroidManifest.xml:24:13-63
 service#androidx.room.MultiInstanceInvalidationService
 ADDED from [androidx.room:room-runtime-android:2.8.4] /Users/thawee.p/.gradle/caches/9.4.1/transforms/93b50bc315f8e2f951bccf6af3815591/transformed/room-runtime/AndroidManifest.xml:24:9-28:63
 	android:exported

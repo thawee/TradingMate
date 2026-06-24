@@ -616,8 +616,10 @@ fun PortfolioSummaryCard(
     netProfit: Double,
     netPercent: Double,
     yieldOnCost: Double?,
+    totalDividendEarned: Double = 0.0,
     isPrivacyMode: Boolean = false,
-    onEditCash: () -> Unit
+    onEditCash: () -> Unit,
+    onLogDividend: () -> Unit = {}
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -719,10 +721,20 @@ fun PortfolioSummaryCard(
             
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                
                 Text("Gross: ฿${String.format(Locale.ENGLISH, "%,.2f", grossProfit)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                
                 Text("Fees: ฿${String.format(Locale.ENGLISH, "%,.2f", totalFees)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Dividend Earned: ฿${String.format(Locale.ENGLISH, "%,.2f", totalDividendEarned)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                TextButton(onClick = onLogDividend, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                    Text("Log Dividend", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

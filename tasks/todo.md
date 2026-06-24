@@ -36,3 +36,23 @@
 - [x] Add subtle gradient glows (Radial gradients in background)
 - [x] Add micro-animations (Scaling on card press)
 - [x] Create custom Animated Donut Chart component for Portfolio Allocation
+
+## 🏗️ Phase 6: Core Feature Additions
+- [x] **Feature 2: Android Home Screen Widget**
+  - [x] Create a Glance/AppWidget showing Total Assets, Today's P/L, and active Sell alerts.
+  - [x] Setup background update worker for the widget.
+- [x] **Feature 3: Actual Dividend Tracking**
+  - [x] Add `DividendHistoryEntity` (symbol, date, amount per share, total received, tax deducted).
+  - [x] Add Room DAOs and relations.
+  - [x] Create UI for manually logging received dividends.
+  - [x] Show total dividend earned in Portfolio screen.
+  - Add a UI flow to record a received dividend payment.
+- [x] **Feature 4: Trailing Stop-Loss**
+  - Add `peakPrice` to `StockPortfolioEntity` to track highest price since purchase.
+  - [x] Implement trailing stop logic (sell if price drops 5% below `peakPrice`).
+  - [x] Add UI configuration for the trailing stop percentage.
+
+## ✅ Phase 7: Widget & Navigation Enhancements (Complete)
+- [x] Verify Intent Navigation: Widget clicks and notifications now route precisely to Portfolio, Watchlist, or Advisor screens.
+- [x] Widget UI Polish: Redesigned widget using `androidx.glance` with rounded corners, custom themes (Dark/Light), and a premium aesthetic.
+- [x] Portfolio Trend Graph: Widget now displays a dynamic sparkline graph of portfolio historical value tracking (snapshots saved daily via `StockAlertWorker`).

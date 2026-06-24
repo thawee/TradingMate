@@ -3,6 +3,7 @@ package apincer.mobile.tradings.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import apincer.mobile.tradings.data.PreferenceRepository
 import apincer.mobile.tradings.data.StockDatabase
 import apincer.mobile.tradings.data.StockRepository
 import apincer.mobile.tradings.data.TradeEntity
@@ -15,13 +16,18 @@ import kotlinx.coroutines.launch
 class PortfolioViewModel(application: Application) : AndroidViewModel(application) {
     private val database = StockDatabase.getDatabase(application)
     private val repository = StockRepository(
-        database,
-        database.stockDao(),
-        database.tradeDao(),
-        database.cashDao(),
-        database.focusDao(),
-        database.checklistDao()
+        database = database,
+        stockDao = database.stockDao(),
+        tradeDao = database.tradeDao(),
+        cashDao = database.cashDao(),
+        focusDao = database.focusDao(),
+        checklistDao = database.checklistDao(),
+        dividendDao = database.dividendDao(),
+        portfolioSnapshotDao = database.portfolioSnapshotDao()
     )
+    private val preferenceRepository = PreferenceRepository(application)
+    private val isAtsEnabled: StateFlow<Boolean> = preferenceRepository.isAtsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val cashBalance: StateFlow<Double> = 
         repository.cashBalance.map { it?.balance ?: 0.0 }.stateIn(
@@ -36,6 +42,29 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             started = SharingStarted.Lazily, 
             initialValue = emptyList()
         )
+
+    val dividendHistory: StateFlow<List<apincer.mobile.tradings.data.DividendHistoryEntity>> = 
+        repository.allDividends.stateIn(
+            scope = viewModelScope, 
+            started = SharingStarted.Lazily, 
+            initialValue = emptyList()
+        )
+
+    fun logDividend(symbol: String, dateMillis: Long, amountPerShare: Double, sharesHeld: Int, taxDeducted: Double) {
+        viewModelScope.launch {
+            val totalReceived = (amountPerShare * sharesHeld) - taxDeducted
+            repository.insertDividend(apincer.mobile.tradings.data.DividendHistoryEntity(
+                symbol = symbol.uppercase(),
+                dateMillis = dateMillis,
+                amountPerShare = amountPerShare,
+                sharesHeld = sharesHeld,
+                totalReceived = totalReceived,
+                taxDeducted = taxDeducted
+            ))
+            // Also adjust cash balance up by totalReceived
+            repository.adjustCashBy(totalReceived)
+        }
+    }
 
     fun updateCashBalance(amount: Double) {
         viewModelScope.launch {
@@ -57,7 +86,8 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
                         symbol = item.portfolio.symbol,
                         sellPrice = sellPrice,
                         sellQuantity = sellQuantity,
-                        note = note
+                        note = note,
+                        atsEnabled = isAtsEnabled.value
                     )
                 } catch (e: Exception) {
                     android.util.Log.e("PortfolioViewModel", "Error recording sell: ${e.message}", e)

@@ -7,6 +7,8 @@
     <string name="about_copyright">© 2024 TradingMate Project</string>
     <string name="about_creator_content">Developed by Thawee P., a software engineer and trading enthusiast passionate about building tools for financial empowerement.</string>
     <string name="about_creator_title">The Creator</string>
+    <string name="about_disclaimer_content">This application is designed for educational and informational purposes only. It does not constitute financial advice, investment recommendation, or a solicitation to buy or sell any securities. All trading and investment decisions are made at your own risk. The creators and developers of TradingMate are not responsible for any financial losses, damages, or consequences arising from the use of this application. Past performance does not guarantee future results. Always consult with a qualified financial advisor before making investment decisions.</string>
+    <string name="about_disclaimer_title">Disclaimer</string>
     <string name="about_idea_content">TradingMate was born from the need for a disciplined, emotionless approach to stock trading. It aims to replace guesswork with data-driven signals.</string>
     <string name="about_idea_title">The Idea</string>
     <string name="about_tagline">Happy Trading! 🚀</string>
@@ -41,20 +43,21 @@
     <string name="desc_max_risk_per_trade">The maximum percentage of your total account equity you are willing to lose on a single trade. If your stop loss is hit, you will lose exactly this amount.</string>
     <string name="desc_min_risk_reward">The minimum ratio between your potential profit (Reward) and potential loss (Risk) required to take a trade. A ratio of 2.0 means you expect to make twice as much as you risk losing.</string>
     <string name="desc_refresh">Refresh</string>
-    <string name="edu_5_layers_intro">Our system evaluates stocks through 5 distinct \"Layers\" of analysis. A stock must pass the earlier layers before the later layers matter. We use these tags to quickly identify the current state of a stock.</string>
+    <string name="desc_trailing_stop_percent">The percentage drop from a stock\'s peak price that will trigger a stop loss alert.</string>
+    <string formatted="false" name="edu_5_layers_intro">Our system evaluates a company\'s DNA through a strict 5-Layer filter. Swing Plays must pass (Qual OR Val) AND (Mom OR Sup). Dividend Stars must pass (Div AND Qual).</string>
     <string name="edu_bollinger_content">A \'Volatility Tube\' that wraps around price. \n\n• Lower Band (Value): Prices here are statistically cheap for their current movement.\n• Upper Band (Resistance): Prices here are stretched too far. High risk of a reversal.</string>
     <string name="edu_bollinger_title">Bollinger Bands (Volatility Map)</string>
     <string name="edu_golden_rule_content">SELL signals ALWAYS override BUY signals. If a stock has great momentum but hits RSI 65 or the Upper Bollinger Band, the app will warn you to wait. Never buy at the peak!</string>
     <string name="edu_golden_rule_title">The Golden Rule</string>
     <string formatted="false" name="edu_layer_1_content">The foundation. Does the company make money? We look for ROE > 15%, Net Profit Margin > 10%, consistent 3Y profit growth, and low debt (D/E &lt; 1.5).</string>
     <string name="edu_layer_1_title">Layer 1: QUAL (Quality/Fundamentals)</string>
-    <string name="edu_layer_2_content">Is the price fair? Even a great company is a bad investment if you pay too much. We compare Current P/E to Historical P/E and check Price-to-Book ratios.</string>
+    <string formatted="false" name="edu_layer_2_content">Is the price fair? Even a great company is a bad investment if you pay too much. We look for underpriced or fair-value stocks using strict criteria: P/E Ratio between 0.1 and 15.0, and P/BV between 0.1 and 1.0.</string>
     <string name="edu_layer_2_title">Layer 2: VAL (Valuation)</string>
     <string formatted="false" name="edu_layer_3_content">For income investors. We accumulate and compound high-yield stocks (> 5%) indefinitely. Keep holding and reinvesting dividends unless fundamentals break (ROE &lt; 15% or high debt) or the dividend yield drops below 3%.</string>
     <string name="edu_layer_3_title">Layer 3: DIV (Dividend)</string>
-    <string name="edu_layer_4_content">Are buyers stepping in? We use MACD crossovers and moving averages to confirm that the trend has actually shifted to the upside. Never catch a falling knife.</string>
+    <string formatted="false" name="edu_layer_4_content">Are buyers stepping in? We detect early trend shifts and positive price momentum by checking if the MACD Histogram > 0.0. Never catch a falling knife.</string>
     <string name="edu_layer_4_title">Layer 4: MOM (Momentum)</string>
-    <string name="edu_layer_5_content">The trigger. We use RSI (Relative Strength Index) to find when prices are \'oversold\' (RSI &lt; 35) at major support levels, providing a low-risk entry point.</string>
+    <string formatted="false" name="edu_layer_5_content">The trigger. We locate ideal entry zones or extreme discounts by finding when prices are \'oversold\' (RSI &lt; 35) or when our proprietary BUY/POTENTIAL zone signals flash.</string>
     <string name="edu_layer_5_title">Layer 5: SUP (Support/Technicals)</string>
     <string name="edu_macd_content">Think of this as the car\'s gears. Even if a stock is cheap (RSI 35), we look for the MACD Histogram to turn positive. This confirms that the momentum has shifted to the upside.</string>
     <string name="edu_macd_title">MACD (The Momentum Switch)</string>
@@ -64,7 +67,7 @@
     <string name="edu_rsi_title">RSI (The Speedometer)</string>
     <string name="edu_sma_content">Moving Averages track the \'Average\' price over time.\n\n• SMA 200: The long-term \'Line in the Sand\'. Above this is a healthy Bull Market.\n• SMA 50: Mid-term health. Price above this suggests the trend is your friend.</string>
     <string name="edu_sma_title">SMA 50 &amp; 200 (Trend Guards)</string>
-    <string formatted="false" name="edu_step1_content">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections like \'Dividend Stars\' or \'Bluechips\'. Look for the \'Solid Financials\' badge—these companies have high ROE (>15%), low debt (D/E &lt; 1.5), and strong profit margins.</string>
+    <string formatted="false" name="edu_step1_content">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections or use the AI Advisor to find stocks that have already passed our strict 5-Layer filter.</string>
     <string name="edu_step1_title">1. Discovery (Quality First)</string>
     <string name="edu_step2_content">Move stocks into your Watchlist. The app monitors them 24/7:\n\n• AMBER (Potential): RSI &lt; 42. The stock is getting cheap or testing support.\n• GREEN (Buy): RSI &lt; 35 or confirmed momentum. Confirmed value + confirmed momentum.</string>
     <string name="edu_step2_title">2. Monitoring (The Traffic Lights)</string>
@@ -81,7 +84,7 @@
     <string name="label_alert_threshold_percent">Price Alert Threshold</string>
     <string name="label_amount_thb">Amount (THB)</string>
     <string name="label_app_tagline">Your personal premium trading companion.</string>
-    <string name="label_app_version">Trading Mate v1.5.0</string>
+    <string name="label_app_version">Trading Mate v1.6.0</string>
     <string name="label_attentions">Attentions</string>
     <string name="label_avg_cost">Avg Cost per Share</string>
     <string name="label_avg_loss">Avg Loss</string>
@@ -182,6 +185,7 @@
     <string name="label_total_fees">Total Fees</string>
     <string name="label_total_profit">Total Profit</string>
     <string name="label_total_symbols">Total Symbols</string>
+    <string name="label_trailing_stop_percent">Trailing Stop Loss</string>
     <string name="label_view_quote">View Official Quote ↗</string>
     <string name="label_volume">Volume</string>
     <string name="label_volume_surge">VOLUME SURGE</string>

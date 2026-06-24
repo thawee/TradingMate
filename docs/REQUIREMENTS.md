@@ -38,7 +38,7 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 ### 2.3 Portfolio Management
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.
 - **Transaction Recording:** Allow users to record buy and sell transactions with entry price and quantity.
-- **Fee Engine:** Automatically calculate trading fees (Commission, Market Fee, VAT, and Selling Tax) based on the InnovestX structure.
+- **Fee Engine:** Automatically calculate trading fees using the InnovestX structure (Commission 0.15%, Market Fee, VAT). Applies a ฿50/day minimum commission unless ATS + E-Statement is enabled (waived). Financial Transaction Tax (FTT) is ฿0 — officially abolished.
 - **Profit/Loss tracking:** Display Gross and Net Profit/Loss in both currency (THB) and percentage.
 - **Cash Management:** Provide a quick way to adjust or set the current cash balance.
 - **Yield-on-Cost:** Calculate and display dividend yield relative to purchase price.
@@ -66,9 +66,10 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Signal Change Alerts:** Push notification when stock signal shifts (BUY → SELL, etc.).
 - **Sell Reminder Alerts:** Push notification for portfolio stocks with active SELL signal.
 - **XD Date Alerts:** Push notification for upcoming ex-dividend dates (within 7 days).
-- **Morning Exit Window:** Push notification at 10:00-11:00 AM if swing exit conditions exist.
-- **Afternoon Entry Window:** Push notification at 15:30-16:30 to scan for new candidates.
-- **Dividend Season Reminder:** Push notification in January and June for accumulation season.
+- **Morning Exit Window:** Push notification at 10:00–11:00 AM if swing exit conditions exist.
+- **Afternoon Entry Window:** Push notification at 15:30–16:15 (capped before close) if market is open.
+- **Dividend Season Reminder:** Push notification in January and June for accumulation season (once per season, 09:00–17:00 only).
+- **Yield Opportunity Alert:** Year-round push notification (any month) when a DIVIDEND-purpose watchlist stock's yield rises ≥ 5% with ROE ≥ 15% — deduplicated per ISO week per stock.
 - **In-App Sell Alerts:** Reactive sell alerts displayed in Advisor screen (Take Profit ≥10%, Stop Loss ≤-5%, Overbought RSI ≥65, Yield Drop <3%).
 
 ### 2.7 Trading Academy
@@ -113,7 +114,7 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 ## 5. Non-Functional Requirements
 
 ### 5.1 Performance & Technical
-- **Background Sync:** WorkManager runs every 1 hour on weekdays only. Skips when market is closed and data is fresh.
+- **Background Sync:** WorkManager runs every **30 minutes** on weekdays only. Skips stock scan when market is closed (including public holidays). Time-based alerts (afternoon window, dividend season) are checked first and guarded independently.
 - **Data Privacy:** All personal portfolio and watchlist data must be stored locally on the device (Local-First architecture).
 - **Backup & Restore:** Export/import watchlist symbols and portfolio essentials (cost, quantity, purpose) + cash balance as JSON. Caches and signals are regenerated on refresh.
 - **Resilience:** Fallback mechanism for market data when primary SET sources are unavailable.

@@ -20,6 +20,8 @@ class PreferenceRepository(private val context: Context) {
     private val DIVIDEND_ALERT_WINDOW = intPreferencesKey("dividend_alert_window")
     private val IS_DIVIDEND_ALERT_END_YEAR = booleanPreferencesKey("is_dividend_alert_end_year")
     private val IS_PRIVACY_MODE = booleanPreferencesKey("is_privacy_mode")
+    private val IS_ATS_ENABLED = booleanPreferencesKey("is_ats_enabled")
+    private val TRAILING_STOP_PERCENT = doublePreferencesKey("trailing_stop_percent")
 
     private val MAX_RISK_PER_TRADE = doublePreferencesKey("max_risk_per_trade")
     private val MAX_OPEN_EXPOSURE = doublePreferencesKey("max_open_exposure")
@@ -77,6 +79,29 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setPrivacyMode(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[IS_PRIVACY_MODE] = enabled
+        }
+    }
+
+    // ATS (Automatic Transfer System) + E-Statement: waives the ฿50/day minimum commission
+    val isAtsEnabled: Flow<Boolean> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[IS_ATS_ENABLED] ?: true   // default: waived (most users register ATS)
+        }
+
+    suspend fun setAtsEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[IS_ATS_ENABLED] = enabled
+        }
+    }
+
+    val trailingStopPercent: Flow<Double> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[TRAILING_STOP_PERCENT] ?: 5.0
+        }
+
+    suspend fun setTrailingStopPercent(percent: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[TRAILING_STOP_PERCENT] = percent
         }
     }
 

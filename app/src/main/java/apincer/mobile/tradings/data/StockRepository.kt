@@ -9,13 +9,33 @@ class StockRepository(
     private val tradeDao: TradeDao,
     private val cashDao: CashDao,
     private val focusDao: FocusDao,
-    private val checklistDao: ChecklistDao
+    private val checklistDao: ChecklistDao,
+    private val dividendDao: DividendDao,
+    private val portfolioSnapshotDao: PortfolioSnapshotDao
 ) {
     val allStocks: Flow<List<StockAggregate>> = stockDao.getAllStocks()
     val allTrades: Flow<List<TradeEntity>> = tradeDao.getAllTrades()
     val cashBalance: Flow<CashEntity?> = cashDao.getCash()
     val allFocusStocks: Flow<List<FocusEntity>> = focusDao.getAllFocusStocks()
     val checklist: Flow<ChecklistEntity?> = checklistDao.getChecklistFlow()
+    val allDividends: Flow<List<DividendHistoryEntity>> = dividendDao.getAllDividends()
+    val allSnapshots: Flow<List<PortfolioSnapshotEntity>> = portfolioSnapshotDao.getAllSnapshots()
+
+    suspend fun insertSnapshot(snapshot: PortfolioSnapshotEntity) {
+        portfolioSnapshotDao.insertSnapshot(snapshot)
+    }
+
+    suspend fun deleteOldSnapshots(beforeDate: String) {
+        portfolioSnapshotDao.deleteOldSnapshots(beforeDate)
+    }
+
+    suspend fun insertDividend(dividend: DividendHistoryEntity) {
+        dividendDao.insertDividend(dividend)
+    }
+
+    suspend fun deleteDividend(dividend: DividendHistoryEntity) {
+        dividendDao.deleteDividend(dividend)
+    }
 
     suspend fun updateChecklist(checklist: ChecklistEntity) {
         checklistDao.insertChecklist(checklist)
@@ -99,6 +119,10 @@ class StockRepository(
         stockDao.insertCache(cache)
     }
 
+    suspend fun updatePortfolio(portfolio: PortfolioEntity) {
+        stockDao.insertPortfolio(portfolio)
+    }
+
     suspend fun updateStockSignal(signal: StockSignalEntity) {
         stockDao.insertSignal(signal)
     }
@@ -175,7 +199,8 @@ class StockRepository(
         symbol: String,
         sellPrice: Double,
         sellQuantity: Int,
-        note: String = ""
+        note: String = "",
+        atsEnabled: Boolean = true
     ) {
         val aggregate = stockDao.getStockBySymbol(symbol.uppercase()) ?: return
         val portfolio = aggregate.portfolio
@@ -183,7 +208,7 @@ class StockRepository(
         database.withTransaction {
             val totalCostRaw = portfolio.cost * sellQuantity
             val sellValueRaw = sellPrice * sellQuantity
-            val sellFees = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(sellValueRaw, true)
+            val sellFees = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(sellValueRaw, true, atsEnabled)
             val buyFees = if (portfolio.quantity > 0) {
                 (portfolio.buyFees * sellQuantity.toDouble()) / portfolio.quantity
             } else 0.0

@@ -19,7 +19,7 @@ It specifically addresses common beginner challenges:
 - **AI Advisor:** A centralized AI discovery hub that evaluates Swing, Gap, and Dividend opportunities and generates direct Master Prompts for deep AI analysis.
 - **Consolidated Portfolio:** A professional-grade financial dashboard grouping stock holdings, cash balance, net profit, and fee tracking in one unified view.
 - **Automated Trading Zones:** Real-time calculation of "Buy Below" and "Sell Above" price ranges using RSI (35/65 targets).
-- **Precise Fee Engine:** Accurate net profit/loss tracking using a detailed InnovestX fee structure (Commission + Market Fee + VAT + Selling Tax).
+- **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled (waived via Settings). Financial Transaction Tax is ฿0 — officially abolished.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
 ## 🧅 The 5-Layer Filter System (Stock DNA)
@@ -43,7 +43,7 @@ TradingMate doesn't just look at price; it evaluates the "DNA" of a company usin
 
 ## 📊 Technical Indicators Used
 
-TradingMate uses a suite of indicators to generate high-conviction signals. For a deep dive into the formulas and thresholds, see **[INDICATORS.md](INDICATORS.md)**.
+TradingMate uses a suite of indicators to generate high-conviction signals. For a deep dive into the formulas and thresholds, see **[INDICATORS.md](docs/INDICATORS.md)**.
 
 1. **RSI (14 Days) - The Speedometer**
    - **Oversold (< 35):** Target BUY zone.
@@ -94,18 +94,22 @@ This ensures your checklist stays intact during market hours and starts clean th
 
 ## 🔔 Notification Alerts
 
-TradingMate sends push notifications during specific time windows on weekdays (Asia/Bangkok timezone):
+TradingMate sends push notifications during specific time windows on weekdays (Asia/Bangkok timezone). The background worker runs every **30 minutes**.
 
-| Time Window | Alert | Description |
-|-------------|-------|-------------|
-| **10:00–11:00 AM** | 🌅 Morning Swing Exit | Reminds you to check active swing positions for Sell/Stop Loss alerts |
-| **15:30–16:30 PM** | 🌆 Afternoon Swing Entry | Reminds you to scan the Advisor for new daily Swing & Gap candidates |
-| **Within 7 days of XD date** | 💰 Ex-Dividend Alert | Per-stock alert when an ex-dividend date is approaching |
-| **January & June** | 📅 Dividend Season | Reminds you to accumulate dividend-paying stocks before payout season |
+| Time / Trigger | Alert | Dedup | Description |
+|---|---|---|---|
+| **10:00–11:00 AM** | 🌅 Morning Swing Exit | Once/day | Check active swing positions for Sell / Stop Loss |
+| **15:30–16:15 PM** | 🏙️ Afternoon Swing Entry | Once/day | Scan Advisor for new Swing & Gap candidates before close |
+| **Within 7 days of XD** | 💰 Ex-Dividend Alert | Once/XD date | Per-stock alert when an ex-dividend date is approaching |
+| **Jan & Jun, 09:00–17:00** | 📅 Dividend Season | Once/season | Start accumulating for upcoming payout season |
+| **Any month** | 💰 Yield Opportunity | Once/week/stock | DIVIDEND stock yield ≥ 5% + ROE ≥ 15% — good accumulation price |
+| **Any time (market open)** | 🚨 Signal Change / Sell Reminder | Per stock | BUY→SELL or active SELL signal detected |
 
-**Deduplication:** Each alert fires at most once per day per type using daily SharedPreferences keys.
-
-> Note: Notifications are skipped on weekends and when the market is closed.
+> **Deduplication rules:**
+> - Morning / Afternoon alerts: once per trading day
+> - Dividend Season: once per season (January key, June key) — fires on first qualifying business day
+> - Yield Opportunity: at most once per ISO week per stock
+> - Notifications are skipped on weekends. Stock-scan alerts are also skipped on public holidays (market closed).
 
 ## ⚠️ Disclaimer
 

@@ -30,6 +30,7 @@ import androidx.activity.SystemBarStyle
 
 class MainActivity : ComponentActivity() {
     private var openSymbol: String? = null
+    private var startScreen: String? = null
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         openSymbol = intent?.getStringExtra("OPEN_SYMBOL")
+        startScreen = intent?.getStringExtra("START_SCREEN")
 
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
@@ -67,7 +69,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    StockScreen(openSymbol = openSymbol)
+                    StockScreen(openSymbol = openSymbol, startScreen = startScreen)
                 }
             }
         }
@@ -102,12 +104,12 @@ class MainActivity : ComponentActivity() {
 
     private fun scheduleStockAlertWorker() {
         val workRequest = PeriodicWorkRequestBuilder<StockAlertWorker>(
-            1, TimeUnit.HOURS
+            30, TimeUnit.MINUTES   // 30-min cadence for reliable end-of-day alert window coverage
         ).build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "stock_alert_worker",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.REPLACE,  // Replace stale worker when interval changes
             workRequest
         )
     }

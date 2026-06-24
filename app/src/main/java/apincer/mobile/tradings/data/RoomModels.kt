@@ -28,7 +28,17 @@ data class PortfolioEntity(
     val tradePurpose: String = "SWING",
     val buyFees: Double = 0.0,
     val stopLoss: Double = 0.0,
-    val playbookNote: String = ""
+    val playbookNote: String = "",
+    val peakPrice: Double = 0.0
+)
+
+@Entity(tableName = "portfolio_snapshot")
+@Serializable
+data class PortfolioSnapshotEntity(
+    @PrimaryKey val date: String, // Format: YYYY-MM-DD
+    val totalValue: Double,
+    val totalCost: Double,
+    val cashBalance: Double
 )
 
 @Entity(tableName = "stock_cache")
@@ -114,6 +124,7 @@ data class StockAggregate(
     val lastUpdated: String? get() = cache?.lastUpdated ?: signal?.lastUpdated
     val stopLoss: Double get() = portfolio.stopLoss
     val playbookNote: String get() = portfolio.playbookNote
+    val peakPrice: Double get() = portfolio.peakPrice
     val netProfitMargin: Double? get() = cache?.netProfitMargin
     val profitGrowth3Y: Double? get() = cache?.profitGrowth3Y
 
@@ -305,6 +316,33 @@ data class ChecklistEntity(
     val swingAiDone: Boolean = false
 )
 
+@Entity(tableName = "dividend_history")
+@Serializable
+data class DividendHistoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val symbol: String,
+    val dateMillis: Long,
+    val amountPerShare: Double,
+    val sharesHeld: Int,
+    val totalReceived: Double,
+    val taxDeducted: Double
+)
+
+@Dao
+interface DividendDao {
+    @Query("SELECT * FROM dividend_history ORDER BY dateMillis DESC")
+    fun getAllDividends(): Flow<List<DividendHistoryEntity>>
+
+    @Query("SELECT * FROM dividend_history WHERE symbol = :symbol ORDER BY dateMillis DESC")
+    fun getDividendsBySymbol(symbol: String): Flow<List<DividendHistoryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDividend(dividend: DividendHistoryEntity)
+
+    @Delete
+    suspend fun deleteDividend(dividend: DividendHistoryEntity)
+}
+
 @Dao
 interface ChecklistDao {
     @Query("SELECT * FROM discipline_checklist WHERE id = 1")
@@ -317,6 +355,21 @@ interface ChecklistDao {
     suspend fun insertChecklist(checklist: ChecklistEntity)
 }
 
+@Dao
+interface PortfolioSnapshotDao {
+    @Query("SELECT * FROM portfolio_snapshot ORDER BY date DESC")
+    fun getAllSnapshots(): Flow<List<PortfolioSnapshotEntity>>
+
+    @Query("SELECT * FROM portfolio_snapshot ORDER BY date DESC")
+    suspend fun getAllSnapshotsSync(): List<PortfolioSnapshotEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSnapshot(snapshot: PortfolioSnapshotEntity)
+
+    @Query("DELETE FROM portfolio_snapshot WHERE date < :beforeDate")
+    suspend fun deleteOldSnapshots(beforeDate: String)
+}
+
 @Database(
     entities = [
         PortfolioEntity::class, 
@@ -325,9 +378,11 @@ interface ChecklistDao {
         TradeEntity::class, 
         CashEntity::class, 
         FocusEntity::class, 
-        ChecklistEntity::class
+        ChecklistEntity::class,
+        DividendHistoryEntity::class,
+        PortfolioSnapshotEntity::class
     ], 
-    version = 20
+    version = 23
 )
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
@@ -335,6 +390,8 @@ abstract class StockDatabase : RoomDatabase() {
     abstract fun cashDao(): CashDao
     abstract fun focusDao(): FocusDao
     abstract fun checklistDao(): ChecklistDao
+    abstract fun dividendDao(): DividendDao
+    abstract fun portfolioSnapshotDao(): PortfolioSnapshotDao
 
     companion object {
         @Volatile
@@ -500,6 +557,42 @@ abstract class StockDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_20_21 = object : androidx.room.migration.Migration(20, 21) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN peakPrice REAL NOT NULL DEFAULT 0.0")
+            }
+        }
+
+        val MIGRATION_21_22 = object : androidx.room.migration.Migration(21, 22) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `dividend_history` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `symbol` TEXT NOT NULL, 
+                        `dateMillis` INTEGER NOT NULL, 
+                        `amountPerShare` REAL NOT NULL, 
+                        `sharesHeld` INTEGER NOT NULL, 
+                        `totalReceived` REAL NOT NULL, 
+                        `taxDeducted` REAL NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_22_23 = object : androidx.room.migration.Migration(22, 23) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `portfolio_snapshot` (
+                        `date` TEXT NOT NULL, 
+                        `totalValue` REAL NOT NULL, 
+                        `totalCost` REAL NOT NULL, 
+                        `cashBalance` REAL NOT NULL, 
+                        PRIMARY KEY(`date`)
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getDatabase(context: android.content.Context): StockDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -510,7 +603,8 @@ abstract class StockDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, 
                     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
-                    MIGRATION_18_19, MIGRATION_19_20
+                    MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
+                    MIGRATION_21_22, MIGRATION_22_23
                 )
                 .build()
                 INSTANCE = instance

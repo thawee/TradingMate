@@ -11,29 +11,43 @@ import apincer.mobile.tradings.data.StockRepository
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import kotlinx.coroutines.flow.firstOrNull
+import androidx.glance.appwidget.updateAll
 
 class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+
+    companion object {
+        // Year-round dividend yield opportunity alert thresholds.
+        // Fire when a DIVIDEND-purpose stock's yield rises to this level
+        // (price fell → yield rose) AND fundamentals remain solid.
+        const val YIELD_OPPORTUNITY_THRESHOLD = 5.0   // % — attractive yield for Thai SET
+        const val ROE_MIN_THRESHOLD           = 15.0  // % — minimum quality filter
+    }
 
     override suspend fun doWork(): Result {
         Log.d("StockAlertWorker", "Background work started")
 
-        // Check for Prime Time Reminders (Monday to Friday, Asia/Bangkok time)
         val tz = java.util.TimeZone.getTimeZone("Asia/Bangkok")
         val now = java.util.Calendar.getInstance(tz)
         val dayOfWeek = now.get(java.util.Calendar.DAY_OF_WEEK)
-        
+        val hour = now.get(java.util.Calendar.HOUR_OF_DAY)
+        val minute = now.get(java.util.Calendar.MINUTE)
+        val currentTime = hour * 100 + minute
+
+        val prefRepo = apincer.mobile.tradings.data.PreferenceRepository(applicationContext)
+        val trailingStopPercent = prefRepo.trailingStopPercent.firstOrNull() ?: 5.0
+
         var hasActiveSwingSellAlert = false
 
+        // 1. Only run time-sensitive notifications on trading weekdays
         if (dayOfWeek != java.util.Calendar.SATURDAY && dayOfWeek != java.util.Calendar.SUNDAY) {
-            val hour = now.get(java.util.Calendar.HOUR_OF_DAY)
-            val minute = now.get(java.util.Calendar.MINUTE)
-            val currentTime = hour * 100 + minute
-
             val prefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
             val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+            val marketStatus = TechnicalAnalysis.getMarketStatus()
 
-            // 2. Afternoon Entry Window: 15:30 - 16:30 PM (Thai time)
-            if (currentTime in 1530..1630) {
+            // 2. Afternoon Entry Window: 15:30–16:15 Thai time
+            //    Cap at 16:15 (not 16:30) so user has ~15 min to act before market closes.
+            //    Also guard against public holidays by checking market is not CLOSED.
+            if (currentTime in 1530..1615 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
                 val key = "afternoon_alert_$todayStr"
                 if (!prefs.getBoolean(key, false)) {
                     NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = false)
@@ -44,9 +58,15 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             }
 
             // 3. Dividend Accumulation Season Reminder (January & June)
+            //    - January  → accumulate before April/May XD (First-Half payouts)
+            //    - June     → accumulate before August/September XD (Second-Half payouts)
+            //    Fires ONCE per season (keyed by year-month, not date) during business hours.
             val month = now.get(java.util.Calendar.MONTH)
-            if (month == java.util.Calendar.JANUARY || month == java.util.Calendar.JUNE) {
-                val seasonKey = "dividend_season_${month}_$todayStr"
+            val year = now.get(java.util.Calendar.YEAR)
+            if ((month == java.util.Calendar.JANUARY || month == java.util.Calendar.JUNE)
+                && currentTime in 900..1700) {
+                val yearMonth = "$year-${month + 1}"   // e.g. "2026-1" or "2026-6"
+                val seasonKey = "dividend_season_$yearMonth"
                 if (!prefs.getBoolean(seasonKey, false)) {
                     NotificationHelper.showDividendSeasonNotification(
                         context = applicationContext,
@@ -56,21 +76,23 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
             }
         }
-        
-        // 1. Only run notifications during market hours to avoid spamming
+
+        // 4. Skip stock-scan alerts when market is fully closed (includes public holidays)
         if (TechnicalAnalysis.getMarketStatus() == apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
-            Log.d("StockAlertWorker", "Market is closed. Skipping alerts.")
+            Log.d("StockAlertWorker", "Market is closed. Skipping stock scan alerts.")
             return Result.success()
         }
 
         val database = StockDatabase.getDatabase(applicationContext)
         val repository = StockRepository(
-            database,
+            database, 
             database.stockDao(), 
             database.tradeDao(), 
             database.cashDao(), 
             database.focusDao(), 
-            database.checklistDao()
+            database.checklistDao(),
+            database.dividendDao(),
+            database.portfolioSnapshotDao()
         )
         val allStocks = repository.allStocks.firstOrNull() ?: emptyList()
 
@@ -149,6 +171,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     )
                 )
 
+                // 5b. Update peak price for trailing stop loss
+                if (entity.quantity > 0 && scraped.lastPrice > entity.portfolio.peakPrice) {
+                    repository.updatePortfolio(entity.portfolio.copy(peakPrice = scraped.lastPrice))
+                }
+
                 // 6. Check for upcoming Ex-Dividend (XD) date alerts (next 7 days)
                 val xdDateStr = scraped.dividendDate
                 if (!xdDateStr.isNullOrEmpty()) {
@@ -178,6 +205,31 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     }
                 }
 
+                // 6b. Year-round yield opportunity alert (any month)
+                // Fires when a DIVIDEND-purpose stock's yield spikes ≥ YIELD_OPPORTUNITY_THRESHOLD
+                // due to price weakness, AND fundamentals are solid (ROE ≥ ROE_MIN_THRESHOLD).
+                // Deduplicates by ISO week — fires at most once per week per stock.
+                val dividendYield = scraped.dividendYield ?: 0.0
+                val roe = scraped.roe ?: 0.0
+                if (entity.tradePurpose == "DIVIDEND"
+                    && dividendYield >= YIELD_OPPORTUNITY_THRESHOLD
+                    && roe >= ROE_MIN_THRESHOLD) {
+                    val weekOfYear = now.get(java.util.Calendar.WEEK_OF_YEAR)
+                    val weekYear  = now.get(java.util.Calendar.YEAR)
+                    val yieldKey  = "yield_opp_${entity.symbol}_${weekYear}_W${weekOfYear}"
+                    val yieldPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
+                    if (!yieldPrefs.getBoolean(yieldKey, false)) {
+                        NotificationHelper.showDividendYieldOpportunityNotification(
+                            context = applicationContext,
+                            symbol  = entity.symbol,
+                            yield   = dividendYield,
+                            price   = scraped.lastPrice,
+                            roe     = roe
+                        )
+                        yieldPrefs.edit().putBoolean(yieldKey, true).apply()
+                    }
+                }
+
                 // 7. Check if this stock is currently in a swing exit condition
                 val isSwingHold = entity.tradePurpose == "SWING"
                 val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" && (scraped.dividendYield ?: 0.0) < 3.0
@@ -187,7 +239,14 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     val rsi = indicators.rsi ?: 50.0
                     val isSell = signal.type == IndicatorSignal.SELL
                     
-                    if (netProfit >= 10.0 || netProfit <= -5.0 || rsi >= 65.0 || isSell) {
+                    val currentPrice = scraped.lastPrice
+                    val cost = entity.cost
+                    val peakPrice = entity.portfolio.peakPrice
+                    val explicitStopLoss = entity.portfolio.stopLoss
+                    val maxPeak = maxOf(cost, peakPrice)
+                    val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
+                    
+                    if (netProfit >= 10.0 || dropFromPeak <= -trailingStopPercent || (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) || rsi >= 65.0 || isSell) {
                         hasActiveSwingSellAlert = true
                     }
                 }
@@ -196,12 +255,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             }
         }
 
-        // Trigger Morning Swing Exit Alert if we have active swing sell alerts during 10:00 - 11:00 AM
+        // 5. Morning Swing Exit Alert: 10:00–11:00 AM, only if active sell conditions exist
         if (dayOfWeek != java.util.Calendar.SATURDAY && dayOfWeek != java.util.Calendar.SUNDAY) {
-            val hour = now.get(java.util.Calendar.HOUR_OF_DAY)
-            val minute = now.get(java.util.Calendar.MINUTE)
-            val currentTime = hour * 100 + minute
-
             if (currentTime in 1000..1100 && hasActiveSwingSellAlert) {
                 val prefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
                 val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
@@ -211,6 +266,38 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     prefs.edit().putBoolean(key, true).apply()
                 }
             }
+        }
+
+        // Calculate portfolio snapshot
+        var totalValue = 0.0
+        var totalCost = 0.0
+        allStocks.forEach { item ->
+            val cache = item.cache
+            val currentPrice = cache?.lastPrice ?: item.portfolio.cost
+            val qty = item.portfolio.quantity
+            totalValue += currentPrice * qty
+            totalCost += item.portfolio.cost * qty + item.portfolio.buyFees
+        }
+        val cashBalance = repository.cashBalance.firstOrNull()?.balance ?: 0.0
+        
+        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+        val snapshot = apincer.mobile.tradings.data.PortfolioSnapshotEntity(
+            date = todayStr,
+            totalValue = totalValue,
+            totalCost = totalCost,
+            cashBalance = cashBalance
+        )
+        repository.insertSnapshot(snapshot)
+        
+        // Clean up old snapshots (e.g., older than 30 days)
+        val thirtyDaysAgo = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -30) }
+        val oldDateStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(thirtyDaysAgo.time)
+        repository.deleteOldSnapshots(oldDateStr)
+
+        try {
+            apincer.mobile.tradings.widget.TradingMateWidget().updateAll(applicationContext)
+        } catch (e: Exception) {
+            Log.e("StockAlertWorker", "Failed to update widget: ${e.message}")
         }
 
         return Result.success()

@@ -19,9 +19,11 @@ class WatchlistViewModel(application: Application) : AndroidViewModel(applicatio
         database,
         database.stockDao(),
         database.tradeDao(),
-        database.cashDao(),
-        database.focusDao(),
-        database.checklistDao()
+        cashDao = database.cashDao(),
+        focusDao = database.focusDao(),
+        checklistDao = database.checklistDao(),
+        dividendDao = database.dividendDao(),
+        portfolioSnapshotDao = database.portfolioSnapshotDao()
     )
 
     private val _searchResults = MutableStateFlow<List<ScrapedStockInfo>>(emptyList())

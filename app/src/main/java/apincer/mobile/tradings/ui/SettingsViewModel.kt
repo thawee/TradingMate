@@ -71,9 +71,35 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             initialValue = false
         )
 
-    fun togglePrivacyMode() {
+    fun updatePrivacyMode(enabled: Boolean) {
         viewModelScope.launch {
-            preferenceRepository.setPrivacyMode(!isPrivacyMode.value)
+            preferenceRepository.setPrivacyMode(enabled)
+        }
+    }
+
+    val trailingStopPercent: StateFlow<Double> = 
+        preferenceRepository.trailingStopPercent.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 5.0
+        )
+
+    fun updateTrailingStopPercent(percent: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setTrailingStopPercent(percent)
+        }
+    }
+
+    val isAtsEnabled: StateFlow<Boolean> =
+        preferenceRepository.isAtsEnabled.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true   // default: ATS registered → minimum fee waived
+        )
+
+    fun toggleAtsEnabled() {
+        viewModelScope.launch {
+            preferenceRepository.setAtsEnabled(!isAtsEnabled.value)
         }
     }
 

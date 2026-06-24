@@ -58,7 +58,8 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
 fun StockScreen(
     viewModel: StockViewModel = viewModel(),
     settingsViewModel: SettingsViewModel = viewModel(),
-    openSymbol: String? = null
+    openSymbol: String? = null,
+    startScreen: String? = null
 ) {
     var currentScreen by rememberSaveable { mutableStateOf(Screen.WATCHLIST) }
     val uiState by viewModel.uiState.collectAsState()
@@ -81,9 +82,15 @@ fun StockScreen(
         }
     }
 
-    LaunchedEffect(openSymbol) {
-        openSymbol?.let {
+    LaunchedEffect(openSymbol, startScreen) {
+        if (openSymbol != null) {
             currentScreen = Screen.PORTFOLIO
+        } else if (startScreen != null) {
+            try {
+                currentScreen = Screen.valueOf(startScreen)
+            } catch (e: Exception) {
+                // ignore invalid screen names
+            }
         }
     }
 

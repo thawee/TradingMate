@@ -7,6 +7,7 @@ import androidx.room.coroutines.createFlow
 import androidx.room.util.getColumnIndexOrThrow
 import androidx.room.util.performSuspending
 import androidx.sqlite.SQLiteStatement
+import javax.`annotation`.processing.Generated
 import kotlin.Double
 import kotlin.Int
 import kotlin.Long
@@ -19,6 +20,7 @@ import kotlin.collections.mutableListOf
 import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 
+@Generated(value = ["androidx.room.RoomProcessor"])
 @Suppress(names = ["UNCHECKED_CAST", "DEPRECATION", "REDUNDANT_PROJECTION", "REMOVAL"])
 public class FocusDao_Impl(
   __db: RoomDatabase,
@@ -154,7 +156,7 @@ public class FocusDao_Impl(
   }
 
   public override suspend fun clearFocusList() {
-    val _sql: String = "DELETE FROM focus_list WHERE symbol NOT IN (SELECT symbol FROM stocks WHERE quantity > 0)"
+    val _sql: String = "DELETE FROM focus_list WHERE symbol NOT IN (SELECT symbol FROM portfolio WHERE quantity > 0)"
     return performSuspending(__db, false, true) { _connection ->
       val _stmt: SQLiteStatement = _connection.prepare(_sql)
       try {

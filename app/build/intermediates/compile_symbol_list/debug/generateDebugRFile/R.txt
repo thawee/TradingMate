@@ -1,5 +1,9 @@
 int drawable ic_launcher_background 0x0
 int drawable ic_launcher_foreground 0x0
+int font inter_bold 0x0
+int font inter_medium 0x0
+int font inter_regular 0x0
+int font inter_semibold 0x0
 int mipmap ic_launcher 0x0
 int mipmap ic_launcher_round 0x0
 int string about_ai_content 0x0
@@ -9,6 +13,8 @@ int string about_concept_title 0x0
 int string about_copyright 0x0
 int string about_creator_content 0x0
 int string about_creator_title 0x0
+int string about_disclaimer_content 0x0
+int string about_disclaimer_title 0x0
 int string about_idea_content 0x0
 int string about_idea_title 0x0
 int string about_tagline 0x0
@@ -43,6 +49,7 @@ int string desc_max_portfolio_allocation 0x0
 int string desc_max_risk_per_trade 0x0
 int string desc_min_risk_reward 0x0
 int string desc_refresh 0x0
+int string desc_trailing_stop_percent 0x0
 int string edu_5_layers_intro 0x0
 int string edu_bollinger_content 0x0
 int string edu_bollinger_title 0x0
@@ -184,6 +191,7 @@ int string label_total_equity 0x0
 int string label_total_fees 0x0
 int string label_total_profit 0x0
 int string label_total_symbols 0x0
+int string label_trailing_stop_percent 0x0
 int string label_view_quote 0x0
 int string label_volume 0x0
 int string label_volume_surge 0x0
@@ -234,3 +242,4 @@ int string title_record_purchase 0x0
 int string title_sell_stock 0x0
 int string title_settings 0x0
 int string title_watchlist 0x0
+int xml trading_mate_widget_info 0x0

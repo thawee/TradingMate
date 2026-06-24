@@ -119,10 +119,18 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         database.tradeDao(), 
         database.cashDao(), 
         database.focusDao(), 
-        database.checklistDao()
+        database.checklistDao(),
+        database.dividendDao(),
+        database.portfolioSnapshotDao()
     )
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
     private val alertPrefs = application.getSharedPreferences("trading_mate_alerts", android.content.Context.MODE_PRIVATE)
+
+    val isAtsEnabled: StateFlow<Boolean> = preferenceRepository.isAtsEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val trailingStopPercent: StateFlow<Double> = preferenceRepository.trailingStopPercent
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 5.0)
 
     private val _isAfternoonScanAvailable = MutableStateFlow(getAfternoonScanAvailable())
     val isAfternoonScanAvailable: StateFlow<Boolean> = _isAfternoonScanAvailable
@@ -326,7 +334,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     val playbookMode: StateFlow<PlaybookMode> = _playbookMode
 
     val alertRoutineState: StateFlow<AlertRoutineState> = 
-        combine(_playbookMode, watchlistInfo, _checklist) { mode, watchlist, checklist ->
+        combine(_playbookMode, watchlistInfo, _checklist, trailingStopPercent) { mode, watchlist, checklist, tsPercent ->
             val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
 
             val isQual = { it: StockWatchlistInfo -> (it.info.roe ?: 0.0) > 15.0 }
@@ -414,11 +422,20 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val rsi = stock.portfolio.rsi ?: 50.0
 
                     val targetAlerts = swingSellAlerts
+                    
+                    val currentPrice = stock.info.lastPrice
+                    val cost = stock.portfolio.cost
+                    val peakPrice = stock.portfolio.peakPrice
+                    val explicitStopLoss = stock.portfolio.stopLoss
+                    val maxPeak = maxOf(cost, peakPrice)
+                    val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
 
                     if (netProfit >= 10.0) {
                         targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
-                    } else if (netProfit <= -5.0) {
-                        targetAlerts.add(SellAlertData(stock, "Stop Loss (Loss <= -5%)"))
+                    } else if (dropFromPeak <= -tsPercent) {
+                        targetAlerts.add(SellAlertData(stock, "Trailing Stop Loss (Drop <= -$tsPercent%)"))
+                    } else if (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) {
+                        targetAlerts.add(SellAlertData(stock, "Stop Loss (Price <= $explicitStopLoss)"))
                     } else if (netProfit > 0.0 && rsi >= 65.0) {
                         targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
                     } else if (stock.signal?.type == IndicatorSignal.SELL) {
@@ -548,6 +565,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                 dividendYield = updated.dividendYield ?: cache.dividendYield,
                                 lastUpdated = updated.lastUpdated
                             ))
+                            
+                            // Update peak price for trailing stop loss
+                            if (original.portfolio.quantity > 0 && updated.lastPrice > original.portfolio.peakPrice) {
+                                repository.updatePortfolio(original.portfolio.copy(peakPrice = updated.lastPrice))
+                            }
                         }
                     }
                 }
@@ -647,6 +669,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
                                             )
                                         )
+
+                                        // Update peak price for trailing stop loss
+                                        if (latestStock.portfolio.quantity > 0 && info.lastPrice > latestStock.portfolio.peakPrice) {
+                                            repository.updatePortfolio(latestStock.portfolio.copy(peakPrice = info.lastPrice))
+                                        }
                                     }
                                 } catch (e: Exception) {
                                     android.util.Log.e("StockViewModel", "Error deep refreshing stock ${stock.symbol}", e)
@@ -806,7 +833,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             val fees = if (quantity > 0) {
-                TechnicalAnalysis.calculateFees(cost * quantity, false)
+                TechnicalAnalysis.calculateFees(cost * quantity, false, isAtsEnabled.value)
             } else 0.0
             try {
                 repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)

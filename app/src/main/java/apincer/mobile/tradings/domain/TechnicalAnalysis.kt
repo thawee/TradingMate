@@ -46,32 +46,32 @@ enum class TradingZone(val label: String, val color: Color) {
 }
 
 object TechnicalAnalysis {
-    // InnovestX Fee Structure:
-    // 1. Commission: 0.10% - 0.15% (we use 0.15% for safety)
-    // 2. Market Fee (Trading Fee + Clearing Fee + Regulatory Fee): 0.007%
-    // 3. VAT: 7% on total commissions (Commission + Market Fee)
-    // 4. Selling Tax (Financial Transaction Tax): 0.11% (currently 0.10% tax + 0.01% local tax)
-    
+    // InnovestX Fee Structure (Internet Trading, Cash Account):
+    // 1. Commission: 0.15% for daily volume ≤ ฿5M (conservative worst-case flat rate)
+    // 2. Market Fee: SET Trading Fee (0.005%) + TSD Clearing Fee (0.001%) + Regulatory Fee (0.001%) = 0.007%
+    // 3. VAT: 7% on (Commission + Market Fee)
+    // 4. Minimum Commission: ฿50/day — WAIVED if ATS + E-Statement are registered
+    // 5. Selling Tax (Financial Transaction Tax): officially ABOLISHED, rate set to 0
+
     const val COMMISSION_RATE = 0.0015
     const val MARKET_FEE_RATE = 0.00007
     const val VAT_RATE = 0.07
-    const val SELLING_TAX_RATE = 0.0011
+    const val SELLING_TAX_RATE = 0.0        // FTT abolished by Thai Ministry of Finance
+    const val MIN_COMMISSION_BAHT = 50.0    // Minimum commission per day (without ATS)
+    const val MIN_COMMISSION_ATS = 0.0      // Minimum commission when ATS + E-Statement registered (waived)
 
     // Alignment with snapshot Strategy: Focus on RSI (35/65 targets)
     const val RSI_OVERSOLD_THRESHOLD = 35.0
     const val RSI_OVERBOUGHT_THRESHOLD = 65.0
     const val RSI_POTENTIAL_THRESHOLD = 42.0
 
-    fun calculateFees(amount: Double, isSelling: Boolean): Double {
-        val commission = amount * COMMISSION_RATE
+    fun calculateFees(amount: Double, isSelling: Boolean, atsEnabled: Boolean = true): Double {
+        val minCommission = if (atsEnabled) MIN_COMMISSION_ATS else MIN_COMMISSION_BAHT
+        val commission = maxOf(amount * COMMISSION_RATE, minCommission)
         val marketFee = amount * MARKET_FEE_RATE
         val vat = (commission + marketFee) * VAT_RATE
-        var totalFees = commission + marketFee + vat
-        
-        if (isSelling) {
-            totalFees += (amount * SELLING_TAX_RATE)
-        }
-        
+        val totalFees = commission + marketFee + vat
+        // SELLING_TAX_RATE is 0.0 — Financial Transaction Tax was officially abolished
         return totalFees
     }
 
@@ -130,10 +130,10 @@ object TechnicalAnalysis {
         }
 
         return when {
-            currentTime in 1000..1230 -> MarketStatus.OPEN
-            currentTime in 1231..1429 -> MarketStatus.LUNCH
-            currentTime in 1430..1630 -> MarketStatus.OPEN
-            else -> MarketStatus.CLOSED
+            currentTime in 1000..1229 -> MarketStatus.OPEN      // Morning session: 10:00–12:29
+            currentTime in 1230..1430 -> MarketStatus.LUNCH     // Lunch break:    12:30–14:30
+            currentTime in 1431..1630 -> MarketStatus.OPEN      // Afternoon session: 14:31–16:30
+            else                      -> MarketStatus.CLOSED
         }
     }
 

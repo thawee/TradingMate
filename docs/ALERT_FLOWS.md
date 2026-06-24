@@ -8,8 +8,8 @@
 │                                                                  │
 │  1. PUSH NOTIFICATIONS (Background Worker)                       │
 │     - Time-based, fires to phone                                 │
-│     - StockAlertWorker runs every 1 hour                         │
-│     - Deduplicated per day                                       │
+│     - StockAlertWorker runs every 30 minutes                     │
+│     - Deduplicated (per day / per week / per season)             │
 │                                                                  │
 │  2. IN-APP ALERTS (Reactive StateFlow)                           │
 │     - Data-based, shows in UI                                    │
@@ -25,24 +25,29 @@
 ### StockAlertWorker (Background)
 
 **Location:** `util/StockAlertWorker.kt`
-**Schedule:** Every 1 hour, weekdays only
-**Skip condition:** Market closed
+**Schedule:** Every **30 minutes**, weekdays only (Asia/Bangkok)
+**Market hours:** Morning `10:00–12:29`, Lunch `12:30–14:30`, Afternoon `14:31–16:30`
+**Skip condition:** Market closed (skips stock scan; time-based alerts still checked)
 
 #### Flow
 
 ```
-Every hour on weekdays
+Every 30 min on weekdays
 │
-├─ 1. Check market status
-│     └─ If CLOSED → skip
-│
-├─ 2. Afternoon Entry Window (15:30-16:30)
-│     └─ Fire: "🔔 Afternoon Swing Entry Window"
-│         "Market close approaching! Scan the Advisor 
+├─ 1. Afternoon Entry Window (15:30–16:15, market not CLOSED)
+│     Guard: also skipped on public holidays (market CLOSED check)
+│     └─ Fire once/day: "🔔 Afternoon Swing Entry Window"
+│         "Market close approaching! Scan the Advisor
 │          for new daily Swing & Gap candidates."
 │
-├─ 3. Dividend Season (Jan/June only)
-│     └─ Fire: "💰 Dividend Accumulation Season"
+├─ 2. Dividend Season (Jan/Jun, 09:00–17:00)
+│     └─ Fire ONCE per season (keyed by year-month, not date):
+│         "💰 Dividend Accumulation Season"
+│         Jan → "Start researching for April/May XD payouts"
+│         Jun → "Start researching for Aug/Sep XD payouts"
+│
+├─ 3. Market CLOSED? → skip stock scan and return
+│     (includes public holidays)
 │
 ├─ 4. For each stock in watchlist:
 │     │
@@ -59,14 +64,20 @@ Every hour on weekdays
 │     ├─ Upcoming XD date (next 7 days)? → showXdAlertNotification()
 │     │   "🔔 Upcoming XD: KBANK"
 │     │
+│     ├─ DIVIDEND purpose + yield ≥ 5% + ROE ≥ 15%?
+│     │   → showDividendYieldOpportunityNotification()
+│     │   "💰 Yield Opportunity: PTT"
+│     │   "Yield 6.2% at ฿33.50 — strong ROE 18.3%."
+│     │   Dedup: once per ISO week per stock
+│     │
 │     └─ Swing exit conditions met?
 │         (gain≥10%, loss≤-5%, RSI≥65, SELL signal)
 │         └─ hasActiveSwingSellAlert = true
 │
-└─ 5. Morning Swing Exit (10:00-11:00)
+└─ 5. Morning Swing Exit (10:00–11:00)
       └─ If hasActiveSwingSellAlert → showPrimeTimeNotification()
           "☀️ Morning Swing Exit Window"
-          "Markets are open! Check your active swing 
+          "Markets are open! Check your active swing
            positions for Sell or Stop Loss alerts."
 ```
 
@@ -77,9 +88,10 @@ Every hour on weekdays
 | Signal Change | `showSignalNotification` | Signal type changed | DEFAULT | Per stock |
 | Sell Reminder | `showSellReminderNotification` | Active SELL on portfolio | HIGH | Per stock |
 | XD Alert | `showXdAlertNotification` | XD date within 7 days | DEFAULT | Per stock+date |
-| Morning Exit | `showPrimeTimeNotification` | Swing alerts + 10-11 AM | DEFAULT | Per day |
-| Afternoon Entry | `showPrimeTimeNotification` | 15:30-16:30 window | DEFAULT | Per day |
-| Dividend Season | `showDividendSeasonNotification` | Jan/June | DEFAULT | Per month |
+| **Yield Opportunity** | `showDividendYieldOpportunityNotification` | **DIVIDEND stock yield ≥ 5% + ROE ≥ 15% (any month)** | DEFAULT | **Per stock per ISO week** |
+| Morning Exit | `showPrimeTimeNotification` | Swing alerts + 10:00–11:00 | DEFAULT | Per day |
+| Afternoon Entry | `showPrimeTimeNotification` | 15:30–16:15, market open | DEFAULT | Per day |
+| Dividend Season | `showDividendSeasonNotification` | Jan/Jun, 09:00–17:00 | DEFAULT | **Once per season (year-month key)** |
 
 ---
 
@@ -321,16 +333,17 @@ Next → 🚨 Exits
 
 | Push Notification | Mode | Related Step | Connection |
 |---|---|---|---|
-| Morning (10-11 AM) | SWING only | Step 1: Check Exits | Same conditions (gain≥10%, loss≤-5%, RSI≥65) |
-| Afternoon (15:30-16:30) | SWING only | Step 2: Scan Setups | Sets badge flag, cleared on checkbox |
+| Morning (10:00–11:00) | SWING only | Step 1: Check Exits | Same conditions (gain≥10%, loss≤-5%, RSI≥65) |
+| Afternoon (15:30–16:15) | SWING only | Step 2: Scan Setups | Sets badge flag, cleared on checkbox |
+| Yield Opportunity | DIVIDEND | Any step | Opens stock directly via OPEN_SYMBOL intent |
 
-**SWING mode**: Push notifications nudge user to open app and complete steps
-**DIVIDEND mode**: No push notifications — purely informational
+**SWING mode**: Push notifications nudge user to open app and complete steps  
+**DIVIDEND mode**: Year-round yield opportunity alerts fire independently of the checklist
 
 | Mode | Push Notifications | Checklist | Badge |
 |---|---|---|---|
 | SWING | ✅ Morning + Afternoon | ✅ 3 steps with tracking | ✅ Step 2 afternoon badge |
-| DIVIDEND | ❌ None | ❌ None | ❌ None |
+| DIVIDEND | ✅ Yield Opportunity (any month) + Season (Jan/Jun) | ❌ None | ❌ None |
 
 ---
 

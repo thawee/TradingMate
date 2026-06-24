@@ -65,8 +65,12 @@ fun PortfolioScreen(
 
     var showBuyDialog by remember { mutableStateOf(false) }
     var showCashDialog by remember { mutableStateOf(false) }
+    var showDividendDialog by remember { mutableStateOf(false) }
     var selectedStockForSell by remember { mutableStateOf<StockWatchlistInfo?>(null) }
     var selectedStockForEdit by remember { mutableStateOf<StockWatchlistInfo?>(null) }
+
+    val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
+    val totalDividendEarned = dividendHistory.sumOf { it.totalReceived }
 
     val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
     val stockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
@@ -163,8 +167,10 @@ fun PortfolioScreen(
                     netProfit = netProfitValue,
                     netPercent = totalNetProfitPercent,
                     yieldOnCost = avgYieldOnCost,
+                    totalDividendEarned = totalDividendEarned,
                     isPrivacyMode = isPrivacyMode,
-                    onEditCash = { showCashDialog = true }
+                    onEditCash = { showCashDialog = true },
+                    onLogDividend = { showDividendDialog = true }
                 )
             }
 
@@ -473,6 +479,17 @@ fun PortfolioScreen(
         )
     }
 
+    if (showDividendDialog) {
+        LogDividendDialog(
+            onDismiss = { showDividendDialog = false },
+            onConfirm = { symbol, dateMillis, dps, shares, tax ->
+                portfolioViewModel.logDividend(symbol, dateMillis, dps, shares, tax)
+                showDividendDialog = false
+                showSnackbar("Logged dividend for $symbol")
+            }
+        )
+    }
+
     selectedStockForSell?.let { stock ->
         SellStockDialog(
             stock = stock,
@@ -482,6 +499,90 @@ fun PortfolioScreen(
                 selectedStockForSell = null
             }
         )
+    }
+}
+
+@Composable
+fun LogDividendDialog(
+    initialSymbol: String = "",
+    onDismiss: () -> Unit,
+    onConfirm: (String, Long, Double, Int, Double) -> Unit
+) {
+    var symbol by remember { mutableStateOf(initialSymbol) }
+    var dps by remember { mutableStateOf("") }
+    var shares by remember { mutableStateOf("") }
+    var taxDeducted by remember { mutableStateOf("0.0") }
+    
+    val dpsVal = dps.toDoubleOrNull() ?: 0.0
+    val sharesVal = shares.toIntOrNull() ?: 0
+    val taxVal = taxDeducted.toDoubleOrNull() ?: 0.0
+    
+    val totalAmount = (dpsVal * sharesVal) - taxVal
+
+    val isValid = symbol.isNotBlank() && dpsVal > 0.0 && sharesVal > 0
+
+    GlassDialog(
+        onDismissRequest = onDismiss,
+        title = "Log Dividend Payment",
+        confirmButton = {
+            Button(
+                enabled = isValid,
+                onClick = { onConfirm(symbol, System.currentTimeMillis(), dpsVal, sharesVal, taxVal) },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(
+                value = symbol,
+                onValueChange = { symbol = it.uppercase() },
+                label = { Text("Symbol") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            )
+            OutlinedTextField(
+                value = dps,
+                onValueChange = { dps = it },
+                label = { Text("Dividend Per Share (฿)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                shape = RoundedCornerShape(14.dp)
+            )
+            OutlinedTextField(
+                value = shares,
+                onValueChange = { shares = it },
+                label = { Text("Shares Held") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                shape = RoundedCornerShape(14.dp)
+            )
+            OutlinedTextField(
+                value = taxDeducted,
+                onValueChange = { taxDeducted = it },
+                label = { Text("Tax Deducted (฿)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                shape = RoundedCornerShape(14.dp)
+            )
+            if (isValid) {
+                Text(
+                    text = "Net Received: ฿${String.format(Locale.ENGLISH, "%,.2f", totalAmount)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "This amount will be added to your cash balance.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

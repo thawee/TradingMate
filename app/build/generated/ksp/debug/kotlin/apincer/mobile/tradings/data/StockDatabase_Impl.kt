@@ -9,6 +9,7 @@ import androidx.room.util.TableInfo.Companion.read
 import androidx.room.util.dropFtsSyncTriggers
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
+import javax.`annotation`.processing.Generated
 import kotlin.Lazy
 import kotlin.String
 import kotlin.Suppress
@@ -23,6 +24,7 @@ import kotlin.collections.mutableMapOf
 import kotlin.collections.mutableSetOf
 import kotlin.reflect.KClass
 
+@Generated(value = ["androidx.room.RoomProcessor"])
 @Suppress(names = ["UNCHECKED_CAST", "DEPRECATION", "REDUNDANT_PROJECTION", "REMOVAL"])
 public class StockDatabase_Impl : StockDatabase() {
   private val _stockDao: Lazy<StockDao> = lazy {
@@ -45,24 +47,41 @@ public class StockDatabase_Impl : StockDatabase() {
     ChecklistDao_Impl(this)
   }
 
+  private val _dividendDao: Lazy<DividendDao> = lazy {
+    DividendDao_Impl(this)
+  }
+
+  private val _portfolioSnapshotDao: Lazy<PortfolioSnapshotDao> = lazy {
+    PortfolioSnapshotDao_Impl(this)
+  }
+
   protected override fun createOpenDelegate(): RoomOpenDelegate {
-    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(16, "41a36d6a1eebc361f03bd7f029068eec", "7ec258088b81faf0c3eafd5175a00171") {
+    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(23, "d7933c90b47aa36307384544c3b54a23", "0b929b27963c78d6fff1df9a28904040") {
       public override fun createAllTables(connection: SQLiteConnection) {
-        connection.execSQL("CREATE TABLE IF NOT EXISTS `stocks` (`symbol` TEXT NOT NULL, `name` TEXT, `nameTH` TEXT, `businessDescription` TEXT, `sector` TEXT, `industry` TEXT, `cost` REAL NOT NULL, `quantity` INTEGER NOT NULL, `tradePurpose` TEXT NOT NULL, `buyFees` REAL NOT NULL, `dividendPerShare` REAL, `lastPrice` REAL NOT NULL, `change` REAL NOT NULL, `percentChange` REAL NOT NULL, `pe` REAL, `pbv` REAL, `roe` REAL, `eps` REAL, `netProfit` REAL, `equity` REAL, `debtToEquity` REAL, `dividendYield` REAL, `dividendDate` TEXT, `rsi` REAL, `macdHist` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, `stopLoss` REAL NOT NULL, `playbookNote` TEXT NOT NULL, PRIMARY KEY(`symbol`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `portfolio` (`symbol` TEXT NOT NULL, `cost` REAL NOT NULL, `quantity` INTEGER NOT NULL, `tradePurpose` TEXT NOT NULL, `buyFees` REAL NOT NULL, `stopLoss` REAL NOT NULL, `playbookNote` TEXT NOT NULL, `peakPrice` REAL NOT NULL, PRIMARY KEY(`symbol`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `stock_cache` (`symbol` TEXT NOT NULL, `name` TEXT, `nameTH` TEXT, `businessDescription` TEXT, `sector` TEXT, `industry` TEXT, `dividendPerShare` REAL, `lastPrice` REAL NOT NULL, `change` REAL NOT NULL, `percentChange` REAL NOT NULL, `pe` REAL, `pbv` REAL, `roe` REAL, `eps` REAL, `netProfit` REAL, `equity` REAL, `debtToEquity` REAL, `dividendYield` REAL, `dividendDate` TEXT, `netProfitMargin` REAL, `profitGrowth3Y` REAL, `lastUpdated` TEXT, PRIMARY KEY(`symbol`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `stock_signal` (`symbol` TEXT NOT NULL, `rsi` REAL, `macdHist` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, PRIMARY KEY(`symbol`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `trade_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `symbol` TEXT NOT NULL, `buyPrice` REAL NOT NULL, `sellPrice` REAL NOT NULL, `quantity` INTEGER NOT NULL, `netProfitPercent` REAL NOT NULL, `netProfitBaht` REAL NOT NULL, `dateMillis` INTEGER NOT NULL, `note` TEXT NOT NULL)")
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_trade_history_dateMillis` ON `trade_history` (`dateMillis`)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `cash` (`id` INTEGER NOT NULL, `balance` REAL NOT NULL, PRIMARY KEY(`id`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `focus_list` (`symbol` TEXT NOT NULL, `startPrice` REAL NOT NULL, `targetPrice` REAL NOT NULL, `addedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`symbol`))")
-        connection.execSQL("CREATE TABLE IF NOT EXISTS `discipline_checklist` (`id` INTEGER NOT NULL, `lastResetDate` TEXT NOT NULL, `lastResetWeek` INTEGER NOT NULL, `lastResetMonth` INTEGER NOT NULL, `swingDailyDone` INTEGER NOT NULL, `swingWeeklyDone` INTEGER NOT NULL, `swingAiDone` INTEGER NOT NULL, `divWeeklyDone` INTEGER NOT NULL, `divWeeklyPricesDone` INTEGER NOT NULL, `divMonthlyDone` INTEGER NOT NULL, `divAiDone` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `discipline_checklist` (`id` INTEGER NOT NULL, `lastResetDate` TEXT NOT NULL, `swingDailyDone` INTEGER NOT NULL, `swingWeeklyDone` INTEGER NOT NULL, `swingAiDone` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `dividend_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `symbol` TEXT NOT NULL, `dateMillis` INTEGER NOT NULL, `amountPerShare` REAL NOT NULL, `sharesHeld` INTEGER NOT NULL, `totalReceived` REAL NOT NULL, `taxDeducted` REAL NOT NULL)")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `portfolio_snapshot` (`date` TEXT NOT NULL, `totalValue` REAL NOT NULL, `totalCost` REAL NOT NULL, `cashBalance` REAL NOT NULL, PRIMARY KEY(`date`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '41a36d6a1eebc361f03bd7f029068eec')")
+        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd7933c90b47aa36307384544c3b54a23')")
       }
 
       public override fun dropAllTables(connection: SQLiteConnection) {
-        connection.execSQL("DROP TABLE IF EXISTS `stocks`")
+        connection.execSQL("DROP TABLE IF EXISTS `portfolio`")
+        connection.execSQL("DROP TABLE IF EXISTS `stock_cache`")
+        connection.execSQL("DROP TABLE IF EXISTS `stock_signal`")
         connection.execSQL("DROP TABLE IF EXISTS `trade_history`")
         connection.execSQL("DROP TABLE IF EXISTS `cash`")
         connection.execSQL("DROP TABLE IF EXISTS `focus_list`")
         connection.execSQL("DROP TABLE IF EXISTS `discipline_checklist`")
+        connection.execSQL("DROP TABLE IF EXISTS `dividend_history`")
+        connection.execSQL("DROP TABLE IF EXISTS `portfolio_snapshot`")
       }
 
       public override fun onCreate(connection: SQLiteConnection) {
@@ -80,50 +99,84 @@ public class StockDatabase_Impl : StockDatabase() {
       }
 
       public override fun onValidateSchema(connection: SQLiteConnection): RoomOpenDelegate.ValidationResult {
-        val _columnsStocks: MutableMap<String, TableInfo.Column> = mutableMapOf()
-        _columnsStocks.put("symbol", TableInfo.Column("symbol", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("name", TableInfo.Column("name", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("nameTH", TableInfo.Column("nameTH", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("businessDescription", TableInfo.Column("businessDescription", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("sector", TableInfo.Column("sector", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("industry", TableInfo.Column("industry", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("cost", TableInfo.Column("cost", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("quantity", TableInfo.Column("quantity", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("tradePurpose", TableInfo.Column("tradePurpose", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("buyFees", TableInfo.Column("buyFees", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("dividendPerShare", TableInfo.Column("dividendPerShare", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("lastPrice", TableInfo.Column("lastPrice", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("change", TableInfo.Column("change", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("percentChange", TableInfo.Column("percentChange", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("pe", TableInfo.Column("pe", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("pbv", TableInfo.Column("pbv", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("roe", TableInfo.Column("roe", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("eps", TableInfo.Column("eps", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("netProfit", TableInfo.Column("netProfit", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("equity", TableInfo.Column("equity", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("debtToEquity", TableInfo.Column("debtToEquity", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("dividendYield", TableInfo.Column("dividendYield", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("dividendDate", TableInfo.Column("dividendDate", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("rsi", TableInfo.Column("rsi", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("macdHist", TableInfo.Column("macdHist", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("signalType", TableInfo.Column("signalType", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("signalReason", TableInfo.Column("signalReason", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("signalDescription", TableInfo.Column("signalDescription", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("lastUpdated", TableInfo.Column("lastUpdated", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("stopLoss", TableInfo.Column("stopLoss", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsStocks.put("playbookNote", TableInfo.Column("playbookNote", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        val _foreignKeysStocks: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
-        val _indicesStocks: MutableSet<TableInfo.Index> = mutableSetOf()
-        val _infoStocks: TableInfo = TableInfo("stocks", _columnsStocks, _foreignKeysStocks, _indicesStocks)
-        val _existingStocks: TableInfo = read(connection, "stocks")
-        if (!_infoStocks.equals(_existingStocks)) {
+        val _columnsPortfolio: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsPortfolio.put("symbol", TableInfo.Column("symbol", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolio.put("cost", TableInfo.Column("cost", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolio.put("quantity", TableInfo.Column("quantity", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolio.put("tradePurpose", TableInfo.Column("tradePurpose", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolio.put("buyFees", TableInfo.Column("buyFees", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolio.put("stopLoss", TableInfo.Column("stopLoss", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolio.put("playbookNote", TableInfo.Column("playbookNote", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolio.put("peakPrice", TableInfo.Column("peakPrice", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysPortfolio: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesPortfolio: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoPortfolio: TableInfo = TableInfo("portfolio", _columnsPortfolio, _foreignKeysPortfolio, _indicesPortfolio)
+        val _existingPortfolio: TableInfo = read(connection, "portfolio")
+        if (!_infoPortfolio.equals(_existingPortfolio)) {
           return RoomOpenDelegate.ValidationResult(false, """
-              |stocks(apincer.mobile.tradings.data.StockEntity).
+              |portfolio(apincer.mobile.tradings.data.PortfolioEntity).
               | Expected:
-              |""".trimMargin() + _infoStocks + """
+              |""".trimMargin() + _infoPortfolio + """
               |
               | Found:
-              |""".trimMargin() + _existingStocks)
+              |""".trimMargin() + _existingPortfolio)
+        }
+        val _columnsStockCache: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsStockCache.put("symbol", TableInfo.Column("symbol", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("name", TableInfo.Column("name", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("nameTH", TableInfo.Column("nameTH", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("businessDescription", TableInfo.Column("businessDescription", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("sector", TableInfo.Column("sector", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("industry", TableInfo.Column("industry", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("dividendPerShare", TableInfo.Column("dividendPerShare", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("lastPrice", TableInfo.Column("lastPrice", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("change", TableInfo.Column("change", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("percentChange", TableInfo.Column("percentChange", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("pe", TableInfo.Column("pe", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("pbv", TableInfo.Column("pbv", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("roe", TableInfo.Column("roe", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("eps", TableInfo.Column("eps", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("netProfit", TableInfo.Column("netProfit", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("equity", TableInfo.Column("equity", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("debtToEquity", TableInfo.Column("debtToEquity", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("dividendYield", TableInfo.Column("dividendYield", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("dividendDate", TableInfo.Column("dividendDate", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("netProfitMargin", TableInfo.Column("netProfitMargin", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("profitGrowth3Y", TableInfo.Column("profitGrowth3Y", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockCache.put("lastUpdated", TableInfo.Column("lastUpdated", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysStockCache: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesStockCache: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoStockCache: TableInfo = TableInfo("stock_cache", _columnsStockCache, _foreignKeysStockCache, _indicesStockCache)
+        val _existingStockCache: TableInfo = read(connection, "stock_cache")
+        if (!_infoStockCache.equals(_existingStockCache)) {
+          return RoomOpenDelegate.ValidationResult(false, """
+              |stock_cache(apincer.mobile.tradings.data.StockCacheEntity).
+              | Expected:
+              |""".trimMargin() + _infoStockCache + """
+              |
+              | Found:
+              |""".trimMargin() + _existingStockCache)
+        }
+        val _columnsStockSignal: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsStockSignal.put("symbol", TableInfo.Column("symbol", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("rsi", TableInfo.Column("rsi", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("macdHist", TableInfo.Column("macdHist", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("signalType", TableInfo.Column("signalType", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("signalReason", TableInfo.Column("signalReason", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("signalDescription", TableInfo.Column("signalDescription", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("lastUpdated", TableInfo.Column("lastUpdated", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysStockSignal: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesStockSignal: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoStockSignal: TableInfo = TableInfo("stock_signal", _columnsStockSignal, _foreignKeysStockSignal, _indicesStockSignal)
+        val _existingStockSignal: TableInfo = read(connection, "stock_signal")
+        if (!_infoStockSignal.equals(_existingStockSignal)) {
+          return RoomOpenDelegate.ValidationResult(false, """
+              |stock_signal(apincer.mobile.tradings.data.StockSignalEntity).
+              | Expected:
+              |""".trimMargin() + _infoStockSignal + """
+              |
+              | Found:
+              |""".trimMargin() + _existingStockSignal)
         }
         val _columnsTradeHistory: MutableMap<String, TableInfo.Column> = mutableMapOf()
         _columnsTradeHistory.put("id", TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
@@ -137,6 +190,7 @@ public class StockDatabase_Impl : StockDatabase() {
         _columnsTradeHistory.put("note", TableInfo.Column("note", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         val _foreignKeysTradeHistory: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
         val _indicesTradeHistory: MutableSet<TableInfo.Index> = mutableSetOf()
+        _indicesTradeHistory.add(TableInfo.Index("index_trade_history_dateMillis", false, listOf("dateMillis"), listOf("ASC")))
         val _infoTradeHistory: TableInfo = TableInfo("trade_history", _columnsTradeHistory, _foreignKeysTradeHistory, _indicesTradeHistory)
         val _existingTradeHistory: TableInfo = read(connection, "trade_history")
         if (!_infoTradeHistory.equals(_existingTradeHistory)) {
@@ -185,15 +239,9 @@ public class StockDatabase_Impl : StockDatabase() {
         val _columnsDisciplineChecklist: MutableMap<String, TableInfo.Column> = mutableMapOf()
         _columnsDisciplineChecklist.put("id", TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsDisciplineChecklist.put("lastResetDate", TableInfo.Column("lastResetDate", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsDisciplineChecklist.put("lastResetWeek", TableInfo.Column("lastResetWeek", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsDisciplineChecklist.put("lastResetMonth", TableInfo.Column("lastResetMonth", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsDisciplineChecklist.put("swingDailyDone", TableInfo.Column("swingDailyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsDisciplineChecklist.put("swingWeeklyDone", TableInfo.Column("swingWeeklyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsDisciplineChecklist.put("swingAiDone", TableInfo.Column("swingAiDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsDisciplineChecklist.put("divWeeklyDone", TableInfo.Column("divWeeklyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsDisciplineChecklist.put("divWeeklyPricesDone", TableInfo.Column("divWeeklyPricesDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsDisciplineChecklist.put("divMonthlyDone", TableInfo.Column("divMonthlyDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
-        _columnsDisciplineChecklist.put("divAiDone", TableInfo.Column("divAiDone", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         val _foreignKeysDisciplineChecklist: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
         val _indicesDisciplineChecklist: MutableSet<TableInfo.Index> = mutableSetOf()
         val _infoDisciplineChecklist: TableInfo = TableInfo("discipline_checklist", _columnsDisciplineChecklist, _foreignKeysDisciplineChecklist, _indicesDisciplineChecklist)
@@ -207,6 +255,45 @@ public class StockDatabase_Impl : StockDatabase() {
               | Found:
               |""".trimMargin() + _existingDisciplineChecklist)
         }
+        val _columnsDividendHistory: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsDividendHistory.put("id", TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDividendHistory.put("symbol", TableInfo.Column("symbol", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDividendHistory.put("dateMillis", TableInfo.Column("dateMillis", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDividendHistory.put("amountPerShare", TableInfo.Column("amountPerShare", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDividendHistory.put("sharesHeld", TableInfo.Column("sharesHeld", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDividendHistory.put("totalReceived", TableInfo.Column("totalReceived", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsDividendHistory.put("taxDeducted", TableInfo.Column("taxDeducted", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysDividendHistory: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesDividendHistory: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoDividendHistory: TableInfo = TableInfo("dividend_history", _columnsDividendHistory, _foreignKeysDividendHistory, _indicesDividendHistory)
+        val _existingDividendHistory: TableInfo = read(connection, "dividend_history")
+        if (!_infoDividendHistory.equals(_existingDividendHistory)) {
+          return RoomOpenDelegate.ValidationResult(false, """
+              |dividend_history(apincer.mobile.tradings.data.DividendHistoryEntity).
+              | Expected:
+              |""".trimMargin() + _infoDividendHistory + """
+              |
+              | Found:
+              |""".trimMargin() + _existingDividendHistory)
+        }
+        val _columnsPortfolioSnapshot: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsPortfolioSnapshot.put("date", TableInfo.Column("date", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolioSnapshot.put("totalValue", TableInfo.Column("totalValue", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolioSnapshot.put("totalCost", TableInfo.Column("totalCost", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsPortfolioSnapshot.put("cashBalance", TableInfo.Column("cashBalance", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysPortfolioSnapshot: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesPortfolioSnapshot: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoPortfolioSnapshot: TableInfo = TableInfo("portfolio_snapshot", _columnsPortfolioSnapshot, _foreignKeysPortfolioSnapshot, _indicesPortfolioSnapshot)
+        val _existingPortfolioSnapshot: TableInfo = read(connection, "portfolio_snapshot")
+        if (!_infoPortfolioSnapshot.equals(_existingPortfolioSnapshot)) {
+          return RoomOpenDelegate.ValidationResult(false, """
+              |portfolio_snapshot(apincer.mobile.tradings.data.PortfolioSnapshotEntity).
+              | Expected:
+              |""".trimMargin() + _infoPortfolioSnapshot + """
+              |
+              | Found:
+              |""".trimMargin() + _existingPortfolioSnapshot)
+        }
         return RoomOpenDelegate.ValidationResult(true, null)
       }
     }
@@ -216,11 +303,11 @@ public class StockDatabase_Impl : StockDatabase() {
   protected override fun createInvalidationTracker(): InvalidationTracker {
     val _shadowTablesMap: MutableMap<String, String> = mutableMapOf()
     val _viewTables: MutableMap<String, Set<String>> = mutableMapOf()
-    return InvalidationTracker(this, _shadowTablesMap, _viewTables, "stocks", "trade_history", "cash", "focus_list", "discipline_checklist")
+    return InvalidationTracker(this, _shadowTablesMap, _viewTables, "portfolio", "stock_cache", "stock_signal", "trade_history", "cash", "focus_list", "discipline_checklist", "dividend_history", "portfolio_snapshot")
   }
 
   public override fun clearAllTables() {
-    super.performClear(false, "stocks", "trade_history", "cash", "focus_list", "discipline_checklist")
+    super.performClear(false, "portfolio", "stock_cache", "stock_signal", "trade_history", "cash", "focus_list", "discipline_checklist", "dividend_history", "portfolio_snapshot")
   }
 
   protected override fun getRequiredTypeConverterClasses(): Map<KClass<*>, List<KClass<*>>> {
@@ -230,6 +317,8 @@ public class StockDatabase_Impl : StockDatabase() {
     _typeConvertersMap.put(CashDao::class, CashDao_Impl.getRequiredConverters())
     _typeConvertersMap.put(FocusDao::class, FocusDao_Impl.getRequiredConverters())
     _typeConvertersMap.put(ChecklistDao::class, ChecklistDao_Impl.getRequiredConverters())
+    _typeConvertersMap.put(DividendDao::class, DividendDao_Impl.getRequiredConverters())
+    _typeConvertersMap.put(PortfolioSnapshotDao::class, PortfolioSnapshotDao_Impl.getRequiredConverters())
     return _typeConvertersMap
   }
 
@@ -252,4 +341,8 @@ public class StockDatabase_Impl : StockDatabase() {
   public override fun focusDao(): FocusDao = _focusDao.value
 
   public override fun checklistDao(): ChecklistDao = _checklistDao.value
+
+  public override fun dividendDao(): DividendDao = _dividendDao.value
+
+  public override fun portfolioSnapshotDao(): PortfolioSnapshotDao = _portfolioSnapshotDao.value
 }

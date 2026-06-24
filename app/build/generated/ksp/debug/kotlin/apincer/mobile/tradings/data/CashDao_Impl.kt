@@ -6,6 +6,7 @@ import androidx.room.coroutines.createFlow
 import androidx.room.util.getColumnIndexOrThrow
 import androidx.room.util.performSuspending
 import androidx.sqlite.SQLiteStatement
+import javax.`annotation`.processing.Generated
 import kotlin.Double
 import kotlin.Int
 import kotlin.String
@@ -15,6 +16,7 @@ import kotlin.collections.List
 import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 
+@Generated(value = ["androidx.room.RoomProcessor"])
 @Suppress(names = ["UNCHECKED_CAST", "DEPRECATION", "REDUNDANT_PROJECTION", "REMOVAL"])
 public class CashDao_Impl(
   __db: RoomDatabase,
@@ -80,6 +82,20 @@ public class CashDao_Impl(
           _result = null
         }
         _result
+      } finally {
+        _stmt.close()
+      }
+    }
+  }
+
+  public override suspend fun adjustCashBy(amount: Double) {
+    val _sql: String = "UPDATE cash SET balance = balance + ? WHERE id = 1"
+    return performSuspending(__db, false, true) { _connection ->
+      val _stmt: SQLiteStatement = _connection.prepare(_sql)
+      try {
+        var _argIndex: Int = 1
+        _stmt.bindDouble(_argIndex, amount)
+        _stmt.step()
       } finally {
         _stmt.close()
       }

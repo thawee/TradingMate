@@ -2,6 +2,10 @@ R_DEF: Internal format may change without notice
 local
 drawable ic_launcher_background
 drawable ic_launcher_foreground
+font inter_bold
+font inter_medium
+font inter_regular
+font inter_semibold
 mipmap ic_launcher
 mipmap ic_launcher_round
 string about_ai_content
@@ -11,6 +15,8 @@ string about_concept_title
 string about_copyright
 string about_creator_content
 string about_creator_title
+string about_disclaimer_content
+string about_disclaimer_title
 string about_idea_content
 string about_idea_title
 string about_tagline
@@ -45,6 +51,7 @@ string desc_max_portfolio_allocation
 string desc_max_risk_per_trade
 string desc_min_risk_reward
 string desc_refresh
+string desc_trailing_stop_percent
 string edu_5_layers_intro
 string edu_bollinger_content
 string edu_bollinger_title
@@ -186,6 +193,7 @@ string label_total_equity
 string label_total_fees
 string label_total_profit
 string label_total_symbols
+string label_trailing_stop_percent
 string label_view_quote
 string label_volume
 string label_volume_surge
@@ -236,3 +244,4 @@ string title_record_purchase
 string title_sell_stock
 string title_settings
 string title_watchlist
+xml trading_mate_widget_info

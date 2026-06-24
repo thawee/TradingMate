@@ -232,6 +232,8 @@
     <string name="label_no_upcoming_dividends">No upcoming dividends in the specified window.</string>
     <!-- Settings Descriptions -->
     <string name="desc_max_risk_per_trade">The maximum percentage of your total account equity you are willing to lose on a single trade. If your stop loss is hit, you will lose exactly this amount.</string>
+    <string name="label_trailing_stop_percent">Trailing Stop Loss</string>
+    <string name="desc_trailing_stop_percent">The percentage drop from a stock\'s peak price that will trigger a stop loss alert.</string>
     <string name="desc_max_open_exposure">The maximum combined risk across all your currently open trades. This protects your account from sudden, broad market crashes.</string>
     <string name="desc_max_portfolio_allocation">The maximum percentage of your total account capital that can be invested in a single stock. Prevents you from putting all your eggs in one basket.</string>
     <string name="desc_min_risk_reward">The minimum ratio between your potential profit (Reward) and potential loss (Risk) required to take a trade. A ratio of 2.0 means you expect to make twice as much as you risk losing.</string>

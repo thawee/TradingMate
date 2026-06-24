@@ -215,6 +215,30 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                val trailingStopPercent by settingsViewModel.trailingStopPercent.collectAsState()
+                var editingTrailingStop by remember(trailingStopPercent) { mutableStateOf(trailingStopPercent.toString()) }
+
+                OutlinedTextField(
+                    value = editingTrailingStop,
+                    onValueChange = { 
+                        editingTrailingStop = it
+                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateTrailingStopPercent(percent) }
+                    },
+                    label = { Text(stringResource(R.string.label_trailing_stop_percent)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = stringResource(R.string.desc_trailing_stop_percent),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
                 var editingMaxOpen by remember(maxOpenExposure) { mutableStateOf(maxOpenExposure.toString()) }
 
@@ -285,6 +309,37 @@ fun SettingsScreen(
                 )
             }
 
+            SectionContent(title = "Trading Fees", icon = Icons.Default.AccountBalanceWallet) {
+                val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("ATS / E-Statement Registered", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            if (isAtsEnabled)
+                                "Min. commission waived (฿0) — ATS registered ✓"
+                            else
+                                "Min. commission ฿50/day applied — No ATS",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isAtsEnabled)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.error
+                        )
+                    }
+                    Switch(checked = isAtsEnabled, onCheckedChange = { settingsViewModel.toggleAtsEnabled() })
+                }
+                Text(
+                    text = "InnovestX waives the ฿50/day minimum commission if you have registered Automatic Transfer System (ATS) and opted for E-Statements. Enable this if you have completed that setup.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp)
+                )
+            }
+
             SectionContent(title = "App Preferences", icon = Icons.Default.ColorLens) {
                 val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
                 Row(
@@ -296,7 +351,7 @@ fun SettingsScreen(
                         Text("Privacy Mode", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         Text("Mask sensitive value counts and portfolio totals", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = isPrivacyMode, onCheckedChange = { settingsViewModel.togglePrivacyMode() })
+                    Switch(checked = isPrivacyMode, onCheckedChange = { settingsViewModel.updatePrivacyMode(it) })
                 }
             }
 
