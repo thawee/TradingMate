@@ -3,6 +3,7 @@ package apincer.mobile.tradings.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import apincer.mobile.tradings.appRepository
 import apincer.mobile.tradings.data.ScrapedStockInfo
 import apincer.mobile.tradings.data.SetScraper
 import apincer.mobile.tradings.data.StockDatabase
@@ -112,17 +113,7 @@ data class StockFocusInfo(
 )
 
 class StockViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = StockDatabase.getDatabase(application)
-    private val repository = StockRepository(
-        database,
-        database.stockDao(), 
-        database.tradeDao(), 
-        database.cashDao(), 
-        database.focusDao(), 
-        database.checklistDao(),
-        database.dividendDao(),
-        database.portfolioSnapshotDao()
-    )
+    private val repository = application.appRepository
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
     private val alertPrefs = application.getSharedPreferences("trading_mate_alerts", android.content.Context.MODE_PRIVATE)
 
@@ -491,22 +482,40 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private fun checkAndResetChecklist(existing: ChecklistEntity): ChecklistEntity {
         val zoneId = java.time.ZoneId.of("Asia/Bangkok")
         val now = java.time.ZonedDateTime.now(zoneId)
+        // Treat the trading day as starting at 16:30 (market close)
         val disciplineDateTime = if (now.toLocalTime().isBefore(java.time.LocalTime.of(16, 30))) {
             now.minusDays(1)
         } else {
             now
         }
         val todayStr = disciplineDateTime.toLocalDate().toString()
+        // ISO week string (year + week number) for weekly boundary detection
+        val weekStr = disciplineDateTime.toLocalDate().let {
+            val week = it.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+            val year = it.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR)
+            "$year-W$week"
+        }
+        val lastWeekStr = existing.lastResetDate?.let { dateStr ->
+            runCatching {
+                val date = java.time.LocalDate.parse(dateStr)
+                val week = date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+                val year = date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR)
+                "$year-W$week"
+            }.getOrNull()
+        }
 
         var updated = existing.copy(lastResetDate = todayStr)
 
-        // Reset daily if date changed
         if (existing.lastResetDate != todayStr) {
+            // Always reset daily items when date changes
             updated = updated.copy(
                 swingDailyDone = false,
-                swingWeeklyDone = false,
                 swingAiDone = false
             )
+            // Only reset weekly item when the ISO week changes
+            if (lastWeekStr != weekStr) {
+                updated = updated.copy(swingWeeklyDone = false)
+            }
         }
         return updated
     }
@@ -801,7 +810,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
                                         ))
                                     }
-                                } catch (e: Exception) { }
+                                } catch (e: Exception) {
+                                    android.util.Log.w("StockViewModel", "Deep refresh failed for ${stock.symbol}: ${e.message}")
+                                }
                             }
                         }
                     }
@@ -824,19 +835,26 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addToWatchlist(
-        symbol: String, 
-        cost: Double = 0.0, 
-        quantity: Int = 0, 
+        symbol: String,
+        cost: Double = 0.0,
+        quantity: Int = 0,
         tradePurpose: String = "SWING",
         stopLoss: Double = 0.0,
-        playbookNote: String = ""
+        playbookNote: String = "",
+        isEdit: Boolean = false
     ) {
         viewModelScope.launch {
-            val fees = if (quantity > 0) {
+            val fees = if (quantity > 0 && !isEdit) {
                 TechnicalAnalysis.calculateFees(cost * quantity, false, isAtsEnabled.value)
             } else 0.0
             try {
-                repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+                if (isEdit) {
+                    // Edit mode: update portfolio fields only, no cash movement
+                    repository.addStock(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+                } else {
+                    // New buy: deduct cash (guarded by balance check in executeBuy)
+                    repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+                }
             } catch (e: IllegalStateException) {
                 _refreshError.value = e.message
             }
@@ -854,11 +872,16 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         sellQuantity = item.portfolio.quantity,
                         note = "Stock removed from watchlist"
                     )
+                    // executeSell already deletes the portfolio row on full sell — don't call removeStock
                 } catch (e: Exception) {
                     android.util.Log.e("StockViewModel", "Error selling ${symbol}: ${e.message}", e)
+                    // If sell failed, force-remove to avoid orphaned record
+                    repository.removeStock(symbol)
                 }
+            } else {
+                // Watchlist-only (no position): just remove the row
+                repository.removeStock(symbol)
             }
-            repository.removeStock(symbol)
         }
     }
 

@@ -3,6 +3,7 @@ package apincer.mobile.tradings.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import apincer.mobile.tradings.appRepository
 import apincer.mobile.tradings.data.PreferenceRepository
 import apincer.mobile.tradings.data.StockDatabase
 import apincer.mobile.tradings.data.StockRepository
@@ -14,17 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class PortfolioViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = StockDatabase.getDatabase(application)
-    private val repository = StockRepository(
-        database = database,
-        stockDao = database.stockDao(),
-        tradeDao = database.tradeDao(),
-        cashDao = database.cashDao(),
-        focusDao = database.focusDao(),
-        checklistDao = database.checklistDao(),
-        dividendDao = database.dividendDao(),
-        portfolioSnapshotDao = database.portfolioSnapshotDao()
-    )
+    private val repository = application.appRepository
     private val preferenceRepository = PreferenceRepository(application)
     private val isAtsEnabled: StateFlow<Boolean> = preferenceRepository.isAtsEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)

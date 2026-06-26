@@ -60,6 +60,7 @@ fun PortfolioScreen(
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by portfolioViewModel.cashBalance.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
     val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
@@ -68,30 +69,42 @@ fun PortfolioScreen(
     var showDividendDialog by remember { mutableStateOf(false) }
     var selectedStockForSell by remember { mutableStateOf<StockWatchlistInfo?>(null) }
     var selectedStockForEdit by remember { mutableStateOf<StockWatchlistInfo?>(null) }
+    var selectedPlaybook by remember { mutableStateOf("ALL") }
 
     val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
     val totalDividendEarned = dividendHistory.sumOf { it.totalReceived }
 
-    val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
+    val allPortfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
+    val portfolioItems = when (selectedPlaybook) {
+        "SWING" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "SWING" }
+        "DIVIDEND" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
+        else -> allPortfolioItems
+    }
+
+    // Always compute total asset value from ALL holdings — not the filtered tab view
+    val totalStockValue = allPortfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
+    val totalAssetValue = totalStockValue + cashBalance
+
+    // Per-tab breakdown (profit/fees/yield shown for the selected filter)
     val stockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
-    val totalAssetValue = stockValue + cashBalance
-    
+
     val totalCost = portfolioItems.sumOf { it.portfolio.cost * it.portfolio.quantity }
     val buyFees = portfolioItems.sumOf { item ->
         if (item.portfolio.buyFees > 0.0) {
             item.portfolio.buyFees
         } else {
-            TechnicalAnalysis.calculateFees(item.portfolio.cost * item.portfolio.quantity, false)
+            TechnicalAnalysis.calculateFees(item.portfolio.cost * item.portfolio.quantity, false, isAtsEnabled)
         }
     }
-    val sellFees = TechnicalAnalysis.calculateFees(stockValue, true)
+    val sellFees = TechnicalAnalysis.calculateFees(stockValue, true, isAtsEnabled)
     val totalFees = buyFees + sellFees
-    
+
     val grossProfit = stockValue - totalCost
     val netProfitValue = grossProfit - totalFees
     val totalNetProfitPercent = if (totalCost > 0) (netProfitValue / (totalCost + buyFees)) * 100 else 0.0
 
-    val avgYieldOnCost = if (totalCost > 0) {
+    // Only show yield on DIVIDEND tab — meaningless average across swing stocks
+    val avgYieldOnCost = if (selectedPlaybook == "DIVIDEND" && totalCost > 0) {
         portfolioItems.sumOf { item ->
             val dps = item.portfolio.dividendPerShare ?: if (item.info.dividendYield != null && item.info.lastPrice != 0.0) {
                 item.info.lastPrice * (item.info.dividendYield / 100.0)
@@ -144,6 +157,14 @@ fun PortfolioScreen(
                 }
             }
         )
+
+        GlassSegmentedControl(
+            items = listOf("ALL", "SWING", "DIVIDEND"),
+            selectedItem = selectedPlaybook,
+            onItemSelect = { selectedPlaybook = it },
+            labelExtractor = { it },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        )
         
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -169,6 +190,7 @@ fun PortfolioScreen(
                     yieldOnCost = avgYieldOnCost,
                     totalDividendEarned = totalDividendEarned,
                     isPrivacyMode = isPrivacyMode,
+                    profitScopeLabel = if (selectedPlaybook == "ALL") null else selectedPlaybook,
                     onEditCash = { showCashDialog = true },
                     onLogDividend = { showDividendDialog = true }
                 )
@@ -190,9 +212,10 @@ fun PortfolioScreen(
                             Spacer(Modifier.height(16.dp))
                             
                             val chartColors = listOf(
-                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary, // Swing
+                                MaterialTheme.colorScheme.tertiary, // Dividend
+                                MaterialTheme.colorScheme.surfaceVariant, // Cash
                                 MaterialTheme.colorScheme.secondary,
-                                MaterialTheme.colorScheme.tertiary,
                                 MaterialTheme.colorScheme.error,
                                 androidx.compose.ui.graphics.Color(0xFFFFA000),
                                 androidx.compose.ui.graphics.Color(0xFF00B0FF),
@@ -200,7 +223,17 @@ fun PortfolioScreen(
                                 androidx.compose.ui.graphics.Color(0xFF1DE9B6)
                             )
                             
-                            val values = portfolioItems.map { (it.info.lastPrice * it.portfolio.quantity).toFloat() }
+                            val isMacro = selectedPlaybook == "ALL"
+                            val values = if (isMacro) {
+                                val swingValue = portfolioItems.filter { it.portfolio.tradePurpose == "SWING" }.sumOf { it.info.lastPrice * it.portfolio.quantity }.toFloat()
+                                val divValue = portfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }.sumOf { it.info.lastPrice * it.portfolio.quantity }.toFloat()
+                                listOf(swingValue, divValue, cashBalance.toFloat())
+                            } else {
+                                portfolioItems.map { (it.info.lastPrice * it.portfolio.quantity).toFloat() }
+                            }
+                            
+                            val centerAmount = if (isMacro) totalAssetValue else stockValue
+                            val centerTextStr = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.0f", centerAmount)}"
                             
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -211,8 +244,8 @@ fun PortfolioScreen(
                                     DonutChart(
                                         values = values,
                                         colors = chartColors,
-                                        centerText = "฿${String.format(Locale.ENGLISH, "%,.0f", stockValue)}",
-                                        centerSubText = "Total Equity"
+                                        centerText = centerTextStr,
+                                        centerSubText = if (isMacro) "Total Assets" else "Total Equity"
                                     )
                                 }
                                 
@@ -220,34 +253,70 @@ fun PortfolioScreen(
                                 
                                 // Legend on the right
                                 Column(modifier = Modifier.weight(1f)) {
-                                    portfolioItems.forEachIndexed { index, item ->
-                                        val pct = if (stockValue > 0) (item.info.lastPrice * item.portfolio.quantity / stockValue) * 100 else 0.0
-                                        if (pct > 0.1) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.padding(vertical = 4.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(10.dp)
-                                                        .background(
-                                                            color = chartColors[index % chartColors.size],
-                                                            shape = androidx.compose.foundation.shape.CircleShape
-                                                        )
-                                                )
-                                                Spacer(Modifier.width(8.dp))
-                                                Text(
-                                                    text = item.info.symbol,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp,
-                                                    modifier = Modifier.weight(1f)
-                                                )
-                                                Text(
-                                                    text = String.format(Locale.ENGLISH, "%.1f%%", pct),
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                    if (isMacro) {
+                                        val total = values.sum()
+                                        val labels = listOf("Swing", "Dividend", "Cash")
+                                        labels.forEachIndexed { index, label ->
+                                            val pct = if (total > 0f) (values[index] / total) * 100.0 else 0.0
+                                            if (pct > 0.1) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(vertical = 4.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(10.dp)
+                                                            .background(
+                                                                color = chartColors[index],
+                                                                shape = androidx.compose.foundation.shape.CircleShape
+                                                            )
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                    Text(
+                                                        text = label,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Text(
+                                                        text = String.format(Locale.ENGLISH, "%.1f%%", pct),
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        portfolioItems.forEachIndexed { index, item ->
+                                            val pct = if (stockValue > 0) (item.info.lastPrice * item.portfolio.quantity / stockValue) * 100 else 0.0
+                                            if (pct > 0.1) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(vertical = 4.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(10.dp)
+                                                            .background(
+                                                                color = chartColors[index % chartColors.size],
+                                                                shape = androidx.compose.foundation.shape.CircleShape
+                                                            )
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                    Text(
+                                                        text = item.info.symbol,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Text(
+                                                        text = String.format(Locale.ENGLISH, "%.1f%%", pct),
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -258,7 +327,7 @@ fun PortfolioScreen(
                 }
             }
 
-            if (targetYearlyDividend > 0) {
+            if (targetYearlyDividend > 0 && selectedPlaybook != "SWING") {
                 item {
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
@@ -307,7 +376,7 @@ fun PortfolioScreen(
                 }
             }
 
-            if (totalYearlyDividend > 0) {
+            if (totalYearlyDividend > 0 && selectedPlaybook != "SWING") {
                 item {
                     SectionHeader(
                         title = stringResource(R.string.section_dividend_estimation),
@@ -448,14 +517,15 @@ fun PortfolioScreen(
     }
 
     if (showBuyDialog) {
+        val isEditing = selectedStockForEdit != null
         BuyStockDialog(
             initialStock = selectedStockForEdit,
-            onDismiss = { 
+            onDismiss = {
                 showBuyDialog = false
                 selectedStockForEdit = null
             },
             onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose ->
-                viewModel.addToWatchlist(symbol, cost, qty, purpose, stopLoss, note)
+                viewModel.addToWatchlist(symbol, cost, qty, purpose, stopLoss, note, isEdit = isEditing)
                 if (purpose == "SWING" && target > 0) {
                     viewModel.addToFocusList(symbol, cost, target)
                 } else {
@@ -471,9 +541,16 @@ fun PortfolioScreen(
         AdjustCashDialog(
             currentBalance = cashBalance,
             onDismiss = { showCashDialog = false },
-            onConfirm = { amount, isSet ->
-                if (isSet) portfolioViewModel.updateCashBalance(amount)
-                else portfolioViewModel.adjustCash(amount)
+            onConfirm = { amount, isSet, reason ->
+                if (isSet) {
+                    val delta = amount - cashBalance
+                    val sign = if (delta >= 0) "+" else ""
+                    portfolioViewModel.updateCashBalance(amount)
+                    showSnackbar("Cash set to ฿${String.format(Locale.ENGLISH, "%,.2f", amount)} ($sign฿${String.format(Locale.ENGLISH, "%,.2f", delta)}) · $reason")
+                } else {
+                    portfolioViewModel.adjustCash(amount)
+                    showSnackbar("Cash +฿${String.format(Locale.ENGLISH, "%,.2f", amount)} · $reason")
+                }
                 showCashDialog = false
             }
         )
@@ -590,43 +667,143 @@ fun LogDividendDialog(
 fun AdjustCashDialog(
     currentBalance: Double,
     onDismiss: () -> Unit,
-    onConfirm: (Double, Boolean) -> Unit
+    onConfirm: (Double, Boolean, String) -> Unit
 ) {
+    // Mode: false = Adjust (±), true = Set Exact
+    var isSetMode by remember { mutableStateOf(false) }
     var amount by remember { mutableStateOf("") }
-    
+    var selectedReason by remember { mutableStateOf("") }
+    var customReason by remember { mutableStateOf("") }
+
+    val presetReasons = listOf("Deposit", "Withdrawal", "Correction", "Fee")
+    val effectiveReason = customReason.takeIf { it.isNotBlank() } ?: selectedReason
+    val amountVal = amount.toDoubleOrNull() ?: 0.0
+    val isValid = amountVal > 0.0 && effectiveReason.isNotBlank()
+
     GlassDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.title_adjust_cash),
+        title = "Cash Management",
         confirmButton = {
-            val amountVal = amount.toDoubleOrNull() ?: 0.0
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    enabled = amountVal > 0.0,
-                    onClick = { onConfirm(amountVal, false) }
-                ) {
-                    Text(stringResource(R.string.action_add_funds))
-                }
-                Button(
-                    enabled = amountVal >= 0.0 && amount.isNotBlank(),
-                    onClick = { onConfirm(amountVal, true) }, 
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(stringResource(R.string.action_set_balance))
-                }
+            Button(
+                enabled = isValid,
+                onClick = { onConfirm(amountVal, isSetMode, effectiveReason) },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(if (isSetMode) "Set Balance" else "Adjust Cash")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.label_current_balance, String.format(Locale.ENGLISH, "%,.2f", currentBalance)), style = MaterialTheme.typography.bodyLarge)
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+            // Current balance display
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Current Balance", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "฿${String.format(Locale.ENGLISH, "%,.2f", currentBalance)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+
+            // Mode toggle: Adjust ± vs Set Exact
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(false to "Adjust ±", true to "Set Exact").forEach { (mode, label) ->
+                    Button(
+                        onClick = { isSetMode = mode },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSetMode == mode)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isSetMode == mode)
+                                MaterialTheme.colorScheme.onPrimary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text(label, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Helper text under mode toggle
+            Text(
+                text = if (isSetMode)
+                    "Set cash to an exact amount (e.g. after reconciling with broker)"
+                else
+                    "Add or remove from current balance (positive = add)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Amount field
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it },
-                label = { Text(stringResource(R.string.label_amount_thb)) },
+                label = { Text(if (isSetMode) "New Balance (฿)" else "Amount (฿)") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                prefix = { Text("฿ ") },
+                supportingText = if (isSetMode && amountVal > 0.0) {{
+                    val diff = amountVal - currentBalance
+                    val sign = if (diff >= 0) "+" else ""
+                    Text(
+                        "Change: $sign฿${String.format(Locale.ENGLISH, "%,.2f", diff)}",
+                        color = if (diff >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                    )
+                }} else null
+            )
+
+            // Reason label
+            Text("Reason", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+
+            // Preset reason chips
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                presetReasons.forEach { reason ->
+                    val isSelected = selectedReason == reason && customReason.isBlank()
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            selectedReason = if (isSelected) "" else reason
+                            customReason = ""
+                        },
+                        label = { Text(reason, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+            }
+
+            // Custom reason field
+            OutlinedTextField(
+                value = customReason,
+                onValueChange = {
+                    customReason = it
+                    if (it.isNotBlank()) selectedReason = ""
+                },
+                label = { Text("Other reason…") },
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp)
             )
@@ -894,7 +1071,7 @@ fun SellStockDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, String) -> Unit
 ) {
-    var price by remember { mutableStateOf(stock.info.lastPrice.toString()) }
+    var price by remember { mutableStateOf(String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice)) }
     var qty by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
 
@@ -914,7 +1091,16 @@ fun SellStockDialog(
             )
             Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.label_current_holdings_count, stock.portfolio.quantity), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.label_current_holdings_count, stock.portfolio.quantity), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                TextButton(
+                    onClick = { qty = stock.portfolio.quantity.toString() },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    modifier = Modifier.height(24.dp)
+                ) {
+                    Text("Sell All", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             OutlinedTextField(
                 value = price,
                 onValueChange = { price = it },

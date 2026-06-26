@@ -31,15 +31,14 @@ fun DonutChart(
     centerSubText: String = ""
 ) {
     val total = values.sum()
-    val proportions = if (total > 0f) values.map { it / total } else values.map { 1f / values.size }
+    val proportions = if (total > 0f) values.map { it / total } else if (values.isNotEmpty()) values.map { 1f / values.size } else emptyList()
     
     val sweepAngles = proportions.map { 360f * it }
     
     // Animation for drawing the chart
     val animationProgress = remember { Animatable(0f) }
     
-    LaunchedEffect(values) {
-        animationProgress.snapTo(0f)
+    LaunchedEffect(Unit) {
         animationProgress.animateTo(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 1000)

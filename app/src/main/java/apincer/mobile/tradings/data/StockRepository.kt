@@ -190,7 +190,13 @@ class StockRepository(
         playbookNote: String
     ) {
         database.withTransaction {
-            cashDao.adjustCashBy(-(cost * quantity + buyFees))
+            // Use repository-level adjustCashBy so the negative-balance guard is enforced
+            val deduction = cost * quantity + buyFees
+            val current = cashDao.getCashSync()
+            if (current != null && current.balance - deduction < 0) {
+                throw IllegalStateException("Insufficient balance: has ${current.balance}, needs $deduction")
+            }
+            cashDao.adjustCashBy(-deduction)
             addStock(symbol, cost, quantity, tradePurpose, buyFees, stopLoss, playbookNote)
         }
     }
@@ -213,9 +219,9 @@ class StockRepository(
                 (portfolio.buyFees * sellQuantity.toDouble()) / portfolio.quantity
             } else 0.0
             val totalFees = buyFees + sellFees
-            val netProfitValue = (sellValueRaw - totalCostRaw) - totalFees
+            val netProfitValue = (sellValueRaw - sellFees) - (totalCostRaw + buyFees)
             val netProfitPercent = if (totalCostRaw + buyFees != 0.0) {
-                ((sellValueRaw - sellFees - (totalCostRaw + buyFees)) / (totalCostRaw + buyFees)) * 100
+                (netProfitValue / (totalCostRaw + buyFees)) * 100
             } else 0.0
 
             cashDao.adjustCashBy(sellValueRaw - sellFees)

@@ -335,7 +335,7 @@ fun StockItemCard(
                 ) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${item.info.lastPrice}",
+                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", item.info.lastPrice)}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1
@@ -382,7 +382,7 @@ fun StockItemCard(
                     Column {
                         Text("Cost", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${item.portfolio.cost}",
+                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", item.portfolio.cost)}",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -398,7 +398,7 @@ fun StockItemCard(
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Take Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        val takeProfitPrice = item.portfolio.cost * 1.10
+                        val takeProfitPrice = item.sellPriceTarget ?: (item.portfolio.cost * 1.10)
                         Text(
                             text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", takeProfitPrice)}",
                             fontSize = 14.sp,
@@ -413,7 +413,7 @@ fun StockItemCard(
                     Column {
                         Text("Start", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${item.focusStartPrice}",
+                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", item.focusStartPrice)}",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -618,6 +618,7 @@ fun PortfolioSummaryCard(
     yieldOnCost: Double?,
     totalDividendEarned: Double = 0.0,
     isPrivacyMode: Boolean = false,
+    profitScopeLabel: String? = null,
     onEditCash: () -> Unit,
     onLogDividend: () -> Unit = {}
 ) {
@@ -690,8 +691,23 @@ fun PortfolioSummaryCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        
-                        Text("Total Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Total Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            profitScopeLabel?.let {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "${it} only",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                        }
                         
                         Text(
                             text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", netProfit)}", 

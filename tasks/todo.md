@@ -56,3 +56,16 @@
 - [x] Verify Intent Navigation: Widget clicks and notifications now route precisely to Portfolio, Watchlist, or Advisor screens.
 - [x] Widget UI Polish: Redesigned widget using `androidx.glance` with rounded corners, custom themes (Dark/Light), and a premium aesthetic.
 - [x] Portfolio Trend Graph: Widget now displays a dynamic sparkline graph of portfolio historical value tracking (snapshots saved daily via `StockAlertWorker`).
+
+## ✅ Phase 8: Defect Review & UI Fixes (Complete)
+- [x] **C1**: Fix edit holding double-deducting cash
+- [x] **C2**: Fix double-removal on watchlist removal
+- [x] **H1**: Fix cash adjust snackbar sign
+- [x] **H3**: Fix buy fee fallback missing ATS flag
+- [x] **H4 & M5**: Fix raw double formatting on price display across Sell Dialog and Stock Cards
+- [x] **M1**: Add scope badge to PortfolioSummaryCard
+- [x] **M2**: Only show Yield on Cost for DIVIDEND tab
+- [x] **M3**: Standardize netProfitBaht formula with netProfitPercent
+- [x] **M4**: Log silent deep-refresh failures
+- [x] **L1**: Extract `StockRepository` singleton to custom Application class
+- [x] **L2 & L3**: Fix daily/weekly checklist resets to trigger on ISO week boundaries

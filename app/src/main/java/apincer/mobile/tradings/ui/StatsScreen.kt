@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,13 +38,17 @@ fun StatsScreen(
 ) {
     val history by portfolioViewModel.tradeHistory.collectAsState()
     val cashBalance by portfolioViewModel.cashBalance.collectAsState()
+    val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
     val watchlist by viewModel.watchlistInfo.collectAsState()
 
     val totalProfit = history.sumOf { it.netProfitBaht }
-    // Beginning cash = current cash + invested capital (cost basis of current holdings) - total profit from trades
+    val totalDividendReceived = dividendHistory.sumOf { it.totalReceived }
+    // Beginning cash = reverse-engineer starting capital:
+    // currentCash + costOfOpenHoldings - realisedProfit - dividendsReceived
+    // (dividends are income that also flowed into cash, so must be subtracted to get original capital)
     val investedCapital = watchlist.filter { it.portfolio.quantity > 0 }.sumOf { it.portfolio.cost * it.portfolio.quantity }
-    val beginningCash = cashBalance + investedCapital - totalProfit
+    val beginningCash = cashBalance + investedCapital - totalProfit - totalDividendReceived
 
     // Period Calculations
     val now = Calendar.getInstance()
@@ -209,7 +214,9 @@ fun StatsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                             ) {
-                                Text("AI Prompt")
+                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Copy Prompt for AI")
                             }
                         }
                     }
