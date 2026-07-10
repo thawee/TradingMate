@@ -33,6 +33,13 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             started = SharingStarted.Lazily, 
             initialValue = emptyList()
         )
+    val allCashTransactions: StateFlow<List<apincer.mobile.tradings.data.CashTransactionEntity>> =
+        repository.allCashTransactions.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = emptyList()
+        )
+    
 
     val dividendHistory: StateFlow<List<apincer.mobile.tradings.data.DividendHistoryEntity>> = 
         repository.allDividends.stateIn(
@@ -53,19 +60,19 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
                 taxDeducted = taxDeducted
             ))
             // Also adjust cash balance up by totalReceived
-            repository.adjustCashBy(totalReceived)
+            repository.adjustCashBy(totalReceived, "Dividend")
         }
     }
 
-    fun updateCashBalance(amount: Double) {
+    fun updateCashBalance(amount: Double, reason: String = "Set Balance") {
         viewModelScope.launch {
-            repository.updateCash(amount)
+            repository.updateCash(amount, reason)
         }
     }
 
-    fun adjustCash(amount: Double) {
+    fun adjustCash(amount: Double, reason: String = "Adjustment") {
         viewModelScope.launch {
-            repository.adjustCashBy(amount)
+            repository.adjustCashBy(amount, reason)
         }
     }
 
@@ -83,6 +90,16 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
                 } catch (e: Exception) {
                     android.util.Log.e("PortfolioViewModel", "Error recording sell: ${e.message}", e)
                 }
+            }
+        }
+    }
+
+    fun undoSell(trade: TradeEntity) {
+        viewModelScope.launch {
+            try {
+                repository.undoSell(trade, atsEnabled = isAtsEnabled.value)
+            } catch (e: Exception) {
+                android.util.Log.e("PortfolioViewModel", "Error undoing sell: ${e.message}", e)
             }
         }
     }

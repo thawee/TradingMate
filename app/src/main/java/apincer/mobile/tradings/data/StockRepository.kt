@@ -11,7 +11,8 @@ class StockRepository(
     private val focusDao: FocusDao,
     private val checklistDao: ChecklistDao,
     private val dividendDao: DividendDao,
-    private val portfolioSnapshotDao: PortfolioSnapshotDao
+    private val portfolioSnapshotDao: PortfolioSnapshotDao,
+    private val cashTransactionDao: CashTransactionDao
 ) {
     val allStocks: Flow<List<StockAggregate>> = stockDao.getAllStocks()
     val allTrades: Flow<List<TradeEntity>> = tradeDao.getAllTrades()
@@ -20,6 +21,7 @@ class StockRepository(
     val checklist: Flow<ChecklistEntity?> = checklistDao.getChecklistFlow()
     val allDividends: Flow<List<DividendHistoryEntity>> = dividendDao.getAllDividends()
     val allSnapshots: Flow<List<PortfolioSnapshotEntity>> = portfolioSnapshotDao.getAllSnapshots()
+    val allCashTransactions: Flow<List<CashTransactionEntity>> = cashTransactionDao.getAllTransactions()
 
     suspend fun insertSnapshot(snapshot: PortfolioSnapshotEntity) {
         portfolioSnapshotDao.insertSnapshot(snapshot)
@@ -41,18 +43,28 @@ class StockRepository(
         checklistDao.insertChecklist(checklist)
     }
 
-    suspend fun updateCash(balance: Double) {
-        cashDao.updateCash(CashEntity(balance = balance))
+    suspend fun updateCash(balance: Double, reason: String = "Set Balance") {
+        database.withTransaction {
+            val current = cashDao.getCashSync()?.balance ?: 0.0
+            val diff = balance - current
+            if (diff != 0.0) {
+                cashTransactionDao.insertTransaction(CashTransactionEntity(amount = diff, type = reason))
+            }
+            cashDao.updateCash(CashEntity(balance = balance))
+        }
     }
 
-    suspend fun adjustCashBy(amount: Double) {
-        if (amount < 0) {
-            val current = cashDao.getCashSync()
-            if (current != null && current.balance + amount < 0) {
-                throw IllegalStateException("Insufficient balance: has ${current.balance}, needs ${-amount}")
+    suspend fun adjustCashBy(amount: Double, reason: String = "Adjustment") {
+        database.withTransaction {
+            if (amount < 0) {
+                val current = cashDao.getCashSync()
+                if (current != null && current.balance + amount < 0) {
+                    throw IllegalStateException("Insufficient balance: has ${current.balance}, needs ${-amount}")
+                }
             }
+            cashTransactionDao.insertTransaction(CashTransactionEntity(amount = amount, type = reason))
+            cashDao.adjustCashBy(amount)
         }
-        cashDao.adjustCashBy(amount)
     }
 
     suspend fun addToFocusList(symbol: String, startPrice: Double, targetPrice: Double = 0.0) {
@@ -198,6 +210,32 @@ class StockRepository(
             }
             cashDao.adjustCashBy(-deduction)
             addStock(symbol, cost, quantity, tradePurpose, buyFees, stopLoss, playbookNote)
+        }
+    }
+
+    
+    suspend fun undoSell(trade: TradeEntity, atsEnabled: Boolean = true) {
+        database.withTransaction {
+            val sellValueRaw = trade.sellPrice * trade.quantity
+            val sellFees = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(sellValueRaw, true, atsEnabled)
+            val refundCash = sellValueRaw - sellFees
+            cashDao.adjustCashBy(-refundCash)
+            
+            val existing = stockDao.getPortfolioBySymbol(trade.symbol)
+            if (existing != null) {
+                val newQty = existing.quantity + trade.quantity
+                val additionalCost = trade.buyPrice * trade.quantity
+                val oldTotalCost = existing.cost * existing.quantity
+                val newCost = (oldTotalCost + additionalCost) / newQty
+                stockDao.insertPortfolio(existing.copy(quantity = newQty, cost = newCost))
+            } else {
+                stockDao.insertPortfolio(PortfolioEntity(
+                    symbol = trade.symbol,
+                    cost = trade.buyPrice,
+                    quantity = trade.quantity
+                ))
+            }
+            tradeDao.deleteTrade(trade)
         }
     }
 

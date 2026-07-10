@@ -219,7 +219,7 @@ object TechnicalAnalysis {
 
         // 2. SELL PRIORITY: Technical Overbought (only if already profitable)
         val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= 3.0
-        val hasProfit = userCost != null && userCost > 0 && lastPrice != null && calculateNetProfitPercent(userCost, lastPrice) > 0.0
+        val hasProfit = userCost != null && userCost > 0 && lastPrice != null && calculateNetProfitPercent(userCost, lastPrice) >= 5.0
         if (!isProtectedDividend && hasProfit && isRsiOverbought) {
             return TradeSignal(
                 IndicatorSignal.SELL,

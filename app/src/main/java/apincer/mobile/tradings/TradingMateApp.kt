@@ -22,7 +22,8 @@ class TradingMateApp : Application() {
             focusDao = database.focusDao(),
             checklistDao = database.checklistDao(),
             dividendDao = database.dividendDao(),
-            portfolioSnapshotDao = database.portfolioSnapshotDao()
+            portfolioSnapshotDao = database.portfolioSnapshotDao(),
+            cashTransactionDao = database.cashTransactionDao()
         )
     }
 }

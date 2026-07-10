@@ -170,6 +170,17 @@ data class TradeEntity(
     val note: String = "" // Lessons learned
 )
 
+
+@Entity(tableName = "cash_transaction")
+@Serializable
+data class CashTransactionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val amount: Double,
+    val type: String, // "DEPOSIT", "WITHDRAWAL", "CORRECTION", "FEE", "DIVIDEND"
+    val dateMillis: Long = System.currentTimeMillis(),
+    val note: String = ""
+)
+
 @Entity(tableName = "cash")
 @Serializable
 data class CashEntity(
@@ -265,6 +276,22 @@ interface TradeDao {
 
     @Query("DELETE FROM trade_history")
     suspend fun clearHistory()
+
+    @Delete
+    suspend fun deleteTrade(trade: TradeEntity)
+}
+
+
+@Dao
+interface CashTransactionDao {
+    @Query("SELECT * FROM cash_transaction ORDER BY dateMillis DESC")
+    fun getAllTransactions(): Flow<List<CashTransactionEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTransaction(transaction: CashTransactionEntity)
+    
+    @Delete
+    suspend fun deleteTransaction(transaction: CashTransactionEntity)
 }
 
 @Dao
@@ -380,14 +407,16 @@ interface PortfolioSnapshotDao {
         FocusEntity::class, 
         ChecklistEntity::class,
         DividendHistoryEntity::class,
-        PortfolioSnapshotEntity::class
+        PortfolioSnapshotEntity::class,
+        CashTransactionEntity::class
     ], 
-    version = 23
+    version = 24
 )
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
     abstract fun tradeDao(): TradeDao
     abstract fun cashDao(): CashDao
+    abstract fun cashTransactionDao(): CashTransactionDao
     abstract fun focusDao(): FocusDao
     abstract fun checklistDao(): ChecklistDao
     abstract fun dividendDao(): DividendDao
@@ -396,6 +425,21 @@ abstract class StockDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: StockDatabase? = null
+
+        
+        val MIGRATION_23_24 = object : androidx.room.migration.Migration(23, 24) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `cash_transaction` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `amount` REAL NOT NULL, 
+                        `type` TEXT NOT NULL, 
+                        `dateMillis` INTEGER NOT NULL, 
+                        `note` TEXT NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
 
         val MIGRATION_12_13 = object : androidx.room.migration.Migration(12, 13) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -604,7 +648,7 @@ abstract class StockDatabase : RoomDatabase() {
                     MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, 
                     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
                     MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
-                    MIGRATION_21_22, MIGRATION_22_23
+                    MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24
                 )
                 .build()
                 INSTANCE = instance

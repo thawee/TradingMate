@@ -218,6 +218,256 @@ fun <T> GlassSegmentedControl(
 }
 
 @Composable
+fun HoldingsSummaryTable(
+    items: List<StockWatchlistInfo>,
+    isPrivacyMode: Boolean = false
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header row
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Symbol",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1.1f)
+                )
+                Text(
+                    text = "Avg Cost",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1.1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+                Text(
+                    text = "Mkt Price",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1.1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+                /*Text(
+                    text = "Cost",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1.2f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+                Text(
+                    text = "Mkt Val",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1.2f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                ) */
+                Text(
+                    text = "Unr. P/L",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1.2f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            Spacer(Modifier.height(4.dp))
+
+            items.forEach { item ->
+                val avgCost = item.portfolio.cost
+                val mktPrice = item.info.lastPrice
+                val qty = item.portfolio.quantity
+                val costValue = avgCost * qty
+                val mktValue = mktPrice * qty
+                val unrealizedPL = mktValue - costValue
+                val isProfit = unrealizedPL >= 0
+                val plColor = if (isProfit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Symbol + Qty badge
+                    Column(modifier = Modifier.weight(1.1f)) {
+                        Text(
+                            text = item.info.symbol,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        Text(
+                            text = "(${qty})",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    // Avg Cost
+                    Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", costValue),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                       // val breakEven = if (qty > 0) costValue / (qty * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE)) else avgCost
+                        Text(
+                           // text = if (isPrivacyMode) "B.E. ••••" else "B.E. ${String.format(Locale.ENGLISH, "%.2f", breakEven)}",
+                            text = String.format(Locale.ENGLISH, "(%.2f)", avgCost),
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    // Market Price
+                    Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", mktValue),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        Text(
+                            text = String.format(Locale.ENGLISH, "(%.2f)", mktPrice),
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    /*Text(
+                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%.2f", mktPrice),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when {
+                            mktPrice > avgCost -> MaterialTheme.colorScheme.tertiary
+                            mktPrice < avgCost -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier.weight(1.1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                        maxLines = 1,
+                        softWrap = false
+                    ) */
+                    // Cost Value
+                    /*Text(
+                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", costValue),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1.2f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                        maxLines = 1,
+                        softWrap = false
+                    ) */
+                    // Market Value
+                   /* Text(
+                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", mktValue),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1.2f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                        maxLines = 1,
+                        softWrap = false
+                    )*/
+                    // Unrealized P/L
+                    Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = if (isPrivacyMode) "••••" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%,.0f", unrealizedPL)}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            color = plColor,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        val plPct = if (costValue > 0) (unrealizedPL / costValue) * 100.0 else 0.0
+                        Text(
+                            text = if (isPrivacyMode) "••%" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", plPct)}%",
+                            fontSize = 10.sp,
+                            color = plColor.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+            }
+
+            // Totals row
+            if (items.isNotEmpty()) {
+                val totalCostVal = items.sumOf { it.portfolio.cost * it.portfolio.quantity }
+                val totalMktVal = items.sumOf { it.info.lastPrice * it.portfolio.quantity }
+                val totalPL = totalMktVal - totalCostVal
+                val totalPLPct = if (totalCostVal > 0) (totalPL / totalCostVal) * 100.0 else 0.0
+                val isTotalProfit = totalPL >= 0
+                val totalColor = if (isTotalProfit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+
+                Spacer(Modifier.height(4.dp))
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+                Spacer(Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "TOTAL",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1.1f)
+                    )
+                    //Spacer(Modifier.weight(2.2f))
+                    Text(
+                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", totalCostVal),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1.2f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                    )
+                    Text(
+                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", totalMktVal),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1.2f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                    )
+                    Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = if (isPrivacyMode) "••••" else "${if (isTotalProfit) "+" else ""}${String.format(Locale.ENGLISH, "%,.0f", totalPL)}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = totalColor
+                        )
+                        Text(
+                            text = if (isPrivacyMode) "••%" else "${if (isTotalProfit) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", totalPLPct)}%",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = totalColor.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun StockItemCard(
     item: StockWatchlistInfo,
     onSelect: (StockWatchlistInfo) -> Unit,
@@ -378,11 +628,16 @@ fun StockItemCard(
 
             if (item.portfolio.quantity > 0) {
                 Spacer(modifier = Modifier.height(16.dp))
+                val totalCost = item.portfolio.cost * item.portfolio.quantity + item.portfolio.buyFees
+                val breakEven = totalCost / (item.portfolio.quantity * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE))
+                val takeProfitPrice = item.sellPriceTarget ?: (item.portfolio.cost * 1.10)
+                val expectedProfit = (takeProfitPrice * item.portfolio.quantity * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE)) - totalCost
+                
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
-                        Text("Cost", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text("Break-Even", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", item.portfolio.cost)}",
+                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", breakEven)}",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -398,13 +653,51 @@ fun StockItemCard(
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Take Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        val takeProfitPrice = item.sellPriceTarget ?: (item.portfolio.cost * 1.10)
-                        Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", takeProfitPrice)}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", takeProfitPrice)}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                            if (expectedProfit > 0) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isPrivacyMode) "(+฿••)" else "(+฿${String.format(Locale.ENGLISH, "%,.0f", expectedProfit)})",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(bottom = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                if (item.portfolio.stopLoss > 0) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val stopLoss = item.portfolio.stopLoss
+                    val expectedLoss = totalCost - (stopLoss * item.portfolio.quantity * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            Text("Stop Loss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", stopLoss)}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isPrivacyMode) "(-฿••)" else "(-฿${String.format(Locale.ENGLISH, "%,.0f", expectedLoss)})",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(bottom = 1.dp)
+                                )
+                            }
+                        }
                     }
                 }
             } else if (item.isFocused && item.focusStartPrice != null) {
@@ -617,6 +910,8 @@ fun PortfolioSummaryCard(
     netPercent: Double,
     yieldOnCost: Double?,
     totalDividendEarned: Double = 0.0,
+    lifetimeReturn: Double = 0.0,
+    lifetimeReturnPercent: Double = 0.0,
     isPrivacyMode: Boolean = false,
     profitScopeLabel: String? = null,
     onEditCash: () -> Unit,
@@ -735,6 +1030,27 @@ fun PortfolioSummaryCard(
                 }
             }
             
+            Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Lifetime Return", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(java.util.Locale.ENGLISH, "%,.2f", lifetimeReturn)}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (lifetimeReturn >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = if (isPrivacyMode) "(••••%)" else "${String.format(java.util.Locale.ENGLISH, "%+.2f", lifetimeReturnPercent)}%",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (lifetimeReturn >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Gross: ฿${String.format(Locale.ENGLISH, "%,.2f", grossProfit)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

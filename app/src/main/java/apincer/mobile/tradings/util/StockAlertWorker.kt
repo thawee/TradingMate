@@ -92,7 +92,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             database.focusDao(), 
             database.checklistDao(),
             database.dividendDao(),
-            database.portfolioSnapshotDao()
+            database.portfolioSnapshotDao(),
+            database.cashTransactionDao()
         )
         val allStocks = repository.allStocks.firstOrNull() ?: emptyList()
 

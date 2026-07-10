@@ -28,6 +28,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.platform.LocalLocale
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +60,45 @@ fun StatsScreen(
 
     // Period Calculations
     val now = Calendar.getInstance()
+    
+    val last12Months = remember(history) {
+        (11 downTo 0).map { i ->
+            val cal = Calendar.getInstance().apply { 
+                time = now.time
+                add(Calendar.MONTH, -i) 
+            }
+            val year = cal.get(Calendar.YEAR)
+            val month = cal.get(Calendar.MONTH)
+            val monthStr = SimpleDateFormat("MMM", Locale.ENGLISH).format(cal.time)
+            
+            val profit = history.filter {
+                val tCal = Calendar.getInstance().apply { timeInMillis = it.dateMillis }
+                tCal.get(Calendar.YEAR) == year && tCal.get(Calendar.MONTH) == month
+            }.sumOf { it.netProfitBaht }
+            
+            Pair(monthStr, profit)
+        }
+    }
+
+    val cumulativeProfits = remember(history, last12Months) {
+        val startOf12Months = Calendar.getInstance().apply {
+            time = now.time
+            add(Calendar.MONTH, -11)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        var runningTotal = history.filter { it.dateMillis < startOf12Months }.sumOf { it.netProfitBaht }
+
+        last12Months.map { (month, profit) ->
+            runningTotal += profit
+            Pair(month, runningTotal)
+        }
+    }
+
     val mtdProfit = history.filter { 
         val cal = Calendar.getInstance().apply { timeInMillis = it.dateMillis }
         cal.get(Calendar.MONTH) == now.get(Calendar.MONTH) && cal.get(Calendar.YEAR) == now.get(Calendar.YEAR)
@@ -164,63 +211,29 @@ fun StatsScreen(
                 }
             }
 
-            // L4 Journal Analyzer AI Copilot
-            if (history.isNotEmpty()) {
-                item {
-                    val promptBuilder = StringBuilder()
-                    promptBuilder.appendLine("Act as my Trading Journal Analyzer.")
-                    promptBuilder.appendLine("Review my recent trades below. Identify my top 3 recurring mistakes, my best performing setup type (defined as the trade purpose/setup with the highest win rate and average gain), and the one rule I break most often.")
-                    promptBuilder.appendLine("GUARDRAILS & NEGATIVE CONSTRAINTS:")
-                    promptBuilder.appendLine("- DO NOT recommend penny stocks or leveraged DW products.")
-                    promptBuilder.appendLine("- DO NOT provide direct financial advice; frame all recommendations as educational analysis.")
-                    promptBuilder.appendLine("")
-                    promptBuilder.appendLine("FORMAT REQUIREMENT:")
-                    promptBuilder.appendLine("Output the analysis as a structured Markdown report with the following sections:")
-                    promptBuilder.appendLine("### Executive Summary")
-                    promptBuilder.appendLine("### Top 3 Psychological/Strategic Mistakes (with examples from my trade list)")
-                    promptBuilder.appendLine("### Best Performing Setup Type (based on win rate/avg gain)")
-                    promptBuilder.appendLine("### Actionable Psychological Guardrail (one rule to implement next)")
-                    promptBuilder.appendLine("")
-                    history.take(30).forEach { trade ->
-                        val isWin = trade.netProfitBaht > 0
-                        val resultStr = if (isWin) "WIN" else "LOSS"
-                        promptBuilder.appendLine("- ${trade.symbol}: $resultStr (${String.format(Locale.ENGLISH,"%.2f", trade.netProfitPercent)}%). Lessons: ${trade.note.takeIf { it.isNotBlank() } ?: "None"}")
-                    }
+            // profit graph for 12 month period
+            item {
+                SectionHeader(
+                    title = "12-Month Profit History",
+                    icon = Icons.Default.History,
+                    subtitle = "Monthly realized profit/loss"
+                )
+            }
+            
+            item {
+                ProfitHistoryChart(last12Months = last12Months)
+            }
 
-                    GlassCard(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Journal Analyzer (L4)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            Text("Review your trading psychology and identify mistakes from your recent trades.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            
-                            Spacer(Modifier.height(16.dp))
-                            
-                            val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-                            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-                            val context = androidx.compose.ui.platform.LocalContext.current
-                            
-                            Button(
-                                onClick = {
-                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(promptBuilder.toString()))
-                                    showSnackbar("Prompt copied! Paste it into your AI.")
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Copy Prompt for AI")
-                            }
-                        }
-                    }
-                }
+            item {
+                SectionHeader(
+                    title = "Cumulative Profit",
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    subtitle = "12-Month Trajectory"
+                )
+            }
+
+            item {
+                CumulativeProfitChart(cumulativeProfits = cumulativeProfits)
             }
 
             // Trading Efficiency Section
@@ -298,7 +311,7 @@ fun StatsScreen(
                 }
             } else {
                 items(history) { trade ->
-                    TradeHistoryCard(trade)
+                    TradeHistoryCard(trade, onUndo = { portfolioViewModel.undoSell(trade) })
                 }
             }
 
@@ -325,7 +338,7 @@ fun StatMetric(label: String, value: Double) {
 }
 
 @Composable
-fun TradeHistoryCard(trade: TradeEntity) {
+fun TradeHistoryCard(trade: TradeEntity, onUndo: (() -> Unit)? = null) {
     val dateFormat = SimpleDateFormat("dd MMM yyyy", LocalLocale.current.platformLocale)
     val dateStr = dateFormat.format(Date(trade.dateMillis))
     val isWin = trade.netProfitBaht > 0
@@ -375,6 +388,18 @@ fun TradeHistoryCard(trade: TradeEntity) {
                 }
             }
 
+            if (onUndo != null) {
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = onUndo,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(stringResource(R.string.action_undo_sell), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
             if (trade.note.isNotBlank()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Surface(
@@ -404,3 +429,202 @@ fun TradeHistoryCard(trade: TradeEntity) {
     }
 }
 
+@Composable
+fun ProfitHistoryChart(last12Months: List<Pair<String, Double>>) {
+    val maxProfit = last12Months.maxOfOrNull { it.second }?.coerceAtLeast(1.0) ?: 1.0
+    val minProfit = last12Months.minOfOrNull { it.second }?.coerceAtMost(-1.0) ?: -1.0
+    val maxAbsValue = maxOf(Math.abs(maxProfit), Math.abs(minProfit))
+    
+    val positiveColor = MaterialTheme.colorScheme.tertiary
+    val negativeColor = MaterialTheme.colorScheme.error
+    val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().height(200.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 32.dp)) {
+            val width = size.width
+            val height = size.height
+            val rightMargin = 32.dp.toPx()
+            val chartWidth = width - rightMargin
+            
+            // Draw zero line
+            val zeroY = height - (height * (0.0 - (-maxAbsValue)) / (2 * maxAbsValue)).toFloat()
+            drawLine(
+                color = gridColor,
+                start = Offset(0f, zeroY),
+                end = Offset(chartWidth, zeroY),
+                strokeWidth = 1.dp.toPx()
+            )
+            
+            // Draw Y-axis labels
+            val labelPaint = android.graphics.Paint().apply {
+                this.color = textColor
+                this.textSize = 10.sp.toPx()
+                this.textAlign = android.graphics.Paint.Align.LEFT
+            }
+            
+            fun formatCompact(v: Double): String {
+                val a = Math.abs(v)
+                val s = if (v < 0) "-" else ""
+                return when {
+                    a >= 1_000_000 -> "$s${String.format(Locale.ENGLISH, "%.1f", a / 1_000_000)}M"
+                    a >= 1_000 -> "$s${String.format(Locale.ENGLISH, "%.1f", a / 1_000)}k"
+                    else -> "$s${String.format(Locale.ENGLISH, "%.0f", a)}"
+                }
+            }
+            
+            drawContext.canvas.nativeCanvas.drawText(formatCompact(maxAbsValue), chartWidth + 4.dp.toPx(), 10.sp.toPx() / 2, labelPaint)
+            drawContext.canvas.nativeCanvas.drawText("0", chartWidth + 4.dp.toPx(), zeroY + 10.sp.toPx() / 2, labelPaint)
+            drawContext.canvas.nativeCanvas.drawText(formatCompact(-maxAbsValue), chartWidth + 4.dp.toPx(), height + 10.sp.toPx() / 2, labelPaint)
+            
+            val barWidth = chartWidth / (last12Months.size * 1.5f)
+            
+            // Draw bars
+            last12Months.forEachIndexed { index, (month, profit) ->
+                val x = (chartWidth / last12Months.size) * index + (chartWidth / last12Months.size) / 2f - barWidth / 2f
+                val profitRatio = Math.abs(profit) / maxAbsValue
+                val barHeight = (height / 2f) * profitRatio.toFloat()
+                val y = if (profit >= 0) zeroY - barHeight else zeroY
+                
+                val color = if (profit >= 0) positiveColor else negativeColor
+                
+                drawRect(
+                    color = color,
+                    topLeft = Offset(x, y),
+                    size = Size(barWidth, barHeight)
+                )
+                
+                // Draw month label
+                val paint = android.graphics.Paint().apply {
+                    this.color = textColor
+                    this.textSize = 10.sp.toPx()
+                    this.textAlign = android.graphics.Paint.Align.CENTER
+                }
+                
+                drawContext.canvas.nativeCanvas.drawText(
+                    month,
+                    x + barWidth / 2f,
+                    height + 20.dp.toPx(),
+                    paint
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CumulativeProfitChart(cumulativeProfits: List<Pair<String, Double>>) {
+    val maxProfit = cumulativeProfits.maxOfOrNull { it.second }?.coerceAtLeast(1.0) ?: 1.0
+    val minProfit = cumulativeProfits.minOfOrNull { it.second }?.coerceAtMost(-1.0) ?: -1.0
+    val range = (maxProfit - minProfit).coerceAtLeast(1.0)
+    
+    val lineColor = MaterialTheme.colorScheme.primary
+    val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().height(200.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 32.dp)) {
+            val width = size.width
+            val height = size.height
+            val rightMargin = 32.dp.toPx()
+            val chartWidth = width - rightMargin
+            
+            val labelPaint = android.graphics.Paint().apply {
+                this.color = textColor
+                this.textSize = 10.sp.toPx()
+                this.textAlign = android.graphics.Paint.Align.LEFT
+            }
+            
+            fun formatCompact(v: Double): String {
+                val a = Math.abs(v)
+                val s = if (v < 0) "-" else ""
+                return when {
+                    a >= 1_000_000 -> "$s${String.format(Locale.ENGLISH, "%.1f", a / 1_000_000)}M"
+                    a >= 1_000 -> "$s${String.format(Locale.ENGLISH, "%.1f", a / 1_000)}k"
+                    else -> "$s${String.format(Locale.ENGLISH, "%.0f", a)}"
+                }
+            }
+            
+            // Draw zero line if zero is within the range
+            if (minProfit < 0 && maxProfit > 0) {
+                val zeroY = height - (height * (0.0 - minProfit) / range).toFloat()
+                drawLine(
+                    color = gridColor,
+                    start = Offset(0f, zeroY),
+                    end = Offset(chartWidth, zeroY),
+                    strokeWidth = 1.dp.toPx()
+                )
+                drawContext.canvas.nativeCanvas.drawText("0", chartWidth + 4.dp.toPx(), zeroY + 10.sp.toPx() / 2, labelPaint)
+            }
+            
+            drawContext.canvas.nativeCanvas.drawText(formatCompact(maxProfit), chartWidth + 4.dp.toPx(), 10.sp.toPx() / 2, labelPaint)
+            drawContext.canvas.nativeCanvas.drawText(formatCompact(minProfit), chartWidth + 4.dp.toPx(), height + 10.sp.toPx() / 2, labelPaint)
+            
+            val stepX = chartWidth / (cumulativeProfits.size - 1).coerceAtLeast(1).toFloat()
+            val path = Path()
+            val fillPath = Path()
+            
+            cumulativeProfits.forEachIndexed { index, (month, totalProfit) ->
+                val x = index * stepX
+                val y = height - ((totalProfit - minProfit) / range * height).toFloat()
+                
+                if (index == 0) {
+                    path.moveTo(x, y)
+                    fillPath.moveTo(x, height)
+                    fillPath.lineTo(x, y)
+                } else {
+                    path.lineTo(x, y)
+                    fillPath.lineTo(x, y)
+                }
+                
+                // Draw month label
+                val paint = android.graphics.Paint().apply {
+                    this.color = textColor
+                    this.textSize = 10.sp.toPx()
+                    this.textAlign = android.graphics.Paint.Align.CENTER
+                }
+                
+                drawContext.canvas.nativeCanvas.drawText(
+                    month,
+                    x,
+                    height + 20.dp.toPx(),
+                    paint
+                )
+                
+                // Draw points
+                drawCircle(
+                    color = lineColor,
+                    radius = 3.dp.toPx(),
+                    center = Offset(x, y)
+                )
+            }
+            
+            // Finish fill path
+            fillPath.lineTo(chartWidth, height)
+            fillPath.close()
+            
+            // Draw fill
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(lineColor.copy(alpha = 0.3f), Color.Transparent),
+                    startY = 0f,
+                    endY = height
+                )
+            )
+            
+            // Draw line
+            drawPath(
+                path = path,
+                color = lineColor,
+                style = Stroke(width = 2.dp.toPx())
+            )
+        }
+    }
+}

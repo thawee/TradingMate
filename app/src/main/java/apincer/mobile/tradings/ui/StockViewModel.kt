@@ -850,7 +850,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 if (isEdit) {
                     // Edit mode: update portfolio fields only, no cash movement
-                    repository.addStock(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+                    if (quantity == 0) {
+                        repository.removeStock(symbol)
+                    } else {
+                        repository.addStock(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+                    }
                 } else {
                     // New buy: deduct cash (guarded by balance check in executeBuy)
                     repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
