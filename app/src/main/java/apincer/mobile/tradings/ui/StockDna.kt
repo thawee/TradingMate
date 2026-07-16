@@ -30,7 +30,7 @@ object StockDna {
      *  Ensures the stock is actively traded enough for stop-loss orders
      *  to execute at the displayed price. */
     fun isLiquid(s: StockWatchlistInfo): Boolean {
-        val volume = s.info.volume ?: 0L
+        val volume = s.info.volume ?: return true // Fail-open: allow if volume data hasn't been fetched yet
         val price = s.info.lastPrice
         return price > 0 && volume * price > 1_000_000.0
     }
@@ -60,11 +60,12 @@ object StockDna {
         s.signal?.type == IndicatorSignal.BUY ||
         s.signal?.type == IndicatorSignal.POTENTIAL
 
-    /** Earnings gap-up play: +4% day on a Quality stock.
-     *  Full Quality is required — no NPM-only fallback — to maintain
-     *  the Quality-first philosophy across all candidate types. */
+    /** Earnings gap-up play: +4% day on a profitable stock.
+     *  Gap plays are momentum events, so we relax the strict 3-year growth
+     *  requirements of isQual, requiring only basic baseline profitability. */
     fun isGapUp(s: StockWatchlistInfo): Boolean =
-        s.info.percentChange >= 4.0 && isQual(s)
+        s.info.percentChange >= 4.0 && 
+        ((s.info.roe ?: 0.0) > 10.0 || (s.info.netProfitMargin ?: 0.0) > 5.0)
 
     /** DNA tag chips displayed on stock cards. */
     fun tags(s: StockWatchlistInfo): List<String> = buildList {

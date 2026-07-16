@@ -35,7 +35,7 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 **Combination Rules:**
 - **Swing Plays:** Must pass `Liquidity AND Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
 - **Dividend Stars:** Must pass `Liquidity AND Dividend AND Quality`.
-- **Gap Plays:** Must pass `Liquidity AND Quality AND percentChange ≥ 4%`. Full Quality is required — no NPM-only fallback.
+- **Gap Plays:** Must pass `Liquidity AND percentChange ≥ 4% AND basic profitability (ROE > 10% or NPM > 5%)`. Decoupled from strict historical Quality to capture turnaround earnings catalysts.
 
 ### 2.3 Portfolio Management
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.
