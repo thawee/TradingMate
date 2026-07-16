@@ -21,9 +21,9 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.sharp.List
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -39,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -53,7 +52,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.data.ChecklistEntity
 import apincer.mobile.tradings.domain.IndicatorSignal
-import kotlinx.coroutines.launch
 import java.util.Locale
 
 data class SellAlertData(
@@ -79,16 +77,12 @@ fun DividendAdvisorScreen(
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
-    val isQual = { it: StockWatchlistInfo -> (it.info.roe ?: 0.0) > 15.0 }
-    val isVal = { it: StockWatchlistInfo -> (it.info.pe ?: 0.0) in 0.1..15.0 && (it.info.pbv ?: 0.0) in 0.1..1.0 }
-    val isDiv = { it: StockWatchlistInfo -> (it.info.dividendYield ?: 0.0) >= 5.0 }
-    val isMom = { it: StockWatchlistInfo -> (it.portfolio.macdHist ?: 0.0) > 0.0 }
-    val isSup = { it: StockWatchlistInfo ->
-        it.signal?.type == IndicatorSignal.BUY ||
-        it.signal?.type == IndicatorSignal.POTENTIAL ||
-        (it.portfolio.rsi ?: 50.0) < 35.0
-    }
-    val isGapUp = { it: StockWatchlistInfo -> it.info.percentChange >= 4.0 && (isQual(it) || (it.info.netProfitMargin ?: 0.0) > 10.0) }
+    val isQual = StockDna::isQual
+    val isVal = StockDna::isVal
+    val isDiv = StockDna::isDiv
+    val isMom = StockDna::isMom
+    val isSup = StockDna::isSup
+    val isGapUp = StockDna::isGapUp
 
     val playbookMode = alertRoutineState.playbookMode
     val checklist = alertRoutineState.checklist
@@ -362,7 +356,7 @@ fun DividendAdvisorScreen(
         } // close outer Column
 
         // Wizard Step Bar or Floating Button (navigation, direct child of Box)
-        if (playbookMode == PlaybookMode.SWING) {
+       /* if (playbookMode == PlaybookMode.SWING) {
             WizardStepBar(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 playbookMode = playbookMode,
@@ -382,7 +376,8 @@ fun DividendAdvisorScreen(
                     }
                 }
             )
-        }
+
+        } */
     }
 }
 
@@ -418,15 +413,7 @@ fun AdvisorStockCard(
                     Text(stock.info.sector ?: "Unknown", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
                 
-                val tags = mutableListOf<String>()
-                val isQual = (stock.info.roe ?: 0.0) > 15.0
-                if (isQual) tags.add("QUAL")
-                if ((stock.info.pe ?: 0.0) in 0.1..15.0 && (stock.info.pbv ?: 0.0) in 0.1..1.0) tags.add("VAL")
-                if ((stock.info.dividendYield ?: 0.0) >= 5.0) tags.add("DIV")
-                if ((stock.portfolio.macdHist ?: 0.0) > 0.0) tags.add("MOM")
-                if (stock.signal?.type == IndicatorSignal.BUY || stock.signal?.type == IndicatorSignal.POTENTIAL || (stock.portfolio.rsi ?: 50.0) < 35.0) tags.add("SUP")
-                if (stock.info.percentChange >= 4.0 && (isQual || (stock.info.netProfitMargin ?: 0.0) > 10.0)) tags.add("GAP")
-                if ((stock.portfolio.rsi ?: 50.0) < 30.0) tags.add("OS")
+                val tags = StockDna.tags(stock)
 
                 if (tags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(6.dp))
@@ -558,7 +545,7 @@ fun AiCopilotCard(
 
             if (playbookMode == PlaybookMode.SWING) {
                 val swingPlays = watchlist.filter { 
-                    (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) 
+                    isQual(it) && (isMom(it) || isSup(it)) 
                 }
                 val gapUpPlays = watchlist.filter { isGapUp(it) }
                 Surface(

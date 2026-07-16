@@ -69,3 +69,8 @@
 - [x] **M4**: Log silent deep-refresh failures
 - [x] **L1**: Extract `StockRepository` singleton to custom Application class
 - [x] **L2 & L3**: Fix daily/weekly checklist resets to trigger on ISO week boundaries
+
+## ✅ Phase 9: Stock DNA Filter Improvements (Complete)
+- [x] **#3**: Strengthen swing gate — `(Qual OR Val) AND (Mom OR Sup)` → `Qual AND (Mom OR Sup)`. Value-only stocks excluded to protect win-rate.
+- [x] **#4**: De-flicker Mom — `macdHist > 0` → `macdHist > lastPrice * 0.001` (0.1% of price) + RSI 40–70 range to exclude overbought.
+- [x] Updated `REQUIREMENTS.md` and `INDICATORS.md` to reflect new logic.

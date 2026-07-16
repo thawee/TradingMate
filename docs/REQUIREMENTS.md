@@ -27,12 +27,12 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 3. **Div (Dividend):** Highlights strong passive income generators.
    - Indicators: Dividend Yield ≥ 5.0%.
 4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
-   - Indicators: MACD Histogram > 0.0.
+   - Indicators: MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise-level crossover flicker), RSI in 40–70 (confirms healthy momentum, excludes overbought).
 5. **Sup (Support / Setup):** Locates ideal entry zones or extreme discounts.
    - Indicators: RSI < 35 (Oversold) or BUY/POTENTIAL zone signals.
 
 **Combination Rules:**
-- **Swing Plays:** Must pass `(Quality OR Value) AND (Momentum OR Support)`.
+- **Swing Plays:** Must pass `Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
 - **Dividend Stars:** Must pass `Dividend AND Quality`.
 
 ### 2.3 Portfolio Management

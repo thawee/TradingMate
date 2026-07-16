@@ -252,6 +252,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         bb = null,
                         isVolumeSurge = false,
                         userCost = if (stock.cost > 0) stock.cost else null,
+                        userQuantity = if (stock.quantity > 0) stock.quantity else null,
                         isFundamentalGood = false,
                         tradePurpose = stock.tradePurpose,
                         dividendYield = stock.dividendYield,
@@ -328,16 +329,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         combine(_playbookMode, watchlistInfo, _checklist, trailingStopPercent) { mode, watchlist, checklist, tsPercent ->
             val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
 
-            val isQual = { it: StockWatchlistInfo -> (it.info.roe ?: 0.0) > 15.0 }
-            val isVal = { it: StockWatchlistInfo -> (it.info.pe ?: 0.0) in 0.1..15.0 && (it.info.pbv ?: 0.0) in 0.1..1.0 }
-            val isDiv = { it: StockWatchlistInfo -> (it.info.dividendYield ?: 0.0) >= 5.0 }
-            val isMom = { it: StockWatchlistInfo -> (it.portfolio.macdHist ?: 0.0) > 0.0 }
-            val isSup = { it: StockWatchlistInfo ->
-                it.signal?.type == IndicatorSignal.BUY ||
-                it.signal?.type == IndicatorSignal.POTENTIAL ||
-                (it.portfolio.rsi ?: 50.0) < 35.0
-            }
-            val isGapUp = { it: StockWatchlistInfo -> it.info.percentChange >= 4.0 && (isQual(it) || (it.info.netProfitMargin ?: 0.0) > 10.0) }
+            val isQual = StockDna::isQual
+            val isVal = StockDna::isVal
+            val isDiv = StockDna::isDiv
+            val isMom = StockDna::isMom
+            val isSup = StockDna::isSup
+            val isGapUp = StockDna::isGapUp
 
             val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
                 .sortedWith(
@@ -353,7 +350,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
 
-            val swingPlays = watchlist.filter { (isQual(it) || isVal(it)) && (isMom(it) || isSup(it)) }
+            val swingPlays = watchlist.filter { isQual(it) && (isMom(it) || isSup(it)) }
                 .sortedWith(
                     compareBy<StockWatchlistInfo> {
                         when (it.signal?.type) {
@@ -410,6 +407,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (applySwingLogic) {
                     val netProfit = stock.netProfitPercent
+                    val netProfitBaht = TechnicalAnalysis.calculateNetProfitBaht(
+                        stock.portfolio.cost,
+                        stock.info.lastPrice,
+                        stock.portfolio.quantity
+                    )
                     val rsi = stock.portfolio.rsi ?: 50.0
 
                     val targetAlerts = swingSellAlerts
@@ -421,8 +423,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val maxPeak = maxOf(cost, peakPrice)
                     val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
 
-                    if (netProfit >= 10.0) {
-                        targetAlerts.add(SellAlertData(stock, "Take Profit (Gain >= 10%)"))
+                    if (netProfit >= 5.0 || netProfitBaht >= 500.0) {
+                        val reason = if (netProfit >= 5.0 && netProfitBaht >= 500.0) {
+                            "Take Profit (Gain >= 5% or P/L > ฿500)"
+                        } else if (netProfit >= 5.0) {
+                            "Take Profit (Gain >= 5%)"
+                        } else {
+                            "Take Profit (P/L > ฿500)"
+                        }
+                        targetAlerts.add(SellAlertData(stock, reason))
                     } else if (dropFromPeak <= -tsPercent) {
                         targetAlerts.add(SellAlertData(stock, "Trailing Stop Loss (Drop <= -$tsPercent%)"))
                     } else if (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) {
@@ -626,6 +635,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 bb = indicators.bollingerBands,
                                                 isVolumeSurge = indicators.isVolumeSurge,
                                                 userCost = if (stock.cost > 0) stock.cost else null,
+                                                userQuantity = if (stock.quantity > 0) stock.quantity else null,
                                                 isFundamentalGood = info.isFundamentalGood,
                                                 tradePurpose = stock.tradePurpose,
                                                 dividendYield = info.dividendYield,
@@ -773,6 +783,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 sma200 = indicators.sma200, bb = indicators.bollingerBands,
                                                 isVolumeSurge = indicators.isVolumeSurge,
                                                 userCost = if (stock.cost > 0) stock.cost else null,
+                                                userQuantity = if (stock.quantity > 0) stock.quantity else null,
                                                 isFundamentalGood = info.isFundamentalGood,
                                                 tradePurpose = stock.tradePurpose,
                                                 dividendYield = info.dividendYield, roe = info.roe
@@ -1006,6 +1017,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         bb = bb,
                         isVolumeSurge = isVolumeSurge,
                         userCost = portfolio?.cost,
+                        userQuantity = portfolio?.quantity,
                         isFundamentalGood = updatedInfo.isFundamentalGood,
                         tradePurpose = portfolio?.tradePurpose ?: "SWING",
                         dividendYield = updatedInfo.dividendYield,
@@ -1114,4 +1126,3 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
-

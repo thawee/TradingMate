@@ -22,9 +22,9 @@ MACD tracks the relationship between two moving averages of a stock’s price.
 
 - **Configuration:** (12, 26, 9).
 - **MACD Histogram:**
-  - **Positive (> 0):** Bullish momentum. Confirms the trend is moving UP.
+  - **Meaningfully Positive (> 0.1% of last price):** Bullish momentum. The price-relative threshold prevents noise-level crossover flicker around zero.
   - **Negative (< 0):** Bearish momentum. Suggests the trend is moving DOWN.
-- **Role:** Acts as a "gear shift" to confirm RSI signals.
+- **Role:** Acts as a "gear shift" to confirm RSI signals. For DNA tagging (MOM), also requires RSI in 40–70 to exclude overbought stocks.
 
 ### 3. SMA (Simple Moving Average) - The Trend Guards
 SMAs smooth out price data to identify the direction of the trend.
