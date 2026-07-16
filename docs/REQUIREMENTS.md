@@ -20,6 +20,7 @@ TradingMate is a high-performance personal trading companion specifically design
 ### 2.2 Five-Layer Filter System (Stock DNA)
 A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 
+0. **Pre-filter (Liquidity):** Daily turnover (last price × volume) > ฿1,000,000. Ensures stop-loss orders can execute at displayed prices.
 1. **Qual (Quality):** Evaluates management efficiency and profitability.
    - Indicators: ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
 2. **Val (Value):** Identifies underpriced or fair-value stocks.
@@ -28,12 +29,13 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
    - Indicators: Dividend Yield ≥ 5.0%.
 4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
    - Indicators: MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise-level crossover flicker), RSI in 40–70 (confirms healthy momentum, excludes overbought).
-5. **Sup (Support / Setup):** Locates ideal entry zones or extreme discounts.
-   - Indicators: RSI < 35 (Oversold) or BUY/POTENTIAL zone signals.
+5. **Sup (Support / Setup):** Locates ideal entry zones via signal confirmation.
+   - Indicators: BUY or POTENTIAL zone signals (which incorporate SMA 200 trend context checks, avoiding "falling knife" entries in structural downtrends).
 
 **Combination Rules:**
-- **Swing Plays:** Must pass `Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
-- **Dividend Stars:** Must pass `Dividend AND Quality`.
+- **Swing Plays:** Must pass `Liquidity AND Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
+- **Dividend Stars:** Must pass `Liquidity AND Dividend AND Quality`.
+- **Gap Plays:** Must pass `Liquidity AND Quality AND percentChange ≥ 4%`. Full Quality is required — no NPM-only fallback.
 
 ### 2.3 Portfolio Management
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.

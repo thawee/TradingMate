@@ -317,7 +317,8 @@ fun HoldingsSummaryTable(
                     // Avg Cost
                     Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
                         Text(
-                            text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", costValue),
+                            text = String.format(Locale.ENGLISH, "%.2f", avgCost),
+
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -326,7 +327,7 @@ fun HoldingsSummaryTable(
                        // val breakEven = if (qty > 0) costValue / (qty * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE)) else avgCost
                         Text(
                            // text = if (isPrivacyMode) "B.E. ••••" else "B.E. ${String.format(Locale.ENGLISH, "%.2f", breakEven)}",
-                            text = String.format(Locale.ENGLISH, "(%.2f)", avgCost),
+                            text = if (isPrivacyMode) "(•••)" else String.format(Locale.ENGLISH, "(%,.0f)", costValue),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
@@ -335,67 +336,32 @@ fun HoldingsSummaryTable(
                     // Market Price
                     Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
                         Text(
-                            text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", mktValue),
+                            text = String.format(Locale.ENGLISH, "%.2f", mktPrice),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             softWrap = false
                         )
                         Text(
-                            text = String.format(Locale.ENGLISH, "(%.2f)", mktPrice),
+                            text = if (isPrivacyMode) "(•••)" else String.format(Locale.ENGLISH, "(%,.0f)", mktValue),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    /*Text(
-                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%.2f", mktPrice),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = when {
-                            mktPrice > avgCost -> MaterialTheme.colorScheme.tertiary
-                            mktPrice < avgCost -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.onSurface
-                        },
-                        modifier = Modifier.weight(1.1f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                        maxLines = 1,
-                        softWrap = false
-                    ) */
-                    // Cost Value
-                    /*Text(
-                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", costValue),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1.2f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                        maxLines = 1,
-                        softWrap = false
-                    ) */
-                    // Market Value
-                   /* Text(
-                        text = if (isPrivacyMode) "••••" else String.format(Locale.ENGLISH, "%,.0f", mktValue),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1.2f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                        maxLines = 1,
-                        softWrap = false
-                    )*/
                     // Unrealized P/L
                     Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+                        val plPct = if (costValue > 0) (unrealizedPL / costValue) * 100.0 else 0.0
                         Text(
-                            text = if (isPrivacyMode) "••••" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%,.0f", unrealizedPL)}",
+                            text = if (isPrivacyMode) "••%" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", plPct)}%",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Black,
                             color = plColor,
                             maxLines = 1,
                             softWrap = false
                         )
-                        val plPct = if (costValue > 0) (unrealizedPL / costValue) * 100.0 else 0.0
                         Text(
-                            text = if (isPrivacyMode) "••%" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", plPct)}%",
+                            text = if (isPrivacyMode) "••••" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%,.0f", unrealizedPL)}",
                             fontSize = 10.sp,
                             color = plColor.copy(alpha = 0.8f),
                             fontWeight = FontWeight.Bold
@@ -419,6 +385,7 @@ fun HoldingsSummaryTable(
                 HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
                 Spacer(Modifier.height(6.dp))
 
+                /*
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -461,7 +428,7 @@ fun HoldingsSummaryTable(
                             color = totalColor.copy(alpha = 0.8f)
                         )
                     }
-                }
+                }*/
             }
         }
     }
@@ -544,15 +511,7 @@ fun StockItemCard(
                         maxLines = 1
                     )
                     
-                    val tags = mutableListOf<String>()
-                    val isQual = (item.info.roe ?: 0.0) > 15.0
-                    if (isQual) tags.add("QUAL")
-                    if ((item.info.pe ?: 0.0) in 0.1..15.0 && (item.info.pbv ?: 0.0) in 0.1..1.0) tags.add("VAL")
-                    if ((item.info.dividendYield ?: 0.0) >= 5.0) tags.add("DIV")
-                    if ((item.portfolio.macdHist ?: 0.0) > 0.0) tags.add("MOM")
-                    if (item.signal?.type == IndicatorSignal.BUY || item.signal?.type == IndicatorSignal.POTENTIAL || (item.portfolio.rsi ?: 50.0) < 35.0) tags.add("SUP")
-                    if (item.info.percentChange >= 4.0 && (isQual || (item.info.netProfitMargin ?: 0.0) > 10.0)) tags.add("GAP")
-                    if ((item.portfolio.rsi ?: 50.0) < 30.0) tags.add("OS")
+                    val tags = StockDna.tags(item)
 
                     if (tags.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))

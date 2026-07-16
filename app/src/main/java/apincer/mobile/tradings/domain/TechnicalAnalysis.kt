@@ -146,6 +146,7 @@ object TechnicalAnalysis {
         bb: BollingerBands?,
         isVolumeSurge: Boolean,
         userCost: Double? = null,
+        userQuantity: Int? = null,
         isFundamentalGood: Boolean = false,
         tradePurpose: String = "SWING",
         dividendYield: Double? = null,
@@ -167,6 +168,10 @@ object TechnicalAnalysis {
         // 1. SELL PRIORITY: Check for "Take Profit" or "Stop Loss"
         if (userCost != null && userCost > 0 && lastPrice != null) {
             val netProfitPercent = calculateNetProfitPercent(userCost, lastPrice)
+            val quantity = userQuantity ?: 0
+            val netProfitBaht = if (quantity > 0) {
+                calculateNetProfitBaht(userCost, lastPrice, quantity)
+            } else 0.0
             
             var applySwingLogic = true
             
@@ -192,8 +197,9 @@ object TechnicalAnalysis {
             }
             
             if (applySwingLogic) {
-                // CUT LOSS PRIORITY: Stop loss is more urgent than take profit
-                if (netProfitPercent < -5.0) {
+                // CUT LOSS PRIORITY: Stop loss is more urgent than take profit.
+                // -3% stop vs +5% target keeps risk/reward asymmetric in our favor.
+                if (netProfitPercent < -3.0) {
                     val technicalWarning = when {
                         !isPriceAboveSma200 -> "the price has crashed below the long-term trend (SMA 200)"
                         !isPriceAboveSma50 -> "the price has broken below its 50-day average (SMA 50)"
@@ -206,12 +212,20 @@ object TechnicalAnalysis {
                     )
                 }
 
-                // SWING PLAYBOOK: Take Profit if target reached
-                if (netProfitPercent > 10.0) {
+                // SWING PLAYBOOK: Take Profit once net gain is meaningful
+                if (netProfitPercent > 5.0 || netProfitBaht > 500.0) {
+                    val takeProfitReason = when {
+                        netProfitPercent > 5.0 && netProfitBaht > 500.0 ->
+                            "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% (฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}). This is a good level to lock in gains."
+                        netProfitPercent > 5.0 ->
+                            "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%. This is a good level to lock in gains."
+                        else ->
+                            "Your unrealized P/L is ฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}. This is a good level to lock in gains."
+                    }
                     return TradeSignal(
                         IndicatorSignal.SELL,
-                        "${qualityPrefix}Exit Area (Target Reached)",
-                        "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%. Good area to lock in gains."
+                        "${qualityPrefix}Exit Area (Profit Secured)",
+                        takeProfitReason
                     )
                 }
             }
@@ -219,7 +233,14 @@ object TechnicalAnalysis {
 
         // 2. SELL PRIORITY: Technical Overbought (only if already profitable)
         val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= 3.0
-        val hasProfit = userCost != null && userCost > 0 && lastPrice != null && calculateNetProfitPercent(userCost, lastPrice) >= 5.0
+        val hasProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
+            val netProfitPercent = calculateNetProfitPercent(userCost, lastPrice)
+            val quantity = userQuantity ?: 0
+            val netProfitBaht = if (quantity > 0) calculateNetProfitBaht(userCost, lastPrice, quantity) else 0.0
+            netProfitPercent >= 5.0 || netProfitBaht >= 500.0
+        } else {
+            false
+        }
         if (!isProtectedDividend && hasProfit && isRsiOverbought) {
             return TradeSignal(
                 IndicatorSignal.SELL,
@@ -246,21 +267,29 @@ object TechnicalAnalysis {
             )
         }
 
-        // Recovery: MACD turns positive near support
+        // Recovery: MACD turns positive near support — volume surge confirms real buying interest
         if (isMacdBullish && (isNearLowerBB || isRsiOversold)) {
-            return TradeSignal(
-                IndicatorSignal.BUY,
-                "${qualityPrefix}Early Recovery",
-                "Momentum (MACD) has turned positive while the price is at a major support level or recovering from extreme lows."
-            )
+            return if (isVolumeSurge) {
+                TradeSignal(
+                    IndicatorSignal.BUY,
+                    "${qualityPrefix}Early Recovery (Volume Confirmed)",
+                    "Momentum (MACD) has turned positive at a major support level, confirmed by a volume surge — strong sign of institutional buying."
+                )
+            } else {
+                TradeSignal(
+                    IndicatorSignal.POTENTIAL,
+                    "${qualityPrefix}Early Recovery Watch",
+                    "Momentum (MACD) has turned positive near support, but volume is quiet. Wait for a volume surge to confirm the reversal."
+                )
+            }
         }
 
-        // Uptrend Entry
-        if (isMacdBullish && isPriceAboveSma50) {
+        // Uptrend Entry: RSI < 55 gate avoids chasing extended moves late in the trend
+        if (isMacdBullish && isPriceAboveSma50 && rsi < 55.0) {
             return TradeSignal(
                 IndicatorSignal.BUY,
                 "${qualityPrefix}Healthy Momentum",
-                "Positive momentum confirmed. The stock is trading above its short-term average, suggesting a sustained uptrend."
+                "Positive momentum confirmed early. The stock is above its short-term average and not yet overextended (RSI < 55)."
             )
         }
 
@@ -294,12 +323,23 @@ object TechnicalAnalysis {
         }
 
         // 5. NEUTRAL/WEAK TREND (Fallback)
+        // Anti-whipsaw: only SELL a holding on weak trend once real damage shows (net loss > 2%).
+        // A flat or slightly-profitable position gets a NEUTRAL warning instead of an exit signal.
         if (!isMacdBullish && !isPriceAboveSma50) {
-             return if (userCost != null && userCost > 0) {
+            val holdingNetProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
+                calculateNetProfitPercent(userCost, lastPrice)
+            } else null
+            return if (holdingNetProfit != null && holdingNetProfit < -2.0) {
                 TradeSignal(
                     IndicatorSignal.SELL,
                     "${qualityPrefix}Weak Trend",
-                    "The stock is losing momentum and trading below its average. Likely to continue falling."
+                    "The stock is losing momentum, trading below its average, and your position is down ${String.format(Locale.ENGLISH, "%.2f", holdingNetProfit)}%. Likely to continue falling."
+                )
+            } else if (holdingNetProfit != null) {
+                TradeSignal(
+                    IndicatorSignal.NEUTRAL,
+                    "${qualityPrefix}Trend Weakening",
+                    "Momentum is fading but your position is holding up. Watch closely — a net loss beyond 2% will trigger an exit signal."
                 )
             } else {
                 TradeSignal(
@@ -319,6 +359,15 @@ object TechnicalAnalysis {
         val netCost = cost + buyFee
         val netSell = currentPrice - sellFee
         return ((netSell - netCost) / netCost) * 100
+    }
+
+    fun calculateNetProfitBaht(cost: Double, currentPrice: Double, quantity: Int): Double {
+        if (quantity <= 0) return 0.0
+        val totalCostRaw = cost * quantity
+        val sellValueRaw = currentPrice * quantity
+        val buyFee = calculateFees(totalCostRaw, false)
+        val sellFee = calculateFees(sellValueRaw, true)
+        return (sellValueRaw - sellFee) - (totalCostRaw + buyFee)
     }
 
     fun calculateSMA(prices: List<Double>, period: Int): Double? {

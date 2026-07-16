@@ -83,6 +83,7 @@ fun DividendAdvisorScreen(
     val isMom = StockDna::isMom
     val isSup = StockDna::isSup
     val isGapUp = StockDna::isGapUp
+    val isLiquid = StockDna::isLiquid
 
     val playbookMode = alertRoutineState.playbookMode
     val checklist = alertRoutineState.checklist
@@ -226,6 +227,7 @@ fun DividendAdvisorScreen(
                     isMom = isMom,
                     isSup = isSup,
                     isGapUp = isGapUp,
+                    isLiquid = isLiquid,
                     maxRiskPerTrade = maxRiskPerTrade,
                     maxOpenExposure = maxOpenExposure,
                     maxPortfolioAllocation = maxPortfolioAllocation,
@@ -496,6 +498,7 @@ fun AiCopilotCard(
     isMom: (StockWatchlistInfo) -> Boolean,
     isSup: (StockWatchlistInfo) -> Boolean,
     isGapUp: (StockWatchlistInfo) -> Boolean,
+    isLiquid: (StockWatchlistInfo) -> Boolean,
     maxRiskPerTrade: Double,
     maxOpenExposure: Double,
     maxPortfolioAllocation: Double,
@@ -545,9 +548,9 @@ fun AiCopilotCard(
 
             if (playbookMode == PlaybookMode.SWING) {
                 val swingPlays = watchlist.filter { 
-                    isQual(it) && (isMom(it) || isSup(it)) 
+                    isLiquid(it) && isQual(it) && (isMom(it) || isSup(it)) 
                 }
-                val gapUpPlays = watchlist.filter { isGapUp(it) }
+                val gapUpPlays = watchlist.filter { isLiquid(it) && isGapUp(it) }
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(8.dp),
@@ -631,7 +634,7 @@ fun AiCopilotCard(
                     Text("Swing Trade AI Prompt")
                 }
             } else {
-                val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
+                val dividendPlays = watchlist.filter { isLiquid(it) && isDiv(it) && isQual(it) }
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(8.dp),

@@ -765,6 +765,7 @@
     <string name="action_restore_data">Restore Data</string>
     <string name="action_set_balance">Set Balance</string>
     <string name="action_set_suggested">Set Suggested</string>
+    <string name="action_undo_sell">Undo Sell</string>
     <string name="action_update">Update</string>
     <string name="androidx_compose_foundation_autofill">Autofill</string>
     <string name="androidx_compose_ui_autofill">Autofill</string>

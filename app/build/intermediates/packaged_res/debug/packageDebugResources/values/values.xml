@@ -28,6 +28,7 @@
     <string name="action_restore_data">Restore Data</string>
     <string name="action_set_balance">Set Balance</string>
     <string name="action_set_suggested">Set Suggested</string>
+    <string name="action_undo_sell">Undo Sell</string>
     <string name="action_update">Update</string>
     <string name="app_name">Trading Mate</string>
     <string name="confirm_clear_history">Are you sure you want to delete all trade history? This action cannot be undone.</string>

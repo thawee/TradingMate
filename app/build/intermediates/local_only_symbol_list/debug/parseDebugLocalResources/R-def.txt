@@ -36,6 +36,7 @@ string action_ready_to_trade
 string action_restore_data
 string action_set_balance
 string action_set_suggested
+string action_undo_sell
 string action_update
 string app_name
 string confirm_clear_history

@@ -1,5 +1,6 @@
 package apincer.mobile.tradings.`data`
 
+import androidx.room.EntityDeleteOrUpdateAdapter
 import androidx.room.EntityInsertAdapter
 import androidx.room.RoomDatabase
 import androidx.room.coroutines.createFlow
@@ -27,6 +28,8 @@ public class TradeDao_Impl(
   private val __db: RoomDatabase
 
   private val __insertAdapterOfTradeEntity: EntityInsertAdapter<TradeEntity>
+
+  private val __deleteAdapterOfTradeEntity: EntityDeleteOrUpdateAdapter<TradeEntity>
   init {
     this.__db = __db
     this.__insertAdapterOfTradeEntity = object : EntityInsertAdapter<TradeEntity>() {
@@ -44,6 +47,13 @@ public class TradeDao_Impl(
         statement.bindText(9, entity.note)
       }
     }
+    this.__deleteAdapterOfTradeEntity = object : EntityDeleteOrUpdateAdapter<TradeEntity>() {
+      protected override fun createQuery(): String = "DELETE FROM `trade_history` WHERE `id` = ?"
+
+      protected override fun bind(statement: SQLiteStatement, entity: TradeEntity) {
+        statement.bindLong(1, entity.id.toLong())
+      }
+    }
   }
 
   public override suspend fun insertTrade(trade: TradeEntity): Unit = performSuspending(__db, false, true) { _connection ->
@@ -52,6 +62,10 @@ public class TradeDao_Impl(
 
   public override suspend fun insertTrades(trades: List<TradeEntity>): Unit = performSuspending(__db, false, true) { _connection ->
     __insertAdapterOfTradeEntity.insert(_connection, trades)
+  }
+
+  public override suspend fun deleteTrade(trade: TradeEntity): Unit = performSuspending(__db, false, true) { _connection ->
+    __deleteAdapterOfTradeEntity.handle(_connection, trade)
   }
 
   public override fun getAllTrades(): Flow<List<TradeEntity>> {

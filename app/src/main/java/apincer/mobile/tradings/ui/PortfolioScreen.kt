@@ -19,18 +19,33 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,8 +57,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import apincer.mobile.tradings.R
-import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.util.Locale
 
@@ -77,7 +92,7 @@ fun PortfolioScreen(
 
     val allPortfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
     val portfolioItems = when (selectedPlaybook) {
-        "SWING" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "SWING" }
+       // "SWING" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "SWING" }
         "DIVIDEND" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
         else -> allPortfolioItems
     }
@@ -89,7 +104,6 @@ fun PortfolioScreen(
     val netPrincipal = cashTransactions.filter { it.type != "Fee" && it.type != "Dividend" }.sumOf { it.amount }
     val lifetimeReturn = if (netPrincipal != 0.0) totalAssetValue - netPrincipal else 0.0
     val lifetimeReturnPercent = if (netPrincipal > 0) (lifetimeReturn / netPrincipal) * 100 else 0.0
-    
 
     // Per-tab breakdown (profit/fees/yield shown for the selected filter)
     val stockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
@@ -165,7 +179,7 @@ fun PortfolioScreen(
         )
 
         GlassSegmentedControl(
-            items = listOf("ALL", "SWING", "DIVIDEND"),
+            items = listOf("ALL", "DIVIDEND"),
             selectedItem = selectedPlaybook,
             onItemSelect = { selectedPlaybook = it },
             labelExtractor = { it },
@@ -303,7 +317,7 @@ fun PortfolioScreen(
                                 }
                             }
 
-                            if (targetYearlyDividend > 0 && selectedPlaybook != "SWING") {
+                            if (targetYearlyDividend > 0 && selectedPlaybook != "ALL") {
                                 Spacer(Modifier.height(24.dp))
                                 HorizontalDivider(modifier = Modifier.alpha(0.1f))
                                 Spacer(Modifier.height(16.dp))
@@ -420,11 +434,11 @@ fun PortfolioScreen(
             },
             onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose ->
                 viewModel.addToWatchlist(symbol, cost, qty, purpose, stopLoss, note, isEdit = isEditing)
-                if (purpose == "SWING" && target > 0) {
-                    viewModel.addToFocusList(symbol, cost, target)
-                } else {
+                //if (purpose == "SWING" && target > 0) {
+                //    viewModel.addToFocusList(symbol, cost, target)
+                //} else {
                     viewModel.removeFromFocusList(symbol)
-                }
+                //}
                 showBuyDialog = false
                 selectedStockForEdit = null
             }

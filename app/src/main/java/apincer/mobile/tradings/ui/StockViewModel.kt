@@ -335,8 +335,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             val isMom = StockDna::isMom
             val isSup = StockDna::isSup
             val isGapUp = StockDna::isGapUp
+            val isLiquid = StockDna::isLiquid
 
-            val dividendPlays = watchlist.filter { isDiv(it) && isQual(it) }
+            val dividendPlays = watchlist.filter { isLiquid(it) && isDiv(it) && isQual(it) }
                 .sortedWith(
                     compareBy<StockWatchlistInfo> {
                         when (it.signal?.type) {
@@ -350,7 +351,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
 
-            val swingPlays = watchlist.filter { isQual(it) && (isMom(it) || isSup(it)) }
+            val swingPlays = watchlist.filter { isLiquid(it) && isQual(it) && (isMom(it) || isSup(it)) }
                 .sortedWith(
                     compareBy<StockWatchlistInfo> {
                         when (it.signal?.type) {
@@ -365,7 +366,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
 
-            val gapPlays = watchlist.filter { isGapUp(it) }.sortedByDescending { it.info.percentChange }
+            val gapPlays = watchlist.filter { isLiquid(it) && isGapUp(it) }.sortedByDescending { it.info.percentChange }
             val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
                 .sortedWith(
                     compareBy<StockWatchlistInfo> {
@@ -581,6 +582,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                 pe = updated.pe ?: cache.pe,
                                 pbv = updated.pbv ?: cache.pbv,
                                 dividendYield = updated.dividendYield ?: cache.dividendYield,
+                                volume = updated.volume ?: cache.volume,
                                 lastUpdated = updated.lastUpdated
                             ))
                             
@@ -673,6 +675,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 dividendPerShare = if (info.dividendYield != null && info.lastPrice != 0.0) {
                                                     info.lastPrice * (info.dividendYield / 100.0)
                                                 } else cache.dividendPerShare,
+                                                volume = info.volume ?: cache.volume,
                                                 lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: cache.lastUpdated
                                             )
                                         )
@@ -747,6 +750,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                 dividendPerShare = if (updated.dividendYield != null && updated.lastPrice != 0.0) {
                                     updated.lastPrice * (updated.dividendYield / 100.0)
                                 } else cache.dividendPerShare,
+                                volume = updated.volume ?: cache.volume,
                                 lastUpdated = updated.lastUpdated
                             ))
                         }
@@ -810,6 +814,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             dividendPerShare = if (info.dividendYield != null && info.lastPrice != 0.0) {
                                                 info.lastPrice * (info.dividendYield / 100.0)
                                             } else cache.dividendPerShare,
+                                            volume = info.volume ?: cache.volume,
                                             lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: cache.lastUpdated
                                         ))
                                         val sig = latestStock.signal ?: apincer.mobile.tradings.data.StockSignalEntity(latestStock.symbol)
@@ -1056,6 +1061,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             } else cache.dividendPerShare,
                             netProfitMargin = updatedInfo.netProfitMargin ?: cache.netProfitMargin,
                             profitGrowth3Y = updatedInfo.profitGrowth3Y ?: cache.profitGrowth3Y,
+                            volume = updatedInfo.volume ?: cache.volume,
                             lastUpdated = updatedInfo.lastUpdated
                         ))
                         val sig = local.signal ?: apincer.mobile.tradings.data.StockSignalEntity(local.portfolio.symbol)

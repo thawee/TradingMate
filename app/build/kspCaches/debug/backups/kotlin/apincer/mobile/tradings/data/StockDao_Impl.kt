@@ -15,6 +15,7 @@ import androidx.sqlite.SQLiteStatement
 import javax.`annotation`.processing.Generated
 import kotlin.Double
 import kotlin.Int
+import kotlin.Long
 import kotlin.String
 import kotlin.Suppress
 import kotlin.Unit
@@ -61,7 +62,7 @@ public class StockDao_Impl(
       }
     }
     this.__insertAdapterOfStockCacheEntity = object : EntityInsertAdapter<StockCacheEntity>() {
-      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `stock_cache` (`symbol`,`name`,`nameTH`,`businessDescription`,`sector`,`industry`,`dividendPerShare`,`lastPrice`,`change`,`percentChange`,`pe`,`pbv`,`roe`,`eps`,`netProfit`,`equity`,`debtToEquity`,`dividendYield`,`dividendDate`,`netProfitMargin`,`profitGrowth3Y`,`lastUpdated`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `stock_cache` (`symbol`,`name`,`nameTH`,`businessDescription`,`sector`,`industry`,`dividendPerShare`,`lastPrice`,`change`,`percentChange`,`pe`,`pbv`,`roe`,`eps`,`netProfit`,`equity`,`debtToEquity`,`dividendYield`,`dividendDate`,`netProfitMargin`,`profitGrowth3Y`,`lastUpdated`,`volume`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
       protected override fun bind(statement: SQLiteStatement, entity: StockCacheEntity) {
         statement.bindText(1, entity.symbol)
@@ -175,6 +176,12 @@ public class StockDao_Impl(
           statement.bindNull(22)
         } else {
           statement.bindText(22, _tmpLastUpdated)
+        }
+        val _tmpVolume: Long? = entity.volume
+        if (_tmpVolume == null) {
+          statement.bindNull(23)
+        } else {
+          statement.bindLong(23, _tmpVolume)
         }
       }
     }
@@ -546,6 +553,7 @@ public class StockDao_Impl(
         val _columnIndexOfNetProfitMargin: Int = getColumnIndexOrThrow(_stmt, "netProfitMargin")
         val _columnIndexOfProfitGrowth3Y: Int = getColumnIndexOrThrow(_stmt, "profitGrowth3Y")
         val _columnIndexOfLastUpdated: Int = getColumnIndexOrThrow(_stmt, "lastUpdated")
+        val _columnIndexOfVolume: Int = getColumnIndexOrThrow(_stmt, "volume")
         val _result: MutableList<StockCacheEntity> = mutableListOf()
         while (_stmt.step()) {
           val _item: StockCacheEntity
@@ -665,7 +673,13 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _item = StockCacheEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpDividendPerShare,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpNetProfitMargin,_tmpProfitGrowth3Y,_tmpLastUpdated)
+          val _tmpVolume: Long?
+          if (_stmt.isNull(_columnIndexOfVolume)) {
+            _tmpVolume = null
+          } else {
+            _tmpVolume = _stmt.getLong(_columnIndexOfVolume)
+          }
+          _item = StockCacheEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpDividendPerShare,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpNetProfitMargin,_tmpProfitGrowth3Y,_tmpLastUpdated,_tmpVolume)
           _result.add(_item)
         }
         _result
@@ -811,6 +825,7 @@ public class StockDao_Impl(
         val _columnIndexOfNetProfitMargin: Int = getColumnIndexOrThrow(_stmt, "netProfitMargin")
         val _columnIndexOfProfitGrowth3Y: Int = getColumnIndexOrThrow(_stmt, "profitGrowth3Y")
         val _columnIndexOfLastUpdated: Int = getColumnIndexOrThrow(_stmt, "lastUpdated")
+        val _columnIndexOfVolume: Int = getColumnIndexOrThrow(_stmt, "volume")
         val _result: StockCacheEntity?
         if (_stmt.step()) {
           val _tmpSymbol: String
@@ -929,7 +944,13 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _result = StockCacheEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpDividendPerShare,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpNetProfitMargin,_tmpProfitGrowth3Y,_tmpLastUpdated)
+          val _tmpVolume: Long?
+          if (_stmt.isNull(_columnIndexOfVolume)) {
+            _tmpVolume = null
+          } else {
+            _tmpVolume = _stmt.getLong(_columnIndexOfVolume)
+          }
+          _result = StockCacheEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpDividendPerShare,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpNetProfitMargin,_tmpProfitGrowth3Y,_tmpLastUpdated,_tmpVolume)
         } else {
           _result = null
         }
@@ -1029,7 +1050,7 @@ public class StockDao_Impl(
       return
     }
     val _stringBuilder: StringBuilder = StringBuilder()
-    _stringBuilder.append("SELECT `symbol`,`name`,`nameTH`,`businessDescription`,`sector`,`industry`,`dividendPerShare`,`lastPrice`,`change`,`percentChange`,`pe`,`pbv`,`roe`,`eps`,`netProfit`,`equity`,`debtToEquity`,`dividendYield`,`dividendDate`,`netProfitMargin`,`profitGrowth3Y`,`lastUpdated` FROM `stock_cache` WHERE `symbol` IN (")
+    _stringBuilder.append("SELECT `symbol`,`name`,`nameTH`,`businessDescription`,`sector`,`industry`,`dividendPerShare`,`lastPrice`,`change`,`percentChange`,`pe`,`pbv`,`roe`,`eps`,`netProfit`,`equity`,`debtToEquity`,`dividendYield`,`dividendDate`,`netProfitMargin`,`profitGrowth3Y`,`lastUpdated`,`volume` FROM `stock_cache` WHERE `symbol` IN (")
     val _inputSize: Int = __mapKeySet.size
     appendPlaceholders(_stringBuilder, _inputSize)
     _stringBuilder.append(")")
@@ -1067,6 +1088,7 @@ public class StockDao_Impl(
       val _columnIndexOfNetProfitMargin: Int = 19
       val _columnIndexOfProfitGrowth3Y: Int = 20
       val _columnIndexOfLastUpdated: Int = 21
+      val _columnIndexOfVolume: Int = 22
       while (_stmt.step()) {
         val _tmpKey: String
         _tmpKey = _stmt.getText(_itemKeyIndex)
@@ -1188,7 +1210,13 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _item_1 = StockCacheEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpDividendPerShare,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpNetProfitMargin,_tmpProfitGrowth3Y,_tmpLastUpdated)
+          val _tmpVolume: Long?
+          if (_stmt.isNull(_columnIndexOfVolume)) {
+            _tmpVolume = null
+          } else {
+            _tmpVolume = _stmt.getLong(_columnIndexOfVolume)
+          }
+          _item_1 = StockCacheEntity(_tmpSymbol,_tmpName,_tmpNameTH,_tmpBusinessDescription,_tmpSector,_tmpIndustry,_tmpDividendPerShare,_tmpLastPrice,_tmpChange,_tmpPercentChange,_tmpPe,_tmpPbv,_tmpRoe,_tmpEps,_tmpNetProfit,_tmpEquity,_tmpDebtToEquity,_tmpDividendYield,_tmpDividendDate,_tmpNetProfitMargin,_tmpProfitGrowth3Y,_tmpLastUpdated,_tmpVolume)
           _map.put(_tmpKey, _item_1)
         }
       }

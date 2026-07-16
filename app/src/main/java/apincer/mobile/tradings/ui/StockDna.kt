@@ -6,6 +6,8 @@ import apincer.mobile.tradings.domain.IndicatorSignal
  * The 5-Layer Filter System (Stock DNA).
  * Single source of truth for stock classification, used by the Advisor screen,
  * candidate lists (Swing Plays / Dividend Stars), and DNA tag chips.
+ *
+ * Pre-filter: isLiquid() gates all candidates to ensure tradeable liquidity.
  */
 object StockDna {
 
@@ -22,6 +24,15 @@ object StockDna {
         if (info.netProfitMargin?.let { it <= 10.0 } == true) return false
         if (info.profitGrowth3Y?.let { it <= 10.0 } == true) return false
         return true
+    }
+
+    /** Pre-filter — Liquidity: daily turnover > ฿1,000,000.
+     *  Ensures the stock is actively traded enough for stop-loss orders
+     *  to execute at the displayed price. */
+    fun isLiquid(s: StockWatchlistInfo): Boolean {
+        val volume = s.info.volume ?: 0L
+        val price = s.info.lastPrice
+        return price > 0 && volume * price > 1_000_000.0
     }
 
     /** Layer 2 — Value: P/E 0.1–15.0 and P/BV 0.1–1.0. */
@@ -41,15 +52,19 @@ object StockDna {
                (s.portfolio.rsi ?: 50.0) in 40.0..70.0
     }
 
-    /** Layer 5 — Support/Setup: BUY/POTENTIAL signal or RSI oversold (< 35). */
+    /** Layer 5 — Support/Setup: BUY/POTENTIAL signal only.
+     *  These signal types already incorporate SMA 200 trend context checks
+     *  in getDetailedSignal(), avoiding "falling knife" entries where
+     *  RSI < 35 in a structural downtrend (below SMA 200). */
     fun isSup(s: StockWatchlistInfo): Boolean =
         s.signal?.type == IndicatorSignal.BUY ||
-        s.signal?.type == IndicatorSignal.POTENTIAL ||
-        (s.portfolio.rsi ?: 50.0) < 35.0
+        s.signal?.type == IndicatorSignal.POTENTIAL
 
-    /** Earnings gap-up play: +4% day on a quality or high-margin stock. */
+    /** Earnings gap-up play: +4% day on a Quality stock.
+     *  Full Quality is required — no NPM-only fallback — to maintain
+     *  the Quality-first philosophy across all candidate types. */
     fun isGapUp(s: StockWatchlistInfo): Boolean =
-        s.info.percentChange >= 4.0 && (isQual(s) || (s.info.netProfitMargin ?: 0.0) > 10.0)
+        s.info.percentChange >= 4.0 && isQual(s)
 
     /** DNA tag chips displayed on stock cards. */
     fun tags(s: StockWatchlistInfo): List<String> = buildList {
@@ -59,6 +74,7 @@ object StockDna {
         if (isMom(s)) add("MOM")
         if (isSup(s)) add("SUP")
         if (isGapUp(s)) add("GAP")
+        // OS = "extreme oversold" (RSI < 30), stricter than SUP's signal-based entry
         if ((s.portfolio.rsi ?: 50.0) < 30.0) add("OS")
     }
 }

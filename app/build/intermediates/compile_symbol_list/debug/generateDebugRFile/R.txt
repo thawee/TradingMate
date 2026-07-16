@@ -34,6 +34,7 @@ int string action_ready_to_trade 0x0
 int string action_restore_data 0x0
 int string action_set_balance 0x0
 int string action_set_suggested 0x0
+int string action_undo_sell 0x0
 int string action_update 0x0
 int string app_name 0x0
 int string confirm_clear_history 0x0

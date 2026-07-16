@@ -1,6 +1,7 @@
 package apincer.mobile.tradings.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -35,12 +36,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
         val prefRepo = apincer.mobile.tradings.data.PreferenceRepository(applicationContext)
         val trailingStopPercent = prefRepo.trailingStopPercent.firstOrNull() ?: 5.0
+        val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
 
         var hasActiveSwingSellAlert = false
 
         // 1. Only run time-sensitive notifications on trading weekdays
         if (dayOfWeek != java.util.Calendar.SATURDAY && dayOfWeek != java.util.Calendar.SUNDAY) {
-            val prefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
             val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
             val marketStatus = TechnicalAnalysis.getMarketStatus()
 
@@ -49,11 +50,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             //    Also guard against public holidays by checking market is not CLOSED.
             if (currentTime in 1530..1615 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
                 val key = "afternoon_alert_$todayStr"
-                if (!prefs.getBoolean(key, false)) {
+                if (!alertPrefs.getBoolean(key, false)) {
                     NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = false)
-                    prefs.edit().putBoolean(key, true).apply()
+                    alertPrefs.edit().putBoolean(key, true).apply()
                     // Set flag for Step 2 badge
-                    prefs.edit().putBoolean("afternoon_scan_available_$todayStr", true).apply()
+                    alertPrefs.edit().putBoolean("afternoon_scan_available_$todayStr", true).apply()
                 }
             }
 
@@ -67,12 +68,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 && currentTime in 900..1700) {
                 val yearMonth = "$year-${month + 1}"   // e.g. "2026-1" or "2026-6"
                 val seasonKey = "dividend_season_$yearMonth"
-                if (!prefs.getBoolean(seasonKey, false)) {
+                if (!alertPrefs.getBoolean(seasonKey, false)) {
                     NotificationHelper.showDividendSeasonNotification(
                         context = applicationContext,
                         isFirstSeason = month == java.util.Calendar.JANUARY
                     )
-                    prefs.edit().putBoolean(seasonKey, true).apply()
+                    alertPrefs.edit().putBoolean(seasonKey, true).apply()
                 }
             }
         }
@@ -113,22 +114,24 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     rsi = indicators.rsi,
                     macdHist = indicators.histogram,
                     lastPrice = scraped.lastPrice,
-                    sma50 = null,
-                    sma200 = null,
-                    bb = null,
-                    isVolumeSurge = false,
+                    sma50 = indicators.sma50,
+                    sma200 = indicators.sma200,
+                    bb = indicators.bollingerBands,
+                    isVolumeSurge = indicators.isVolumeSurge,
                     userCost = if (entity.quantity > 0) entity.cost else null,
+                    userQuantity = if (entity.quantity > 0) entity.quantity else null,
                     isFundamentalGood = false,
                     tradePurpose = entity.tradePurpose,
                     dividendYield = scraped.dividendYield,
                     roe = scraped.roe
                 )
 
-                // 4. Check for state shift (portfolio stocks only)
+                // 4. Check for state shift (entry opportunities only)
                 val oldSignalType = entity.signalType
                 val newSignalType = signal.type.name
+                val isSignalShift = newSignalType != oldSignalType
 
-                if (entity.quantity > 0 && newSignalType != oldSignalType && isActionable(signal.type)) {
+                if (isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type)) {
                     NotificationHelper.showSignalNotification(
                         context = applicationContext,
                         symbol = entity.symbol,
@@ -137,13 +140,9 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     )
                 }
 
-                // 4b. Send sell reminder for portfolio stocks with active SELL signal
+                var sellReason: String? = null
                 if (entity.quantity > 0 && signal.type == IndicatorSignal.SELL) {
-                    NotificationHelper.showSellReminderNotification(
-                        context = applicationContext,
-                        symbol = entity.symbol,
-                        reason = signal.reason
-                    )
+                    sellReason = signal.reason
                 }
 
                 // 5. Update cache in DB
@@ -157,6 +156,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         debtToEquity = scraped.debtToEquity,
                         dividendYield = scraped.dividendYield,
                         dividendDate = scraped.dividendDate,
+                        volume = scraped.volume ?: cache.volume,
                         lastUpdated = scraped.lastUpdated
                     )
                 )
@@ -189,15 +189,14 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                             
                             // If XD is in the next 1 to 7 days
                             if (diffDays >= -1 && diffDays <= 7) {
-                                val xdPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
                                 val key = "xd_alert_${entity.symbol}_$xdDateStr"
-                                if (!xdPrefs.getBoolean(key, false)) {
+                                if (!alertPrefs.getBoolean(key, false)) {
                                     NotificationHelper.showXdAlertNotification(
                                         context = applicationContext,
                                         symbol = entity.symbol,
                                         dividendDate = xdDateStr
                                     )
-                                    xdPrefs.edit().putBoolean(key, true).apply()
+                                    alertPrefs.edit().putBoolean(key, true).apply()
                                 }
                             }
                         }
@@ -218,8 +217,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     val weekOfYear = now.get(java.util.Calendar.WEEK_OF_YEAR)
                     val weekYear  = now.get(java.util.Calendar.YEAR)
                     val yieldKey  = "yield_opp_${entity.symbol}_${weekYear}_W${weekOfYear}"
-                    val yieldPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
-                    if (!yieldPrefs.getBoolean(yieldKey, false)) {
+                    if (!alertPrefs.getBoolean(yieldKey, false)) {
                         NotificationHelper.showDividendYieldOpportunityNotification(
                             context = applicationContext,
                             symbol  = entity.symbol,
@@ -227,7 +225,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                             price   = scraped.lastPrice,
                             roe     = roe
                         )
-                        yieldPrefs.edit().putBoolean(yieldKey, true).apply()
+                        alertPrefs.edit().putBoolean(yieldKey, true).apply()
                     }
                 }
 
@@ -237,6 +235,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 
                 if (entity.quantity > 0 && (isSwingHold || isDividendTransitionHold)) {
                     val netProfit = TechnicalAnalysis.calculateNetProfitPercent(entity.cost, scraped.lastPrice)
+                    val netProfitBaht = TechnicalAnalysis.calculateNetProfitBaht(entity.cost, scraped.lastPrice, entity.quantity)
                     val rsi = indicators.rsi ?: 50.0
                     val isSell = signal.type == IndicatorSignal.SELL
                     
@@ -246,10 +245,27 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     val explicitStopLoss = entity.portfolio.stopLoss
                     val maxPeak = maxOf(cost, peakPrice)
                     val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
+                    val trailingBreached = dropFromPeak <= -trailingStopPercent
+                    val explicitStopBreached = explicitStopLoss > 0 && currentPrice <= explicitStopLoss
+
+                    if (explicitStopBreached) {
+                        sellReason = "Stop Loss hit at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} (current ฿${String.format(java.util.Locale.ENGLISH, "%.2f", currentPrice)})."
+                    } else if (trailingBreached) {
+                        sellReason = "Trailing stop breached (${String.format(java.util.Locale.ENGLISH, "%.2f", dropFromPeak)}% from peak, limit ${String.format(java.util.Locale.ENGLISH, "%.2f", trailingStopPercent)}%)."
+                    }
                     
-                    if (netProfit >= 10.0 || dropFromPeak <= -trailingStopPercent || (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) || rsi >= 65.0 || isSell) {
+                    if (netProfit >= 5.0 || netProfitBaht >= 500.0 || trailingBreached || explicitStopBreached || rsi >= 65.0 || isSell) {
                         hasActiveSwingSellAlert = true
                     }
+                }
+
+                if (entity.quantity > 0 && !sellReason.isNullOrBlank()) {
+                    maybeSendSellReminder(
+                        prefs = alertPrefs,
+                        symbol = entity.symbol,
+                        reason = sellReason,
+                        now = now
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("StockAlertWorker", "Failed to process ${entity.symbol}: ${e.message}")
@@ -259,12 +275,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         // 5. Morning Swing Exit Alert: 10:00–11:00 AM, only if active sell conditions exist
         if (dayOfWeek != java.util.Calendar.SATURDAY && dayOfWeek != java.util.Calendar.SUNDAY) {
             if (currentTime in 1000..1100 && hasActiveSwingSellAlert) {
-                val prefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
                 val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
                 val key = "morning_alert_$todayStr"
-                if (!prefs.getBoolean(key, false)) {
+                if (!alertPrefs.getBoolean(key, false)) {
                     NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = true)
-                    prefs.edit().putBoolean(key, true).apply()
+                    alertPrefs.edit().putBoolean(key, true).apply()
                 }
             }
         }
@@ -304,7 +319,26 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         return Result.success()
     }
 
-    private fun isActionable(type: IndicatorSignal): Boolean {
-        return type == IndicatorSignal.BUY || type == IndicatorSignal.POTENTIAL || type == IndicatorSignal.SELL
+    private fun shouldNotifyEntrySignal(quantity: Int, type: IndicatorSignal): Boolean {
+        val isEntrySignal = type == IndicatorSignal.BUY || type == IndicatorSignal.POTENTIAL
+        return quantity <= 0 && isEntrySignal
+    }
+
+    private fun maybeSendSellReminder(
+        prefs: SharedPreferences,
+        symbol: String,
+        reason: String,
+        now: java.util.Calendar
+    ) {
+        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+        val dedupeKey = "sell_alert_${symbol}_${day}"
+        if (prefs.getBoolean(dedupeKey, false)) return
+
+        NotificationHelper.showSellReminderNotification(
+            context = applicationContext,
+            symbol = symbol,
+            reason = reason
+        )
+        prefs.edit().putBoolean(dedupeKey, true).apply()
     }
 }

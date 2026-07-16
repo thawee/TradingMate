@@ -33,12 +33,12 @@ TradingMate doesn't just look at price; it evaluates the "DNA" of a company usin
 3. **Div (Dividend):** Highlights strong passive income generators.
    - *Indicators used:* Dividend Yield ≥ 5.0%.
 4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
-   - *Indicators used:* MACD Histogram > 0.0.
+   - *Indicators used:* MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise), RSI in 40–70 (healthy momentum, excludes overbought).
 5. **Sup (Support / Setup):** Locates ideal entry zones or extreme discounts.
    - *Indicators used:* RSI < 35 (Oversold) or proprietary BUY/POTENTIAL zone signals.
 
 **How they combine:**
-- **Swing Plays:** Must pass `(Quality OR Value) AND (Momentum OR Support)`.
+- **Swing Plays:** Must pass `Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
 - **Dividend Stars:** Must pass `Dividend AND Quality`.
 
 ## 📊 Technical Indicators Used
