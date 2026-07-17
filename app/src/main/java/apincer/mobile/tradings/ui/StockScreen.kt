@@ -1,5 +1,7 @@
 package apincer.mobile.tradings.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
@@ -53,6 +55,7 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
     ABOUT(R.string.title_about, Icons.Default.Info, false)
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockScreen(

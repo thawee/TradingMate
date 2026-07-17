@@ -1,17 +1,17 @@
 package apincer.mobile.tradings.ui
 
 import android.app.Application
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import apincer.mobile.tradings.appRepository
+import apincer.mobile.tradings.data.ChecklistEntity
 import apincer.mobile.tradings.data.ScrapedStockInfo
 import apincer.mobile.tradings.data.SetScraper
-import apincer.mobile.tradings.data.StockDatabase
-import apincer.mobile.tradings.data.StockAggregate
-import apincer.mobile.tradings.data.StockRepository
-import apincer.mobile.tradings.data.TradingBackup
 import apincer.mobile.tradings.data.SimplePortfolio
-import apincer.mobile.tradings.data.ChecklistEntity
+import apincer.mobile.tradings.data.StockAggregate
+import apincer.mobile.tradings.data.TradingBackup
 import apincer.mobile.tradings.domain.BollingerBands
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
@@ -29,11 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.InputStream
-import java.io.OutputStream
 
 data class AlertRoutineState(
     val playbookMode: PlaybookMode = PlaybookMode.SWING,
@@ -113,6 +109,7 @@ data class StockFocusInfo(
     val info: ScrapedStockInfo? = null
 )
 
+@RequiresApi(Build.VERSION_CODES.O)
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = application.appRepository
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
@@ -500,6 +497,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun checkAndResetChecklist(existing: ChecklistEntity): ChecklistEntity {
         val zoneId = java.time.ZoneId.of("Asia/Bangkok")
         val now = java.time.ZonedDateTime.now(zoneId)

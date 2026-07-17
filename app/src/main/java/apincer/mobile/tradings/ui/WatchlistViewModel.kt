@@ -4,15 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import apincer.mobile.tradings.appRepository
+import apincer.mobile.tradings.data.ScrapedStockInfo
 import apincer.mobile.tradings.data.SetScraper
-import apincer.mobile.tradings.data.StockDatabase
-import apincer.mobile.tradings.data.StockRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import apincer.mobile.tradings.data.ScrapedStockInfo
 
 class WatchlistViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = application.appRepository

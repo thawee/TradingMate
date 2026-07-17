@@ -1,5 +1,7 @@
 package apincer.mobile.tradings.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +64,7 @@ import apincer.mobile.tradings.R
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.util.Locale
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioScreen(

@@ -51,7 +51,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.data.ChecklistEntity
-import apincer.mobile.tradings.domain.IndicatorSignal
 import java.util.Locale
 
 data class SellAlertData(
@@ -222,6 +221,7 @@ fun DividendAdvisorScreen(
                     },
                     watchlist = watchlist,
                     portfolioItems = portfolioItems,
+                    speculativePlays = speculativePlays,
                     isQual = isQual,
                     isVal = isVal,
                     isDiv = isDiv,
@@ -503,6 +503,7 @@ fun AiCopilotCard(
     onMarkAiDone: () -> Unit,
     watchlist: List<StockWatchlistInfo>,
     portfolioItems: List<StockWatchlistInfo>,
+    speculativePlays: List<StockWatchlistInfo>,
     isQual: (StockWatchlistInfo) -> Boolean,
     isVal: (StockWatchlistInfo) -> Boolean,
     isDiv: (StockWatchlistInfo) -> Boolean,
