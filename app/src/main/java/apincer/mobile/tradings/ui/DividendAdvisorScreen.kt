@@ -1,5 +1,7 @@
 package apincer.mobile.tradings.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,9 +49,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.ChecklistEntity
 import java.util.Locale
 
@@ -64,6 +68,7 @@ enum class PlaybookMode(val label: String) {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DividendAdvisorScreen(
@@ -107,7 +112,7 @@ fun DividendAdvisorScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             CenterAlignedTopAppBar(
-                title = { Text("Smart Advisor Report", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
+                title = { Text("Smart Advisors", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black) },
                 actions = {
                     IconButton(onClick = onNavigateToAcademy) {
                         Icon(Icons.Default.School, contentDescription = "Academy")
@@ -115,6 +120,14 @@ fun DividendAdvisorScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
+            if (lastSync != "---") {
+                Text(
+                    text = stringResource(R.string.label_last_sync, lastSync),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Medium
+                )
+            }
 
             // Custom segmented glass control selector
             Surface(
@@ -394,6 +407,7 @@ fun DividendAdvisorScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AdvisorStockCard(
     stock: StockWatchlistInfo, 
@@ -534,10 +548,12 @@ fun AiCopilotCard(
             ) {
                 SectionHeader(
                     modifier = Modifier.weight(1f),
-                    title = "🤖 AI Master Prompts",
-                    subtitle = "Synced: $lastSync",
+                   // title = "🤖 AI Master Prompts",
+                    title = "AI Master Prompts",
+                    //subtitle = "Synced: $lastSync",
                    // icon = Icons.Default.AutoAwesome,
-                    icon = Icons.AutoMirrored.Filled.List,
+                   // icon = Icons.AutoMirrored.Filled.List,
+                    icon = Icons.Default.AutoAwesome,
                     color = MaterialTheme.colorScheme.tertiary
                 )
                 if (playbookMode == PlaybookMode.SWING) {

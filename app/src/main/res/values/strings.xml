@@ -57,7 +57,7 @@
     <string name="label_returns">Returns</string>
     <string name="label_market_cap">Market Cap</string>
     <string name="label_volume">Volume</string>
-    <string name="label_last_sync">Last Sync: %1$s</string>
+    <string name="label_last_sync">Last Synced: %1$s</string>
     <string name="label_buy_below">Buy Below</string>
     <string name="label_sell_above">Sell Above</string>
     <string name="label_rsi_zones">RSI Zones</string>

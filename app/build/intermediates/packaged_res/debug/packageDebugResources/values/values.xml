@@ -119,7 +119,7 @@
     <string name="label_goal_progress">Goal Progress</string>
     <string name="label_high_dividend_alert">High Dividend Yield Alert!</string>
     <string name="label_import_desc">Quickly add popular stock groups to your watchlist.</string>
-    <string name="label_last_sync">Last Sync: %1$s</string>
+    <string name="label_last_sync">Last Synced: %1$s</string>
     <string name="label_last_xd">Last XD Date</string>
     <string name="label_lesson_learned">LESSON LEARNED</string>
     <string name="label_market_cap">Market Cap</string>

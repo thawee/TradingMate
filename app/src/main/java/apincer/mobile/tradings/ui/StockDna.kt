@@ -44,12 +44,12 @@ object StockDna {
         (s.info.dividendYield ?: 0.0) >= 5.0
 
     /** Layer 4 — Momentum: MACD histogram meaningfully positive (>0.1% of price)
-     *  and RSI in 40–70 (not overbought). */
+     *  and RSI in 40–64 (not overbought — aligned with RSI_OVERBOUGHT = 65). */
     fun isMom(s: StockWatchlistInfo): Boolean {
         val hist = s.portfolio.macdHist ?: 0.0
         val price = s.info.lastPrice
         return price > 0 && hist > price * 0.001 &&
-               (s.portfolio.rsi ?: 50.0) in 40.0..70.0
+               (s.portfolio.rsi ?: 50.0) in 40.0..64.9
     }
 
     /** Layer 5 — Support/Setup: BUY/POTENTIAL signal only.

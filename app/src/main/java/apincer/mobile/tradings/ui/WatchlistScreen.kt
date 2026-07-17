@@ -1,5 +1,7 @@
 package apincer.mobile.tradings.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,6 +77,7 @@ enum class WatchlistFilter(val label: String) {
     BUY_SIGNAL("Buy Signals")
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchlistScreen(

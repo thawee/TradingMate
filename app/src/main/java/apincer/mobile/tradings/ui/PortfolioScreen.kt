@@ -105,8 +105,8 @@ fun PortfolioScreen(
     val totalAssetValue = totalStockValue + cashBalance
 
     val netPrincipal = cashTransactions.filter { it.type != "Fee" && it.type != "Dividend" }.sumOf { it.amount }
-    val lifetimeReturn = if (netPrincipal != 0.0) totalAssetValue - netPrincipal else 0.0
-    val lifetimeReturnPercent = if (netPrincipal > 0) (lifetimeReturn / netPrincipal) * 100 else 0.0
+   // val lifetimeReturn = if (netPrincipal != 0.0) totalAssetValue - netPrincipal else 0.0
+   // val lifetimeReturnPercent = if (netPrincipal > 0) (lifetimeReturn / netPrincipal) * 100 else 0.0
 
     // Per-tab breakdown (profit/fees/yield shown for the selected filter)
     val stockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
@@ -212,8 +212,8 @@ fun PortfolioScreen(
                     netPercent = totalNetProfitPercent,
                     yieldOnCost = avgYieldOnCost,
                     totalDividendEarned = totalDividendEarned,
-                    lifetimeReturn = lifetimeReturn,
-                    lifetimeReturnPercent = lifetimeReturnPercent,
+                  //  lifetimeReturn = lifetimeReturn,
+                  //  lifetimeReturnPercent = lifetimeReturnPercent,
                     isPrivacyMode = isPrivacyMode,
                     profitScopeLabel = if (selectedPlaybook == "SWING") null else selectedPlaybook,
                     onEditCash = { showCashDialog = true },

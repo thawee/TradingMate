@@ -407,6 +407,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     if (yield >= 3.0) {
                         applySwingLogic = false
+                        // Fix #3: Deep drawdown guardrail even for protected dividend stocks
+                        val drawdown = if (stock.portfolio.cost > 0)
+                            ((stock.info.lastPrice - stock.portfolio.cost) / stock.portfolio.cost) * 100
+                            else 0.0
+                        if (drawdown <= -20.0) {
+                            dividendSellAlerts.add(SellAlertData(stock, "⚠️ Deep Drawdown (${String.format(java.util.Locale.ENGLISH, "%.1f", drawdown)}%) — Review Hold Thesis"))
+                        }
                     } else {
                         swingSellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%) (Transition to Swing)"))
                         applySwingLogic = true
@@ -431,13 +438,14 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val maxPeak = maxOf(cost, peakPrice)
                     val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
 
-                    if (netProfit >= 5.0 || netProfitBaht >= 500.0) {
-                        val reason = if (netProfit >= 5.0 && netProfitBaht >= 500.0) {
-                            "Take Profit (Gain >= 5% or P/L > ฿500)"
-                        } else if (netProfit >= 5.0) {
+                    // Fix #2: Scale absolute threshold with position size (at least 3% of position, min ₿500)
+                    val positionValue = cost * stock.portfolio.quantity
+                    val minTakeProfitBaht = maxOf(500.0, positionValue * 0.03)
+                    if (netProfit >= 5.0 || netProfitBaht >= minTakeProfitBaht) {
+                        val reason = if (netProfit >= 5.0) {
                             "Take Profit (Gain >= 5%)"
                         } else {
-                            "Take Profit (P/L > ฿500)"
+                            "Take Profit (P/L > ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", minTakeProfitBaht)})"
                         }
                         targetAlerts.add(SellAlertData(stock, reason))
                     } else if (dropFromPeak <= -tsPercent) {

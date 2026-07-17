@@ -876,7 +876,7 @@
     <string name="label_goal_progress">Goal Progress</string>
     <string name="label_high_dividend_alert">High Dividend Yield Alert!</string>
     <string name="label_import_desc">Quickly add popular stock groups to your watchlist.</string>
-    <string name="label_last_sync">Last Sync: %1$s</string>
+    <string name="label_last_sync">Last Synced: %1$s</string>
     <string name="label_last_xd">Last XD Date</string>
     <string name="label_lesson_learned">LESSON LEARNED</string>
     <string name="label_market_cap">Market Cap</string>
@@ -1079,7 +1079,7 @@
     <string name="title_watchlist">Watchlist</string>
     <string name="tooltip_description">tooltip</string>
     <string name="tooltip_label">show tooltip</string>
-    <style name="Base.Glance.AppWidget.Background" tools:ignore="ResourceName" parent="">
+    <style name="Base.Glance.AppWidget.Background" parent="" tools:ignore="ResourceName">
         <item name="android:id">@android:id/background</item>
     </style>
     <style name="DialogWindowTheme">
@@ -1162,7 +1162,7 @@
         <item name="android:textColor">@color/androidx_core_secondary_text_default_material_light</item>
         <item name="android:textSize">@dimen/notification_action_text_size</item>
     </style>
-    <style name="Widget.Glance.AppWidget.CallbackTrampoline" tools:ignore="ResourceName" parent="android:Theme">
+    <style name="Widget.Glance.AppWidget.CallbackTrampoline" parent="android:Theme" tools:ignore="ResourceName">
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowIsTranslucent">true</item>
     </style>
@@ -1228,9 +1228,9 @@
     <declare-styleable name="DividerAttributes">
         
         <attr format="enum" name="embeddingDividerType">
-            <!-- Fixed divider type. -->
+            
             <enum name="fixed" value="0"/>
-            <!-- Draggable divider type. -->
+            
             <enum name="draggable" value="1"/>
         </attr>
         
@@ -1257,23 +1257,14 @@
         <attr format="reference" name="fontProviderCerts"/>
         
         <attr name="fontProviderFetchStrategy">
-            <!-- The blocking font fetch works as follows.
-              First, check the local cache, then if the requested font is not cached, request the
-              font from the provider and wait until it is finished.  You can change the length of
-              the timeout by modifying fontProviderFetchTimeout.  If the timeout happens, the
-              default typeface will be used instead. -->
+            
             <enum name="blocking" value="0"/>
-            <!-- The async font fetch works as follows.
-              First, check the local cache, then if the requested font is not cached, trigger a
-              request the font and continue with layout inflation. Once the font fetch succeeds, the
-              target text view will be refreshed with the downloaded font data. The
-              fontProviderFetchTimeout will be ignored if async loading is specified. -->
+            
             <enum name="async" value="1"/>
         </attr>
         
         <attr format="integer" name="fontProviderFetchTimeout">
-            <!-- A special value for the timeout. In this case, the blocking font fetching will not
-              timeout and wait until a reply is received from the font provider. -->
+            
             <enum name="forever" value="-1"/>
         </attr>
         

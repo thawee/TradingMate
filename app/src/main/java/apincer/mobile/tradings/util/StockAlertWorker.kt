@@ -254,13 +254,20 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     val trailingBreached = dropFromPeak <= -trailingStopPercent
                     val explicitStopBreached = explicitStopLoss > 0 && currentPrice <= explicitStopLoss
 
+                    // Fix #2: Scale absolute threshold with position size (at least 3% of position, min ₿500)
+                    val positionValue = cost * entity.quantity
+                    val minTakeProfitBaht = maxOf(500.0, positionValue * 0.03)
+
                     if (explicitStopBreached) {
                         sellReason = "Stop Loss hit at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} (current ฿${String.format(java.util.Locale.ENGLISH, "%.2f", currentPrice)})."
                     } else if (trailingBreached) {
                         sellReason = "Trailing stop breached (${String.format(java.util.Locale.ENGLISH, "%.2f", dropFromPeak)}% from peak, limit ${String.format(java.util.Locale.ENGLISH, "%.2f", trailingStopPercent)}%)."
+                    } else if (netProfit >= 5.0 || netProfitBaht >= minTakeProfitBaht) {
+                        // Fix #4: Send take-profit as a specific sell notification
+                        sellReason = "Take Profit: +${String.format(java.util.Locale.ENGLISH, "%.1f", netProfit)}% (฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netProfitBaht)})"
                     }
                     
-                    if (netProfit >= 5.0 || netProfitBaht >= 500.0 || trailingBreached || explicitStopBreached || rsi >= 65.0 || isSell) {
+                    if (netProfit >= 5.0 || netProfitBaht >= minTakeProfitBaht || trailingBreached || explicitStopBreached || rsi >= 65.0 || isSell) {
                         hasActiveSwingSellAlert = true
                     }
                 }
