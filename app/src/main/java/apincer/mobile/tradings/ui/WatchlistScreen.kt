@@ -170,14 +170,7 @@ fun WatchlistScreen(
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(R.string.title_watchlist), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                        if (lastSync != "---") {
-                            Text(
-                                text = stringResource(R.string.label_last_sync, lastSync),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+
                     }
                 }
             },
@@ -196,6 +189,16 @@ fun WatchlistScreen(
                 }
             }
         )
+        if (lastSync != "---") {
+            Text(
+                text = stringResource(R.string.label_last_sync, lastSync),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         // Filtering & Sorting Row
         LazyRow(

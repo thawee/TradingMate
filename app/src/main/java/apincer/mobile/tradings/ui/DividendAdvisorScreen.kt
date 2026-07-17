@@ -19,11 +19,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.automirrored.sharp.List
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CurrencyExchange
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Button
@@ -51,6 +51,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
@@ -125,7 +126,9 @@ fun DividendAdvisorScreen(
                     text = stringResource(R.string.label_last_sync, lastSync),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(start = 16.dp)
                 )
             }
 
@@ -263,12 +266,13 @@ fun DividendAdvisorScreen(
                     SectionHeader(
                         modifier = Modifier.weight(1f),
                         title = if (playbookMode == PlaybookMode.SWING) {
-                            "🚨 Check Exits"
+                            "Check Exits 🚨"
                         } else {
-                            "🛡️ Check My Shields"
+                            "Check My Shields 🛡️"
                         },
                         subtitle = "$alertsCount alerts",
-                        icon = Icons.AutoMirrored.Sharp.List
+                        icon = Icons.Default.CurrencyExchange
+                       // icon = Icons.AutoMirrored.Sharp.List
                     )
                     if (playbookMode == PlaybookMode.SWING) {
                         StepCheckbox(
@@ -323,16 +327,19 @@ fun DividendAdvisorScreen(
                     if (playbookMode == PlaybookMode.SWING) {
                         SectionHeader(
                             modifier = Modifier.weight(1f),
-                            title = "🔍 Scan Setups" + if (isAfternoonScanAvailable) " 📢" else "",
+                            //title = "🔍 Scan Setups" + if (isAfternoonScanAvailable) " 📢" else "",
+                            title = "Scan Setups" + if (isAfternoonScanAvailable) " 📢" else "",
                             subtitle = "$candidatesCount setups (Quality + Momentum)" + if (isAfternoonScanAvailable) " — Afternoon scan ready" else "",
-                            icon = Icons.AutoMirrored.Filled.List
+                           // icon = Icons.AutoMirrored.Filled.List
+                            icon = Icons.Default.QueryStats
                         )
                     } else {
                         SectionHeader(
                             modifier = Modifier.weight(1f),
-                            title = "💰 Find Dividend Stars",
+                            title = "Find Dividend Stars 💰",
                             subtitle = "$candidatesCount stars (Yield ≥ 5% & Quality)",
-                            icon = Icons.AutoMirrored.Filled.List
+                            //icon = Icons.AutoMirrored.Filled.List
+                            icon = Icons.Default.QueryStats
                         )
                     }
                     if (playbookMode == PlaybookMode.SWING) {
