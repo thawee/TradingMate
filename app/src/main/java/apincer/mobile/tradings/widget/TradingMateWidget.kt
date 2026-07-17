@@ -117,7 +117,7 @@ class TradingMateWidget : GlanceAppWidget() {
                         .fillMaxSize()
                         .background(GlanceTheme.colors.surface)
                         .cornerRadius(16.dp)
-                        .padding(16.dp)
+                        .padding(12.dp)
                         .clickable(actionStartActivity(
                             android.content.Intent(context, MainActivity::class.java).apply {
                                 flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -139,7 +139,7 @@ class TradingMateWidget : GlanceAppWidget() {
                         )
                     }
                     
-                    Spacer(modifier = GlanceModifier.height(16.dp))
+                    Spacer(modifier = GlanceModifier.height(12.dp))
                     
                     val profitColor = if (totalNetProfitPercent >= 0) Color(0xFF1DE9B6) else Color(0xFFFF5252)
                     val profitSign = if (totalNetProfitPercent >= 0) "+" else ""
@@ -152,18 +152,18 @@ class TradingMateWidget : GlanceAppWidget() {
                             fontSize = 12.sp
                         )
                     )
-                    Spacer(modifier = GlanceModifier.height(4.dp))
+                    Spacer(modifier = GlanceModifier.height(2.dp))
                     Text(
                         text = "$profitSign${String.format(Locale.ENGLISH, "%.2f", totalNetProfitPercent)}%",
                         style = TextStyle(
                             color = androidx.glance.unit.ColorProvider(profitColor),
-                            fontSize = 32.sp,
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
                         )
                     )
                     
                     if (topGainer != null) {
-                        Spacer(modifier = GlanceModifier.height(8.dp))
+                        Spacer(modifier = GlanceModifier.height(4.dp))
                         val topGainerChg = topGainer.cache?.percentChange ?: 0.0
                         val gainerSign = if (topGainerChg >= 0) "+" else ""
                         Text(
@@ -176,7 +176,7 @@ class TradingMateWidget : GlanceAppWidget() {
                     }
 
                     if (graphBitmap != null) {
-                        Spacer(modifier = GlanceModifier.height(16.dp))
+                        Spacer(modifier = GlanceModifier.height(8.dp))
                         Image(
                             provider = ImageProvider(graphBitmap),
                             contentDescription = "Portfolio Trend",
