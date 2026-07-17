@@ -366,7 +366,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
             val gapPlays = watchlist.filter { isLiquid(it) && isGapUp(it) }.sortedByDescending { it.info.percentChange }
-            val speculativePlays = watchlist.filter { isLiquid(it) && !isQual(it) && isSup(it) }.sortedWith(
+            val speculativePlays = watchlist.filter { 
+                isLiquid(it) && !isQual(it) && isSup(it) && (it.portfolio.macdHist ?: 0.0) > 0.0 
+            }.sortedWith(
                 compareBy<StockWatchlistInfo> {
                     when (it.signal?.type) {
                         IndicatorSignal.BUY -> 0

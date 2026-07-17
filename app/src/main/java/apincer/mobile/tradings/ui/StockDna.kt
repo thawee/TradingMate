@@ -1,4 +1,5 @@
 package apincer.mobile.tradings.ui
+import android.util.Log
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TradingConstants
 
@@ -30,7 +31,11 @@ object StockDna {
      *  Ensures the stock is actively traded enough for stop-loss orders
      *  to execute at the displayed price. */
     fun isLiquid(s: StockWatchlistInfo): Boolean {
-        val volume = s.info.volume ?: return true // Fail-open: allow if volume data hasn't been fetched yet
+        val volume = s.info.volume
+        if (volume == null) {
+            Log.w("StockDna", "isLiquid: Null volume for ${s.info.symbol}, failing open.")
+            return true // Fail-open: allow if volume data hasn't been fetched yet
+        }
         val price = s.info.lastPrice
         return price > 0 && volume * price > 1_000_000.0
     }
