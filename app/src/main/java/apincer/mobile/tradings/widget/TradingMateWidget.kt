@@ -88,7 +88,6 @@ class TradingMateWidget : GlanceAppWidget() {
                 alertCount++
             }
         }
-        val topGainer = portfolioItems.maxByOrNull { it.cache?.percentChange ?: 0.0 }
         val positionsCount = portfolioItems.size
 
         provideContent {
@@ -161,19 +160,6 @@ class TradingMateWidget : GlanceAppWidget() {
                             fontWeight = FontWeight.Bold
                         )
                     )
-                    
-                    if (topGainer != null) {
-                        Spacer(modifier = GlanceModifier.height(4.dp))
-                        val topGainerChg = topGainer.cache?.percentChange ?: 0.0
-                        val gainerSign = if (topGainerChg >= 0) "+" else ""
-                        Text(
-                            text = "Top Mover: ${topGainer.portfolio.symbol} ($gainerSign${String.format(Locale.ENGLISH, "%.2f", topGainerChg)}%)",
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onSurfaceVariant,
-                                fontSize = 14.sp
-                            )
-                        )
-                    }
 
                     if (graphBitmap != null) {
                         Spacer(modifier = GlanceModifier.height(8.dp))
