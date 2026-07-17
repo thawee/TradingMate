@@ -1,6 +1,6 @@
 package apincer.mobile.tradings.ui
-
 import apincer.mobile.tradings.domain.IndicatorSignal
+import apincer.mobile.tradings.domain.TradingConstants
 
 /**
  * The 5-Layer Filter System (Stock DNA).
@@ -19,7 +19,7 @@ object StockDna {
      */
     fun isQual(s: StockWatchlistInfo): Boolean {
         val info = s.info
-        if ((info.roe ?: 0.0) <= 15.0) return false
+        if ((info.roe ?: 0.0) <= TradingConstants.ROE_MIN_THRESHOLD) return false
         if (info.debtToEquity?.let { it >= 1.5 } == true) return false
         if (info.netProfitMargin?.let { it <= 10.0 } == true) return false
         if (info.profitGrowth3Y?.let { it <= 10.0 } == true) return false
@@ -41,15 +41,15 @@ object StockDna {
 
     /** Layer 3 — Dividend: yield >= 5%. */
     fun isDiv(s: StockWatchlistInfo): Boolean =
-        (s.info.dividendYield ?: 0.0) >= 5.0
+        (s.info.dividendYield ?: 0.0) >= TradingConstants.DIVIDEND_YIELD_ENTRY
 
     /** Layer 4 — Momentum: MACD histogram meaningfully positive (>0.1% of price)
-     *  and RSI in 40–64 (not overbought — aligned with RSI_OVERBOUGHT = 65). */
+     *  and RSI in 40–64.9 (not overbought — aligned with RSI_OVERBOUGHT). */
     fun isMom(s: StockWatchlistInfo): Boolean {
         val hist = s.portfolio.macdHist ?: 0.0
         val price = s.info.lastPrice
         return price > 0 && hist > price * 0.001 &&
-               (s.portfolio.rsi ?: 50.0) in 40.0..64.9
+               (s.portfolio.rsi ?: 50.0) in 40.0..TradingConstants.RSI_MOMENTUM_MAX
     }
 
     /** Layer 5 — Support/Setup: BUY/POTENTIAL signal only.
@@ -60,12 +60,16 @@ object StockDna {
         s.signal?.type == IndicatorSignal.BUY ||
         s.signal?.type == IndicatorSignal.POTENTIAL
 
-    /** Earnings gap-up play: +4% day on a profitable stock.
+    /** Earnings gap-up play: +4% day on a profitable stock with high volume.
      *  Gap plays are momentum events, so we relax the strict 3-year growth
-     *  requirements of isQual, requiring only basic baseline profitability. */
-    fun isGapUp(s: StockWatchlistInfo): Boolean =
-        s.info.percentChange >= 4.0 && 
-        ((s.info.roe ?: 0.0) > 10.0 || (s.info.netProfitMargin ?: 0.0) > 5.0)
+     *  requirements of isQual, requiring only basic baseline profitability.
+     *  Must have >= 5M THB turnover to filter out low-volume artifacts. */
+    fun isGapUp(s: StockWatchlistInfo): Boolean {
+        val turnover = (s.info.volume ?: 0L) * s.info.lastPrice
+        return s.info.percentChange >= 4.0 && 
+               turnover >= 5_000_000.0 &&
+               ((s.info.roe ?: 0.0) > 10.0 || (s.info.netProfitMargin ?: 0.0) > 5.0)
+    }
 
     /** DNA tag chips displayed on stock cards. */
     fun tags(s: StockWatchlistInfo): List<String> = buildList {
@@ -76,6 +80,6 @@ object StockDna {
         if (isSup(s)) add("SUP")
         if (isGapUp(s)) add("GAP")
         // OS = "extreme oversold" (RSI < 30), stricter than SUP's signal-based entry
-        if ((s.portfolio.rsi ?: 50.0) < 30.0) add("OS")
+        if ((s.portfolio.rsi ?: 50.0) < TradingConstants.RSI_OVERSOLD - 5.0) add("OS")
     }
 }

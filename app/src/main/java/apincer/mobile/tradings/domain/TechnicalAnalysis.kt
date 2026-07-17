@@ -3,6 +3,7 @@ package apincer.mobile.tradings.domain
 import androidx.compose.ui.graphics.Color
 import java.util.Locale
 import kotlin.math.abs
+import apincer.mobile.tradings.domain.TradingConstants
 import kotlin.math.sqrt
 
 data class Indicators(
@@ -60,11 +61,6 @@ object TechnicalAnalysis {
     const val MIN_COMMISSION_BAHT = 50.0    // Minimum commission per day (without ATS)
     const val MIN_COMMISSION_ATS = 0.0      // Minimum commission when ATS + E-Statement registered (waived)
 
-    // Alignment with snapshot Strategy: Focus on RSI (35/65 targets)
-    const val RSI_OVERSOLD_THRESHOLD = 35.0
-    const val RSI_OVERBOUGHT_THRESHOLD = 65.0
-    const val RSI_POTENTIAL_THRESHOLD = 42.0
-
     fun calculateFees(amount: Double, isSelling: Boolean, atsEnabled: Boolean = true): Double {
         val minCommission = if (atsEnabled) MIN_COMMISSION_ATS else MIN_COMMISSION_BAHT
         val commission = maxOf(amount * COMMISSION_RATE, minCommission)
@@ -90,9 +86,9 @@ object TechnicalAnalysis {
     ): TradingZone {
         if (rsi == null || macdHist == null || lastPrice == null) return TradingZone.NEUTRAL
         
-        val isRsiOversold = rsi < RSI_OVERSOLD_THRESHOLD
-        val isRsiPotential = rsi < RSI_POTENTIAL_THRESHOLD
-        val isRsiOverbought = rsi > RSI_OVERBOUGHT_THRESHOLD
+        val isRsiOversold = rsi < TradingConstants.RSI_OVERSOLD
+        val isRsiPotential = rsi < TradingConstants.RSI_POTENTIAL
+        val isRsiOverbought = rsi > TradingConstants.RSI_OVERBOUGHT
         val isMacdBullish = macdHist > 0.0
         val isPriceAboveSma50 = if (sma50 != null) lastPrice > sma50 else false // Unknown: conservative default
         val isPriceAboveSma200 = if (sma200 != null) lastPrice > sma200 else true
@@ -154,9 +150,9 @@ object TechnicalAnalysis {
     ): TradeSignal {
         if (rsi == null || macdHist == null) return TradeSignal(IndicatorSignal.NEUTRAL, "Waiting for data", "We need more historical data to generate a signal.")
         
-        val isRsiOversold = rsi < RSI_OVERSOLD_THRESHOLD
-        val isRsiNearOversold = rsi < RSI_POTENTIAL_THRESHOLD
-        val isRsiOverbought = rsi > RSI_OVERBOUGHT_THRESHOLD
+        val isRsiOversold = rsi < TradingConstants.RSI_OVERSOLD
+        val isRsiNearOversold = rsi < TradingConstants.RSI_POTENTIAL
+        val isRsiOverbought = rsi > TradingConstants.RSI_OVERBOUGHT
         val isMacdBullish = macdHist > 0.0
         val isPriceAboveSma50 = if (lastPrice != null && sma50 != null) lastPrice > sma50 else true
         val isPriceAboveSma200 = if (lastPrice != null && sma200 != null) lastPrice > sma200 else true
@@ -177,21 +173,21 @@ object TechnicalAnalysis {
             
             if (tradePurpose == "DIVIDEND") {
                 val yield = dividendYield ?: 0.0
-                val isRoeBad = roe != null && roe < 15.0
+                val isRoeBad = roe != null && roe < TradingConstants.ROE_MIN_THRESHOLD
                 
                 if (isRoeBad) {
                     return TradeSignal(
                         IndicatorSignal.SELL,
                         "${qualityPrefix}Fundamentals Broke",
-                        "Dividend rule broken. Company fundamentals declining (ROE < 15%). Re-evaluate holding."
+                        "Dividend rule broken. Company fundamentals declining (ROE < ${TradingConstants.ROE_MIN_THRESHOLD}%). Re-evaluate holding."
                     )
                 }
                 
-                if (yield >= 3.0) {
-                    // Yield is good (>= 3%), keep it! Do not apply swing logic.
+                if (yield >= TradingConstants.DIVIDEND_YIELD_PROTECTION) {
+                    // Yield is good, keep it! Do not apply swing logic.
                     applySwingLogic = false
                 } else {
-                    // Yield dropped below 3%. It loses its 'hold forever' status and we use Swing logic to exit.
+                    // Yield dropped below protection threshold. It loses its 'hold forever' status and we use Swing logic to exit.
                     applySwingLogic = true
                 }
             }
@@ -199,7 +195,7 @@ object TechnicalAnalysis {
             if (applySwingLogic) {
                 // CUT LOSS PRIORITY: Stop loss is more urgent than take profit.
                 // -3% stop vs +5% target keeps risk/reward asymmetric in our favor.
-                if (netProfitPercent < -3.0) {
+                if (netProfitPercent < TradingConstants.STOP_LOSS_PERCENT) {
                     val technicalWarning = when {
                         !isPriceAboveSma200 -> "the price has crashed below the long-term trend (SMA 200)"
                         !isPriceAboveSma50 -> "the price has broken below its 50-day average (SMA 50)"
@@ -213,12 +209,12 @@ object TechnicalAnalysis {
                 }
 
                 // SWING PLAYBOOK: Take Profit once net gain is meaningful
-                if (netProfitPercent > 5.0 || netProfitBaht > 500.0) {
+                if (netProfitPercent > TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht > TradingConstants.TAKE_PROFIT_MIN_BAHT) {
                     val takeProfitReason = when {
-                        netProfitPercent > 5.0 && netProfitBaht > 500.0 ->
-                            "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% (฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}). This is a good level to lock in gains."
-                        netProfitPercent > 5.0 ->
-                            "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}%. This is a good level to lock in gains."
+                        netProfitPercent > TradingConstants.TAKE_PROFIT_PERCENT && netProfitBaht > TradingConstants.TAKE_PROFIT_MIN_BAHT ->
+                            "Your profit is ${String.format(java.util.Locale.ENGLISH,"%.2f", netProfitPercent)}% (฿${String.format(java.util.Locale.ENGLISH,"%,.2f", netProfitBaht)}). This is a good level to lock in gains."
+                        netProfitPercent > TradingConstants.TAKE_PROFIT_PERCENT ->
+                            "Your profit is ${String.format(java.util.Locale.ENGLISH,"%.2f", netProfitPercent)}%. This is a good level to lock in gains."
                         else ->
                             "Your unrealized P/L is ฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}. This is a good level to lock in gains."
                     }
@@ -232,12 +228,12 @@ object TechnicalAnalysis {
         }
 
         // 2. SELL PRIORITY: Technical Overbought (only if already profitable)
-        val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= 3.0
+        val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= TradingConstants.DIVIDEND_YIELD_PROTECTION
         val hasProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
             val netProfitPercent = calculateNetProfitPercent(userCost, lastPrice)
             val quantity = userQuantity ?: 0
             val netProfitBaht = if (quantity > 0) calculateNetProfitBaht(userCost, lastPrice, quantity) else 0.0
-            netProfitPercent >= 5.0 || netProfitBaht >= 500.0
+            netProfitPercent >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= TradingConstants.TAKE_PROFIT_MIN_BAHT
         } else {
             false
         }

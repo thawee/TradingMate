@@ -13,15 +13,12 @@ import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import kotlinx.coroutines.flow.firstOrNull
 import androidx.glance.appwidget.updateAll
+import apincer.mobile.tradings.domain.TradingConstants
 
 class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     companion object {
-        // Year-round dividend yield opportunity alert thresholds.
-        // Fire when a DIVIDEND-purpose stock's yield rises to this level
-        // (price fell → yield rose) AND fundamentals remain solid.
-        const val YIELD_OPPORTUNITY_THRESHOLD = 5.0   // % — attractive yield for Thai SET
-        const val ROE_MIN_THRESHOLD           = 15.0  // % — minimum quality filter
+        // Obsolete local constants moved to TradingConstants
     }
 
     override suspend fun doWork(): Result {
@@ -146,9 +143,9 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     )
                 }
 
-                var sellReason: String? = null
+                val sellReasonsList = mutableListOf<String>()
                 if (entity.quantity > 0 && signal.type == IndicatorSignal.SELL) {
-                    sellReason = signal.reason
+                    signal.reason?.let { sellReasonsList.add(it) }
                 }
 
                 // 5. Update cache in DB
@@ -218,8 +215,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val dividendYield = scraped.dividendYield ?: 0.0
                 val roe = scraped.roe ?: 0.0
                 if (entity.tradePurpose == "DIVIDEND"
-                    && dividendYield >= YIELD_OPPORTUNITY_THRESHOLD
-                    && roe >= ROE_MIN_THRESHOLD) {
+                    && dividendYield >= TradingConstants.DIVIDEND_YIELD_ENTRY
+                    && roe >= TradingConstants.ROE_MIN_THRESHOLD) {
                     val weekOfYear = now.get(java.util.Calendar.WEEK_OF_YEAR)
                     val weekYear  = now.get(java.util.Calendar.YEAR)
                     val yieldKey  = "yield_opp_${entity.symbol}_${weekYear}_W${weekOfYear}"
@@ -237,7 +234,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
                 // 7. Check if this stock is currently in a swing exit condition
                 val isSwingHold = entity.tradePurpose == "SWING"
-                val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" && (scraped.dividendYield ?: 0.0) < 3.0
+                val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" && (scraped.dividendYield ?: 0.0) < TradingConstants.DIVIDEND_YIELD_PROTECTION
                 
                 if (entity.quantity > 0 && (isSwingHold || isDividendTransitionHold)) {
                     val netProfit = TechnicalAnalysis.calculateNetProfitPercent(entity.cost, scraped.lastPrice)
@@ -256,27 +253,29 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
                     // Fix #2: Scale absolute threshold with position size (at least 3% of position, min ₿500)
                     val positionValue = cost * entity.quantity
-                    val minTakeProfitBaht = maxOf(500.0, positionValue * 0.03)
+                    val minTakeProfitBaht = maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.03)
 
                     if (explicitStopBreached) {
-                        sellReason = "Stop Loss hit at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} (current ฿${String.format(java.util.Locale.ENGLISH, "%.2f", currentPrice)})."
-                    } else if (trailingBreached) {
-                        sellReason = "Trailing stop breached (${String.format(java.util.Locale.ENGLISH, "%.2f", dropFromPeak)}% from peak, limit ${String.format(java.util.Locale.ENGLISH, "%.2f", trailingStopPercent)}%)."
-                    } else if (netProfit >= 5.0 || netProfitBaht >= minTakeProfitBaht) {
+                        sellReasonsList.add("Stop Loss hit at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} (current ฿${String.format(java.util.Locale.ENGLISH, "%.2f", currentPrice)})")
+                    } 
+                    if (trailingBreached) {
+                        sellReasonsList.add("Trailing stop breached (${String.format(java.util.Locale.ENGLISH, "%.2f", dropFromPeak)}% from peak, limit ${String.format(java.util.Locale.ENGLISH, "%.2f", trailingStopPercent)}%)")
+                    } 
+                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht) {
                         // Fix #4: Send take-profit as a specific sell notification
-                        sellReason = "Take Profit: +${String.format(java.util.Locale.ENGLISH, "%.1f", netProfit)}% (฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netProfitBaht)})"
+                        sellReasonsList.add("Take Profit: +${String.format(java.util.Locale.ENGLISH, "%.1f", netProfit)}% (฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netProfitBaht)})")
                     }
                     
-                    if (netProfit >= 5.0 || netProfitBaht >= minTakeProfitBaht || trailingBreached || explicitStopBreached || rsi >= 65.0 || isSell) {
+                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht || trailingBreached || explicitStopBreached || rsi >= TradingConstants.RSI_OVERBOUGHT || isSell) {
                         hasActiveSwingSellAlert = true
                     }
                 }
 
-                if (entity.quantity > 0 && !sellReason.isNullOrBlank()) {
+                if (entity.quantity > 0 && sellReasonsList.isNotEmpty()) {
                     maybeSendSellReminder(
                         prefs = alertPrefs,
                         symbol = entity.symbol,
-                        reason = sellReason,
+                        reason = sellReasonsList.joinToString(" AND "),
                         now = now
                     )
                 }

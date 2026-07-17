@@ -15,6 +15,7 @@ import apincer.mobile.tradings.data.TradingBackup
 import apincer.mobile.tradings.domain.BollingerBands
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
+import apincer.mobile.tradings.domain.TradingConstants
 import apincer.mobile.tradings.domain.TradeSignal
 import apincer.mobile.tradings.domain.TradingZone
 import kotlinx.coroutines.Dispatchers
@@ -405,13 +406,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
                     }
 
-                    if (yield >= 3.0) {
+                    if (yield >= TradingConstants.DIVIDEND_YIELD_PROTECTION) {
                         applySwingLogic = false
                         // Fix #3: Deep drawdown guardrail even for protected dividend stocks
                         val drawdown = if (stock.portfolio.cost > 0)
                             ((stock.info.lastPrice - stock.portfolio.cost) / stock.portfolio.cost) * 100
                             else 0.0
-                        if (drawdown <= -20.0) {
+                        if (drawdown <= TradingConstants.DIVIDEND_DEEP_DRAWDOWN_PERCENT) {
                             dividendSellAlerts.add(SellAlertData(stock, "⚠️ Deep Drawdown (${String.format(java.util.Locale.ENGLISH, "%.1f", drawdown)}%) — Review Hold Thesis"))
                         }
                     } else {
@@ -440,10 +441,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     // Fix #2: Scale absolute threshold with position size (at least 3% of position, min ₿500)
                     val positionValue = cost * stock.portfolio.quantity
-                    val minTakeProfitBaht = maxOf(500.0, positionValue * 0.03)
-                    if (netProfit >= 5.0 || netProfitBaht >= minTakeProfitBaht) {
-                        val reason = if (netProfit >= 5.0) {
-                            "Take Profit (Gain >= 5%)"
+                    val minTakeProfitBaht = maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.03)
+                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht) {
+                        val reason = if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT) {
+                            "Take Profit (Gain >= ${TradingConstants.TAKE_PROFIT_PERCENT}%)"
                         } else {
                             "Take Profit (P/L > ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", minTakeProfitBaht)})"
                         }
