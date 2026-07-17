@@ -131,7 +131,13 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val newSignalType = signal.type.name
                 val isSignalShift = newSignalType != oldSignalType
 
-                if (isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type)) {
+                val dummyInfo = apincer.mobile.tradings.ui.StockWatchlistInfo(
+                    info = scraped,
+                    portfolio = entity,
+                    signal = signal
+                )
+
+                if (isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type, dummyInfo)) {
                     NotificationHelper.showSignalNotification(
                         context = applicationContext,
                         symbol = entity.symbol,
@@ -319,9 +325,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         return Result.success()
     }
 
-    private fun shouldNotifyEntrySignal(quantity: Int, type: IndicatorSignal): Boolean {
+    private fun shouldNotifyEntrySignal(quantity: Int, type: IndicatorSignal, s: apincer.mobile.tradings.ui.StockWatchlistInfo): Boolean {
         val isEntrySignal = type == IndicatorSignal.BUY || type == IndicatorSignal.POTENTIAL
-        return quantity <= 0 && isEntrySignal
+        if (quantity > 0 || !isEntrySignal) return false
+        
+        // STRICT ALERTS: Only notify if it passes the Advisor Screen's VIP gates
+        return apincer.mobile.tradings.ui.StockDna.isLiquid(s) && apincer.mobile.tradings.ui.StockDna.isQual(s)
     }
 
     private fun maybeSendSellReminder(

@@ -5,8 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import apincer.mobile.tradings.appRepository
 import apincer.mobile.tradings.data.PreferenceRepository
-import apincer.mobile.tradings.data.StockDatabase
-import apincer.mobile.tradings.data.StockRepository
 import apincer.mobile.tradings.data.TradeEntity
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

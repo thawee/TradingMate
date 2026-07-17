@@ -85,7 +85,7 @@ fun PortfolioScreen(
     var showDividendDialog by remember { mutableStateOf(false) }
     var selectedStockForSell by remember { mutableStateOf<StockWatchlistInfo?>(null) }
     var selectedStockForEdit by remember { mutableStateOf<StockWatchlistInfo?>(null) }
-    var selectedPlaybook by remember { mutableStateOf("ALL") }
+    var selectedPlaybook by remember { mutableStateOf("SWING") }
 
     val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
     val totalDividendEarned = dividendHistory.sumOf { it.totalReceived }
@@ -179,7 +179,7 @@ fun PortfolioScreen(
         )
 
         GlassSegmentedControl(
-            items = listOf("ALL", "DIVIDEND"),
+            items = listOf("SWING", "DIVIDEND"),
             selectedItem = selectedPlaybook,
             onItemSelect = { selectedPlaybook = it },
             labelExtractor = { it },
@@ -212,7 +212,7 @@ fun PortfolioScreen(
                     lifetimeReturn = lifetimeReturn,
                     lifetimeReturnPercent = lifetimeReturnPercent,
                     isPrivacyMode = isPrivacyMode,
-                    profitScopeLabel = if (selectedPlaybook == "ALL") null else selectedPlaybook,
+                    profitScopeLabel = if (selectedPlaybook == "SWING") null else selectedPlaybook,
                     onEditCash = { showCashDialog = true },
                     onLogDividend = { showDividendDialog = true }
                 )
@@ -244,7 +244,7 @@ fun PortfolioScreen(
                                 androidx.compose.ui.graphics.Color(0xFFE040FB),
                                 androidx.compose.ui.graphics.Color(0xFF1DE9B6)
                             )
-                            val isMacro = selectedPlaybook == "ALL"
+                            val isMacro = selectedPlaybook == "SWING"
                             val chartValues = if (isMacro) {
                                 val swingVal = allPortfolioItems.filter { it.portfolio.tradePurpose == "SWING" }.sumOf { it.info.lastPrice * it.portfolio.quantity }.toFloat()
                                 val divVal = allPortfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }.sumOf { it.info.lastPrice * it.portfolio.quantity }.toFloat()
@@ -317,7 +317,7 @@ fun PortfolioScreen(
                                 }
                             }
 
-                            if (targetYearlyDividend > 0 && selectedPlaybook != "ALL") {
+                            if (targetYearlyDividend > 0 && selectedPlaybook != "SWING") {
                                 Spacer(Modifier.height(24.dp))
                                 HorizontalDivider(modifier = Modifier.alpha(0.1f))
                                 Spacer(Modifier.height(16.dp))

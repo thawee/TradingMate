@@ -90,6 +90,7 @@ fun DividendAdvisorScreen(
     val swingSellAlerts = alertRoutineState.swingSellAlerts
     val dividendSellAlerts = alertRoutineState.dividendSellAlerts
     val combinedSwingPlays = alertRoutineState.combinedSwingPlays
+    val speculativePlays = alertRoutineState.speculativePlays
     val dividendPlays = alertRoutineState.dividendPlays
     val portfolioItems = alertRoutineState.portfolioItems
 
@@ -342,6 +343,16 @@ fun DividendAdvisorScreen(
                         AdvisorStockCard(stock, viewModel)
                     }
                 }
+                
+                if (speculativePlays.isNotEmpty()) {
+                    Spacer(Modifier.height(16.dp))
+                    Text("Speculative Watch (Low Quality)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    Text("These stocks triggered technical buys but failed the strict Quality filter. Trade with caution.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(8.dp))
+                    speculativePlays.forEach { stock ->
+                        AdvisorStockCard(stock, viewModel)
+                    }
+                }
             } else {
                 if (dividendPlays.isEmpty()) {
                     Text("No candidates found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -547,17 +558,19 @@ fun AiCopilotCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             if (playbookMode == PlaybookMode.SWING) {
-                val swingPlays = watchlist.filter { 
-                    isLiquid(it) && isQual(it) && (isMom(it) || isSup(it)) 
+                val swingPlaysFilter = watchlist.filter { 
+                    it.info.lastPrice >= 1.0 && isLiquid(it) && isQual(it) && (isMom(it) || isSup(it)) 
                 }
-                val gapUpPlays = watchlist.filter { isLiquid(it) && isGapUp(it) }
+                val gapUpPlaysFilter = watchlist.filter { it.info.lastPrice >= 1.0 && isLiquid(it) && isGapUp(it) }
+                val speculativePromptPlays = speculativePlays.filter { it.info.lastPrice >= 1.0 }
+                
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Data Preview: Sending ${swingPlays.size} Swing setups and ${gapUpPlays.size} Gap Up plays for analysis.",
+                        text = "Data Preview: Sending ${swingPlaysFilter.size} Swing, ${gapUpPlaysFilter.size} Gap Up, and ${speculativePromptPlays.size} Speculative plays for analysis.",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -571,27 +584,33 @@ fun AiCopilotCard(
                         onMarkAiDone()
                         val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
                         
-                        val swingCandidates = if (swingPlays.isEmpty()) "None" else swingPlays.joinToString("\n") {
-                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, P/BV=${it.info.pbv?.let { pbv -> String.format(Locale.ENGLISH, "%.1f", pbv) } ?: "N/A"}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
+                        val swingCandidates = if (swingPlaysFilter.isEmpty()) "None" else swingPlaysFilter.joinToString("\n") {
+                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
                         }
-                        val gapUpCandidates = if (gapUpPlays.isEmpty()) "None" else gapUpPlays.joinToString("\n") {
-                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Chg=${String.format(Locale.ENGLISH, "%.1f", it.info.percentChange)}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, NPM=${it.info.netProfitMargin?.let { npm -> String.format(Locale.ENGLISH, "%.1f", npm) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}"
+                        val gapUpCandidates = if (gapUpPlaysFilter.isEmpty()) "None" else gapUpPlaysFilter.joinToString("\n") {
+                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, Chg=${String.format(Locale.ENGLISH, "%.1f", it.info.percentChange)}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, NPM=${it.info.netProfitMargin?.let { npm -> String.format(Locale.ENGLISH, "%.1f", npm) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}"
                         }
+                        val speculativeCandidates = if (speculativePromptPlays.isEmpty()) "None" else speculativePromptPlays.joinToString("\n") {
+                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
+                        }
+                        
                         val prompt = """
-                            Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade and gap up candidates.
+                            Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade, gap up, and speculative candidates.
                             
                             DATA FRESHNESS:
                             - Metrics last updated/synced on: $lastSync
                             
                             PLAYBOOK RULES & CONSTRAINTS:
-                            1. Swing/Breakout Candidates:
+                            1. Swing/Breakout Candidates (VIP Quality):
                                - Holding Period: 2-4 weeks.
                                - Technical Alignment: Entry near key moving average support (ideally price is above the 50-day SMA) or structural breakout levels.
                             2. Earnings Gap Candidates:
                                - Holding Period: Short-term momentum (typically 1-3 weeks).
-                               - Technical Alignment: Entry near the gap-up support line or on breakout validation. Prioritize volume surge and strong catalyst over lagging indicators like the 50-day SMA.
-                            3. General Risk Constraints:
-                               - Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required.
+                               - Technical Alignment: Entry near the gap-up support line or on breakout validation. Prioritize volume surge and strong catalyst.
+                            3. Speculative Watch (Low Quality):
+                               - High risk trades. Fundamentals are poor, but technicals are flashing oversold or reversal. Trade only if the catalyst is extremely strong.
+                            4. General Risk Constraints:
+                               - Risk/Reward ratio MUST be asymmetric: Target +5% Profit, Stop Loss -3%.
                                - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
                                
                             GUARDRAILS & NEGATIVE CONSTRAINTS:
@@ -599,17 +618,20 @@ fun AiCopilotCard(
                             - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
                             - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
                             
-                            I am loading the 'Swing/Breakout Playbook' and 'Earnings Gap Playbook' for the candidates below:
+                            I am loading the candidates below:
                             
-                            Swing Candidates:
+                            Swing Candidates (VIP Quality):
                             $swingCandidates
                             
-                            Gap Up Candidates (Earnings Playbook):
+                            Gap Up Candidates:
                             $gapUpCandidates
+                            
+                            Speculative Candidates (Poor Quality, High Risk):
+                            $speculativeCandidates
 
                             DELEGATED TASKS:
                             1. [market-researcher]: Perform a live web search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also perform a query for current SET index level, sector trends, and interest rates to establish macro context.
-                            2. [risk-manager]: Select and rank the Top 3 setups from either candidate list. For Swing plays, verify 50-day SMA support. For Gap Up plays, verify volume validation and entry zones (e.g. gap support or breakout levels). Define the exact Buy Zone, target profit, and strict Stop Loss for each setup.
+                            2. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (+5%), and strict Stop Loss (-3%) for each setup.
                             
                             EXPLAIN INSTRUCTIONS:
                             - Break down the recommendations step-by-step, referencing the math/technical metrics provided.

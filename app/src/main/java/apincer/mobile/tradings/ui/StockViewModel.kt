@@ -40,6 +40,7 @@ data class AlertRoutineState(
     val swingSellAlerts: List<SellAlertData> = emptyList(),
     val dividendSellAlerts: List<SellAlertData> = emptyList(),
     val combinedSwingPlays: List<StockWatchlistInfo> = emptyList(),
+    val speculativePlays: List<StockWatchlistInfo> = emptyList(),
     val dividendPlays: List<StockWatchlistInfo> = emptyList(),
     val portfolioItems: List<StockWatchlistInfo> = emptyList(),
     val checklist: ChecklistEntity = ChecklistEntity()
@@ -367,6 +368,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
             val gapPlays = watchlist.filter { isLiquid(it) && isGapUp(it) }.sortedByDescending { it.info.percentChange }
+            val speculativePlays = watchlist.filter { isLiquid(it) && !isQual(it) && isSup(it) }.sortedWith(
+                compareBy<StockWatchlistInfo> {
+                    when (it.signal?.type) {
+                        IndicatorSignal.BUY -> 0
+                        IndicatorSignal.POTENTIAL -> 1
+                        else -> 2
+                    }
+                }
+            )
             val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
                 .sortedWith(
                     compareBy<StockWatchlistInfo> {
@@ -450,6 +460,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 swingSellAlerts = swingSellAlerts,
                 dividendSellAlerts = dividendSellAlerts,
                 combinedSwingPlays = combinedSwingPlays,
+                speculativePlays = speculativePlays,
                 dividendPlays = dividendPlays,
                 portfolioItems = portfolioItems,
                 checklist = checklist
