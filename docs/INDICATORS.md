@@ -41,6 +41,61 @@ A "volatility tube" that wraps around the price.
 - **Lower Band (Value):** Prices hitting this band are statistically undervalued for their current volatility. Good for entry.
 - **Upper Band (Resistance):** Prices hitting this band are stretched too far. High risk of a pullback.
 
+### 5. OBV (On-Balance Volume) - The Lie Detector
+OBV cumulatively adds volume on up days and subtracts it on down days, revealing whether volume backs the price move.
+
+- **Rising OBV (above its 10-day average):** Steady accumulation — big money is buying. Confirms "Early Recovery" BUY signals alongside (or instead of) a 2× volume surge.
+- **Flat/Falling OBV during a rally:** The move lacks conviction and is likely to fail.
+
+### 6. Relative Strength vs SET Index - The Race
+Classic O'Neil-style RS: the stock's 3-month (63 trading days) return minus the SET index return over the same window.
+
+- **RS > 0:** The stock is outperforming the market. Winners tend to keep winning.
+- **RS < 0:** A market laggard — even if it looks cheap, money is flowing elsewhere. The MOM DNA layer requires RS ≥ 0 (null-tolerant when index data is unavailable).
+- Stocks with positive RS earn the **"RS"** DNA tag.
+
+### 7. 52-Week Low Guard - The Trap Detector
+Structural decliners "look cheap" on RSI and P/E while continually making new lows.
+
+- **Rule:** Stocks trading within **5% of their 52-week low** are excluded by the Pre-Filter from all candidate lists (Swing, Dividend, Gap-Up, Speculative).
+- **Null-tolerant:** If 52-week data has not been computed yet, the stock passes (fail-open).
+
+### 8. ATR (Average True Range) - The Breathing Room
+Wilder-smoothed 14-day average of the daily true range (including gaps). Powers volatility-adjusted exits:
+
+- **Stop Loss:** 2× daily ATR% below cost, clamped to **-3.5% … -8.0%**. Calm large-caps get tight stops; volatile stocks get room so normal wiggles don't shake you out. Priority: user override > ATR-based > fixed tier (-4.5% SET50 / -6.5% Mid/Small).
+- **Trailing Stop:** 2.5× ATR% drop from peak (clamped 4–10%), replacing the fixed 5% rule when ATR is available.
+
+### 9. ADX (Average Directional Index) - The Regime Detector
+Wilder's 14-day trend-strength gauge (direction-agnostic). Gates BUY signals by market regime:
+
+- **ADX < 20 (Chop):** "Healthy Momentum" BUY signals are suppressed — MACD crossovers in a sideways range are whipsaw noise.
+- **ADX ≥ 40 (Violent trend):** "Oversold Accumulation" is downgraded to POTENTIAL (**Falling Knife Guard**) — an extreme selloff still in progress is not a value dip.
+- **Null-tolerant:** Without ADX data, signals behave as before.
+
+### 10. Stochastic Oscillator (14,3,3) - The Reversal Timer
+Slow stochastic: where the close sits within the recent 14-day high-low range (%K), smoothed (%D).
+
+- **Reversal Gate:** An "Oversold Accumulation" BUY requires %K to have crossed above %D. If %K < 20 and still below %D, the price is oversold but **still falling** — the signal is downgraded to POTENTIAL (*Reversal Not Confirmed*) until the cross-up happens.
+- **Null-tolerant:** Without stochastic data, the BUY passes as before.
+
+### 11. MFI (Money Flow Index, 14) - The Smart Money Gauge
+A volume-weighted RSI computed on typical price ((H+L+C)/3 × volume).
+
+- **MFI ≥ 80 (Distribution):** Heavy volume flowing OUT at high prices. On a profitable position this triggers a **SELL** (*Distribution Detected*) — smart money is selling into strength.
+- **MFI ≤ 20 (Capitulation):** Panic-volume flush. Counts as volume confirmation for "Early Recovery" BUY signals (alongside 2× volume surge and rising OBV).
+
+---
+
+## 🧬 The 5-Layer Filter (Stock DNA)
+
+- **Pre-Filter:** Liquidity (daily turnover > ฿1M) **AND** not within 5% of the 52-week low.
+- **Layer 1 — QUAL:** ROE > 15%, NPM > 10%, D/E < 1.5, 3Y profit growth > 10%.
+- **Layer 2 — VAL:** P/E 0.1–15.0 and P/BV 0.1–1.0.
+- **Layer 3 — DIV:** Dividend yield ≥ 5%.
+- **Layer 4 — MOM:** MACD histogram > 0.1% of price, RSI 40–64.9, and Relative Strength vs SET ≥ 0.
+- **Layer 5 — SUP:** BUY/POTENTIAL signal (incorporates SMA 200 trend context).
+
 ---
 
 ## 🏛️ Fundamental Guardrails (Quality Rules)
@@ -99,7 +154,7 @@ Stocks with no clear trend or extreme valuation.
 ## 🛡️ Risk Management (The Golden Rules)
 
 1. **SELL Overrides BUY:** Even if a stock has great momentum, if it hits RSI 65 or the Upper Bollinger Band, the app triggers a **SELL** warning. Never buy at the peak.
-2. **The 5% Rule (Stop Loss):** If a stock drops -5% from your average cost, TradingMate triggers a mandatory **SELL** signal to preserve capital.
+2. **Volatility-Adjusted Stop Loss:** The stop is 2× the stock's daily ATR (clamped -3.5% to -8.0%). If ATR is unavailable, fixed tiers apply: -4.5% (SET50) / -6.5% (Mid/Small-Cap). A breach triggers a mandatory **SELL** signal to preserve capital.
 3. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
 
 ---

@@ -22,7 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CurrencyExchange
+import androidx.compose.material.icons.filled.DoorFront
 import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.School
@@ -88,7 +88,7 @@ fun DividendAdvisorScreen(
     val isMom = StockDna::isMom
     val isSup = StockDna::isSup
     val isGapUp = StockDna::isGapUp
-    val isLiquid = StockDna::isLiquid
+    val isLiquid = StockDna::preFilter // liquidity + 52-week-low trap gate
 
     val playbookMode = alertRoutineState.playbookMode
     val checklist = alertRoutineState.checklist
@@ -271,7 +271,7 @@ fun DividendAdvisorScreen(
                             "Check My Shields 🛡️"
                         },
                         subtitle = "$alertsCount alerts",
-                        icon = Icons.Default.CurrencyExchange
+                        icon = Icons.Default.DoorFront
                        // icon = Icons.AutoMirrored.Sharp.List
                     )
                     if (playbookMode == PlaybookMode.SWING) {

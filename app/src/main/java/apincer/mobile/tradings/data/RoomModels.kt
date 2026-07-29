@@ -1,6 +1,7 @@
 package apincer.mobile.tradings.data
 
 import androidx.room.*
+import apincer.mobile.tradings.domain.BollingerBands
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
@@ -75,6 +76,21 @@ data class StockSignalEntity(
     @PrimaryKey val symbol: String,
     val rsi: Double? = null,
     val macdHist: Double? = null,
+    val sma50: Double? = null,
+    val sma200: Double? = null,
+    val bbUpper: Double? = null,
+    val bbMiddle: Double? = null,
+    val bbLower: Double? = null,
+    val isVolumeSurge: Boolean = false,
+    val obvRising: Boolean = false,
+    val week52Low: Double? = null,
+    val week52High: Double? = null,
+    val relativeStrength: Double? = null,
+    val atr: Double? = null,
+    val adx: Double? = null,
+    val stochK: Double? = null,
+    val stochD: Double? = null,
+    val mfi: Double? = null,
     val signalType: String? = null, // BUY, SELL, NEUTRAL
     val signalReason: String? = null,
     val signalDescription: String? = null,
@@ -119,6 +135,23 @@ data class StockAggregate(
     val dividendDate: String? get() = cache?.dividendDate
     val rsi: Double? get() = signal?.rsi
     val macdHist: Double? get() = signal?.macdHist
+    val sma50: Double? get() = signal?.sma50
+    val sma200: Double? get() = signal?.sma200
+    val isVolumeSurge: Boolean get() = signal?.isVolumeSurge ?: false
+    val obvRising: Boolean get() = signal?.obvRising ?: false
+    val week52Low: Double? get() = signal?.week52Low
+    val week52High: Double? get() = signal?.week52High
+    val relativeStrength: Double? get() = signal?.relativeStrength
+    val atr: Double? get() = signal?.atr
+    val adx: Double? get() = signal?.adx
+    val stochK: Double? get() = signal?.stochK
+    val stochD: Double? get() = signal?.stochD
+    val mfi: Double? get() = signal?.mfi
+    val bb: BollingerBands? get() = signal?.let { s ->
+        if (s.bbUpper != null && s.bbMiddle != null && s.bbLower != null) {
+            BollingerBands(s.bbUpper, s.bbMiddle, s.bbLower)
+        } else null
+    }
     val signalType: String? get() = signal?.signalType
     val signalReason: String? get() = signal?.signalReason
     val signalDescription: String? get() = signal?.signalDescription
@@ -413,7 +446,7 @@ interface PortfolioSnapshotDao {
         PortfolioSnapshotEntity::class,
         CashTransactionEntity::class
     ], 
-    version = 25
+    version = 29
 )
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
@@ -429,7 +462,41 @@ abstract class StockDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: StockDatabase? = null
 
-        
+        val MIGRATION_28_29 = object : androidx.room.migration.Migration(28, 29) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN stochK REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN stochD REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN mfi REAL")
+            }
+        }
+
+        val MIGRATION_27_28 = object : androidx.room.migration.Migration(27, 28) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN atr REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN adx REAL")
+            }
+        }
+
+        val MIGRATION_26_27 = object : androidx.room.migration.Migration(26, 27) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN obvRising INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN week52Low REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN week52High REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN relativeStrength REAL")
+            }
+        }
+
+        val MIGRATION_25_26 = object : androidx.room.migration.Migration(25, 26) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN sma50 REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN sma200 REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN bbUpper REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN bbMiddle REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN bbLower REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN isVolumeSurge INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         val MIGRATION_24_25 = object : androidx.room.migration.Migration(24, 25) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE stock_cache ADD COLUMN volume INTEGER")
@@ -658,7 +725,7 @@ abstract class StockDatabase : RoomDatabase() {
                     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
                     MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
                     MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
-                    MIGRATION_24_25
+                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29
                 )
                 .build()
                 INSTANCE = instance

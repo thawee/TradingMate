@@ -40,6 +40,18 @@ object StockDna {
         return price > 0 && volume * price > 1_000_000.0
     }
 
+    /** Pre-filter — 52-Week Low Trap: reject stocks trading within 5% of their
+     *  52-week low. Structural decliners "look cheap" on RSI/P-E but keep making
+     *  new lows. Null-tolerant: passes if 52w data hasn't been computed yet. */
+    fun isNotNear52wLow(s: StockWatchlistInfo): Boolean {
+        val low = s.portfolio.week52Low ?: return true
+        val price = s.info.lastPrice
+        return price <= 0 || price >= low * 1.05
+    }
+
+    /** Combined pre-filter gate applied before all DNA layers. */
+    fun preFilter(s: StockWatchlistInfo): Boolean = isLiquid(s) && isNotNear52wLow(s)
+
     /** Layer 2 — Value: P/E 0.1–15.0 and P/BV 0.1–1.0. */
     fun isVal(s: StockWatchlistInfo): Boolean =
         (s.info.pe ?: 0.0) in 0.1..15.0 && (s.info.pbv ?: 0.0) in 0.1..1.0
@@ -48,13 +60,16 @@ object StockDna {
     fun isDiv(s: StockWatchlistInfo): Boolean =
         (s.info.dividendYield ?: 0.0) >= TradingConstants.DIVIDEND_YIELD_ENTRY
 
-    /** Layer 4 — Momentum: MACD histogram meaningfully positive (>0.1% of price)
-     *  and RSI in 40–64.9 (not overbought — aligned with RSI_OVERBOUGHT). */
+    /** Layer 4 — Momentum: MACD histogram meaningfully positive (>0.1% of price),
+     *  RSI in 40–64.9 (not overbought — aligned with RSI_OVERBOUGHT), and
+     *  3-month Relative Strength vs SET index not negative (don't buy market
+     *  laggards). RS is null-tolerant: missing data does not disqualify. */
     fun isMom(s: StockWatchlistInfo): Boolean {
         val hist = s.portfolio.macdHist ?: 0.0
         val price = s.info.lastPrice
         return price > 0 && hist > price * 0.001 &&
-               (s.portfolio.rsi ?: 50.0) in 40.0..TradingConstants.RSI_MOMENTUM_MAX
+               (s.portfolio.rsi ?: 50.0) in 40.0..TradingConstants.RSI_MOMENTUM_MAX &&
+               (s.portfolio.relativeStrength ?: 0.0) >= 0.0
     }
 
     /** Layer 5 — Support/Setup: BUY/POTENTIAL signal only.
@@ -84,6 +99,8 @@ object StockDna {
         if (isMom(s)) add("MOM")
         if (isSup(s)) add("SUP")
         if (isGapUp(s)) add("GAP")
+        // RS = outperforming the SET index over ~3 months (Relative Strength > 0)
+        if ((s.portfolio.relativeStrength ?: 0.0) > 0.0) add("RS")
         // OS = "extreme oversold" (RSI < 30), stricter than SUP's signal-based entry
         if ((s.portfolio.rsi ?: 50.0) < TradingConstants.RSI_OVERSOLD - 5.0) add("OS")
     }

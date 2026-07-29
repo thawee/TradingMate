@@ -246,16 +246,29 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         rsi = stock.rsi,
                         macdHist = stock.macdHist,
                         lastPrice = stock.lastPrice,
-                        sma50 = null,
-                        sma200 = null,
-                        bb = null,
-                        isVolumeSurge = false,
+                        sma50 = stock.sma50,
+                        sma200 = stock.sma200,
+                        bb = stock.bb,
+                        isVolumeSurge = stock.isVolumeSurge,
+                        obvRising = stock.obvRising,
+                        atrPercent = stock.atr?.takeIf { stock.lastPrice > 0 }?.let { it / stock.lastPrice * 100 },
+                        adx = stock.adx,
+                        stochK = stock.stochK,
+                        stochD = stock.stochD,
+                        mfi = stock.mfi,
                         userCost = if (stock.cost > 0) stock.cost else null,
                         userQuantity = if (stock.quantity > 0) stock.quantity else null,
                         isFundamentalGood = false,
                         tradePurpose = stock.tradePurpose,
                         dividendYield = stock.dividendYield,
-                        roe = stock.roe
+                        roe = stock.roe,
+                        peakPrice = if (stock.peakPrice > 0) stock.peakPrice else null,
+                        isSet50 = TradingConstants.SET50_SYMBOLS.contains(stock.symbol.uppercase()),
+                        // stopLoss is stored as a positive baht PRICE; convert to the negative
+                        // percent-vs-cost that getDetailedSignal expects for the override
+                        userStopLoss = if (stock.stopLoss > 0 && stock.cost > 0 && stock.stopLoss < stock.cost) {
+                            ((stock.stopLoss - stock.cost) / stock.cost) * 100
+                        } else null
                     )
                 } else if (stock.signalType != null) {
                     TradeSignal(
@@ -334,7 +347,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             val isMom = StockDna::isMom
             val isSup = StockDna::isSup
             val isGapUp = StockDna::isGapUp
-            val isLiquid = StockDna::isLiquid
+            val isLiquid = StockDna::preFilter // liquidity + 52-week-low trap gate
 
             val dividendPlays = watchlist.filter { isLiquid(it) && isDiv(it) && isQual(it) }
                 .sortedWith(
@@ -656,6 +669,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 sma200 = indicators.sma200,
                                                 bb = indicators.bollingerBands,
                                                 isVolumeSurge = indicators.isVolumeSurge,
+                                                obvRising = indicators.obvRising,
+                                                atrPercent = indicators.atr?.takeIf { info.lastPrice > 0 }?.let { it / info.lastPrice * 100 },
+                                                adx = indicators.adx,
+                                                stochK = indicators.stochK,
+                                                stochD = indicators.stochD,
+                                                mfi = indicators.mfi,
                                                 userCost = if (stock.cost > 0) stock.cost else null,
                                                 userQuantity = if (stock.quantity > 0) stock.quantity else null,
                                                 isFundamentalGood = info.isFundamentalGood,
@@ -705,6 +724,21 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             sig.copy(
                                                 rsi = if (needsIndicators) indicators.rsi else sig.rsi,
                                                 macdHist = if (needsIndicators) indicators.histogram else sig.macdHist,
+                                                sma50 = if (needsIndicators) indicators.sma50 else sig.sma50,
+                                                sma200 = if (needsIndicators) indicators.sma200 else sig.sma200,
+                                                bbUpper = if (needsIndicators) indicators.bollingerBands?.upper else sig.bbUpper,
+                                                bbMiddle = if (needsIndicators) indicators.bollingerBands?.middle else sig.bbMiddle,
+                                                bbLower = if (needsIndicators) indicators.bollingerBands?.lower else sig.bbLower,
+                                                isVolumeSurge = if (needsIndicators) indicators.isVolumeSurge else sig.isVolumeSurge,
+                                                obvRising = if (needsIndicators) indicators.obvRising else sig.obvRising,
+                                                week52Low = if (needsIndicators) indicators.week52Low else sig.week52Low,
+                                                week52High = if (needsIndicators) indicators.week52High else sig.week52High,
+                                                relativeStrength = if (needsIndicators) indicators.relativeStrength else sig.relativeStrength,
+                                                atr = if (needsIndicators) indicators.atr else sig.atr,
+                                                adx = if (needsIndicators) indicators.adx else sig.adx,
+                                                stochK = if (needsIndicators) indicators.stochK else sig.stochK,
+                                                stochD = if (needsIndicators) indicators.stochD else sig.stochD,
+                                                mfi = if (needsIndicators) indicators.mfi else sig.mfi,
                                                 signalType = signal.type.name,
                                                 signalReason = signal.reason,
                                                 signalDescription = signal.description,
@@ -806,6 +840,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 lastPrice = info.lastPrice, sma50 = indicators.sma50,
                                                 sma200 = indicators.sma200, bb = indicators.bollingerBands,
                                                 isVolumeSurge = indicators.isVolumeSurge,
+                                                obvRising = indicators.obvRising,
+                                                atrPercent = indicators.atr?.takeIf { info.lastPrice > 0 }?.let { it / info.lastPrice * 100 },
+                                                adx = indicators.adx,
+                                                stochK = indicators.stochK,
+                                                stochD = indicators.stochD,
+                                                mfi = indicators.mfi,
                                                 userCost = if (stock.cost > 0) stock.cost else null,
                                                 userQuantity = if (stock.quantity > 0) stock.quantity else null,
                                                 isFundamentalGood = info.isFundamentalGood,
@@ -841,6 +881,21 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                         repository.updateStockSignal(sig.copy(
                                             rsi = if (needsIndicators) indicators.rsi else sig.rsi,
                                             macdHist = if (needsIndicators) indicators.histogram else sig.macdHist,
+                                            sma50 = if (needsIndicators) indicators.sma50 else sig.sma50,
+                                            sma200 = if (needsIndicators) indicators.sma200 else sig.sma200,
+                                            bbUpper = if (needsIndicators) indicators.bollingerBands?.upper else sig.bbUpper,
+                                            bbMiddle = if (needsIndicators) indicators.bollingerBands?.middle else sig.bbMiddle,
+                                            bbLower = if (needsIndicators) indicators.bollingerBands?.lower else sig.bbLower,
+                                            isVolumeSurge = if (needsIndicators) indicators.isVolumeSurge else sig.isVolumeSurge,
+                                            obvRising = if (needsIndicators) indicators.obvRising else sig.obvRising,
+                                            week52Low = if (needsIndicators) indicators.week52Low else sig.week52Low,
+                                            week52High = if (needsIndicators) indicators.week52High else sig.week52High,
+                                            relativeStrength = if (needsIndicators) indicators.relativeStrength else sig.relativeStrength,
+                                            atr = if (needsIndicators) indicators.atr else sig.atr,
+                                            adx = if (needsIndicators) indicators.adx else sig.adx,
+                                            stochK = if (needsIndicators) indicators.stochK else sig.stochK,
+                                            stochD = if (needsIndicators) indicators.stochD else sig.stochD,
+                                            mfi = if (needsIndicators) indicators.mfi else sig.mfi,
                                             signalType = signal.type.name, signalReason = signal.reason,
                                             signalDescription = signal.description,
                                             lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
@@ -1012,6 +1067,17 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val sma200 = TechnicalAnalysis.calculateSMA(prices, 200)
                     val bb = TechnicalAnalysis.calculateBollingerBands(prices)
                     val isVolumeSurge = TechnicalAnalysis.isVolumeSurge(volumes)
+                    val obvRising = TechnicalAnalysis.isObvRising(prices, volumes)
+                    val week52 = TechnicalAnalysis.calculate52WeekRange(prices)
+                    val relativeStrength = TechnicalAnalysis.calculateRelativeStrength(
+                        prices, SetScraper.fetchSetIndexHistory().map { it.close }
+                    )
+                    val highs = history.map { it.high }
+                    val lows = history.map { it.low }
+                    val atr = TechnicalAnalysis.calculateATR(highs, lows, prices)
+                    val adx = TechnicalAnalysis.calculateADX(highs, lows, prices)
+                    val stoch = TechnicalAnalysis.calculateStochastic(highs, lows, prices)
+                    val mfi = TechnicalAnalysis.calculateMFI(highs, lows, prices, volumes)
 
                     // Calculate Returns for different periods (prices are oldest→newest)
                     val returns = mutableMapOf<Int, Double>()
@@ -1041,6 +1107,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         sma200 = sma200,
                         bb = bb,
                         isVolumeSurge = isVolumeSurge,
+                        obvRising = obvRising,
+                        atrPercent = atr?.takeIf { updatedInfo.lastPrice > 0 }?.let { it / updatedInfo.lastPrice * 100 },
+                        adx = adx,
+                        stochK = stoch?.first,
+                        stochD = stoch?.second,
+                        mfi = mfi,
                         userCost = portfolio?.cost,
                         userQuantity = portfolio?.quantity,
                         isFundamentalGood = updatedInfo.isFundamentalGood,
@@ -1088,6 +1160,21 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         repository.updateStockSignal(sig.copy(
                             rsi = rsi,
                             macdHist = macd.third,
+                            sma50 = sma50,
+                            sma200 = sma200,
+                            bbUpper = bb?.upper,
+                            bbMiddle = bb?.middle,
+                            bbLower = bb?.lower,
+                            isVolumeSurge = isVolumeSurge,
+                            obvRising = obvRising,
+                            week52Low = week52?.first,
+                            week52High = week52?.second,
+                            relativeStrength = relativeStrength,
+                            atr = atr,
+                            adx = adx,
+                            stochK = stoch?.first,
+                            stochD = stoch?.second,
+                            mfi = mfi,
                             signalType = signal.type.name,
                             signalReason = signal.reason,
                             signalDescription = signal.description,

@@ -25,15 +25,22 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Paid
+import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Traffic
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -207,6 +214,55 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     content = stringResource(R.string.edu_bollinger_content),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     icon = Icons.Default.BlurOn
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_obv_title),
+                    content = stringResource(R.string.edu_obv_content),
+                    color = MaterialTheme.colorScheme.secondary,
+                    icon = Icons.Default.Equalizer
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_rs_title),
+                    content = stringResource(R.string.edu_rs_content),
+                    color = MaterialTheme.colorScheme.tertiary,
+                    icon = Icons.Default.EmojiEvents
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_52w_title),
+                    content = stringResource(R.string.edu_52w_content),
+                    color = MaterialTheme.colorScheme.error,
+                    icon = Icons.Default.Report
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_atr_title),
+                    content = stringResource(R.string.edu_atr_content),
+                    color = MaterialTheme.colorScheme.primary,
+                    icon = Icons.Default.Straighten
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_adx_title),
+                    content = stringResource(R.string.edu_adx_content),
+                    color = MaterialTheme.colorScheme.secondary,
+                    icon = Icons.Default.Waves
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_stoch_title),
+                    content = stringResource(R.string.edu_stoch_content),
+                    color = MaterialTheme.colorScheme.tertiary,
+                    icon = Icons.Default.Timer
+                )
+
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_mfi_title),
+                    content = stringResource(R.string.edu_mfi_content),
+                    color = MaterialTheme.colorScheme.primary,
+                    icon = Icons.Default.Paid
                 )
 
                 // --- SECTION 4: THE WORKFLOW ---

@@ -115,6 +115,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     sma200 = indicators.sma200,
                     bb = indicators.bollingerBands,
                     isVolumeSurge = indicators.isVolumeSurge,
+                    obvRising = indicators.obvRising,
+                    atrPercent = indicators.atr?.takeIf { scraped.lastPrice > 0 }?.let { it / scraped.lastPrice * 100 },
+                    adx = indicators.adx,
+                    stochK = indicators.stochK,
+                    stochD = indicators.stochD,
+                    mfi = indicators.mfi,
                     userCost = if (entity.quantity > 0) entity.cost else null,
                     userQuantity = if (entity.quantity > 0) entity.quantity else null,
                     isFundamentalGood = false,
@@ -168,6 +174,21 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     sig.copy(
                         rsi = indicators.rsi,
                         macdHist = indicators.histogram,
+                        sma50 = indicators.sma50,
+                        sma200 = indicators.sma200,
+                        bbUpper = indicators.bollingerBands?.upper,
+                        bbMiddle = indicators.bollingerBands?.middle,
+                        bbLower = indicators.bollingerBands?.lower,
+                        isVolumeSurge = indicators.isVolumeSurge,
+                        obvRising = indicators.obvRising,
+                        week52Low = indicators.week52Low,
+                        week52High = indicators.week52High,
+                        relativeStrength = indicators.relativeStrength,
+                        atr = indicators.atr,
+                        adx = indicators.adx,
+                        stochK = indicators.stochK,
+                        stochD = indicators.stochD,
+                        mfi = indicators.mfi,
                         signalType = newSignalType,
                         signalReason = signal.reason,
                         signalDescription = signal.description,
@@ -336,7 +357,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         if (quantity > 0 || !isEntrySignal) return false
         
         // STRICT ALERTS: Only notify if it passes the Advisor Screen's VIP gates
-        return apincer.mobile.tradings.ui.StockDna.isLiquid(s) && apincer.mobile.tradings.ui.StockDna.isQual(s)
+        return apincer.mobile.tradings.ui.StockDna.preFilter(s) && apincer.mobile.tradings.ui.StockDna.isQual(s)
     }
 
     private fun maybeSendSellReminder(

@@ -26,6 +26,7 @@ It specifically addresses common beginner challenges:
 
 TradingMate doesn't just look at price; it evaluates the "DNA" of a company using a strict 5-Layer filter to classify stocks into Swing Plays or Dividend Stars.
 
+0. **Pre-Filter (Gate):** Every candidate must be liquid (daily turnover > ฿1M) and **not within 5% of its 52-week low** (avoids "cheap-looking" structural decliners).
 1. **Qual (Quality):** Evaluates management efficiency and profitability.
    - *Indicators used:* ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
 2. **Val (Value):** Identifies underpriced or fair-value stocks.
@@ -33,7 +34,7 @@ TradingMate doesn't just look at price; it evaluates the "DNA" of a company usin
 3. **Div (Dividend):** Highlights strong passive income generators.
    - *Indicators used:* Dividend Yield ≥ 5.0%.
 4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
-   - *Indicators used:* MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise), RSI in 40–70 (healthy momentum, excludes overbought).
+   - *Indicators used:* MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise), RSI in 40–70 (healthy momentum, excludes overbought), and 3-month Relative Strength vs SET index ≥ 0 (no market laggards).
 5. **Sup (Support / Setup):** Locates ideal entry zones or extreme discounts.
    - *Indicators used:* RSI < 35 (Oversold) or proprietary BUY/POTENTIAL zone signals.
 
@@ -54,6 +55,20 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
    - **SMA 200:** Long-term "Line in the Sand" (Bull vs. Bear trend).
 4. **Bollinger Bands - The Volatility Map**
    - Helps time entries near the **Lower Band** and exits near the **Upper Band**.
+5. **OBV (On-Balance Volume) - The Lie Detector**
+   - Rising OBV confirms that volume backs the rally (used to confirm "Early Recovery" buys).
+6. **Relative Strength vs SET - The Race**
+   - 3-month return vs the SET index; positive RS stocks earn the "RS" DNA tag.
+7. **52-Week Low Guard - The Trap Detector**
+   - Excludes stocks within 5% of their 52-week low from all candidate lists.
+8. **ATR (14) - The Breathing Room**
+   - Volatility-adjusted stop loss (2× ATR, clamped -3.5% to -8%) and trailing stop (2.5× ATR).
+9. **ADX (14) - The Regime Detector**
+   - Suppresses momentum buys in chop (ADX < 20) and knife-catching in violent trends (ADX ≥ 40).
+10. **Stochastic (14,3,3) - The Reversal Timer**
+   - Oversold buys require %K to cross above %D — no entries while price is still falling.
+11. **MFI (14) - The Smart Money Gauge**
+   - Volume-weighted RSI: ≥ 80 triggers Distribution SELL on profits; ≤ 20 confirms capitulation buys.
 
 ## 🧠 The Trading Strategy (Standardized)
 
@@ -62,6 +77,23 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **🔴 Sell - Take Profit:** Triggers at >10% net profit or when RSI > 65.
 - **🔴 Sell - Stop Loss:** Automatically alerts you to cut losses at -5% net.
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance) ALWAYS override BUY momentum.
+
+## 🎯 Expected Performance (Estimated, Not Backtested)
+
+TradingMate is a **mean-reversion + trend-quality hybrid**: it buys oversold dips (RSI/Stochastic) only in healthy trends (SMA 200, ADX guards) on quality names (5-Layer DNA), and exits with fee-aware take-profits and ATR-sized stops.
+
+| Signal Path | Guards Applied | Est. Win Rate* |
+|---|---|---|
+| Healthy Momentum BUY | MACD+, RSI 40–65, ADX ≥ 20, RS ≥ 0 | ~55–62% |
+| Oversold Accumulation | RSI < 35 + above SMA 200 + Stoch %K > %D + ADX < 40 knife guard | ~58–65% |
+| Early Recovery | Volume / MFI capitulation confirmation | ~50–58% |
+| Full 5-Layer DNA pass | QUAL + VAL + DIV + MOM + SUP + pre-filters | ~60–68% (rare) |
+
+*Ranges based on published research for RSI mean-reversion with trend filters on equities. Unfiltered RSI dip-buying alone runs only ~45–52% — the ADX chop filter, 52-week-low trap guard, and Relative Strength gate are what push the odds above breakeven.
+
+**Expectancy math:** average win ≈ +4.6% net of fees vs. average loss ≈ -5.4% (ATR stop + fees) → breakeven win rate ≈ **54%**. At a realistic 55–63% win rate, expectancy is roughly **+0.3 to +0.7% per trade**. Letting the ATR trailing stop run winners beyond +5% is where the real profit comes from.
+
+> These figures are **estimates** — the app does not yet include a backtesting engine. Actual results depend on discipline, execution, and market regime.
 
 ## 📋 Swing Playbook (Daily Discipline Tracker)
 

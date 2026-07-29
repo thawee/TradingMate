@@ -60,7 +60,9 @@ data class ScrapedStockInfo(
 data class ScrapedHistoricalPrice(
     val date: String,
     val close: Double,
-    val volume: Long = 0
+    val volume: Long = 0,
+    val high: Double = close,
+    val low: Double = close
 )
 
 object SetScraper {
@@ -517,6 +519,9 @@ object SetScraper {
                 val indicators = result.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0)
                 val closes = indicators.getJSONArray("close")
                 val volumes = indicators.getJSONArray("volume")
+                // high/low may be absent in degraded responses — fall back to close
+                val highs = indicators.optJSONArray("high")
+                val lows = indicators.optJSONArray("low")
                 
                 val prices = mutableListOf<ScrapedHistoricalPrice>()
                 val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
@@ -526,11 +531,15 @@ object SetScraper {
                     val ts = timestamps.getLong(i) * 1000
                     val close = closes.getDouble(i)
                     val volume = if (!volumes.isNull(i)) volumes.getLong(i) else 0L
+                    val high = if (highs != null && !highs.isNull(i)) highs.getDouble(i) else close
+                    val low = if (lows != null && !lows.isNull(i)) lows.getDouble(i) else close
                     
                     prices.add(ScrapedHistoricalPrice(
                         date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(dateFormatter),
                         close = close,
-                        volume = volume
+                        volume = volume,
+                        high = high,
+                        low = low
                     ))
                 }
                 
@@ -554,6 +563,16 @@ object SetScraper {
         val isVolumeSurge = apincer.mobile.tradings.domain.TechnicalAnalysis.isVolumeSurge(volumes)
         val rsi = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRSI(prices, 14)
         val macd = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateMACD(prices)
+        val obvRising = apincer.mobile.tradings.domain.TechnicalAnalysis.isObvRising(prices, volumes)
+        val week52 = apincer.mobile.tradings.domain.TechnicalAnalysis.calculate52WeekRange(prices)
+        val indexPrices = fetchSetIndexHistory().map { it.close }
+        val relativeStrength = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRelativeStrength(prices, indexPrices)
+        val highs = history.map { it.high }
+        val lows = history.map { it.low }
+        val atr = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateATR(highs, lows, prices)
+        val adx = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateADX(highs, lows, prices)
+        val stoch = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateStochastic(highs, lows, prices)
+        val mfi = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateMFI(highs, lows, prices, volumes)
 
         return apincer.mobile.tradings.domain.Indicators(
             sma50 = sma50,
@@ -563,8 +582,72 @@ object SetScraper {
             signal = macd.second,
             histogram = macd.third,
             bollingerBands = bb,
-            isVolumeSurge = isVolumeSurge
+            isVolumeSurge = isVolumeSurge,
+            obvRising = obvRising,
+            week52Low = week52?.first,
+            week52High = week52?.second,
+            relativeStrength = relativeStrength,
+            atr = atr,
+            adx = adx,
+            stochK = stoch?.first,
+            stochD = stoch?.second,
+            mfi = mfi
         )
+    }
+
+    // SET index history cache — shared across all stocks in a refresh cycle
+    private const val SET_INDEX_SYMBOL_RAW = "%5ESET.BK" // URL-encoded ^SET.BK
+    private const val INDEX_CACHE_TTL_MS = 60 * 60 * 1000L // 1 hour
+    @Volatile private var cachedIndexHistory: List<ScrapedHistoricalPrice> = emptyList()
+    @Volatile private var cachedIndexTimestamp: Long = 0L
+
+    /** Fetches ~1 year of SET index daily closes (cached 1h) for Relative Strength calculation. */
+    fun fetchSetIndexHistory(): List<ScrapedHistoricalPrice> {
+        val now = System.currentTimeMillis()
+        if (cachedIndexHistory.isNotEmpty() && now - cachedIndexTimestamp < INDEX_CACHE_TTL_MS) {
+            return cachedIndexHistory
+        }
+        return try {
+            withRetry {
+                val endDate = now / 1000
+                val startDate = endDate - 31536000
+                val url = "$YAHOO_FINANCE_URL/$SET_INDEX_SYMBOL_RAW?period1=$startDate&period2=$endDate&interval=1d&events=history"
+                Log.d(TAG, "Fetching SET Index History: $url")
+
+                val response = Jsoup.connect(url)
+                    .userAgent(USER_AGENT)
+                    .ignoreContentType(true)
+                    .timeout(15000)
+                    .execute()
+
+                if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
+
+                val json = JSONObject(response.body())
+                val result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0)
+                if (!result.has("timestamp")) return@withRetry emptyList()
+
+                val timestamps = result.getJSONArray("timestamp")
+                val indicators = result.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0)
+                val closes = indicators.getJSONArray("close")
+
+                val prices = mutableListOf<ScrapedHistoricalPrice>()
+                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
+                for (i in 0 until timestamps.length()) {
+                    if (closes.isNull(i)) continue
+                    val ts = timestamps.getLong(i) * 1000
+                    prices.add(ScrapedHistoricalPrice(
+                        date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(dateFormatter),
+                        close = closes.getDouble(i)
+                    ))
+                }
+                cachedIndexHistory = prices
+                cachedIndexTimestamp = now
+                prices
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "SET Index History Fetch Error after retries", e)
+            cachedIndexHistory // stale cache is better than nothing
+        }
     }
 
     fun fetchIndexComposition(indexName: String): List<String> {
