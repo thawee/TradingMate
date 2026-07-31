@@ -16,7 +16,8 @@ It specifically addresses common beginner challenges:
 
 - **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. It suggests high-yield "Dividend Stars" based on strict fundamental criteria.
 - **Market Pulse:** Real-time monitoring of your watchlist with automated technical signals (BUY, SELL, POTENTIAL).
-- **AI Advisor:** A centralized AI discovery hub that evaluates Swing, Gap, and Dividend opportunities and generates direct Master Prompts for deep AI analysis.
+- **AI Advisor:** A centralized AI discovery hub that evaluates Swing, Gap, Dividend, and Speculative opportunities. Generates Master Prompts for external AI analysis (ChatGPT/Gemini/Claude) **and** offers a built-in "Analyze with AI" button that calls Google Gemini directly, returning structured recommendations with a 0–100% Confidence Score per pick.
+- **Backtest Engine:** An in-app backtester replays each stock's historical price/indicator history against the Swing DNA rules to report win rate, average win/loss, and expectancy per stock — no more relying on estimated ranges alone.
 - **Consolidated Portfolio:** A professional-grade financial dashboard grouping stock holdings, cash balance, net profit, and fee tracking in one unified view.
 - **Automated Trading Zones:** Real-time calculation of "Buy Below" and "Sell Above" price ranges using RSI (35/65 targets).
 - **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled (waived via Settings). Financial Transaction Tax is ฿0 — officially abolished.
@@ -26,7 +27,7 @@ It specifically addresses common beginner challenges:
 
 TradingMate doesn't just look at price; it evaluates the "DNA" of a company using a strict 5-Layer filter to classify stocks into Swing Plays or Dividend Stars.
 
-0. **Pre-Filter (Gate):** Every candidate must be liquid (daily turnover > ฿1M) and **not within 5% of its 52-week low** (avoids "cheap-looking" structural decliners).
+0. **Pre-Filter (Gate):** Every candidate must be liquid (daily turnover > ฿5M) and **not within 5% of its 52-week low** (avoids "cheap-looking" structural decliners).
 1. **Qual (Quality):** Evaluates management efficiency and profitability.
    - *Indicators used:* ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
 2. **Val (Value):** Identifies underpriced or fair-value stocks.
@@ -78,7 +79,7 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **🔴 Sell - Stop Loss:** Automatically alerts you to cut losses at -5% net.
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance) ALWAYS override BUY momentum.
 
-## 🎯 Expected Performance (Estimated, Not Backtested)
+## 🎯 Expected Performance
 
 TradingMate is a **mean-reversion + trend-quality hybrid**: it buys oversold dips (RSI/Stochastic) only in healthy trends (SMA 200, ADX guards) on quality names (5-Layer DNA), and exits with fee-aware take-profits and ATR-sized stops.
 
@@ -93,7 +94,7 @@ TradingMate is a **mean-reversion + trend-quality hybrid**: it buys oversold dip
 
 **Expectancy math:** average win ≈ +4.6% net of fees vs. average loss ≈ -5.4% (ATR stop + fees) → breakeven win rate ≈ **54%**. At a realistic 55–63% win rate, expectancy is roughly **+0.3 to +0.7% per trade**. Letting the ATR trailing stop run winners beyond +5% is where the real profit comes from.
 
-> These figures are **estimates** — the app does not yet include a backtesting engine. Actual results depend on discipline, execution, and market regime.
+> The ranges above are general research-backed estimates for the strategy family. For a **stock-specific, historical measurement**, use the in-app **Backtest** screen — it replays each stock's own price/indicator history against these exact DNA rules and reports actual win rate, average win/loss, and expectancy for that ticker.
 
 ## 📋 Swing Playbook (Daily Discipline Tracker)
 
@@ -105,7 +106,7 @@ The Swing Playbook is a 3-step daily workflow to keep traders disciplined during
 |------|------|--------------|
 | 1 | 🚨 Check Exits | Review sell alerts — Take Profit (≥10%), Stop Loss (≤-5%), Overbought (RSI ≥65), SELL signal |
 | 2 | 🔍 Scan Setups | Review swing/gap candidates filtered by Quality, Momentum, and Support criteria |
-| 3 | 🤖 Ask AI | Copy a detailed AI prompt to clipboard for external analysis (ChatGPT/Gemini/Claude) |
+| 3 | 🤖 Ask AI | Copy an AI prompt to clipboard for external analysis (ChatGPT/Gemini/Claude), or tap "Analyze with AI" for an in-app Gemini call returning ranked picks with a Confidence Score (0–100%) |
 
 - Each step has a checkbox. Tapping **"Next →"** scrolls to the next step.
 - When all 3 steps are checked, the bar shows **"✅ All 3 steps done! You're ready to trade."**

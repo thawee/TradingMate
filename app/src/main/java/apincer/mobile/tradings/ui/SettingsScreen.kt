@@ -24,13 +24,19 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -42,6 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +62,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
+import apincer.mobile.tradings.domain.AvailableGeminiModel
+import apincer.mobile.tradings.domain.GeminiClient
+import apincer.mobile.tradings.domain.GeminiModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -330,6 +343,127 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp, top = 8.dp)
+                )
+            }
+
+            SectionContent(title = "AI Integration", icon = Icons.Default.AccountBalanceWallet) {
+                val geminiApiKey by settingsViewModel.geminiApiKey.collectAsState()
+                var editingApiKey by remember(geminiApiKey) { mutableStateOf(geminiApiKey) }
+
+                OutlinedTextField(
+                    value = editingApiKey,
+                    onValueChange = {
+                        editingApiKey = it
+                        settingsViewModel.updateGeminiApiKey(it)
+                    },
+                    label = { Text("Gemini API Key") },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = "Required for the in-app \"Analyze with AI\" button in Smart Advisors. Get a free key from Google AI Studio (aistudio.google.com/apikey). Stored only on this device; sent directly to Google, never to our servers.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
+
+                val geminiModelId by settingsViewModel.geminiModel.collectAsState()
+                var fetchedModels by remember { mutableStateOf<List<AvailableGeminiModel>?>(null) }
+                var isFetchingModels by remember { mutableStateOf(false) }
+                var fetchError by remember { mutableStateOf<String?>(null) }
+                val coroutineScope = rememberCoroutineScope()
+
+                // Live-fetched models take priority; fall back to the static known-good list
+                // until the user refreshes (or if the fetch fails, e.g. offline/bad key).
+                data class ModelOption(val id: String, val label: String, val description: String)
+                val modelOptions: List<ModelOption> = fetchedModels?.map {
+                    ModelOption(it.id, it.displayName, it.description.ifBlank { it.id })
+                } ?: GeminiModel.entries.map { ModelOption(it.id, it.label, it.description) }
+                val selectedOption = modelOptions.find { it.id == geminiModelId }
+                    ?: ModelOption(geminiModelId, geminiModelId, "")
+                var modelMenuExpanded by remember { mutableStateOf(false) }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ExposedDropdownMenuBox(
+                        expanded = modelMenuExpanded,
+                        onExpandedChange = { modelMenuExpanded = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedOption.label,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Model") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelMenuExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = modelMenuExpanded,
+                            onDismissRequest = { modelMenuExpanded = false }
+                        ) {
+                            modelOptions.forEach { model ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(model.label, fontWeight = FontWeight.Bold)
+                                            if (model.description.isNotBlank()) {
+                                                Text(model.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        settingsViewModel.updateGeminiModel(model.id)
+                                        modelMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    IconButton(
+                        onClick = {
+                            fetchError = null
+                            isFetchingModels = true
+                            coroutineScope.launch {
+                                val outcome = withContext(Dispatchers.IO) {
+                                    GeminiClient.listModels(geminiApiKey)
+                                }
+                                isFetchingModels = false
+                                outcome.onSuccess { fetchedModels = it }
+                                    .onFailure { fetchError = it.message ?: "Failed to fetch models." }
+                            }
+                        },
+                        enabled = !isFetchingModels
+                    ) {
+                        if (isFetchingModels) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh model list from Gemini")
+                        }
+                    }
+                }
+                if (fetchError != null) {
+                    Text(
+                        text = "Couldn't fetch live models: $fetchError. Showing last known list instead.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                    )
+                }
+                Text(
+                    text = if (fetchedModels != null)
+                        "Live list fetched from your Gemini account just now. Tap refresh anytime to update it (e.g. after Google adds/retires a model)."
+                    else
+                        "Showing a built-in list. Tap refresh to pull the live, up-to-date list of models available to your API key directly from Google.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
             }
 

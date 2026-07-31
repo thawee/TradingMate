@@ -27,9 +27,9 @@ object StockDna {
         return true
     }
 
-    /** Pre-filter — Liquidity: daily turnover > ฿1,000,000.
+    /** Pre-filter — Liquidity: daily turnover > ฿5,000,000.
      *  Ensures the stock is actively traded enough for stop-loss orders
-     *  to execute at the displayed price. */
+     *  to execute at the displayed price without excessive slippage. */
     fun isLiquid(s: StockWatchlistInfo): Boolean {
         val volume = s.info.volume
         if (volume == null) {
@@ -37,7 +37,7 @@ object StockDna {
             return true // Fail-open: allow if volume data hasn't been fetched yet
         }
         val price = s.info.lastPrice
-        return price > 0 && volume * price > 1_000_000.0
+        return price > 0 && volume * price > TradingConstants.MIN_LIQUIDITY_TURNOVER_BAHT
     }
 
     /** Pre-filter — 52-Week Low Trap: reject stocks trading within 5% of their
@@ -87,7 +87,7 @@ object StockDna {
     fun isGapUp(s: StockWatchlistInfo): Boolean {
         val turnover = (s.info.volume ?: 0L) * s.info.lastPrice
         return s.info.percentChange >= 4.0 && 
-               turnover >= 5_000_000.0 &&
+               turnover >= TradingConstants.MIN_LIQUIDITY_TURNOVER_BAHT &&
                ((s.info.roe ?: 0.0) > 10.0 || (s.info.netProfitMargin ?: 0.0) > 5.0)
     }
 

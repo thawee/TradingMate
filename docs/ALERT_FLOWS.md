@@ -198,7 +198,7 @@ combinedSwingPlays:
 
 | Step | Section | Purpose | Push Connection |
 |---|---|---|---|
-| **Step 1** | 🤖 Ask AI | Copy AI prompt to clipboard | None (auto-mark on copy) |
+| **Step 1** | 🤖 Ask AI | Copy AI prompt to clipboard, or tap "Analyze with AI" for an in-app Gemini call | None (auto-mark on copy or on AI result) |
 | **Step 2** | 🚨 Check Exits | Shows sell alerts | Push at 10-11 AM |
 | **Step 3** | 🔍 Scan Setups | Shows candidate stocks | Push at 15:30-16:30 |
 
@@ -212,6 +212,9 @@ combinedSwingPlays:
 │  ┌─────────────────────────────┐    │
 │  │ Swing Trade AI Prompt       │    │  ← Tap to copy
 │  │ [Copy to clipboard]         │    │     auto-marks Step 1
+│  │ Analyze Setups with AI      │    │  ← In-app Gemini call,
+│  │ [Analyze with AI]           │    │     returns ranked picks
+│  │                              │    │     with Confidence Score
 │  └─────────────────────────────┘    │
 └─────────────────────────────────────┘
               ↓

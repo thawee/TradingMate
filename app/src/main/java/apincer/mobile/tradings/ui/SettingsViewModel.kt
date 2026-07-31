@@ -154,4 +154,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             preferenceRepository.setMinRiskRewardRatio(ratio)
         }
     }
+
+    val geminiApiKey: StateFlow<String> =
+        preferenceRepository.geminiApiKey.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = ""
+        )
+
+    fun updateGeminiApiKey(key: String) {
+        viewModelScope.launch {
+            preferenceRepository.setGeminiApiKey(key)
+        }
+    }
+
+    val geminiModel: StateFlow<String> =
+        preferenceRepository.geminiModel.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "gemini-3.6-flash"
+        )
+
+    fun updateGeminiModel(modelId: String) {
+        viewModelScope.launch {
+            preferenceRepository.setGeminiModel(modelId)
+        }
+    }
 }

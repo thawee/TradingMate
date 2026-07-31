@@ -464,7 +464,8 @@ fun StockItemCard(
     onDelete: (StockWatchlistInfo) -> Unit,
     onSell: ((StockWatchlistInfo) -> Unit)? = null,
     onEdit: ((StockWatchlistInfo) -> Unit)? = null,
-    isPrivacyMode: Boolean = false
+    isPrivacyMode: Boolean = false,
+    showSignalBadge: Boolean = true
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -718,7 +719,7 @@ fun StockItemCard(
             val isPortfolioItem = item.portfolio.quantity > 0
             val isSellSignal = item.signal?.type == IndicatorSignal.SELL
             val isSoftSell = isSellSignal && (item.signal?.reason?.contains("Overbought") == true || item.signal?.reason?.contains("Upper Band") == true)
-            val showStatusBox = item.signal != null || isPortfolioItem
+            val showStatusBox = showSignalBadge && (item.signal != null || isPortfolioItem)
             
             if (showStatusBox) {
                 

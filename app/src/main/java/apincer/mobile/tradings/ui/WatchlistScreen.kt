@@ -60,21 +60,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import apincer.mobile.tradings.R
-import apincer.mobile.tradings.domain.IndicatorSignal
 import java.util.Locale
 
 enum class WatchlistSortOrder(val label: String) {
     SYMBOL("Symbol"),
     CHANGE("Change %"),
-    PROFIT("Profit %"),
-    SIGNAL("Signal")
+    PROFIT("Profit %")
 }
 
 enum class WatchlistFilter(val label: String) {
     ALL("All"),
     FOCUS("Focus List"),
-    PORTFOLIO("Portfolio"),
-    BUY_SIGNAL("Buy Signals")
+    PORTFOLIO("Portfolio")
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -111,7 +108,6 @@ fun WatchlistScreen(
             WatchlistFilter.ALL -> watchlist
             WatchlistFilter.FOCUS -> watchlist.filter { it.isFocused }
             WatchlistFilter.PORTFOLIO -> watchlist.filter { it.portfolio.quantity > 0 }
-            WatchlistFilter.BUY_SIGNAL -> watchlist.filter { it.signal?.type == IndicatorSignal.BUY || it.signal?.type == IndicatorSignal.POTENTIAL }
         }
 
         if (debouncedSearchQuery.isNotBlank()) {
@@ -126,18 +122,6 @@ fun WatchlistScreen(
             WatchlistSortOrder.SYMBOL -> if (isSortAscending) list.sortedBy { it.info.symbol } else list.sortedByDescending { it.info.symbol }
             WatchlistSortOrder.CHANGE -> if (isSortAscending) list.sortedBy { it.info.percentChange } else list.sortedByDescending { it.info.percentChange }
             WatchlistSortOrder.PROFIT -> if (isSortAscending) list.sortedBy { it.netProfitPercent } else list.sortedByDescending { it.netProfitPercent }
-            WatchlistSortOrder.SIGNAL -> {
-                val selector = { it: StockWatchlistInfo ->
-                    when (it.signal?.type) {
-                        IndicatorSignal.BUY -> 3
-                        IndicatorSignal.POTENTIAL -> 2
-                        IndicatorSignal.NEUTRAL -> 1
-                        IndicatorSignal.SELL -> 0
-                        null -> -1
-                    }
-                }
-                if (isSortAscending) list.sortedBy(selector) else list.sortedByDescending(selector)
-            }
         }
     }
 
@@ -331,7 +315,8 @@ fun WatchlistScreen(
                                 viewModel.removeFromWatchlist(item.info.symbol) 
                                 showSnackbar("Removed ${item.info.symbol} from watchlist")
                             },
-                            isPrivacyMode = isPrivacyMode
+                            isPrivacyMode = isPrivacyMode,
+                            showSignalBadge = false
                         )
                     }
                 }

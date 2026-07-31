@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -70,7 +71,8 @@ import java.util.Locale
 fun StatsScreen(
     viewModel: StockViewModel,
     portfolioViewModel: PortfolioViewModel = viewModel(),
-    showSnackbar: (String) -> Unit
+    showSnackbar: (String) -> Unit,
+    onNavigateToBacktest: () -> Unit = {}
 ) {
     val history by portfolioViewModel.tradeHistory.collectAsState()
     val cashBalance by portfolioViewModel.cashBalance.collectAsState()
@@ -185,6 +187,14 @@ fun StatsScreen(
             title = { Text(stringResource(R.string.title_history), fontWeight = FontWeight.Black) },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
+                IconButton(onClick = onNavigateToBacktest) {
+                    Icon(
+                        imageVector = Icons.Default.Insights,
+                        contentDescription = stringResource(R.string.title_backtest),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
                 if (history.isNotEmpty()) {
                     IconButton(onClick = { showConfirmDialog = true }) {
                         Icon(

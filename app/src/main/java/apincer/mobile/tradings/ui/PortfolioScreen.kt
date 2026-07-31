@@ -81,6 +81,7 @@ fun PortfolioScreen(
     val cashTransactions by portfolioViewModel.allCashTransactions.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
+    val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
     val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
@@ -95,6 +96,8 @@ fun PortfolioScreen(
     val totalDividendEarned = dividendHistory.sumOf { it.totalReceived }
 
     val allPortfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
+    // Account equity for position sizing = cash on hand + current market value of holdings.
+    val accountEquity = cashBalance + allPortfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     val portfolioItems = when (selectedPlaybook) {
        // "SWING" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "SWING" }
         "DIVIDEND" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
@@ -434,6 +437,8 @@ fun PortfolioScreen(
         val isEditing = selectedStockForEdit != null
         BuyStockDialog(
             initialStock = selectedStockForEdit,
+            accountEquity = accountEquity,
+            maxRiskPerTradePercent = maxRiskPerTrade,
             onDismiss = {
                 showBuyDialog = false
                 selectedStockForEdit = null
@@ -729,6 +734,8 @@ fun AdjustCashDialog(
 @Composable
 fun BuyStockDialog(
     initialStock: StockWatchlistInfo? = null,
+    accountEquity: Double = 0.0,
+    maxRiskPerTradePercent: Double = 1.0,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, Double, Double, String, String) -> Unit
 ) {
@@ -754,6 +761,11 @@ fun BuyStockDialog(
     val riskPerShare = entry - stopLoss
     val rewardPerShare = target - entry
     val rrRatio = if (riskPerShare > 0) rewardPerShare / riskPerShare else 0.0
+    val suggestedQty = if (riskPerShare > 0) {
+        TechnicalAnalysis.calculateSuggestedQuantity(accountEquity, maxRiskPerTradePercent, riskPerShare)
+    } else 0
+    val currentTradeRiskBaht = riskPerShare.coerceAtLeast(0.0) * amount
+    val currentTradeRiskPercent = if (accountEquity > 0) currentTradeRiskBaht / accountEquity * 100.0 else 0.0
     val isValidDividend = tradePurpose == "DIVIDEND" || playbookNote.lowercase().contains("dividend")
     val isFormValid = if (initialStock != null && amount == 0) {
         true
@@ -898,6 +910,56 @@ fun BuyStockDialog(
                         prefix = { Text("฿ ") },
                         shape = RoundedCornerShape(14.dp)
                     )
+                }
+            }
+
+            if (entry > 0 && riskPerShare > 0 && accountEquity > 0) {
+                item {
+                    GlassCard(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.secondary)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Position Size Calculator", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    onClick = { qty = suggestedQty.toString() }
+                                ) {
+                                    Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Use $suggestedQty shares", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                    }
+                                }
+                            }
+                            Text(
+                                "Risking ${String.format(Locale.ENGLISH, "%.1f", maxRiskPerTradePercent)}% of your ฿${String.format(Locale.ENGLISH, "%,.0f", accountEquity)} equity " +
+                                    "(risk/share ฿${String.format(Locale.ENGLISH, "%.2f", riskPerShare)}) caps this trade at $suggestedQty shares.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                            if (amount > 0) {
+                                val overBudget = currentTradeRiskPercent > maxRiskPerTradePercent + 0.01
+                                Text(
+                                    "Your entered qty ($amount) risks ฿${String.format(Locale.ENGLISH, "%,.0f", currentTradeRiskBaht)} " +
+                                        "(${String.format(Locale.ENGLISH, "%.1f", currentTradeRiskPercent)}% of equity)" +
+                                        if (overBudget) " — above your ${String.format(Locale.ENGLISH, "%.1f", maxRiskPerTradePercent)}% limit." else ".",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (overBudget) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (overBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

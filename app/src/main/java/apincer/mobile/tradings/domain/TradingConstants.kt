@@ -41,14 +41,21 @@ object TradingConstants {
     const val DIVIDEND_YIELD_ENTRY = 5.0
     const val DIVIDEND_YIELD_PROTECTION = 3.0
 
+    // Liquidity Thresholds (daily turnover, THB)
+    // Pre-filter gate for all candidate lists (Swing, Dividend, Gap-Up, Speculative).
+    // Raised from ฿1M: at that level, thin small-caps can pass while still having
+    // bid-ask spreads too wide for a stop-loss/take-profit order to fill at the
+    // displayed price. Aligned with the Gap-Up play's existing ฿5M bar.
+    const val MIN_LIQUIDITY_TURNOVER_BAHT = 5_000_000.0
+
     // SET50 Benchmark Components for Market Cap Tiering
+    // Official SET50 constituents, H1 2025 review (SET50_100_H1_2025.pdf).
+    // NOTE: SET revises this list twice a year (Jan/Jul) — refresh periodically.
     val SET50_SYMBOLS = setOf(
-        "ADVANC", "AOT", "AAV", "AP", "AWC", "BAM", "BANPU", "BBL", "BCH", "BCP",
-        "BCPG", "BDMS", "BEM", "BGRIM", "BH", "BLA", "BJC", "BTS", "CBG", "CENTEL",
-        "CHG", "CK", "COM7", "CPALL", "CPAXT", "CPF", "CPN", "CRC", "DELTA", "EGCO",
-        "GLOBAL", "GPSC", "GULF", "HMPRO", "INTUCH", "IVL", "KBANK", "KCE", "KKP", "KTB",
-        "KTC", "LH", "MINT", "MTC", "OR", "OSP", "PLANB", "PTT", "PTTEP", "PTTGC",
-        "RATCH", "SAWAD", "SCB", "SCC", "SCGP", "SNNP", "SPALI", "SPRC", "STA", "STGT",
-        "TCAP", "TISCO", "TLI", "TOP", "TRUE", "TTB", "TU", "VGI", "WHA"
+        "ADVANC", "AOT", "AWC", "BBL", "BCP", "BDMS", "BEM", "BH", "BJC", "CBG",
+        "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EGCO", "GPSC", "GULF",
+        "HMPRO", "INTUCH", "IVL", "JMART", "KBANK", "KCE", "KKP", "KTB", "KTC", "LH",
+        "MAKRO", "MEGA", "MINT", "OR", "PTT", "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB",
+        "SCC", "SCGP", "SPRC", "TISCO", "TTB", "TRUE", "TU", "VGI", "WHA", "BGRIM"
     )
 }

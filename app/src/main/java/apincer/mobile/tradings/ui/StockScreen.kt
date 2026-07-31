@@ -52,7 +52,8 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
     STATS(R.string.title_history, Icons.Default.History),
     SETTINGS(R.string.title_settings, Icons.Default.Settings),
     EDUCATION(R.string.title_academy, Icons.Default.School, false),
-    ABOUT(R.string.title_about, Icons.Default.Info, false)
+    ABOUT(R.string.title_about, Icons.Default.Info, false),
+    BACKTEST(R.string.title_backtest, Icons.Default.Insights, false)
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -341,10 +342,11 @@ fun StockScreen(
                                     onNavigateToAcademy = { currentScreen = Screen.EDUCATION },
                                     showSnackbar = showSnackbar
                                 )
-                                Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar)
+                                Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar, onNavigateToBacktest = { currentScreen = Screen.BACKTEST })
                                 Screen.SETTINGS -> SettingsScreen(viewModel, settingsViewModel, showSnackbar = showSnackbar)
                                 Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.ADVISOR })
                                 Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.ADVISOR })
+                                Screen.BACKTEST -> BacktestScreen(viewModel, onBack = { currentScreen = Screen.STATS }, showSnackbar = showSnackbar)
                             }
                         }
                     }

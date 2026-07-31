@@ -40,6 +40,7 @@ data class AlertRoutineState(
     val speculativePlays: List<StockWatchlistInfo> = emptyList(),
     val dividendPlays: List<StockWatchlistInfo> = emptyList(),
     val portfolioItems: List<StockWatchlistInfo> = emptyList(),
+    val liquidityTrapSignals: List<StockWatchlistInfo> = emptyList(),
     val checklist: ChecklistEntity = ChecklistEntity()
 ) {
     val activeAlerts: List<SellAlertData>
@@ -379,8 +380,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
             val gapPlays = watchlist.filter { isLiquid(it) && isGapUp(it) }.sortedByDescending { it.info.percentChange }
-            val speculativePlays = watchlist.filter { 
-                isLiquid(it) && !isQual(it) && isSup(it) && (it.portfolio.macdHist ?: 0.0) > 0.0 
+            // Speculative Watch: liquid but Quality-failing stocks with a live BUY/POTENTIAL
+            // signal. Includes early/unconfirmed setups (MACD histogram not yet positive) —
+            // these are sorted after MACD-confirmed ones since they carry extra risk.
+            val speculativePlays = watchlist.filter {
+                isLiquid(it) && !isQual(it) && isSup(it)
             }.sortedWith(
                 compareBy<StockWatchlistInfo> {
                     when (it.signal?.type) {
@@ -388,6 +392,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         IndicatorSignal.POTENTIAL -> 1
                         else -> 2
                     }
+                }.thenByDescending {
+                    // MACD-confirmed momentum ranks above unconfirmed (macdHist <= 0)
+                    (it.portfolio.macdHist ?: 0.0) > 0.0
                 }
             )
             val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
@@ -404,6 +411,23 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         it.portfolio.rsi ?: 100.0
                     }
                 )
+
+            // Safety net #1 (highest risk): not-yet-owned stock with a live BUY/POTENTIAL
+            // signal that failed the liquidity/52-week-low trap gate. Kept as its own
+            // distinct, loudly-labeled warning rather than folded into Speculative Watch —
+            // this is a structural safety concern, not just a fundamentals quality issue.
+            val liquidityTrapSignals = watchlist.filter {
+                it.portfolio.quantity == 0 &&
+                    (it.signal?.type == IndicatorSignal.BUY || it.signal?.type == IndicatorSignal.POTENTIAL) &&
+                    !isLiquid(it)
+            }.sortedWith(
+                compareBy<StockWatchlistInfo> {
+                    when (it.signal?.type) {
+                        IndicatorSignal.BUY -> 0
+                        else -> 1
+                    }
+                }
+            )
 
             val swingSellAlerts = mutableListOf<SellAlertData>()
             val dividendSellAlerts = mutableListOf<SellAlertData>()
@@ -484,6 +508,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 speculativePlays = speculativePlays,
                 dividendPlays = dividendPlays,
                 portfolioItems = portfolioItems,
+                liquidityTrapSignals = liquidityTrapSignals,
                 checklist = checklist
             )
         }.stateIn(

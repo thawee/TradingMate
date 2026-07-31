@@ -9,6 +9,7 @@
     <string name="title_academy">Academy</string>
     <string name="title_about">About</string>
     <string name="title_advisor">Advisor</string>
+    <string name="title_backtest">Backtest</string>
 
     <!-- Section Headers -->
     <string name="section_price_alerts">Price Alerts</string>

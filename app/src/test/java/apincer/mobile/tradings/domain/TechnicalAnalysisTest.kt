@@ -7,6 +7,25 @@ import org.junit.Test
 class TechnicalAnalysisTest {
 
     @Test
+    fun testSuggestedQuantitySizesRiskCorrectly() {
+        // ฿100,000 equity, risk 1% (=฿1,000), risk/share = ฿5 -> 200 shares max.
+        val qty = TechnicalAnalysis.calculateSuggestedQuantity(
+            accountEquity = 100_000.0,
+            riskPercent = 1.0,
+            riskPerShare = 5.0
+        )
+        assertEquals(200, qty)
+    }
+
+    @Test
+    fun testSuggestedQuantityHandlesInvalidInputs() {
+        assertEquals(0, TechnicalAnalysis.calculateSuggestedQuantity(0.0, 1.0, 5.0))
+        assertEquals(0, TechnicalAnalysis.calculateSuggestedQuantity(100_000.0, 0.0, 5.0))
+        assertEquals(0, TechnicalAnalysis.calculateSuggestedQuantity(100_000.0, 1.0, 0.0))
+        assertEquals(0, TechnicalAnalysis.calculateSuggestedQuantity(100_000.0, 1.0, -5.0))
+    }
+
+    @Test
     fun testSMA() {
         val prices = listOf(1.0, 2.0, 3.0, 4.0, 5.0)
         val sma = TechnicalAnalysis.calculateSMA(prices, 3)

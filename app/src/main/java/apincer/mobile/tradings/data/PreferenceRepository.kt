@@ -27,6 +27,8 @@ class PreferenceRepository(private val context: Context) {
     private val MAX_OPEN_EXPOSURE = doublePreferencesKey("max_open_exposure")
     private val MAX_PORTFOLIO_ALLOCATION = doublePreferencesKey("max_portfolio_allocation")
     private val MIN_RISK_REWARD_RATIO = doublePreferencesKey("min_risk_reward_ratio")
+    private val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
+    private val GEMINI_MODEL = stringPreferencesKey("gemini_model")
     val targetMonthlyDividend: Flow<Double> = context.settingsDataStore.data
         .map { preferences ->
             preferences[TARGET_MONTHLY_DIVIDEND] ?: 10000.0
@@ -146,6 +148,29 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setMinRiskRewardRatio(ratio: Double) {
         context.settingsDataStore.edit { preferences ->
             preferences[MIN_RISK_REWARD_RATIO] = ratio
+        }
+    }
+
+    val geminiApiKey: Flow<String> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[GEMINI_API_KEY] ?: ""
+        }
+
+    suspend fun setGeminiApiKey(key: String) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[GEMINI_API_KEY] = key
+        }
+    }
+
+    /** Selected free-tier Gemini model id, e.g. "gemini-3.6-flash". Defaults to the balanced Flash model. */
+    val geminiModel: Flow<String> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[GEMINI_MODEL] ?: "gemini-3.6-flash"
+        }
+
+    suspend fun setGeminiModel(modelId: String) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[GEMINI_MODEL] = modelId
         }
     }
 }

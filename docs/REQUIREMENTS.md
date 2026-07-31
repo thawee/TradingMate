@@ -20,7 +20,7 @@ TradingMate is a high-performance personal trading companion specifically design
 ### 2.2 Five-Layer Filter System (Stock DNA)
 A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 
-0. **Pre-filter (Liquidity):** Daily turnover (last price × volume) > ฿1,000,000. Ensures stop-loss orders can execute at displayed prices.
+0. **Pre-filter (Liquidity):** Daily turnover (last price × volume) > ฿5,000,000. Ensures stop-loss orders can execute at displayed prices.
 1. **Qual (Quality):** Evaluates management efficiency and profitability.
    - Indicators: ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
 2. **Val (Value):** Identifies underpriced or fair-value stocks.
@@ -36,6 +36,8 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Swing Plays:** Must pass `Liquidity AND Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
 - **Dividend Stars:** Must pass `Liquidity AND Dividend AND Quality`.
 - **Gap Plays:** Must pass `Liquidity AND percentChange ≥ 4% AND basic profitability (ROE > 10% or NPM > 5%)`. Decoupled from strict historical Quality to capture turnaround earnings catalysts.
+- **Speculative Plays:** Must pass `Liquidity AND (NOT Quality) AND Support`. Higher-risk BUY/POTENTIAL setups on stocks that pass the liquidity gate but fail the Quality layer; sorted with MACD-confirmed setups ranked above unconfirmed ones.
+- **Liquidity/Trap Risk:** Any not-yet-owned stock with a live BUY/POTENTIAL signal that fails the Pre-filter (illiquid turnover and/or within 5% of its 52-week low). Surfaced separately with a stronger warning rather than silently hidden, since it's the highest-risk bucket.
 
 ### 2.3 Portfolio Management
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.
@@ -50,15 +52,17 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Focus List:** Allow users to "Star" specific stocks to track them in a dedicated "Focus" tab.
 - **SET Collections Import:** Enable one-click import of curated stock groups (SET50, SET100, SETHD, Dividend Stars, Bluechips).
 - **Dynamic Sorting:** Sort stocks by Symbol, Change %, Profit %, or Signal strength.
-- **Advanced Filtering:** Filter list by Buy signals, Positive movement, or active Holdings.
+- **Filtering:** Filter list by All / Focus List / Portfolio Holdings. Signal-based alerts (BUY/SELL/Speculative/Liquidity-Trap) live on the Advisor screen, not here — Watchlist is purely for maintaining which stocks you track.
 
 ### 2.5 Smart Advisor
 - **Playbook Modes:** Two modes — Swing Playbook and Dividend Playbook.
 - **3-Step Routine (SWING):**
-    1. **Ask AI** — Copy AI prompt to clipboard (auto-marks step as done).
+    1. **Ask AI** — Copy AI prompt to clipboard, or tap "Analyze with AI" for an in-app call (auto-marks step as done either way).
     2. **Check Exits** — Display sell alerts based on technical conditions (Take Profit, Stop Loss, Overbought, Yield Drop).
-    3. **Scan Setups** — Display candidate stocks filtered by Quality, Momentum, Value, and Gap criteria using the Five-Layer Filter System.
-- **AI Prompt Generation:** Generate structured prompts for ChatGPT/Gemini with candidate data, risk constraints, and playbook rules.
+    3. **Scan Setups** — Display candidate stocks (Swing/Dividend, Speculative, and Liquidity/Trap Risk) filtered by Quality, Momentum, Value, and Gap criteria using the Five-Layer Filter System. This is the single screen for "what should I consider buying" — no BUY-signal stock is filtered out of the app entirely; it always lands in one of these three buckets.
+- **AI Prompt Generation:** Generate structured prompts for ChatGPT/Gemini with candidate data (including Speculative and Liquidity/Trap Risk categories), risk constraints, and playbook rules. Prompts request a Confidence Score (0–100%) per AI-ranked pick with justification.
+- **In-App AI Analysis:** "Analyze with AI" button calls Google Gemini directly (structured JSON output) using a user-supplied API key (Settings > AI Integration), returning an executive summary and ranked recommendations with a color-coded Confidence Score, without needing to copy/paste into an external tool. Unlike the copy/paste prompt, this direct call has no live web/news access — it only reasons over the data in the prompt.
+- **Selectable Gemini Model:** Users can pick which free-tier Gemini model powers the in-app analysis (Settings > AI Integration), and refresh the list live from Gemini's ListModels API to pick up newly released or soon-to-be-retired models automatically.
 - **Push Notifications:** Morning exit alerts (10:00-11:00 AM) and afternoon entry reminders (15:30-16:30).
 - **Afternoon Badge:** Visual indicator on Step 2 when afternoon scan notification has fired.
 - **Auto-mark:** Step 1 auto-checks when no sell alerts exist. Step 3 auto-checks when AI prompt is copied.
@@ -83,17 +87,23 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Performance History:** Maintain a detailed log of past trades with "Lessons Learned" notes.
 - **Analytics:** Calculate Win Rate, Average Win/Loss, and overall trading efficiency metrics.
 
+### 2.9 Backtest Engine
+- **Per-Stock Historical Replay:** Replays a stock's historical price/indicator series against the Swing DNA entry/exit rules (BUY/POTENTIAL entries, Take Profit/Stop Loss/Overbought exits).
+- **Reported Metrics:** Total trades, win rate %, average win %, average loss %, and expectancy % per trade (derived from win rate and average win/loss).
+- **Purpose:** Replaces relying purely on published research-based estimated win-rate ranges with an actual, stock-specific historical measurement.
+
 ## 3. Screen & Page Flows
 
 ### 3.1 Main Navigation
-- **Watchlist:** Active monitoring list with quick filtering, sorting, and Focus management via Filter Chips.
-- **Advisor:** Smart Advisor with 3-step routine (SWING) or informational view (DIVIDEND). Includes sell alerts, candidates, and AI prompts.
+- **Watchlist:** Active monitoring list with quick filtering (All/Focus/Portfolio), sorting, and Focus management via Filter Chips. Signal-based BUY/SELL alerts are surfaced on the Advisor screen instead of here.
+- **Advisor:** Smart Advisor with 3-step routine (SWING) or informational view (DIVIDEND). Single screen aggregating sell alerts, Swing/Dividend/Gap candidates, Speculative Plays, Liquidity/Trap Risk signals, and both copy-paste and in-app AI prompts.
 - **Portfolio:** Central hub for viewing current holdings, cash management, and net return summary. Pull-to-refresh updates only portfolio stocks.
 - **History (Stats):** Audit trail of completed trades with profitability analytics and lessons learned.
-- **Settings:** App configuration, dynamic Risk Management limits, and data management.
+- **Settings:** App configuration, dynamic Risk Management limits, AI Integration (Gemini API key + model selection), and data management.
 
 ### 3.2 Secondary Flows
 - **Stock Detail (Dashboard):** Triggered from any list item. Shows cached data first, refreshes from API if stale. Provides deep technical drill-down, price trend charts, and Focus toggle.
+- **Backtest (from History/Stats):** Accessed via an icon on the History (Stats) screen. Run per-stock or full-watchlist historical replays of the Swing DNA rules to see win rate, avg win/loss, and expectancy.
 - **Action Dialogs & Sheets:** 
     - **Record Buy/Sell:** Modal Bottom Sheet sliding up for transaction entry without losing context.
     - **Import SET:** Multi-select dialog for rapid watchlist population.

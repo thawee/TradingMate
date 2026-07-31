@@ -448,6 +448,23 @@ object TechnicalAnalysis {
         return TradeSignal(IndicatorSignal.NEUTRAL, "Wait & Watch", "No strong signals right now. It's safer to wait for a clearer entry point.")
     }
 
+    /**
+     * Position sizing: given account equity, the % of that equity you're willing
+     * to risk on this ONE trade, and the per-share risk (entry - stop-loss), returns
+     * the quantity of shares to buy so a stop-out loses at most that fixed % of equity —
+     * regardless of how volatile/expensive the stock is. This is what turns a %-based
+     * stop-loss into an actual, comparable dollar-risk across different trades.
+     */
+    fun calculateSuggestedQuantity(
+        accountEquity: Double,
+        riskPercent: Double,
+        riskPerShare: Double
+    ): Int {
+        if (accountEquity <= 0 || riskPercent <= 0 || riskPerShare <= 0) return 0
+        val riskBudget = accountEquity * (riskPercent / 100.0)
+        return (riskBudget / riskPerShare).toInt().coerceAtLeast(0)
+    }
+
     fun calculateNetProfitPercent(cost: Double, currentPrice: Double): Double {
         val buyFee = calculateFees(cost, false)
         val sellFee = calculateFees(currentPrice, true)

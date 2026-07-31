@@ -33,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -41,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -56,6 +58,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
 import apincer.mobile.tradings.data.ChecklistEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 data class SellAlertData(
@@ -98,6 +103,7 @@ fun DividendAdvisorScreen(
     val speculativePlays = alertRoutineState.speculativePlays
     val dividendPlays = alertRoutineState.dividendPlays
     val portfolioItems = alertRoutineState.portfolioItems
+    val liquidityTrapSignals = alertRoutineState.liquidityTrapSignals
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAfternoonScanAvailable by viewModel.isAfternoonScanAvailable.collectAsState()
@@ -212,6 +218,8 @@ fun DividendAdvisorScreen(
             val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
             val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
             val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
+            val geminiApiKey by settingsViewModel.geminiApiKey.collectAsState()
+            val geminiModelId by settingsViewModel.geminiModel.collectAsState()
 
             val activeAlerts = alertRoutineState.activeAlerts
             val step1Done = alertRoutineState.step1Done
@@ -238,6 +246,7 @@ fun DividendAdvisorScreen(
                     watchlist = watchlist,
                     portfolioItems = portfolioItems,
                     speculativePlays = speculativePlays,
+                    liquidityTrapSignals = liquidityTrapSignals,
                     isQual = isQual,
                     isVal = isVal,
                     isDiv = isDiv,
@@ -248,6 +257,8 @@ fun DividendAdvisorScreen(
                     maxRiskPerTrade = maxRiskPerTrade,
                     maxOpenExposure = maxOpenExposure,
                     maxPortfolioAllocation = maxPortfolioAllocation,
+                    apiKey = geminiApiKey,
+                    geminiModelId = geminiModelId,
                     showSnackbar = showSnackbar
                 )
             }
@@ -383,6 +394,24 @@ fun DividendAdvisorScreen(
                 }
             }
 
+            if (liquidityTrapSignals.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                SectionHeader(
+                    title = "Liquidity/Trap Risk ⚠️",
+                    subtitle = "${liquidityTrapSignals.size} signals — safety gate failed, verify manually",
+                    icon = Icons.Default.QueryStats
+                )
+                Text(
+                    "These stocks triggered a live BUY/POTENTIAL signal but failed the liquidity/52-week-low safety gate (thinly traded, or possibly a falling-knife trap near a 52-week low). Highest risk category — confirm real volume and trend structure yourself before considering these.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(Modifier.height(8.dp))
+                liquidityTrapSignals.forEach { stock ->
+                    AdvisorStockCard(stock, viewModel)
+                }
+            }
+
             Spacer(Modifier.height(40.dp))
         }
         }
@@ -439,6 +468,29 @@ fun AdvisorStockCard(
                     if (stock.info.isFundamentalGood) {
                         Spacer(Modifier.width(4.dp))
                         Text("⭐", fontSize = 12.sp)
+                    }
+                    if (!isSellAlert && stock.signal?.type != null) {
+                        Spacer(Modifier.width(6.dp))
+                        val signalColor = when (stock.signal.type) {
+                            apincer.mobile.tradings.domain.IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
+                            apincer.mobile.tradings.domain.IndicatorSignal.POTENTIAL -> MaterialTheme.colorScheme.secondary
+                            apincer.mobile.tradings.domain.IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
+                            else -> null
+                        }
+                        if (signalColor != null) {
+                            Surface(
+                                color = signalColor.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = stock.signal.type.name,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = signalColor
+                                )
+                            }
+                        }
                     }
                 }
                 if (isSellAlert) {
@@ -525,6 +577,7 @@ fun AiCopilotCard(
     watchlist: List<StockWatchlistInfo>,
     portfolioItems: List<StockWatchlistInfo>,
     speculativePlays: List<StockWatchlistInfo>,
+    liquidityTrapSignals: List<StockWatchlistInfo>,
     isQual: (StockWatchlistInfo) -> Boolean,
     isVal: (StockWatchlistInfo) -> Boolean,
     isDiv: (StockWatchlistInfo) -> Boolean,
@@ -535,6 +588,8 @@ fun AiCopilotCard(
     maxRiskPerTrade: Double,
     maxOpenExposure: Double,
     maxPortfolioAllocation: Double,
+    apiKey: String,
+    geminiModelId: String = "gemini-3.6-flash",
     showSnackbar: (String) -> Unit
 ) {
     @Suppress("DEPRECATION")
@@ -587,6 +642,7 @@ fun AiCopilotCard(
                 }
                 val gapUpPlaysFilter = watchlist.filter { it.info.lastPrice >= 1.0 && isLiquid(it) && isGapUp(it) }
                 val speculativePromptPlays = speculativePlays.filter { it.info.lastPrice >= 1.0 }
+                val liquidityTrapPromptPlays = liquidityTrapSignals.filter { it.info.lastPrice >= 1.0 }
                 
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -594,7 +650,7 @@ fun AiCopilotCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Data Preview: Sending ${swingPlaysFilter.size} Swing, ${gapUpPlaysFilter.size} Gap Up, and ${speculativePromptPlays.size} Speculative plays for analysis.",
+                        text = "Data Preview: Sending ${swingPlaysFilter.size} Swing, ${gapUpPlaysFilter.size} Gap Up, ${speculativePromptPlays.size} Speculative, and ${liquidityTrapPromptPlays.size} Liquidity/Trap Risk plays for analysis.",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -603,72 +659,84 @@ fun AiCopilotCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Swing Trade Button
+                val buildSwingPrompt = {
+                    val lastSyncLocal = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+                    
+                    val swingCandidates = if (swingPlaysFilter.isEmpty()) "None" else swingPlaysFilter.joinToString("\n") {
+                        "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
+                    }
+                    val gapUpCandidates = if (gapUpPlaysFilter.isEmpty()) "None" else gapUpPlaysFilter.joinToString("\n") {
+                        "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, Chg=${String.format(Locale.ENGLISH, "%.1f", it.info.percentChange)}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, NPM=${it.info.netProfitMargin?.let { npm -> String.format(Locale.ENGLISH, "%.1f", npm) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}"
+                    }
+                    val speculativeCandidates = if (speculativePromptPlays.isEmpty()) "None" else speculativePromptPlays.joinToString("\n") {
+                        "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
+                    }
+                    val liquidityTrapCandidates = if (liquidityTrapPromptPlays.isEmpty()) "None" else liquidityTrapPromptPlays.joinToString("\n") {
+                        "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
+                    }
+                    
+                    """
+                        Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade, gap up, and speculative candidates.
+                        
+                        DATA FRESHNESS:
+                        - Metrics last updated/synced on: $lastSyncLocal
+                        
+                        PLAYBOOK RULES & CONSTRAINTS:
+                        1. Swing/Breakout Candidates (VIP Quality):
+                           - Holding Period: 2-4 weeks.
+                           - Technical Alignment: Entry near key moving average support (ideally price is above the 50-day SMA) or structural breakout levels.
+                        2. Earnings Gap Candidates:
+                           - Holding Period: Short-term momentum (typically 1-3 weeks).
+                           - Technical Alignment: Entry near the gap-up support line or on breakout validation. Prioritize volume surge and strong catalyst.
+                        3. Speculative Watch (Low Quality, incl. unconfirmed setups):
+                           - High risk trades. Fundamentals are poor, but technicals are flashing oversold or reversal. Some are MACD-confirmed, others are early/unconfirmed (weaker signal). Trade only if the catalyst is extremely strong.
+                        4. Liquidity/Trap Risk (Safety Gate Failed):
+                           - Triggered a raw BUY/POTENTIAL signal but failed the liquidity/52-week-low safety gate (thinly traded, or possibly a falling-knife trap near a 52-week low). Highest risk category — treat with extra scrutiny, verify real volume and trend structure before including, and lean towards excluding unless conviction is very high.
+                        5. General Risk Constraints:
+                           - Risk/Reward ratio MUST be asymmetric: Target +5% Profit, Stop Loss -3%.
+                           - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
+                           
+                        GUARDRAILS & NEGATIVE CONSTRAINTS:
+                        - DO NOT recommend penny stocks (price < 1.0 THB) or highly illiquid assets.
+                        - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
+                        - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
+                        
+                        I am loading the candidates below:
+                        
+                        Swing Candidates (VIP Quality):
+                        $swingCandidates
+                        
+                        Gap Up Candidates:
+                        $gapUpCandidates
+                        
+                        Speculative Candidates (Poor Quality, High Risk):
+                        $speculativeCandidates
+
+                        Liquidity/Trap Risk Candidates (Safety Gate Failed — verify manually):
+                        $liquidityTrapCandidates
+
+                        DELEGATED TASKS:
+                        1. [market-researcher]: Perform a live web search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also perform a query for current SET index level, sector trends, and interest rates to establish macro context.
+                        2. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones, and treat Liquidity/Trap Risk candidates as last resort only with an exceptionally strong catalyst. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (+5%), and strict Stop Loss (-3%) for each setup. For each ranked pick, assign a Confidence Score (0-100%) reflecting how strongly the technical + fundamental + catalyst evidence supports the setup, and briefly justify the score (what would raise/lower it).
+                        
+                        EXPLAIN INSTRUCTIONS:
+                        - Break down the recommendations step-by-step, referencing the math/technical metrics provided.
+                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                        - Provide a real-world analogy to describe the setup of the ranked pick.
+                        
+                        FORMAT REQUIREMENT:
+                        Output the final recommendation as a clean Markdown report with the following structure:
+                        ### Executive Summary (Swing vs Gap Candidates, Macro Environment)
+                        ### Top Ranked Setups (Markdown Table: Ticker, Playbook Type, Buy Zone, Target, Stop Loss, Confidence Score)
+                        ### Subagent Analysis Details (catalysts, technical support, risk parameters, confidence score justification)
+                        ### Analogous Story (The real-world analogy)
+                    """.trimIndent()
+                }
+
                 Button(
                     onClick = {
                         onMarkAiDone()
-                        val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
-                        
-                        val swingCandidates = if (swingPlaysFilter.isEmpty()) "None" else swingPlaysFilter.joinToString("\n") {
-                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
-                        }
-                        val gapUpCandidates = if (gapUpPlaysFilter.isEmpty()) "None" else gapUpPlaysFilter.joinToString("\n") {
-                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, Chg=${String.format(Locale.ENGLISH, "%.1f", it.info.percentChange)}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, NPM=${it.info.netProfitMargin?.let { npm -> String.format(Locale.ENGLISH, "%.1f", npm) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}"
-                        }
-                        val speculativeCandidates = if (speculativePromptPlays.isEmpty()) "None" else speculativePromptPlays.joinToString("\n") {
-                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
-                        }
-                        
-                        val prompt = """
-                            Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade, gap up, and speculative candidates.
-                            
-                            DATA FRESHNESS:
-                            - Metrics last updated/synced on: $lastSync
-                            
-                            PLAYBOOK RULES & CONSTRAINTS:
-                            1. Swing/Breakout Candidates (VIP Quality):
-                               - Holding Period: 2-4 weeks.
-                               - Technical Alignment: Entry near key moving average support (ideally price is above the 50-day SMA) or structural breakout levels.
-                            2. Earnings Gap Candidates:
-                               - Holding Period: Short-term momentum (typically 1-3 weeks).
-                               - Technical Alignment: Entry near the gap-up support line or on breakout validation. Prioritize volume surge and strong catalyst.
-                            3. Speculative Watch (Low Quality):
-                               - High risk trades. Fundamentals are poor, but technicals are flashing oversold or reversal. Trade only if the catalyst is extremely strong.
-                            4. General Risk Constraints:
-                               - Risk/Reward ratio MUST be asymmetric: Target +5% Profit, Stop Loss -3%.
-                               - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
-                               
-                            GUARDRAILS & NEGATIVE CONSTRAINTS:
-                            - DO NOT recommend penny stocks (price < 1.0 THB) or highly illiquid assets.
-                            - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
-                            - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
-                            
-                            I am loading the candidates below:
-                            
-                            Swing Candidates (VIP Quality):
-                            $swingCandidates
-                            
-                            Gap Up Candidates:
-                            $gapUpCandidates
-                            
-                            Speculative Candidates (Poor Quality, High Risk):
-                            $speculativeCandidates
-
-                            DELEGATED TASKS:
-                            1. [market-researcher]: Perform a live web search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also perform a query for current SET index level, sector trends, and interest rates to establish macro context.
-                            2. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (+5%), and strict Stop Loss (-3%) for each setup.
-                            
-                            EXPLAIN INSTRUCTIONS:
-                            - Break down the recommendations step-by-step, referencing the math/technical metrics provided.
-                            - Use ELI10 style (Explain Like I'm 10) so it's super simple.
-                            - Provide a real-world analogy to describe the setup of the ranked pick.
-                            
-                            FORMAT REQUIREMENT:
-                            Output the final recommendation as a clean Markdown report with the following structure:
-                            ### Executive Summary (Swing vs Gap Candidates, Macro Environment)
-                            ### Top Ranked Setups (Markdown Table: Ticker, Playbook Type, Buy Zone, Target, Stop Loss)
-                            ### Subagent Analysis Details (catalysts, technical support, risk parameters)
-                            ### Analogous Story (The real-world analogy)
-                        """.trimIndent()
+                        val prompt = buildSwingPrompt()
                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
                         showSnackbar("Swing Prompt copied! Paste into your AI.")
                     },
@@ -679,6 +747,16 @@ fun AiCopilotCard(
                     Spacer(Modifier.width(8.dp))
                     Text("Swing Trade AI Prompt")
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                AiAnalysisButton(
+                    label = "Analyze Swing Setups with AI",
+                    apiKey = apiKey,
+                    geminiModelId = geminiModelId,
+                    buildPrompt = buildSwingPrompt,
+                    onDone = onMarkAiDone,
+                    showSnackbar = showSnackbar
+                )
             } else {
                 val dividendPlays = watchlist.filter { isLiquid(it) && isDiv(it) && isQual(it) }
                 Surface(
@@ -695,56 +773,60 @@ fun AiCopilotCard(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
+                val buildDividendPrompt = {
+                    val lastSyncLocal = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+                    val dividendCandidates = if (dividendPlays.isEmpty()) "None" else dividendPlays
+                        .sortedByDescending { it.info.dividendYield }
+                        .joinToString("\n") {
+                            "- ${it.info.symbol}: Price=${it.info.lastPrice}, Yield=${it.info.dividendYield?.let { y -> String.format(Locale.ENGLISH, "%.1f", y) } ?: "N/A"}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, D/E=${it.info.debtToEquity?.let { de -> String.format(Locale.ENGLISH, "%.2f", de) } ?: "N/A"}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"} (Updated=${it.info.lastUpdated})"
+                        }
+
+                    """
+                        Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) dividend candidates.
+                        
+                        DATA FRESHNESS:
+                        - Metrics last updated/synced on: $lastSyncLocal
+                        
+                        CONSTRAINTS & PLAYBOOK (Dividend Accumulation):
+                        - Holding Period: Long-term (indefinite hold for compound growth).
+                        - Yield Threshold: Starting Dividend Yield MUST be >= 5%.
+                        - Hard rule: Never average down on a breaking technical trend.
+                        - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
+                        - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
+                        
+                        GUARDRAILS & NEGATIVE CONSTRAINTS:
+                        - DO NOT recommend penny stocks or highly illiquid assets.
+                        - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
+                        - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
+
+                        I am loading the 'Dividend Accumulation Playbook' for the candidates below.
+                        Note: All candidates have already passed static baseline filters (ROE > 15%, D/E < 1.5, NPM > 10%).
+                        
+                        Candidates Yielding > 5%:
+                        $dividendCandidates
+                        
+                        DELEGATED TASKS:
+                        1. [market-researcher]: Perform a live web search for forward-looking dividend safety (check cash flow trend, forward payout ratio, and upcoming earnings outlook) for these SET tickers. Also perform a query for current SET index level and general market sentiment.
+                        2. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure. For each ranked pick, assign a Confidence Score (0-100%) reflecting dividend safety + valuation margin, and briefly justify the score.
+                        
+                        EXPLAIN INSTRUCTIONS:
+                        - Break down the recommendations step-by-step, referencing the math/financial metrics provided.
+                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                        - Provide a real-world analogy to explain why the ranked stock is a reliable dividend payer.
+                        
+                        FORMAT REQUIREMENT:
+                        Output the final recommendation as a clean Markdown report with the following structure:
+                        ### Executive Summary (Dividend Outlook, Macro Environment)
+                        ### Top Ranked Dividend Additions (Markdown Table: Ticker, Yield, Max Buy Price, Target Allocation, Confidence Score)
+                        ### Subagent Safety & Cash Flow Analysis (Payout safety, cash flow metrics, confidence score justification)
+                        ### Analogous Story (The real-world analogy)
+                    """.trimIndent()
+                }
+
                 Button(
                     onClick = {
                         onMarkAiDone()
-                        val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
-                        val dividendCandidates = if (dividendPlays.isEmpty()) "None" else dividendPlays
-                            .sortedByDescending { it.info.dividendYield }
-                            .joinToString("\n") {
-                                "- ${it.info.symbol}: Price=${it.info.lastPrice}, Yield=${it.info.dividendYield?.let { y -> String.format(Locale.ENGLISH, "%.1f", y) } ?: "N/A"}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, D/E=${it.info.debtToEquity?.let { de -> String.format(Locale.ENGLISH, "%.2f", de) } ?: "N/A"}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"} (Updated=${it.info.lastUpdated})"
-                            }
-
-                        val prompt = """
-                            Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) dividend candidates.
-                            
-                            DATA FRESHNESS:
-                            - Metrics last updated/synced on: $lastSync
-                            
-                            CONSTRAINTS & PLAYBOOK (Dividend Accumulation):
-                            - Holding Period: Long-term (indefinite hold for compound growth).
-                            - Yield Threshold: Starting Dividend Yield MUST be >= 5%.
-                            - Hard rule: Never average down on a breaking technical trend.
-                            - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
-                            - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
-                            
-                            GUARDRAILS & NEGATIVE CONSTRAINTS:
-                            - DO NOT recommend penny stocks or highly illiquid assets.
-                            - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
-                            - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
-
-                            I am loading the 'Dividend Accumulation Playbook' for the candidates below.
-                            Note: All candidates have already passed static baseline filters (ROE > 15%, D/E < 1.5, NPM > 10%).
-                            
-                            Candidates Yielding > 5%:
-                            $dividendCandidates
-                            
-                            DELEGATED TASKS:
-                            1. [market-researcher]: Perform a live web search for forward-looking dividend safety (check cash flow trend, forward payout ratio, and upcoming earnings outlook) for these SET tickers. Also perform a query for current SET index level and general market sentiment.
-                            2. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure.
-                            
-                            EXPLAIN INSTRUCTIONS:
-                            - Break down the recommendations step-by-step, referencing the math/financial metrics provided.
-                            - Use ELI10 style (Explain Like I'm 10) so it's super simple.
-                            - Provide a real-world analogy to explain why the ranked stock is a reliable dividend payer.
-                            
-                            FORMAT REQUIREMENT:
-                            Output the final recommendation as a clean Markdown report with the following structure:
-                            ### Executive Summary (Dividend Outlook, Macro Environment)
-                            ### Top Ranked Dividend Additions (Markdown Table: Ticker, Yield, Max Buy Price, Target Allocation)
-                            ### Subagent Safety & Cash Flow Analysis (Payout safety, cash flow metrics)
-                            ### Analogous Story (The real-world analogy)
-                        """.trimIndent()
+                        val prompt = buildDividendPrompt()
                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
                         showSnackbar("Dividend Prompt copied! Paste into your AI.")
                     },
@@ -755,7 +837,144 @@ fun AiCopilotCard(
                     Spacer(Modifier.width(8.dp))
                     Text("Dividend AI Prompt")
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                AiAnalysisButton(
+                    label = "Analyze Dividend Picks with AI",
+                    apiKey = apiKey,
+                    geminiModelId = geminiModelId,
+                    buildPrompt = buildDividendPrompt,
+                    onDone = onMarkAiDone,
+                    showSnackbar = showSnackbar
+                )
             }
+        }
+    }
+}
+
+@Composable
+fun AiAnalysisButton(
+    label: String,
+    apiKey: String,
+    geminiModelId: String = "gemini-3.6-flash",
+    buildPrompt: () -> String,
+    onDone: () -> Unit,
+    showSnackbar: (String) -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<apincer.mobile.tradings.domain.AiAnalysisResult?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    OutlinedButton(
+        onClick = {
+            if (apiKey.isBlank()) {
+                showSnackbar("Add your Gemini API key in Settings > AI Integration first.")
+                return@OutlinedButton
+            }
+            error = null
+            result = null
+            isLoading = true
+            val prompt = buildPrompt()
+            coroutineScope.launch {
+                val outcome = withContext(Dispatchers.IO) {
+                    apincer.mobile.tradings.domain.GeminiClient.analyze(prompt, apiKey, geminiModelId)
+                }
+                isLoading = false
+                outcome.onSuccess {
+                    result = it
+                    onDone()
+                }.onFailure {
+                    error = it.message ?: "AI analysis failed."
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isLoading
+    ) {
+        if (isLoading) {
+            androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(8.dp))
+            Text("Analyzing…")
+        } else {
+            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(label)
+        }
+    }
+
+    Text(
+        text = "No live web/news search — reasons only over the data above. Requires a Gemini API key (Settings).",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        modifier = Modifier.padding(top = 4.dp)
+    )
+
+    error?.let {
+        Spacer(modifier = Modifier.height(8.dp))
+        Surface(
+            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(it, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+
+    result?.let { r ->
+        Spacer(modifier = Modifier.height(12.dp))
+        if (r.executiveSummary.isNotBlank()) {
+            Text(r.executiveSummary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        if (r.recommendations.isEmpty()) {
+            Text("No recommendations returned.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            r.recommendations.sortedByDescending { it.confidenceScore }.forEach { rec ->
+                AiRecommendationCard(rec)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun AiRecommendationCard(rec: apincer.mobile.tradings.domain.AiRecommendation) {
+    val confidenceColor = when {
+        rec.confidenceScore >= 70 -> MaterialTheme.colorScheme.tertiary
+        rec.confidenceScore >= 40 -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.error
+    }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(rec.symbol, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black)
+                Surface(
+                    color = confidenceColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(
+                        text = "Confidence ${rec.confidenceScore}%",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        color = confidenceColor
+                    )
+                }
+            }
+            Text(rec.playbookType, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("Buy Zone: ${rec.buyZone}  •  Target: ${rec.targetProfit}  •  Stop: ${rec.stopLoss}", style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(rec.reasoning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

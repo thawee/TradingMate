@@ -89,7 +89,7 @@ A volume-weighted RSI computed on typical price ((H+L+C)/3 × volume).
 
 ## 🧬 The 5-Layer Filter (Stock DNA)
 
-- **Pre-Filter:** Liquidity (daily turnover > ฿1M) **AND** not within 5% of the 52-week low.
+- **Pre-Filter:** Liquidity (daily turnover > ฿5M) **AND** not within 5% of the 52-week low.
 - **Layer 1 — QUAL:** ROE > 15%, NPM > 10%, D/E < 1.5, 3Y profit growth > 10%.
 - **Layer 2 — VAL:** P/E 0.1–15.0 and P/BV 0.1–1.0.
 - **Layer 3 — DIV:** Dividend yield ≥ 5%.
