@@ -2,10 +2,18 @@ package apincer.mobile.tradings.ui
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,7 +34,6 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -44,6 +52,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.shadow
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,13 +77,7 @@ import java.util.Locale
 enum class WatchlistSortOrder(val label: String) {
     SYMBOL("Symbol"),
     CHANGE("Change %"),
-    PROFIT("Profit %")
-}
-
-enum class WatchlistFilter(val label: String) {
-    ALL("All"),
-    FOCUS("Focus List"),
-    PORTFOLIO("Portfolio")
+    SIGNAL("Signal")
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -86,11 +92,11 @@ fun WatchlistScreen(
 ) {
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
-    var activeFilter by rememberSaveable { mutableStateOf(WatchlistFilter.ALL) }
     var sortOrder by rememberSaveable { mutableStateOf(WatchlistSortOrder.SYMBOL) }
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -103,12 +109,8 @@ fun WatchlistScreen(
         debouncedSearchQuery = searchQuery
     }
 
-    val processedList = remember(watchlist, activeFilter, sortOrder, debouncedSearchQuery, isSortAscending) {
-        var list = when (activeFilter) {
-            WatchlistFilter.ALL -> watchlist
-            WatchlistFilter.FOCUS -> watchlist.filter { it.isFocused }
-            WatchlistFilter.PORTFOLIO -> watchlist.filter { it.portfolio.quantity > 0 }
-        }
+    val processedList = remember(watchlist, sortOrder, debouncedSearchQuery, isSortAscending) {
+        var list = watchlist
 
         if (debouncedSearchQuery.isNotBlank()) {
             val q = debouncedSearchQuery.trim().uppercase(Locale.ROOT)
@@ -117,11 +119,21 @@ fun WatchlistScreen(
             }
         }
 
+        // Helper priority rank for Signal sort: BUY (1) > POTENTIAL (2) > SELL (3) > MONITOR (4)
+        fun signalPriority(item: StockWatchlistInfo): Int {
+            return when (item.signal?.type) {
+                apincer.mobile.tradings.domain.IndicatorSignal.BUY -> 1
+                apincer.mobile.tradings.domain.IndicatorSignal.POTENTIAL -> 2
+                apincer.mobile.tradings.domain.IndicatorSignal.SELL -> 3
+                else -> 4
+            }
+        }
+
         // Apply Sorting
         when (sortOrder) {
             WatchlistSortOrder.SYMBOL -> if (isSortAscending) list.sortedBy { it.info.symbol } else list.sortedByDescending { it.info.symbol }
             WatchlistSortOrder.CHANGE -> if (isSortAscending) list.sortedBy { it.info.percentChange } else list.sortedByDescending { it.info.percentChange }
-            WatchlistSortOrder.PROFIT -> if (isSortAscending) list.sortedBy { it.netProfitPercent } else list.sortedByDescending { it.netProfitPercent }
+            WatchlistSortOrder.SIGNAL -> if (isSortAscending) list.sortedByDescending { signalPriority(it) } else list.sortedBy { signalPriority(it) }
         }
     }
 
@@ -184,46 +196,41 @@ fun WatchlistScreen(
             )
         }
 
-        // Filtering & Sorting Row
+        // Sorting Row
         LazyRow(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            item {
-                Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            items(WatchlistFilter.entries.toList()) { filter ->
-                FilterChip(
-                    selected = activeFilter == filter,
-                    onClick = { activeFilter = filter },
-                    label = { Text(filter.label, fontSize = 12.sp) },
-                    shape = CircleShape,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
-            }
-            item {
-                Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = { isSortAscending = !isSortAscending },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isSortAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                        contentDescription = "Toggle Sort Direction",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
             items(WatchlistSortOrder.entries.toList()) { order ->
+                val isSelected = sortOrder == order
                 FilterChip(
-                    selected = sortOrder == order,
-                    onClick = { sortOrder = order },
-                    label = { Text(order.label, fontSize = 12.sp) },
+                    selected = isSelected,
+                    onClick = {
+                        if (isSelected) {
+                            isSortAscending = !isSortAscending
+                        } else {
+                            sortOrder = order
+                            // Default Symbol to Ascending (A-Z), Change & Signal to Descending
+                            isSortAscending = (order == WatchlistSortOrder.SYMBOL)
+                        }
+                        coroutineScope.launch {
+                            listState.scrollToItem(0)
+                        }
+                    },
+                    label = { 
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(order.label, fontSize = 12.sp)
+                            if (isSelected) {
+                                Spacer(Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = if (isSortAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+                    },
                     shape = CircleShape,
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -239,90 +246,205 @@ fun WatchlistScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (activeFilter == WatchlistFilter.FOCUS) {
-                    stringResource(R.string.label_focused_count, processedList.size)
-                } else {
-                    stringResource(R.string.label_monitoring_count, processedList.size)
-                },
+                text = stringResource(R.string.label_monitoring_count, processedList.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             )
         }
         
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshWatchlistInfo() },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        var isDraggingFastScroll by remember { mutableStateOf(false) }
+
+        // Compute fast scroll index bubble text based on current sort order
+        val firstVisibleIndex = listState.firstVisibleItemIndex
+        val bubbleText = remember(processedList, firstVisibleIndex, sortOrder) {
+            if (processedList.isEmpty() || firstVisibleIndex !in processedList.indices) ""
+            else {
+                val item = processedList[firstVisibleIndex]
+                when (sortOrder) {
+                    WatchlistSortOrder.SYMBOL -> item.info.symbol.take(1).uppercase()
+                    WatchlistSortOrder.CHANGE -> "${if (item.info.percentChange >= 0) "+" else ""}${item.info.percentChange.toInt()}%"
+                    WatchlistSortOrder.SIGNAL -> item.signal?.type?.name ?: "MONITOR"
+                }
+            }
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refreshWatchlistInfo() },
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (processedList.isEmpty()) {
-                    item {
-                        GlassCard(
-                            modifier = Modifier.fillMaxWidth().height(220.dp),
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxSize().padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (processedList.isEmpty()) {
+                        item {
+                            GlassCard(
+                                modifier = Modifier.fillMaxWidth().height(220.dp),
+                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
                             ) {
-                                if (watchlist.isEmpty()) {
-                                    Text(
-                                        text = "Your watchlist is empty.",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        text = "Add your first stock to get started!",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(Modifier.height(16.dp))
-                                    Button(
-                                        onClick = { showAddDialog = true },
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(stringResource(R.string.title_add_stock))
+                                Column(
+                                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    if (watchlist.isEmpty()) {
+                                        Text(
+                                            text = "Your watchlist is empty.",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            text = "Add your first stock to get started!",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(16.dp))
+                                        Button(
+                                            onClick = { showAddDialog = true },
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(stringResource(R.string.title_add_stock))
+                                        }
+                                    } else {
+                                        Text(
+                                            text = stringResource(R.string.label_no_matches_found),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
                                     }
-                                } else {
-                                    Text(
-                                        text = if (activeFilter == WatchlistFilter.FOCUS) stringResource(R.string.label_no_focused_stocks) else stringResource(R.string.label_no_matches_found),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center
-                                    )
                                 }
                             }
                         }
+                    } else {
+                        items(processedList, key = { it.info.symbol }) { item ->
+                            StockItemCard(
+                                item = item,
+                                onSelect = { onSelectStock(item.info.symbol) },
+                                onDelete = { 
+                                    viewModel.removeFromWatchlist(item.info.symbol) 
+                                    showSnackbar("Removed ${item.info.symbol} from watchlist")
+                                },
+                                showSignalBadge = false
+                            )
+                        }
                     }
-                } else {
-                    items(processedList, key = { it.info.symbol }) { item ->
-                        StockItemCard(
-                            item = item,
-                            onSelect = { onSelectStock(item.info.symbol) },
-                            onDelete = { 
-                                viewModel.removeFromWatchlist(item.info.symbol) 
-                                showSnackbar("Removed ${item.info.symbol} from watchlist")
-                            },
-                            isPrivacyMode = isPrivacyMode,
-                            showSignalBadge = false
-                        )
+
+                    item {
+                        Spacer(Modifier.height(80.dp))
+                    }
+                }
+            }
+
+            // Fast Scroll Track & Floating Thumb (active when list has 8+ items)
+            if (processedList.size >= 8) {
+                val isScrollInProgress = listState.isScrollInProgress || isDraggingFastScroll
+                val showScrollToTop = listState.firstVisibleItemIndex > 4
+
+                // Floating "Scroll to Top" Quick Action Button
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showScrollToTop && !isDraggingFastScroll,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 90.dp)
+                ) {
+                    Surface(
+                        onClick = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(0)
+                            }
+                        },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.ArrowUpward, contentDescription = "Scroll to top", modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
 
-                item {
-                    Spacer(Modifier.height(80.dp))
+                // Fast Scroll Drag Track on right edge
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isScrollInProgress,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(vertical = 40.dp, horizontal = 4.dp)
+                ) {
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxHeight()
+                    ) {
+                        val trackHeightPx = with(androidx.compose.ui.platform.LocalDensity.current) { maxHeight.toPx() }
+                        val currentFraction = if (processedList.isNotEmpty()) {
+                            (listState.firstVisibleItemIndex.toFloat() / (processedList.size - 1)).coerceIn(0f, 1f)
+                        } else 0f
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .pointerInput(processedList.size) {
+                                    detectVerticalDragGestures(
+                                        onDragStart = { isDraggingFastScroll = true },
+                                        onDragEnd = { isDraggingFastScroll = false },
+                                        onDragCancel = { isDraggingFastScroll = false }
+                                    ) { change, _ ->
+                                        change.consume()
+                                        val positionY = change.position.y.coerceIn(0f, trackHeightPx)
+                                        val fraction = positionY / trackHeightPx
+                                        val targetIndex = (fraction * (processedList.size - 1)).toInt().coerceIn(0, processedList.size - 1)
+                                        coroutineScope.launch {
+                                            listState.scrollToItem(targetIndex)
+                                        }
+                                    }
+                                }
+                        ) {
+                            // Floating Index Bubble
+                            if (bubbleText.isNotBlank()) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = RoundedCornerShape(20.dp),
+                                    shadowElevation = 6.dp
+                                ) {
+                                    Text(
+                                        text = bubbleText,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(6.dp))
+                            }
+
+                            // Dynamic Position Thumb Pill
+                            Box(
+                                modifier = Modifier
+                                    .width(8.dp)
+                                    .height(48.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -67,16 +67,7 @@ class StockRepository(
         }
     }
 
-    suspend fun addToFocusList(symbol: String, startPrice: Double, targetPrice: Double = 0.0) {
-        focusDao.insertFocusStock(FocusEntity(symbol.uppercase(), startPrice, targetPrice))
-    }
 
-    suspend fun removeFromFocusList(symbol: String) {
-        val existing = focusDao.getFocusStockBySymbol(symbol.uppercase())
-        if (existing != null) {
-            focusDao.deleteFocusStock(existing)
-        }
-    }
 
     suspend fun getFocusStock(symbol: String): FocusEntity? {
         return focusDao.getFocusStockBySymbol(symbol.uppercase())
@@ -155,9 +146,7 @@ class StockRepository(
         stockDao.deleteWatchlistStocks()
     }
 
-    suspend fun clearFocusList() {
-        focusDao.clearFocusList()
-    }
+
 
     suspend fun insertTrade(trade: TradeEntity) {
         tradeDao.insertTrade(trade)

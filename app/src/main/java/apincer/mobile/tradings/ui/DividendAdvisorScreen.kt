@@ -103,7 +103,6 @@ fun DividendAdvisorScreen(
     val speculativePlays = alertRoutineState.speculativePlays
     val dividendPlays = alertRoutineState.dividendPlays
     val portfolioItems = alertRoutineState.portfolioItems
-    val liquidityTrapSignals = alertRoutineState.liquidityTrapSignals
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAfternoonScanAvailable by viewModel.isAfternoonScanAvailable.collectAsState()
@@ -246,7 +245,6 @@ fun DividendAdvisorScreen(
                     watchlist = watchlist,
                     portfolioItems = portfolioItems,
                     speculativePlays = speculativePlays,
-                    liquidityTrapSignals = liquidityTrapSignals,
                     isQual = isQual,
                     isVal = isVal,
                     isDiv = isDiv,
@@ -335,24 +333,12 @@ fun DividendAdvisorScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     val candidatesCount = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size
-                    if (playbookMode == PlaybookMode.SWING) {
-                        SectionHeader(
-                            modifier = Modifier.weight(1f),
-                            //title = "🔍 Scan Setups" + if (isAfternoonScanAvailable) " 📢" else "",
-                            title = "Scan Setups" + if (isAfternoonScanAvailable) " 📢" else "",
-                            subtitle = "$candidatesCount setups (Quality + Momentum)" + if (isAfternoonScanAvailable) " — Afternoon scan ready" else "",
-                           // icon = Icons.AutoMirrored.Filled.List
-                            icon = Icons.Default.QueryStats
-                        )
-                    } else {
-                        SectionHeader(
-                            modifier = Modifier.weight(1f),
-                            title = "Find Dividend Stars 💰",
-                            subtitle = "$candidatesCount stars (Yield ≥ 5% & Quality)",
-                            //icon = Icons.AutoMirrored.Filled.List
-                            icon = Icons.Default.QueryStats
-                        )
-                    }
+                    SectionHeader(
+                        modifier = Modifier.weight(1f),
+                        title = if (playbookMode == PlaybookMode.SWING) "Scan Setups" else "Find Dividend Stars 💰",
+                        subtitle = if (playbookMode == PlaybookMode.SWING) "$candidatesCount setups (Quality + Momentum)" else "$candidatesCount stars (Yield ≥ 5% & Quality)",
+                        icon = Icons.Default.QueryStats
+                    )
                     if (playbookMode == PlaybookMode.SWING) {
                         StepCheckbox(
                             isDone = checklist.swingWeeklyDone,
@@ -366,6 +352,53 @@ fun DividendAdvisorScreen(
                     }
                 }
             }
+
+            if (playbookMode == PlaybookMode.DIVIDEND) {
+                // SET XD Dividend Calendar Timeline
+                val upcomingXdList = watchlist.filter { it.info.dividendYield != null && it.info.dividendYield > 0 }
+                if (upcomingXdList.isNotEmpty()) {
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Upcoming XD Calendar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            upcomingXdList.take(5).forEach { item ->
+                                val yieldStr = "%.2f%%".format(item.info.dividendYield ?: 0.0)
+                                val estDps = if (item.info.lastPrice > 0) item.info.lastPrice * ((item.info.dividendYield ?: 0.0) / 100.0) else 0.0
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(item.info.symbol, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                        Text("Est. DPS: ฿%.2f".format(estDps), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "Yield: $yieldStr",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (playbookMode == PlaybookMode.SWING) {
                 if (combinedSwingPlays.isEmpty()) {
                     Text("No swing setups or gap ups found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -391,24 +424,6 @@ fun DividendAdvisorScreen(
                     dividendPlays.forEach { stock ->
                         AdvisorStockCard(stock, viewModel)
                     }
-                }
-            }
-
-            if (liquidityTrapSignals.isNotEmpty()) {
-                Spacer(Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Liquidity/Trap Risk ⚠️",
-                    subtitle = "${liquidityTrapSignals.size} signals — safety gate failed, verify manually",
-                    icon = Icons.Default.QueryStats
-                )
-                Text(
-                    "These stocks triggered a live BUY/POTENTIAL signal but failed the liquidity/52-week-low safety gate (thinly traded, or possibly a falling-knife trap near a 52-week low). Highest risk category — confirm real volume and trend structure yourself before considering these.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(Modifier.height(8.dp))
-                liquidityTrapSignals.forEach { stock ->
-                    AdvisorStockCard(stock, viewModel)
                 }
             }
 
@@ -577,7 +592,6 @@ fun AiCopilotCard(
     watchlist: List<StockWatchlistInfo>,
     portfolioItems: List<StockWatchlistInfo>,
     speculativePlays: List<StockWatchlistInfo>,
-    liquidityTrapSignals: List<StockWatchlistInfo>,
     isQual: (StockWatchlistInfo) -> Boolean,
     isVal: (StockWatchlistInfo) -> Boolean,
     isDiv: (StockWatchlistInfo) -> Boolean,
@@ -610,11 +624,7 @@ fun AiCopilotCard(
             ) {
                 SectionHeader(
                     modifier = Modifier.weight(1f),
-                   // title = "🤖 AI Master Prompts",
-                    title = "AI Master Prompts",
-                    //subtitle = "Synced: $lastSync",
-                   // icon = Icons.Default.AutoAwesome,
-                   // icon = Icons.AutoMirrored.Filled.List,
+                    title = "Gemini AI Advisor",
                     icon = Icons.Default.AutoAwesome,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -628,7 +638,7 @@ fun AiCopilotCard(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Tap the button below to copy a detailed prompt to your clipboard. Then paste it into your favorite AI (ChatGPT, Gemini, Claude) for deep analysis.",
+                text = "Run analysis with Google Gemini, or optionally copy the master prompt for external AIs.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 lineHeight = 16.sp
@@ -642,7 +652,6 @@ fun AiCopilotCard(
                 }
                 val gapUpPlaysFilter = watchlist.filter { it.info.lastPrice >= 1.0 && isLiquid(it) && isGapUp(it) }
                 val speculativePromptPlays = speculativePlays.filter { it.info.lastPrice >= 1.0 }
-                val liquidityTrapPromptPlays = liquidityTrapSignals.filter { it.info.lastPrice >= 1.0 }
                 
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -650,7 +659,7 @@ fun AiCopilotCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Data Preview: Sending ${swingPlaysFilter.size} Swing, ${gapUpPlaysFilter.size} Gap Up, ${speculativePromptPlays.size} Speculative, and ${liquidityTrapPromptPlays.size} Liquidity/Trap Risk plays for analysis.",
+                        text = "Data Preview: Sending ${swingPlaysFilter.size} Swing, ${gapUpPlaysFilter.size} Gap Up, and ${speculativePromptPlays.size} Speculative plays to AI.",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -658,7 +667,7 @@ fun AiCopilotCard(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Swing Trade Button
+                // Swing Trade Prompts
                 val buildSwingPrompt = {
                     val lastSyncLocal = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
                     
@@ -669,9 +678,6 @@ fun AiCopilotCard(
                         "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, Chg=${String.format(Locale.ENGLISH, "%.1f", it.info.percentChange)}%, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, NPM=${it.info.netProfitMargin?.let { npm -> String.format(Locale.ENGLISH, "%.1f", npm) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}"
                     }
                     val speculativeCandidates = if (speculativePromptPlays.isEmpty()) "None" else speculativePromptPlays.joinToString("\n") {
-                        "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
-                    }
-                    val liquidityTrapCandidates = if (liquidityTrapPromptPlays.isEmpty()) "None" else liquidityTrapPromptPlays.joinToString("\n") {
                         "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
                     }
                     
@@ -690,9 +696,7 @@ fun AiCopilotCard(
                            - Technical Alignment: Entry near the gap-up support line or on breakout validation. Prioritize volume surge and strong catalyst.
                         3. Speculative Watch (Low Quality, incl. unconfirmed setups):
                            - High risk trades. Fundamentals are poor, but technicals are flashing oversold or reversal. Some are MACD-confirmed, others are early/unconfirmed (weaker signal). Trade only if the catalyst is extremely strong.
-                        4. Liquidity/Trap Risk (Safety Gate Failed):
-                           - Triggered a raw BUY/POTENTIAL signal but failed the liquidity/52-week-low safety gate (thinly traded, or possibly a falling-knife trap near a 52-week low). Highest risk category — treat with extra scrutiny, verify real volume and trend structure before including, and lean towards excluding unless conviction is very high.
-                        5. General Risk Constraints:
+                        4. General Risk Constraints:
                            - Risk/Reward ratio MUST be asymmetric: Target +5% Profit, Stop Loss -3%.
                            - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
                            
@@ -712,12 +716,9 @@ fun AiCopilotCard(
                         Speculative Candidates (Poor Quality, High Risk):
                         $speculativeCandidates
 
-                        Liquidity/Trap Risk Candidates (Safety Gate Failed — verify manually):
-                        $liquidityTrapCandidates
-
                         DELEGATED TASKS:
                         1. [market-researcher]: Perform a live web search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also perform a query for current SET index level, sector trends, and interest rates to establish macro context.
-                        2. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones, and treat Liquidity/Trap Risk candidates as last resort only with an exceptionally strong catalyst. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (+5%), and strict Stop Loss (-3%) for each setup. For each ranked pick, assign a Confidence Score (0-100%) reflecting how strongly the technical + fundamental + catalyst evidence supports the setup, and briefly justify the score (what would raise/lower it).
+                        2. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (+5%), and strict Stop Loss (-3%) for each setup. For each ranked pick, assign a Confidence Score (0-100%) reflecting how strongly the technical + fundamental + catalyst evidence supports the setup, and briefly justify the score (what would raise/lower it).
                         
                         EXPLAIN INSTRUCTIONS:
                         - Break down the recommendations step-by-step, referencing the math/technical metrics provided.
@@ -733,30 +734,32 @@ fun AiCopilotCard(
                     """.trimIndent()
                 }
 
-                Button(
-                    onClick = {
-                        onMarkAiDone()
-                        val prompt = buildSwingPrompt()
-                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                        showSnackbar("Swing Prompt copied! Paste into your AI.")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Swing Trade AI Prompt")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
+                // Primary Highlighted Action: Direct In-App Analysis with Google Gemini
                 AiAnalysisButton(
-                    label = "Analyze Swing Setups with AI",
+                    label = "Ask! Google Gemini",
                     apiKey = apiKey,
                     geminiModelId = geminiModelId,
                     buildPrompt = buildSwingPrompt,
                     onDone = onMarkAiDone,
                     showSnackbar = showSnackbar
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Secondary Optional Action: Copy Prompt to Clipboard
+                OutlinedButton(
+                    onClick = {
+                        onMarkAiDone()
+                        val prompt = buildSwingPrompt()
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
+                        showSnackbar("Swing Prompt copied! Paste into external AI.")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Copy Master Prompt")
+                }
             } else {
                 val dividendPlays = watchlist.filter { isLiquid(it) && isDiv(it) && isQual(it) }
                 Surface(
@@ -765,7 +768,7 @@ fun AiCopilotCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Data Preview: Sending ${dividendPlays.size} high-yield candidates for analysis.",
+                        text = "Data Preview: Sending ${dividendPlays.size} high-yield candidates to AI.",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -823,30 +826,32 @@ fun AiCopilotCard(
                     """.trimIndent()
                 }
 
-                Button(
-                    onClick = {
-                        onMarkAiDone()
-                        val prompt = buildDividendPrompt()
-                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
-                        showSnackbar("Dividend Prompt copied! Paste into your AI.")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Dividend AI Prompt")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
+                // Primary Highlighted Action: Direct In-App Analysis with Google Gemini
                 AiAnalysisButton(
-                    label = "Analyze Dividend Picks with AI",
+                    label = "Ask! Google Gemini",
                     apiKey = apiKey,
                     geminiModelId = geminiModelId,
                     buildPrompt = buildDividendPrompt,
                     onDone = onMarkAiDone,
                     showSnackbar = showSnackbar
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Secondary Optional Action: Copy Prompt to Clipboard
+                OutlinedButton(
+                    onClick = {
+                        onMarkAiDone()
+                        val prompt = buildDividendPrompt()
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(prompt))
+                        showSnackbar("Dividend Prompt copied! Paste into external AI.")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Copy Master Prompt")
+                }
             }
         }
     }
@@ -866,11 +871,11 @@ fun AiAnalysisButton(
     var result by remember { mutableStateOf<apincer.mobile.tradings.domain.AiAnalysisResult?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    OutlinedButton(
+    Button(
         onClick = {
             if (apiKey.isBlank()) {
                 showSnackbar("Add your Gemini API key in Settings > AI Integration first.")
-                return@OutlinedButton
+                return@Button
             }
             error = null
             result = null
@@ -890,7 +895,11 @@ fun AiAnalysisButton(
             }
         },
         modifier = Modifier.fillMaxWidth(),
-        enabled = !isLoading
+        enabled = !isLoading,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        )
     ) {
         if (isLoading) {
             androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)

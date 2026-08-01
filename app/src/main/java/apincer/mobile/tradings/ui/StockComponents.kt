@@ -242,8 +242,7 @@ fun <T> GlassSegmentedControl(
 
 @Composable
 fun HoldingsSummaryTable(
-    items: List<StockWatchlistInfo>,
-    isPrivacyMode: Boolean = false
+    items: List<StockWatchlistInfo>
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -275,22 +274,6 @@ fun HoldingsSummaryTable(
                     modifier = Modifier.weight(1.1f),
                     textAlign = androidx.compose.ui.text.style.TextAlign.End
                 )
-                /*Text(
-                    text = "Cost",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1.2f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.End
-                )
-                Text(
-                    text = "Mkt Val",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1.2f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.End
-                ) */
                 Text(
                     text = "Unr. P/L",
                     fontSize = 11.sp,
@@ -347,10 +330,8 @@ fun HoldingsSummaryTable(
                             maxLines = 1,
                             softWrap = false
                         )
-                       // val breakEven = if (qty > 0) costValue / (qty * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE)) else avgCost
                         Text(
-                           // text = if (isPrivacyMode) "B.E. ••••" else "B.E. ${String.format(Locale.ENGLISH, "%.2f", breakEven)}",
-                            text = if (isPrivacyMode) "(•••)" else String.format(Locale.ENGLISH, "(%,.0f)", costValue),
+                            text = String.format(Locale.ENGLISH, "(%,.0f)", costValue),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
@@ -366,7 +347,7 @@ fun HoldingsSummaryTable(
                             softWrap = false
                         )
                         Text(
-                            text = if (isPrivacyMode) "(•••)" else String.format(Locale.ENGLISH, "(%,.0f)", mktValue),
+                            text = String.format(Locale.ENGLISH, "(%,.0f)", mktValue),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
@@ -376,7 +357,7 @@ fun HoldingsSummaryTable(
                     Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
                         val plPct = if (costValue > 0) (unrealizedPL / costValue) * 100.0 else 0.0
                         Text(
-                            text = if (isPrivacyMode) "••%" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", plPct)}%",
+                            text = "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", plPct)}%",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Black,
                             color = plColor,
@@ -384,7 +365,7 @@ fun HoldingsSummaryTable(
                             softWrap = false
                         )
                         Text(
-                            text = if (isPrivacyMode) "••••" else "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%,.0f", unrealizedPL)}",
+                            text = "${if (isProfit) "+" else ""}${String.format(Locale.ENGLISH, "%,.0f", unrealizedPL)}",
                             fontSize = 10.sp,
                             color = plColor.copy(alpha = 0.8f),
                             fontWeight = FontWeight.Bold
@@ -464,7 +445,6 @@ fun StockItemCard(
     onDelete: (StockWatchlistInfo) -> Unit,
     onSell: ((StockWatchlistInfo) -> Unit)? = null,
     onEdit: ((StockWatchlistInfo) -> Unit)? = null,
-    isPrivacyMode: Boolean = false,
     showSignalBadge: Boolean = true
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -513,7 +493,6 @@ fun StockItemCard(
             ) {
                 Column(modifier = Modifier.weight(1.3f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        
                         Text(
                             text = item.info.symbol,
                             style = MaterialTheme.typography.titleLarge,
@@ -522,9 +501,30 @@ fun StockItemCard(
                             softWrap = false,
                             letterSpacing = (-0.5).sp
                         )
-                        if (item.isFocused) {
-                            Spacer(Modifier.width(8.dp))
-                            GlassTag(text = "FOCUS", color = MaterialTheme.colorScheme.secondary)
+                        if (!showSignalBadge && item.signal != null) {
+                            Spacer(Modifier.width(6.dp))
+                            val signalColor = when (item.signal.type) {
+                                IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
+                                IndicatorSignal.POTENTIAL -> MaterialTheme.colorScheme.secondary
+                                IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
+                                else -> null
+                            }
+                            if (signalColor != null) {
+                                Surface(
+                                    color = signalColor.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = item.signal.type.name,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = signalColor,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                            }
                         }
                     }
                     
@@ -568,7 +568,7 @@ fun StockItemCard(
                 ) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", item.info.lastPrice)}",
+                            text = "฿${String.format(Locale.ENGLISH, "%.2f", item.info.lastPrice)}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1
@@ -620,7 +620,7 @@ fun StockItemCard(
                     Column {
                         Text("Break-Even", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", breakEven)}",
+                            text = "฿${String.format(Locale.ENGLISH, "%.2f", breakEven)}",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -628,7 +628,7 @@ fun StockItemCard(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Net Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (isPrivacyMode) "••••%" else "${if (item.netProfitPercent >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.netProfitPercent)}%",
+                            text = "${if (item.netProfitPercent >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.netProfitPercent)}%",
                             style = MaterialTheme.typography.labelLarge,
                             color = if (item.netProfitPercent >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Black
@@ -638,7 +638,7 @@ fun StockItemCard(
                         Text("Take Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", takeProfitPrice)}",
+                                text = "฿${String.format(Locale.ENGLISH, "%.2f", takeProfitPrice)}",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.tertiary
@@ -646,7 +646,7 @@ fun StockItemCard(
                             if (expectedProfit > 0) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (isPrivacyMode) "(+฿••)" else "(+฿${String.format(Locale.ENGLISH, "%,.0f", expectedProfit)})",
+                                    text = "(+฿${String.format(Locale.ENGLISH, "%,.0f", expectedProfit)})",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
@@ -666,14 +666,14 @@ fun StockItemCard(
                             Text("Stop Loss", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
-                                    text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", stopLoss)}",
+                                    text = "฿${String.format(Locale.ENGLISH, "%.2f", stopLoss)}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Black,
                                     color = MaterialTheme.colorScheme.error
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (isPrivacyMode) "(-฿••)" else "(-฿${String.format(Locale.ENGLISH, "%,.0f", expectedLoss)})",
+                                    text = "(-฿${String.format(Locale.ENGLISH, "%,.0f", expectedLoss)})",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
@@ -683,43 +683,13 @@ fun StockItemCard(
                         }
                     }
                 }
-            } else if (item.isFocused && item.focusStartPrice != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text("Start", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%.2f", item.focusStartPrice)}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Move", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        val startDiff = ((item.info.lastPrice - item.focusStartPrice) / item.focusStartPrice) * 100
-                        Text(
-                            text = "${if (startDiff >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.1f", startDiff)}%",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
-                            color = if (startDiff >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("Sell Target", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = if (isPrivacyMode) "฿••••" else if ((item.focusTargetPrice ?: 0.0) > 0) "฿${String.format(Locale.ENGLISH, "%.2f", item.focusTargetPrice)}" else "---",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
             }
 
             val isPortfolioItem = item.portfolio.quantity > 0
-            val isSellSignal = item.signal?.type == IndicatorSignal.SELL
-            val isSoftSell = isSellSignal && (item.signal?.reason?.contains("Overbought") == true || item.signal?.reason?.contains("Upper Band") == true)
-            val showStatusBox = showSignalBadge && (item.signal != null || isPortfolioItem)
+            val signal = item.signal
+            val isSellSignal = signal?.type == IndicatorSignal.SELL
+            val isSoftSell = isSellSignal && (signal.reason.contains("Overbought") || signal.reason.contains("Upper Band"))
+            val showStatusBox = showSignalBadge && (signal != null || isPortfolioItem)
             
             if (showStatusBox) {
                 
@@ -727,8 +697,8 @@ fun StockItemCard(
                     isPortfolioItem && isSellSignal && isSoftSell -> MaterialTheme.colorScheme.tertiary
                     isPortfolioItem && isSellSignal -> MaterialTheme.colorScheme.error
                     isPortfolioItem && !isSellSignal -> MaterialTheme.colorScheme.tertiary
-                    item.signal?.type == IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
-                    item.signal?.type == IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
+                    signal?.type == IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
+                    signal?.type == IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.secondary
                 }
                 
@@ -858,12 +828,17 @@ fun SectionContent(
     color: Color = MaterialTheme.colorScheme.primary,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        if (title != null && icon != null) {
-            SectionHeader(title = title, icon = icon, color = color)
-            Spacer(modifier = Modifier.height(16.dp))
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            if (title != null && icon != null) {
+                SectionHeader(title = title, icon = icon, color = color)
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            content()
         }
-        content()
     }
 }
 
@@ -895,7 +870,6 @@ fun PortfolioSummaryCard(
     totalDividendEarned: Double = 0.0,
     lifetimeReturn: Double = 0.0,
     lifetimeReturnPercent: Double = 0.0,
-    isPrivacyMode: Boolean = false,
     profitScopeLabel: String? = null,
     onEditCash: () -> Unit,
     onLogDividend: () -> Unit = {}
@@ -911,7 +885,7 @@ fun PortfolioSummaryCard(
                     Text("Total Assets", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     
                     Text(
-                        text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", totalAssetValue)}",
+                        text = "฿${String.format(Locale.ENGLISH, "%,.2f", totalAssetValue)}",
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -939,7 +913,7 @@ fun PortfolioSummaryCard(
                     Text("Stocks Value", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     
                     Text(
-                        text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", stockValue)}",
+                        text = "฿${String.format(Locale.ENGLISH, "%,.2f", stockValue)}",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -949,7 +923,7 @@ fun PortfolioSummaryCard(
                     Text("Cash Balance", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     
                     Text(
-                        text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", cashBalance)}",
+                        text = "฿${String.format(Locale.ENGLISH, "%,.2f", cashBalance)}",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -988,14 +962,14 @@ fun PortfolioSummaryCard(
                         }
                         
                         Text(
-                            text = if (isPrivacyMode) "฿••••" else "฿${String.format(Locale.ENGLISH, "%,.2f", netProfit)}", 
+                            text = "฿${String.format(Locale.ENGLISH, "%,.2f", netProfit)}", 
                             fontSize = 20.sp, 
                             fontWeight = FontWeight.Black,
                             color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                         )
                         
                         Text(
-                            text = if (isPrivacyMode) "(••••%)" else "${String.format(Locale.ENGLISH, "%+.2f", netPercent)}%", 
+                            text = "${String.format(Locale.ENGLISH, "%+.2f", netPercent)}%", 
                             fontSize = 14.sp, 
                             fontWeight = FontWeight.Bold,
                             color = if (netProfit >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
@@ -1107,5 +1081,95 @@ fun AppBackground(content: @Composable () -> Unit) {
         }
         
         content()
+    }
+}
+
+data class ChartSlice(
+    val label: String,
+    val value: Double,
+    val color: Color
+)
+
+@Composable
+fun AllocationDonutChart(
+    slices: List<ChartSlice>,
+    modifier: Modifier = Modifier,
+    centerTitle: String = "Total Assets",
+    centerSubtitle: String = ""
+) {
+    if (slices.isEmpty()) return
+    val total = slices.sumOf { it.value }.coerceAtLeast(0.0001)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(200.dp)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 28.dp.toPx()
+                var startAngle = -90f
+
+                slices.forEach { slice ->
+                    val sweepAngle = ((slice.value / total) * 360f).toFloat()
+                    drawArc(
+                        color = slice.color,
+                        startAngle = startAngle,
+                        sweepAngle = sweepAngle,
+                        useCenter = false,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                    )
+                    startAngle += sweepAngle
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = centerTitle,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold
+                )
+                if (centerSubtitle.isNotBlank()) {
+                    Text(
+                        text = centerSubtitle,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Legend grid
+        androidx.compose.foundation.layout.FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            slices.forEach { slice ->
+                val pct = (slice.value / total) * 100.0
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(slice.color, shape = CircleShape)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "${slice.label}: ${"%.1f".format(pct)}%",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
     }
 }

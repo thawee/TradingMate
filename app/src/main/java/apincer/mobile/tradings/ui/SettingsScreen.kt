@@ -2,6 +2,7 @@ package apincer.mobile.tradings.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -243,76 +245,95 @@ fun SettingsScreen(
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
-                var editingMaxOpen by remember(maxOpenExposure) { mutableStateOf(maxOpenExposure.toString()) }
+                var showAdvancedRisk by remember { mutableStateOf(false) }
 
-                OutlinedTextField(
-                    value = editingMaxOpen,
-                    onValueChange = { 
-                        editingMaxOpen = it
-                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxOpenExposure(percent) }
-                    },
-                    label = { Text("Max Open Risk Exposure") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    suffix = { Text("%") },
-                    shape = RoundedCornerShape(14.dp)
-                )
-                Text(
-                    text = stringResource(R.string.desc_max_open_exposure),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
-                )
+                TextButton(
+                    onClick = { showAdvancedRisk = !showAdvancedRisk },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (showAdvancedRisk) "Hide Advanced Risk Parameters ▲" else "Show Advanced Risk Parameters ▼",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                AnimatedVisibility(visible = showAdvancedRisk) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                val maxAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
-                var editingMaxAlloc by remember(maxAllocation) { mutableStateOf(maxAllocation.toString()) }
+                        val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
+                        var editingMaxOpen by remember(maxOpenExposure) { mutableStateOf(maxOpenExposure.toString()) }
 
-                OutlinedTextField(
-                    value = editingMaxAlloc,
-                    onValueChange = { 
-                        editingMaxAlloc = it
-                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxPortfolioAllocation(percent) }
-                    },
-                    label = { Text("Max Portfolio Allocation per Asset") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    suffix = { Text("%") },
-                    shape = RoundedCornerShape(14.dp)
-                )
-                Text(
-                    text = stringResource(R.string.desc_max_portfolio_allocation),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
-                )
+                        OutlinedTextField(
+                            value = editingMaxOpen,
+                            onValueChange = { 
+                                editingMaxOpen = it
+                                it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxOpenExposure(percent) }
+                            },
+                            label = { Text("Max Open Risk Exposure") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            suffix = { Text("%") },
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.desc_max_open_exposure),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                        )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                val minRR by settingsViewModel.minRiskRewardRatio.collectAsState()
-                var editingMinRR by remember(minRR) { mutableStateOf(minRR.toString()) }
+                        val maxAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
+                        var editingMaxAlloc by remember(maxAllocation) { mutableStateOf(maxAllocation.toString()) }
 
-                OutlinedTextField(
-                    value = editingMinRR,
-                    onValueChange = { 
-                        editingMinRR = it
-                        it.toDoubleOrNull()?.let { ratio -> settingsViewModel.updateMinRiskRewardRatio(ratio) }
-                    },
-                    label = { Text("Minimum Risk/Reward Ratio") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(14.dp)
-                )
-                Text(
-                    text = stringResource(R.string.desc_min_risk_reward),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
-                )
+                        OutlinedTextField(
+                            value = editingMaxAlloc,
+                            onValueChange = { 
+                                editingMaxAlloc = it
+                                it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxPortfolioAllocation(percent) }
+                            },
+                            label = { Text("Max Portfolio Allocation per Asset") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            suffix = { Text("%") },
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.desc_max_portfolio_allocation),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val minRR by settingsViewModel.minRiskRewardRatio.collectAsState()
+                        var editingMinRR by remember(minRR) { mutableStateOf(minRR.toString()) }
+
+                        OutlinedTextField(
+                            value = editingMinRR,
+                            onValueChange = { 
+                                editingMinRR = it
+                                it.toDoubleOrNull()?.let { ratio -> settingsViewModel.updateMinRiskRewardRatio(ratio) }
+                            },
+                            label = { Text("Minimum Risk/Reward Ratio") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.desc_min_risk_reward),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                        )
+                    }
+                }
             }
 
             SectionContent(title = "Trading Fees", icon = Icons.Default.AccountBalanceWallet) {
@@ -465,21 +486,6 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
-            }
-
-            SectionContent(title = "App Preferences", icon = Icons.Default.ColorLens) {
-                val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Privacy Mode", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Text("Mask sensitive value counts and portfolio totals", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Switch(checked = isPrivacyMode, onCheckedChange = { settingsViewModel.updatePrivacyMode(it) })
-                }
             }
 
             SectionContent(title = "Data Backup & Restore", icon = Icons.Default.History) {

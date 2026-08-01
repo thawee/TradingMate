@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -82,7 +83,6 @@ fun PortfolioScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
     val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
-    val isPrivacyMode by settingsViewModel.isPrivacyMode.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
@@ -171,6 +171,16 @@ fun PortfolioScreen(
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                IconButton(onClick = {
+                    apincer.mobile.tradings.utils.CsvExporter.exportHoldingsToCsv(context, allPortfolioItems)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDownload,
+                        contentDescription = "Export CSV",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
                 IconButton(onClick = { showBuyDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.desc_buy_stock), modifier = Modifier.size(24.dp))
                 }
@@ -218,9 +228,6 @@ fun PortfolioScreen(
                     netPercent = totalNetProfitPercent,
                     yieldOnCost = avgYieldOnCost,
                     totalDividendEarned = totalDividendEarned,
-                  //  lifetimeReturn = lifetimeReturn,
-                  //  lifetimeReturnPercent = lifetimeReturnPercent,
-                    isPrivacyMode = isPrivacyMode,
                     profitScopeLabel = if (selectedPlaybook == "SWING") null else selectedPlaybook,
                     onEditCash = { showCashDialog = true },
                     onLogDividend = { showDividendDialog = true }
@@ -262,7 +269,7 @@ fun PortfolioScreen(
                                 portfolioItems.map { (it.info.lastPrice * it.portfolio.quantity).toFloat() }
                             }
                             val centerAmount = if (isMacro) totalAssetValue else stockValue
-                            val centerTextStr = if (isPrivacyMode) "฿••••" else "฿${String.format(java.util.Locale.ENGLISH, "%,.0f", centerAmount)}"
+                            val centerTextStr = "฿${String.format(java.util.Locale.ENGLISH, "%,.0f", centerAmount)}"
 
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 // Donut chart
@@ -375,8 +382,7 @@ fun PortfolioScreen(
 
                 item {
                     HoldingsSummaryTable(
-                        items = portfolioItems,
-                        isPrivacyMode = isPrivacyMode
+                        items = portfolioItems
                     )
                 }
             }
@@ -419,8 +425,7 @@ fun PortfolioScreen(
                         onEdit = { 
                             selectedStockForEdit = item
                             showBuyDialog = true
-                        },
-                        isPrivacyMode = isPrivacyMode
+                        }
                     )
                 }
             }
@@ -445,11 +450,6 @@ fun PortfolioScreen(
             },
             onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose ->
                 viewModel.addToWatchlist(symbol, cost, qty, purpose, stopLoss, note, isEdit = isEditing)
-                //if (purpose == "SWING" && target > 0) {
-                //    viewModel.addToFocusList(symbol, cost, target)
-                //} else {
-                    viewModel.removeFromFocusList(symbol)
-                //}
                 showBuyDialog = false
                 selectedStockForEdit = null
             }

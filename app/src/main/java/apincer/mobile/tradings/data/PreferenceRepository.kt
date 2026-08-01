@@ -73,17 +73,6 @@ class PreferenceRepository(private val context: Context) {
         }
     }
 
-    val isPrivacyMode: Flow<Boolean> = context.settingsDataStore.data
-        .map { preferences ->
-            preferences[IS_PRIVACY_MODE] ?: false
-        }
-
-    suspend fun setPrivacyMode(enabled: Boolean) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[IS_PRIVACY_MODE] = enabled
-        }
-    }
-
     // ATS (Automatic Transfer System) + E-Statement: waives the ฿50/day minimum commission
     val isAtsEnabled: Flow<Boolean> = context.settingsDataStore.data
         .map { preferences ->

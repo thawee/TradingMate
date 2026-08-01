@@ -128,7 +128,7 @@ class TradingMateWidget : GlanceAppWidget() {
                     // Header
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
                         Text(
-                            text = "TradingMate • $positionsCount Positions",
+                            text = "TradingMate\n[$positionsCount stocks]",
                             style = TextStyle(
                                 color = GlanceTheme.colors.onSurfaceVariant,
                                 fontSize = 14.sp,

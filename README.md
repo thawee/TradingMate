@@ -16,8 +16,7 @@ It specifically addresses common beginner challenges:
 
 - **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. It suggests high-yield "Dividend Stars" based on strict fundamental criteria.
 - **Market Pulse:** Real-time monitoring of your watchlist with automated technical signals (BUY, SELL, POTENTIAL).
-- **AI Advisor:** A centralized AI discovery hub that evaluates Swing, Gap, Dividend, and Speculative opportunities. Generates Master Prompts for external AI analysis (ChatGPT/Gemini/Claude) **and** offers a built-in "Analyze with AI" button that calls Google Gemini directly, returning structured recommendations with a 0–100% Confidence Score per pick.
-- **Backtest Engine:** An in-app backtester replays each stock's historical price/indicator history against the Swing DNA rules to report win rate, average win/loss, and expectancy per stock — no more relying on estimated ranges alone.
+- **AI Advisor:** A centralized AI discovery hub that evaluates Swing, Gap, and Dividend opportunities. Integrates Google Gemini directly via the "Analyze with AI" button for structured recommendations with confidence scores, with an optional "Copy Master Prompt" button.
 - **Consolidated Portfolio:** A professional-grade financial dashboard grouping stock holdings, cash balance, net profit, and fee tracking in one unified view.
 - **Automated Trading Zones:** Real-time calculation of "Buy Below" and "Sell Above" price ranges using RSI (35/65 targets).
 - **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled (waived via Settings). Financial Transaction Tax is ฿0 — officially abolished.

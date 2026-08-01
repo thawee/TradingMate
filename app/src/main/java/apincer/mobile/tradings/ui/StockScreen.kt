@@ -222,22 +222,6 @@ fun StockScreen(
                 Box(modifier = Modifier.weight(1f)) {
                     when (val state = uiState) {
                         is StockUiState.Success -> {
-                            var showFocusDialog by remember { mutableStateOf(false) }
-
-                            if (showFocusDialog) {
-                                FocusSettingsDialog(
-                                    symbol = state.stockInfo.symbol,
-                                    initialTargetPrice = state.focusTargetPrice,
-                                    currentPrice = state.stockInfo.lastPrice,
-                                    onDismiss = { showFocusDialog = false },
-                                    onConfirm = { target ->
-                                        val startPriceToUse = if (state.isFocused && state.focusStartPrice > 0) state.focusStartPrice else state.stockInfo.lastPrice
-                                        viewModel.addToFocusList(state.stockInfo.symbol, startPriceToUse, target)
-                                        showSnackbar("${state.stockInfo.symbol} added to Focus List at ฿${String.format(Locale.ENGLISH, "%.2f", target)}")
-                                        showFocusDialog = false
-                                    }
-                                )
-                            }
 
                             Column(
                                 modifier = Modifier
@@ -278,27 +262,9 @@ fun StockScreen(
                                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back), modifier = Modifier.size(24.dp))
                                         }
                                     },
-                                    actions = {
-                                        IconButton(
-                                            onClick = { 
-                                                if (state.isFocused) {
-                                                    viewModel.removeFromFocusList(state.stockInfo.symbol)
-                                                    showSnackbar("${state.stockInfo.symbol} removed from Focus List")
-                                                } else {
-                                                    showFocusDialog = true
-                                                }
-                                            }
-                                        ) {
-                                            Icon(
-                                                imageVector = if (state.isFocused) Icons.Default.Star else Icons.Default.StarBorder, 
-                                                contentDescription = stringResource(R.string.desc_focus),
-                                                tint = if (state.isFocused) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                    }
+                                    actions = {}
                                 )
-                                StockDashboard(state, onEditFocus = { showFocusDialog = true })
+                                StockDashboard(state)
                             }
                         }
                         is StockUiState.Loading -> {
@@ -356,74 +322,10 @@ fun StockScreen(
     }
 }
 
-@Composable
-fun FocusSettingsDialog(
-    symbol: String,
-    initialTargetPrice: Double,
-    currentPrice: Double,
-    onDismiss: () -> Unit,
-    onConfirm: (Double) -> Unit
-) {
-    var targetPrice by remember { mutableStateOf(if (initialTargetPrice > 0) initialTargetPrice.toString() else "") }
 
-    GlassDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.title_focus_on, symbol),
-        confirmButton = {
-            Button(
-                onClick = {
-                    val target = targetPrice.toDoubleOrNull() ?: 0.0
-                    onConfirm(target)
-                },
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(R.string.action_confirm_focus))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        }
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(stringResource(R.string.label_current_market_price), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("฿${String.format(Locale.ENGLISH, "%.2f", currentPrice)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
-            }
-
-            OutlinedTextField(
-                value = targetPrice,
-                onValueChange = { targetPrice = it },
-                label = { Text(stringResource(R.string.label_target_price_thb)) },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                prefix = { Text("฿ ") },
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.label_focus_tracker_info, String.format(Locale.ENGLISH, "%.2f", currentPrice)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(12.dp),
-                    lineHeight = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
-}
 
 @Composable
-fun StockDashboard(state: StockUiState.Success, onEditFocus: () -> Unit) {
+fun StockDashboard(state: StockUiState.Success) {
     val info = state.stockInfo
     val portfolio = state.portfolio
     val uriHandler = LocalUriHandler.current
@@ -449,33 +351,6 @@ fun StockDashboard(state: StockUiState.Success, onEditFocus: () -> Unit) {
                     Spacer(Modifier.width(8.dp))
                     
                     Text(stringResource(R.string.label_partial_data_warning), fontSize = 12.sp, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Medium)
-                }
-            }
-        }
-
-        if (state.isFocused) {
-            SectionContent(
-                modifier = Modifier.clickable { onEditFocus() },
-                title = stringResource(R.string.section_focus_tracking), 
-                icon = Icons.Default.Star
-            ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        
-                        Text(stringResource(R.string.label_start_price), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        
-                        Text("฿${String.format(Locale.ENGLISH, "%.2f", state.focusStartPrice)}", fontSize = 18.sp, fontWeight = FontWeight.Black)
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        
-                        Text(stringResource(R.string.label_target), fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (state.focusTargetPrice > 0) "฿${state.focusTargetPrice}" else stringResource(R.string.label_not_set), fontSize = 18.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.width(8.dp))
-                            Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), modifier = Modifier.size(14.dp))
-                        }
-                    }
                 }
             }
         }

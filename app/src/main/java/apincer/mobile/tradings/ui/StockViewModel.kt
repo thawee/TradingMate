@@ -40,7 +40,6 @@ data class AlertRoutineState(
     val speculativePlays: List<StockWatchlistInfo> = emptyList(),
     val dividendPlays: List<StockWatchlistInfo> = emptyList(),
     val portfolioItems: List<StockWatchlistInfo> = emptyList(),
-    val liquidityTrapSignals: List<StockWatchlistInfo> = emptyList(),
     val checklist: ChecklistEntity = ChecklistEntity()
 ) {
     val activeAlerts: List<SellAlertData>
@@ -412,23 +411,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
 
-            // Safety net #1 (highest risk): not-yet-owned stock with a live BUY/POTENTIAL
-            // signal that failed the liquidity/52-week-low trap gate. Kept as its own
-            // distinct, loudly-labeled warning rather than folded into Speculative Watch —
-            // this is a structural safety concern, not just a fundamentals quality issue.
-            val liquidityTrapSignals = watchlist.filter {
-                it.portfolio.quantity == 0 &&
-                    (it.signal?.type == IndicatorSignal.BUY || it.signal?.type == IndicatorSignal.POTENTIAL) &&
-                    !isLiquid(it)
-            }.sortedWith(
-                compareBy<StockWatchlistInfo> {
-                    when (it.signal?.type) {
-                        IndicatorSignal.BUY -> 0
-                        else -> 1
-                    }
-                }
-            )
-
             val swingSellAlerts = mutableListOf<SellAlertData>()
             val dividendSellAlerts = mutableListOf<SellAlertData>()
 
@@ -508,7 +490,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 speculativePlays = speculativePlays,
                 dividendPlays = dividendPlays,
                 portfolioItems = portfolioItems,
-                liquidityTrapSignals = liquidityTrapSignals,
                 checklist = checklist
             )
         }.stateIn(
@@ -1005,45 +986,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addToFocusList(symbol: String, price: Double, targetPrice: Double = 0.0) {
-        viewModelScope.launch {
-            val normalizedSymbol = symbol.uppercase()
-            val existing = repository.getFocusStock(normalizedSymbol)
-            val startPrice = existing?.startPrice ?: price
-            
-            repository.addToFocusList(normalizedSymbol, startPrice, targetPrice)
-            repository.addStockIfMissing(normalizedSymbol)
-            
-            // Update current UI state immediately for reactivity
-            val currentState = _uiState.value
-            if (currentState is StockUiState.Success && currentState.stockInfo.symbol == normalizedSymbol) {
-                _uiState.value = currentState.copy(
-                    isFocused = true,
-                    focusStartPrice = startPrice,
-                    focusTargetPrice = targetPrice
-                )
-            }
-            
-            refreshWatchlistInfo()
-        }
-    }
 
-    fun removeFromFocusList(symbol: String) {
-        viewModelScope.launch {
-            val normalizedSymbol = symbol.uppercase()
-            repository.removeFromFocusList(normalizedSymbol)
-            
-            // Update current UI state immediately for reactivity
-            val currentState = _uiState.value
-            if (currentState is StockUiState.Success && currentState.stockInfo.symbol == normalizedSymbol) {
-                _uiState.value = currentState.copy(
-                    isFocused = false,
-                    focusStartPrice = 0.0,
-                    focusTargetPrice = 0.0
-                )
-            }
-        }
-    }
 
     fun resetToInitial() {
         _uiState.value = StockUiState.Initial

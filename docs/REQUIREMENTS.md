@@ -47,12 +47,10 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Cash Management:** Provide a quick way to adjust or set the current cash balance.
 - **Yield-on-Cost:** Calculate and display dividend yield relative to purchase price.
 
-### 2.4 Watchlist & Focus Tracking
+### 2.4 Watchlist Management
 - **Multi-source Search:** Enable searching for stocks using both SET and Yahoo Finance data.
-- **Focus List:** Allow users to "Star" specific stocks to track them in a dedicated "Focus" tab.
 - **SET Collections Import:** Enable one-click import of curated stock groups (SET50, SET100, SETHD, Dividend Stars, Bluechips).
-- **Dynamic Sorting:** Sort stocks by Symbol, Change %, Profit %, or Signal strength.
-- **Filtering:** Filter list by All / Focus List / Portfolio Holdings. Signal-based alerts (BUY/SELL/Speculative/Liquidity-Trap) live on the Advisor screen, not here — Watchlist is purely for maintaining which stocks you track.
+- **Dynamic Sorting & Filtering:** Sort stocks by Symbol, Change %, or Signal priority (BUY > POTENTIAL > SELL > MONITOR) with direction toggle, search filter, fast scroll index track, and auto-scroll to top on sort change.
 
 ### 2.5 Smart Advisor
 - **Playbook Modes:** Two modes — Swing Playbook and Dividend Playbook.

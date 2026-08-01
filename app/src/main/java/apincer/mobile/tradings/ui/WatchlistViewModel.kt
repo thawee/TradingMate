@@ -48,23 +48,7 @@ class WatchlistViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun addToFocusList(symbol: String, price: Double, targetPrice: Double = 0.0) {
-        viewModelScope.launch {
-            val normalizedSymbol = symbol.uppercase()
-            val existing = repository.getFocusStock(normalizedSymbol)
-            val startPrice = existing?.startPrice ?: price
-            
-            repository.addToFocusList(normalizedSymbol, startPrice, targetPrice)
-            repository.addStockIfMissing(normalizedSymbol)
-        }
-    }
 
-    fun removeFromFocusList(symbol: String) {
-        viewModelScope.launch {
-            val normalizedSymbol = symbol.uppercase()
-            repository.removeFromFocusList(normalizedSymbol)
-        }
-    }
 
 
 }

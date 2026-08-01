@@ -64,19 +64,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    val isPrivacyMode: StateFlow<Boolean> = 
-        preferenceRepository.isPrivacyMode.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    fun updatePrivacyMode(enabled: Boolean) {
-        viewModelScope.launch {
-            preferenceRepository.setPrivacyMode(enabled)
-        }
-    }
-
     val trailingStopPercent: StateFlow<Double> = 
         preferenceRepository.trailingStopPercent.stateIn(
             scope = viewModelScope,

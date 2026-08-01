@@ -10,7 +10,7 @@ The bottom navigation bar provides instant access to the five main functional ar
 
 1.  **📊 Watchlist (Data Center)**
     *   **Focus:** Broad market monitoring.
-    *   **Features:** A comprehensive list of saved stocks with technical signals, fundamental overview, and Filter Chips to isolate "Focus" or "All" stocks.
+    *   **Features:** A comprehensive list of saved stocks with technical signals, fundamental overview, search filter, and dynamic sorting.
 2.  **🧠 Advisor (AI Discovery Hub)**
     *   **Focus:** Actionable trade setups and Risk Management.
     *   **Features:** Permanent top-level Sell Alerts, tabbed browsing for Swing Trades, Earnings Gaps, and Dividend plays. Generates AI Master Prompts directly to clipboard.
