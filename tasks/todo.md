@@ -1,22 +1,31 @@
-# Feature Expansion Plan
+# AI Prompt Review & Optimization Plan
 
-- [x] **Task 1: Portfolio Asset & Sector Allocation Chart** <!-- id: 0 -->
-  - [x] Build a custom canvas `AllocationPieChart` composable in `StockComponents.kt` with glass legend. <!-- id: 1 -->
-  - [x] Add Asset Allocation (% Stocks vs % Cash) and Sector Concentration (% per sector) toggle tabs to `PortfolioScreen.kt`. <!-- id: 2 -->
-  - [x] Verify compilation and rendering. <!-- id: 3 -->
+- [x] **Task 1: Comprehensive Review of App AI Prompts** <!-- id: 17 -->
+  - [x] Analyze prompt structures across `DividendAdvisorScreen.kt` and `StockScreen.kt`. <!-- id: 18 -->
+  - [x] Identify conflicts between API JSON Schema (`GeminiClient`) and text prompt instructions. <!-- id: 19 -->
+  - [x] Audit data completeness (missing fields like Last Price in `StockScreen.kt`). <!-- id: 20 -->
+  - [x] Review risk management rules and consistency (R:R ratios, ELI10 vs analytical clarity). <!-- id: 21 -->
 
-- [x] **Task 2: CSV Exporter for Portfolio Holdings & Trade History** <!-- id: 4 -->
-  - [x] Create `CsvExporter.kt` utility with file intent / Share Sheet launcher to export Holdings and Closed Trades to `.csv`. <!-- id: 5 -->
-  - [x] Add "Export CSV" buttons in `PortfolioScreen.kt` and `TradeHistoryScreen.kt`. <!-- id: 6 -->
-  - [x] Verify CSV generation. <!-- id: 7 -->
+- [x] **Task 2: Refine Prompts & Fix Code Issues** <!-- id: 22 -->
+  - [x] Fix missing `Price` parameter in `StockScreen.kt` AI prompt. <!-- id: 23 -->
+  - [x] Harmonize in-app Gemini API prompt instructions with JSON output mode. <!-- id: 24 -->
+  - [x] Standardize Risk/Reward constraints across prompts. <!-- id: 25 -->
+  - [x] Run `./gradlew test` and verify code builds cleanly. <!-- id: 26 -->
 
-- [x] **Task 3: SET XD Dividend Calendar Timeline** <!-- id: 8 -->
-  - [x] Extract upcoming XD dates from watchlist stocks and sort them chronologically in `DividendAdvisorScreen.kt`. <!-- id: 9 -->
-  - [x] Add an "XD Calendar" tab / expandable timeline view with estimated dividend payouts per share & last buy dates. <!-- id: 10 -->
-  - [x] Verify layout and calculation. <!-- id: 11 -->
+- [x] **Task 3: Implement [regime-manager] (Bull/Bear Subagent) in Prompts** <!-- id: 27 -->
+  - [x] Add `[regime-manager]` role to `buildSwingPrompt` and `buildDividendPrompt` in `DividendAdvisorScreen.kt`. <!-- id: 28 -->
+  - [x] Add `[regime-manager]` role to `StockScreen.kt` prompt. <!-- id: 29 -->
+  - [x] Run `./gradlew testDebugUnitTest` to verify end-to-end. <!-- id: 30 -->
 
-- [x] **Task 4: Background Signal & Price Alert Monitor (`WorkManager`)** <!-- id: 12 -->
-  - [x] Add `WorkManager` dependency and `SignalAlertWorker.kt` to periodically check prices/signals during market hours. <!-- id: 13 -->
-  - [x] Send system notifications for BUY / SELL alerts. <!-- id: 14 -->
-  - [x] Add notification toggle in `SettingsScreen.kt` & register periodic work. <!-- id: 15 -->
-  - [x] Run `./gradlew assembleDebug` to verify end-to-end. <!-- id: 16 -->
+- [x] **Task 4: Cash Balance & Portfolio Capital Splitting in Prompts** <!-- id: 31 -->
+  - [x] Expose `cashBalance` StateFlow in `StockViewModel.kt`. <!-- id: 32 -->
+  - [x] Include `AVAILABLE CASH BALANCE` in `DividendAdvisorScreen.kt` prompts (`buildSwingPrompt` & `buildDividendPrompt`). <!-- id: 33 -->
+  - [x] Instruct `[risk-manager]` subagent to split cash balance across top recommended tickers (position size in THB and shares). <!-- id: 34 -->
+  - [x] Update Markdown output format to show **Position Size (THB & Est. Shares)**. <!-- id: 35 -->
+  - [x] Run `./gradlew testDebugUnitTest` to verify end-to-end. <!-- id: 36 -->
+
+- [x] **Task 5: In-App Gemini API Schema & UI Card Alignment** <!-- id: 37 -->
+  - [x] Add `cashAllocation` property to `AiRecommendation` data class and JSON schema in `GeminiClient.kt`. <!-- id: 38 -->
+  - [x] Update `AiRecommendationCard` in `DividendAdvisorScreen.kt` to render Cash Allocation badge & bold price levels. <!-- id: 39 -->
+  - [x] Run `./gradlew testDebugUnitTest` to verify end-to-end. <!-- id: 40 -->
+

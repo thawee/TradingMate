@@ -18,6 +18,7 @@ data class AiRecommendation(
     val targetProfit: String,
     val stopLoss: String,
     val confidenceScore: Int,
+    val cashAllocation: String = "",
     val reasoning: String
 )
 
@@ -79,6 +80,7 @@ object GeminiClient {
                         put("targetProfit", JSONObject().put("type", "STRING"))
                         put("stopLoss", JSONObject().put("type", "STRING"))
                         put("confidenceScore", JSONObject().put("type", "INTEGER"))
+                        put("cashAllocation", JSONObject().put("type", "STRING"))
                         put("reasoning", JSONObject().put("type", "STRING"))
                     })
                     put("required", JSONArray(listOf("symbol", "playbookType", "buyZone", "targetProfit", "stopLoss", "confidenceScore", "reasoning")))
@@ -151,6 +153,7 @@ object GeminiClient {
                             targetProfit = item.optString("targetProfit"),
                             stopLoss = item.optString("stopLoss"),
                             confidenceScore = item.optInt("confidenceScore", 0).coerceIn(0, 100),
+                            cashAllocation = item.optString("cashAllocation"),
                             reasoning = item.optString("reasoning")
                         )
                     )

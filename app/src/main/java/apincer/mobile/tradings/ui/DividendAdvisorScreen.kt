@@ -85,6 +85,7 @@ fun DividendAdvisorScreen(
 ) {
     val alertRoutineState by viewModel.alertRoutineState.collectAsState()
     val watchlist by viewModel.watchlistInfo.collectAsState()
+    val cashBalance by viewModel.cashBalance.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     val isQual = StockDna::isQual
@@ -257,6 +258,7 @@ fun DividendAdvisorScreen(
                     maxPortfolioAllocation = maxPortfolioAllocation,
                     apiKey = geminiApiKey,
                     geminiModelId = geminiModelId,
+                    cashBalance = cashBalance,
                     showSnackbar = showSnackbar
                 )
             }
@@ -604,6 +606,7 @@ fun AiCopilotCard(
     maxPortfolioAllocation: Double,
     apiKey: String,
     geminiModelId: String = "gemini-3.6-flash",
+    cashBalance: Double = 0.0,
     showSnackbar: (String) -> Unit
 ) {
     @Suppress("DEPRECATION")
@@ -670,6 +673,7 @@ fun AiCopilotCard(
                 // Swing Trade Prompts
                 val buildSwingPrompt = {
                     val lastSyncLocal = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+                    val cashBalanceFormatted = String.format(Locale.ENGLISH, "%,.2f THB", cashBalance)
                     
                     val swingCandidates = if (swingPlaysFilter.isEmpty()) "None" else swingPlaysFilter.joinToString("\n") {
                         "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
@@ -684,8 +688,9 @@ fun AiCopilotCard(
                     """
                         Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) swing trade, gap up, and speculative candidates.
                         
-                        DATA FRESHNESS:
+                        DATA FRESHNESS & CAPITAL:
                         - Metrics last updated/synced on: $lastSyncLocal
+                        - Available Cash Balance: $cashBalanceFormatted
                         
                         PLAYBOOK RULES & CONSTRAINTS:
                         1. Swing/Breakout Candidates (VIP Quality):
@@ -697,7 +702,7 @@ fun AiCopilotCard(
                         3. Speculative Watch (Low Quality, incl. unconfirmed setups):
                            - High risk trades. Fundamentals are poor, but technicals are flashing oversold or reversal. Some are MACD-confirmed, others are early/unconfirmed (weaker signal). Trade only if the catalyst is extremely strong.
                         4. General Risk Constraints:
-                           - Risk/Reward ratio MUST be asymmetric: Target +5% Profit, Stop Loss -3%.
+                           - Risk/Reward ratio MUST be asymmetric (minimum 2.0:1 R:R, e.g. Target Profit >= +6%, Stop Loss <= -3%). Stop loss must be placed below key technical support.
                            - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
                            
                         GUARDRAILS & NEGATIVE CONSTRAINTS:
@@ -717,19 +722,19 @@ fun AiCopilotCard(
                         $speculativeCandidates
 
                         DELEGATED TASKS:
-                        1. [market-researcher]: Perform a live web search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also perform a query for current SET index level, sector trends, and interest rates to establish macro context.
-                        2. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (+5%), and strict Stop Loss (-3%) for each setup. For each ranked pick, assign a Confidence Score (0-100%) reflecting how strongly the technical + fundamental + catalyst evidence supports the setup, and briefly justify the score (what would raise/lower it).
+                        1. [market-researcher]: Search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also check current SET index level, sector trends, and interest rates for macro context. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, technical indicators, and known market knowledge).
+                        2. [regime-manager]: Evaluate market regime (Bullish, Bearish, or Choppy/Sideways based on price relative to SMA 200/50 and MACD). In a Bull market, allow higher profit targets and breakout trailing stops; in a Bear/Choppy market, enforce capital preservation, tighter stop losses, and buying strictly at major technical support.
+                        3. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (min 2.0:1 R:R), and strict Stop Loss for each setup. IMPORTANT: Intelligently split my available cash balance ($cashBalanceFormatted) across these recommended picks (specify recommended capital in THB and estimated share count for each stock, reserving a cash buffer if market risk is elevated). For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
                         
                         EXPLAIN INSTRUCTIONS:
-                        - Break down the recommendations step-by-step, referencing the math/technical metrics provided.
-                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                        - Break down the recommendations step-by-step using clear, accessible logic.
                         - Provide a real-world analogy to describe the setup of the ranked pick.
                         
                         FORMAT REQUIREMENT:
                         Output the final recommendation as a clean Markdown report with the following structure:
-                        ### Executive Summary (Swing vs Gap Candidates, Macro Environment)
-                        ### Top Ranked Setups (Markdown Table: Ticker, Playbook Type, Buy Zone, Target, Stop Loss, Confidence Score)
-                        ### Subagent Analysis Details (catalysts, technical support, risk parameters, confidence score justification)
+                        ### Executive Summary (Market Regime, Macro Environment, Swing vs Gap Candidates)
+                        ### Top Ranked Setups (Markdown Table: Ticker, Playbook Type, Buy Zone, Target, Stop Loss, Cash Allocation THB & Est. Shares, Confidence Score)
+                        ### Subagent Analysis Details (Bull/Bear regime alignment, catalysts, technical support, risk parameters, confidence score justification)
                         ### Analogous Story (The real-world analogy)
                     """.trimIndent()
                 }
@@ -778,6 +783,7 @@ fun AiCopilotCard(
 
                 val buildDividendPrompt = {
                     val lastSyncLocal = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+                    val cashBalanceFormatted = String.format(Locale.ENGLISH, "%,.2f THB", cashBalance)
                     val dividendCandidates = if (dividendPlays.isEmpty()) "None" else dividendPlays
                         .sortedByDescending { it.info.dividendYield }
                         .joinToString("\n") {
@@ -787,8 +793,9 @@ fun AiCopilotCard(
                     """
                         Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) dividend candidates.
                         
-                        DATA FRESHNESS:
+                        DATA FRESHNESS & CAPITAL:
                         - Metrics last updated/synced on: $lastSyncLocal
+                        - Available Cash Balance: $cashBalanceFormatted
                         
                         CONSTRAINTS & PLAYBOOK (Dividend Accumulation):
                         - Holding Period: Long-term (indefinite hold for compound growth).
@@ -798,7 +805,7 @@ fun AiCopilotCard(
                         - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
                         
                         GUARDRAILS & NEGATIVE CONSTRAINTS:
-                        - DO NOT recommend penny stocks or highly illiquid assets.
+                        - DO NOT recommend penny stocks (price < 1.0 THB) or highly illiquid assets.
                         - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
                         - DO NOT formulate response as direct financial advice; frame the analysis as educational research.
 
@@ -809,19 +816,19 @@ fun AiCopilotCard(
                         $dividendCandidates
                         
                         DELEGATED TASKS:
-                        1. [market-researcher]: Perform a live web search for forward-looking dividend safety (check cash flow trend, forward payout ratio, and upcoming earnings outlook) for these SET tickers. Also perform a query for current SET index level and general market sentiment.
-                        2. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure. For each ranked pick, assign a Confidence Score (0-100%) reflecting dividend safety + valuation margin, and briefly justify the score.
+                        1. [market-researcher]: Search for forward-looking dividend safety (check cash flow trend, forward payout ratio, and upcoming earnings outlook) for these SET tickers. Also check current SET index level and general market sentiment. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, fundamental indicators, and known market knowledge).
+                        2. [regime-manager]: Assess market regime (Bullish vs Bearish/Choppy). In a Bear/Choppy market, prioritize defensive blue-chips with higher yields (>6%) and safe payout ratios; in a Bull market, focus on dividend growth & compounding.
+                        3. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure. IMPORTANT: Intelligently split my available cash balance ($cashBalanceFormatted) across these recommended picks (specify recommended capital in THB and estimated share count for each stock). For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
                         
                         EXPLAIN INSTRUCTIONS:
-                        - Break down the recommendations step-by-step, referencing the math/financial metrics provided.
-                        - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                        - Break down the recommendations step-by-step using clear, accessible logic.
                         - Provide a real-world analogy to explain why the ranked stock is a reliable dividend payer.
                         
                         FORMAT REQUIREMENT:
                         Output the final recommendation as a clean Markdown report with the following structure:
-                        ### Executive Summary (Dividend Outlook, Macro Environment)
-                        ### Top Ranked Dividend Additions (Markdown Table: Ticker, Yield, Max Buy Price, Target Allocation, Confidence Score)
-                        ### Subagent Safety & Cash Flow Analysis (Payout safety, cash flow metrics, confidence score justification)
+                        ### Executive Summary (Dividend Outlook, Market Regime, Macro Environment)
+                        ### Top Ranked Dividend Additions (Markdown Table: Ticker, Yield, Max Buy Price, Cash Allocation THB & Est. Shares, Confidence Score)
+                        ### Subagent Safety & Cash Flow Analysis (Regime alignment, payout safety, cash flow metrics, confidence score justification)
                         ### Analogous Story (The real-world analogy)
                     """.trimIndent()
                 }
@@ -981,8 +988,23 @@ fun AiRecommendationCard(rec: apincer.mobile.tradings.domain.AiRecommendation) {
             }
             Text(rec.playbookType, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(6.dp))
-            Text("Buy Zone: ${rec.buyZone}  •  Target: ${rec.targetProfit}  •  Stop: ${rec.stopLoss}", style = MaterialTheme.typography.bodySmall)
-            Spacer(modifier = Modifier.height(4.dp))
+            Text("Buy Zone: ${rec.buyZone}  •  Target: ${rec.targetProfit}  •  Stop: ${rec.stopLoss}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            if (rec.cashAllocation.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = "💰 Cash Allocation: ${rec.cashAllocation}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
             Text(rec.reasoning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

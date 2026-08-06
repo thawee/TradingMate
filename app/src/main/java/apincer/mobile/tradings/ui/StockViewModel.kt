@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -121,6 +122,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
     val trailingStopPercent: StateFlow<Double> = preferenceRepository.trailingStopPercent
         .stateIn(viewModelScope, SharingStarted.Eagerly, 5.0)
+
+    val cashBalance: StateFlow<Double> = repository.cashBalance
+        .map { it?.balance ?: 0.0 }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 
     private val _isAfternoonScanAvailable = MutableStateFlow(getAfternoonScanAvailable())
     val isAfternoonScanAvailable: StateFlow<Boolean> = _isAfternoonScanAvailable

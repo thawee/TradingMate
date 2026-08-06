@@ -112,6 +112,7 @@ fun StockScreen(
                     ExtendedFloatingActionButton(
                         onClick = { 
                             val symbol = state.stockInfo.symbol
+                            val lastPrice = String.format(Locale.ENGLISH, "%.2f", state.stockInfo.lastPrice)
                             val pe = state.stockInfo.pe ?: 0.0
                             val yield = state.stockInfo.dividendYield ?: 0.0
                             val rsi = state.rsi?.let { String.format(Locale.ENGLISH, "%.1f", it) } ?: "N/A"
@@ -132,7 +133,7 @@ fun StockScreen(
                                 Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) ticker $symbol.
                                 
                                 DATA SHEET (Updated: $lastUpdated):
-                                - Sector: $sector | Market Cap: $marketCap
+                                - Symbol: $symbol | Price: $lastPrice THB | Sector: $sector | Market Cap: $marketCap
                                 - Fundamentals: P/E: $pe | Yield: $yield% | ROE: $roe | D/E: $de | Net Margin: $npm
                                 - Technicals: RSI: $rsi | MACD Hist: $macdHist | SMA 50: $sma50 | SMA 200: $sma200
                                 - Current Signal: $signalType ($signalReason)
@@ -141,27 +142,27 @@ fun StockScreen(
                                 PLAYBOOK RULES & CONSTRAINTS:
                                 - Holding Period: 2-4 weeks (Swing) or Long-term (Dividend).
                                 - Technical Alignment: Focus on technical support and indicator confirmations.
-                                - RISK: Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required.
+                                - RISK: Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required below technical support.
                                 
                                 GUARDRAILS & NEGATIVE CONSTRAINTS:
                                 - DO NOT recommend if liquidity is dangerously low.
-                                - DO NOT recommend penny stocks or leveraged DW products.
+                                - DO NOT recommend penny stocks (price < 1.0 THB) or leveraged DW products.
                                 - DO NOT provide direct financial advice; frame all recommendations as educational analysis.
                                 
                                 DELEGATED TASKS:
-                                1. [market-researcher]: Perform a live web search for recent news (last 7 days), upcoming earnings events, and catalysts on $symbol. Is their business moat strong? Also perform a quick query for current SET index level and sector trends to verify macro context.
-                                2. [risk-manager]: Is this setup safe? Identify major downside scenarios. Determine an exact Buy Zone and strict Stop Loss.
+                                1. [market-researcher]: Search for recent news (last 7 days), upcoming earnings events, and catalysts on $symbol. Evaluate business moat strength. Also check current SET index level and sector trends for macro context. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, technical indicators, and known market knowledge).
+                                2. [regime-manager]: Assess whether $symbol is in a Bullish, Bearish, or Choppy market structure (based on Price vs SMA 50/200 and MACD trend). Adjust profit targets and risk posture according to the prevailing regime.
+                                3. [risk-manager]: Evaluate setup safety and downside scenarios. Determine an exact Buy Zone, Target Profit (min 2.0:1 R:R), and strict Stop Loss relative to the current price ($lastPrice THB).
                                 
                                 EXPLAIN INSTRUCTIONS:
-                                - Break down the final decision step-by-step.
-                                - Use ELI10 style (Explain Like I'm 10) so it's super simple.
+                                - Break down the final decision step-by-step using clear, accessible logic.
                                 - Provide a real-world analogy to describe the recommended action/situation.
                                 
                                 FORMAT REQUIREMENT:
                                 Output the final analysis as a clean Markdown report with the following structure:
-                                ### Executive Summary (Ticker, Moat, Action)
+                                ### Executive Summary (Ticker, Moat, Market Regime, Action)
                                 ### Technical & Fundamental Setup (Markdown table of entry, target, and stop loss)
-                                ### Subagent Moat & Downside Analysis (Detail news, catalysts, and risk factor)
+                                ### Subagent Moat & Downside Analysis (Regime alignment, news, catalysts, and risk factors)
                                 ### Analogous Story (The real-world analogy)
                             """.trimIndent()
                             
