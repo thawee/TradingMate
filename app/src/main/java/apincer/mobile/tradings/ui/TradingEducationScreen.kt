@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.BlurOn
@@ -143,7 +144,7 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     icon = Icons.Default.ContentCut
                 )
 
-                // --- SECTION 2: THE 5-LAYER FILTER SYSTEM ---
+                // --- SECTION 2: THE 6-LAYER FILTER SYSTEM ---
                 SectionHeader(stringResource(R.string.title_education_concept), Icons.Default.Layers, color = MaterialTheme.colorScheme.tertiary)
                 
                 Text(
@@ -183,6 +184,12 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     content = stringResource(R.string.edu_layer_5_content),
                     color = Color(0xFFF44336),
                     icon = Icons.AutoMirrored.Filled.ShowChart
+                )
+                EducationGlassCard(
+                    title = stringResource(R.string.edu_layer_6_title),
+                    content = stringResource(R.string.edu_layer_6_content),
+                    color = Color(0xFF009688), // Teal color for FLOW
+                    icon = Icons.Default.AccountBalance
                 )
 
                 // --- SECTION 3: THE SENSORS ---

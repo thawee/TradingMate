@@ -85,9 +85,38 @@ A volume-weighted RSI computed on typical price ((H+L+C)/3 × volume).
 - **MFI ≥ 80 (Distribution):** Heavy volume flowing OUT at high prices. On a profitable position this triggers a **SELL** (*Distribution Detected*) — smart money is selling into strength.
 - **MFI ≤ 20 (Capitulation):** Panic-volume flush. Counts as volume confirmation for "Early Recovery" BUY signals (alongside 2× volume surge and rising OBV).
 
+### 12. Market Regime Gate - SET Index Health
+Measures the health of the broader Stock Exchange of Thailand index (`^SET.BK`).
+
+- **Calculation:** Compares SET Index price against its 50-day SMA and evaluates MACD histogram.
+  - **Bullish Trend:** SET Index $\ge$ SMA 50 AND MACD Histogram $\ge$ 0. (Full 100% position sizing).
+  - **Consolidation / Neutral:** SET Index $\ge$ SMA 50.
+  - **Bear / Correction:** SET Index < SMA 50. Activates defensive sizing (50%) and enforces strict NVDR Flow or positive Relative Strength for all Swing entries.
+
+### 13. Pre-Trade Risk:Reward & Invalidation Engine
+Before entering any position, TradingMate calculates the exact mathematical trade parameters:
+
+- **Suggested Stop Loss:** Volatility-adjusted stop ($2 \times \text{ATR}\%$, clamped $-3.5\%$ to $-8.0\%$) or fixed tier ($-4.5\%$ SET50 / $-6.5\%$ Mid/Small).
+- **Suggested Target Price:** Baseline $+10\%$ take-profit target.
+- **Risk:Reward Ratio (R:R):**
+  $$\text{R:R} = \frac{\text{Target Price} - \text{Entry Price}}{\text{Entry Price} - \text{Stop Loss Price}}$$
+  Displayed prominently on all watchlist and setup cards to enforce positive expectancy before trade execution.
+
+### 14. False Breakout Guard (Institutional Flow & Volume)
+Guards against "bull traps" where technical momentum appears positive but lacks institutional backing:
+
+- **NVDR Dumping Guard:** If foreign institutions are heavily net selling (NVDR net selling $> \text{฿}5,000,000$), BUY signals are downgraded to `POTENTIAL` (watch).
+- **Volume & RS Confirmation:** If a stock is lagging the SET index (Relative Strength $< -2.0$) and lacks above-average volume or rising OBV, breakout BUY signals are downgraded to `POTENTIAL`.
+
+### 15. Early Breakdown Warning (Active Loss Protection)
+Rather than waiting for a full stop loss ($-4.5\%$ to $-8.0\%$), the engine actively monitors open positions:
+
+- **Trigger:** If a holding is in a slight net loss ($\le -1.5\%$) and price breaks below the 50-day SMA while momentum (MACD) turns negative.
+- **Action:** Generates an immediate `SELL` (*Early Breakdown Warning*) alert, allowing traders to cut deteriorating positions early with minimal capital loss.
+
 ---
 
-## 🧬 The 5-Layer Filter (Stock DNA)
+## 🧬 The 6-Layer Filter (Stock DNA)
 
 - **Pre-Filter:** Liquidity (daily turnover > ฿5M) **AND** not within 5% of the 52-week low.
 - **Layer 1 — QUAL:** ROE > 15%, NPM > 10%, D/E < 1.5, 3Y profit growth > 10%.
@@ -95,6 +124,7 @@ A volume-weighted RSI computed on typical price ((H+L+C)/3 × volume).
 - **Layer 3 — DIV:** Dividend yield ≥ 5%.
 - **Layer 4 — MOM:** MACD histogram > 0.1% of price, RSI 40–64.9, and Relative Strength vs SET ≥ 0.
 - **Layer 5 — SUP:** BUY/POTENTIAL signal (incorporates SMA 200 trend context).
+- **Layer 6 — FLOW:** Foreign Fund NVDR net accumulation ($> 0$).
 
 ---
 
@@ -138,12 +168,12 @@ Stocks here represent the best value-to-risk ratio.
 ### 🟡 Potential Zone (Watchlist)
 Stocks that are becoming cheap but haven't confirmed a reversal yet.
 - **Criteria:** RSI < 42 **OR** Price is near Lower Bollinger Band.
-- **Signal:** *Nearing Value Zone* or *Support Testing*.
+- **Signal:** *Nearing Value Zone*, *Support Testing*, *False Breakout Guard*, or *Falling Knife Guard*.
 
 ### 🔴 Selling Zone (Distribution)
 Stocks that are overvalued or have broken their upward trend.
-- **Criteria:** RSI > 65 **OR** Price is near Upper Bollinger Band **OR** (MACD is Bearish **AND** Price < SMA 50).
-- **Signal:** *Overbought*, *Upper Band Resistance*, or *Weak Trend*.
+- **Criteria:** RSI > 65 **OR** Price is near Upper Bollinger Band **OR** (MACD is Bearish **AND** Price < SMA 50) **OR** Early Breakdown.
+- **Signal:** *Overbought*, *Upper Band Resistance*, *Early Breakdown Warning*, or *Weak Trend*.
 
 ### ⚪ Neutral Zone
 Stocks with no clear trend or extreme valuation.
@@ -154,8 +184,10 @@ Stocks with no clear trend or extreme valuation.
 ## 🛡️ Risk Management (The Golden Rules)
 
 1. **SELL Overrides BUY:** Even if a stock has great momentum, if it hits RSI 65 or the Upper Bollinger Band, the app triggers a **SELL** warning. Never buy at the peak.
-2. **Volatility-Adjusted Stop Loss:** The stop is 2× the stock's daily ATR (clamped -3.5% to -8.0%). If ATR is unavailable, fixed tiers apply: -4.5% (SET50) / -6.5% (Mid/Small-Cap). A breach triggers a mandatory **SELL** signal to preserve capital.
-3. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
+2. **Early Breakdown Cutting:** If a trade loses $-1.5\%$ and breaks below SMA 50 with negative MACD, exit early rather than suffering full stop-loss drawdown.
+3. **Volatility-Adjusted Stop Loss:** The stop is 2× the stock's daily ATR (clamped -3.5% to -8.0%). If ATR is unavailable, fixed tiers apply: -4.5% (SET50) / -6.5% (Mid/Small-Cap). A breach triggers a mandatory **SELL** signal to preserve capital.
+4. **Market Regime Sizing:** Reduce position sizing to 50% defensive during Bear/Correction market regimes (SET Index < SMA 50).
+5. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
 
 ---
 

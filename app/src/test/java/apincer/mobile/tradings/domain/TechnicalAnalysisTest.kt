@@ -103,7 +103,7 @@ class TechnicalAnalysisTest {
             tradePurpose = "SWING"
         )
         assertEquals(IndicatorSignal.SELL, signal.type)
-        assertEquals("Weak Trend", signal.reason)
+        assertTrue(signal.reason.contains("Early Breakdown Warning") || signal.reason.contains("Weak Trend"))
     }
 
     @Test
@@ -447,5 +447,62 @@ class TechnicalAnalysisTest {
         )
         assertEquals(IndicatorSignal.BUY, capitulation.type)
         assertTrue(capitulation.description.contains("capitulation"))
+    }
+
+    @Test
+    fun testRiskRewardCalculations() {
+        val stop = TechnicalAnalysis.calculateSuggestedStopLossPrice(10.0, atr = 0.3, isSet50 = true)
+        // 10.0 with 2*ATR stop (2*3%=6%, clamped 4.5-9%) -> 9.40 (6% loss)
+        assertTrue(stop < 10.0 && stop > 9.0)
+
+        val target = TechnicalAnalysis.calculateSuggestedTargetPrice(10.0, stopLossPrice = 9.5, minTargetPercent = 10.0)
+        assertEquals(11.0, target, 0.001)
+
+        val rr = TechnicalAnalysis.calculateRiskRewardRatio(entryPrice = 10.0, targetPrice = 11.0, stopLossPrice = 9.5)
+        assertEquals(2.0, rr!!, 0.001)
+    }
+
+    @Test
+    fun testMarketRegime() {
+        val bullPrices = List(60) { 100.0 + it * 2 } // Strong uptrend
+        assertEquals(TechnicalAnalysis.MarketRegime.BULLISH, TechnicalAnalysis.getMarketRegime(bullPrices))
+
+        val bearPrices = List(60) { 200.0 - it * 2 } // Strong downtrend
+        assertEquals(TechnicalAnalysis.MarketRegime.BEARISH, TechnicalAnalysis.getMarketRegime(bearPrices))
+    }
+
+    @Test
+    fun testEarlyBreakdownWarning() {
+        val signal = TechnicalAnalysis.getDetailedSignal(
+            rsi = 45.0,
+            macdHist = -0.5,
+            lastPrice = 98.0,
+            sma50 = 100.0,
+            sma200 = 90.0,
+            bb = null,
+            isVolumeSurge = false,
+            userCost = 100.0,
+            userQuantity = 100
+        )
+        assertEquals(IndicatorSignal.SELL, signal.type)
+        assertTrue(signal.reason.contains("Early Breakdown Warning"))
+    }
+
+    @Test
+    fun testFalseBreakoutGuardOnNvdrSelling() {
+        val signal = TechnicalAnalysis.getDetailedSignal(
+            rsi = 50.0,
+            macdHist = 0.5,
+            lastPrice = 10.0,
+            sma50 = 9.5,
+            sma200 = 9.0,
+            bb = null,
+            isVolumeSurge = true,
+            adx = 25.0,
+            nvdrNetVolume = -500_000.0,
+            nvdrNetValue = -10_000_000.0
+        )
+        assertEquals(IndicatorSignal.POTENTIAL, signal.type)
+        assertTrue(signal.reason.contains("False Breakout Guard"))
     }
 }

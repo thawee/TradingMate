@@ -23,7 +23,9 @@ data class Indicators(
     val adx: Double? = null,
     val stochK: Double? = null,
     val stochD: Double? = null,
-    val mfi: Double? = null
+    val mfi: Double? = null,
+    val nvdrNetVolume: Double? = null,
+    val nvdrNetValue: Double? = null
 )
 
 data class BollingerBands(
@@ -165,7 +167,10 @@ object TechnicalAnalysis {
         roe: Double? = null,
         peakPrice: Double? = null,
         isSet50: Boolean = false,
-        userStopLoss: Double? = null
+        userStopLoss: Double? = null,
+        relativeStrength: Double? = null,
+        nvdrNetVolume: Double? = null,
+        nvdrNetValue: Double? = null
     ): TradeSignal {
         if (rsi == null || macdHist == null) return TradeSignal(IndicatorSignal.NEUTRAL, "Waiting for data", "We need more historical data to generate a signal.")
         
@@ -242,6 +247,15 @@ object TechnicalAnalysis {
                         IndicatorSignal.SELL,
                         "${qualityPrefix}Stop Loss ($tierLabel ${String.format(Locale.ENGLISH, "%.1f", dynamicStopLoss)}%)",
                         "Warning: Your net loss is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% (below target ${String.format(Locale.ENGLISH, "%.1f", dynamicStopLoss)}%). Technically, $technicalWarning. Cutting loss prevents further capital erosion."
+                    )
+                }
+
+                // EARLY BREAKDOWN WARNING: Position in loss (-1.5% to dynamic stop) and momentum breaks below SMA50 with negative MACD
+                if (netProfitPercent <= -1.5 && !isMacdBullish && !isPriceAboveSma50) {
+                    return TradeSignal(
+                        IndicatorSignal.SELL,
+                        "${qualityPrefix}Early Breakdown Warning (${String.format(Locale.ENGLISH, "%.1f", netProfitPercent)}%)",
+                        "Price broke below SMA 50 and momentum collapsed while position is down ${String.format(Locale.ENGLISH, "%.2f", netProfitPercent)}%. Consider cutting early to prevent full stop-loss."
                     )
                 }
 
@@ -381,6 +395,25 @@ object TechnicalAnalysis {
         // in a sideways range are whipsaw noise, so require ADX ≥ 20 (null-tolerant).
         if (isMacdBullish && isPriceAboveSma50 && rsi < 55.0 &&
             (adx == null || adx >= TradingConstants.ADX_TREND_CONFIRM)) {
+            
+            // FALSE BREAKOUT GUARD: Foreign funds heavily dumping (NVDR net selling > ฿5M)
+            if (nvdrNetVolume != null && nvdrNetVolume < 0 && (nvdrNetValue ?: 0.0) < -5_000_000.0) {
+                return TradeSignal(
+                    IndicatorSignal.POTENTIAL,
+                    "${qualityPrefix}False Breakout Guard",
+                    "Momentum is positive, but foreign funds are heavily net selling (NVDR ฿${String.format(Locale.ENGLISH, "%,.0f", nvdrNetValue)}). Wait for institutional selling pressure to clear before buying."
+                )
+            }
+
+            // VOLUME & RELATIVE STRENGTH CONFIRMATION: If lagging broad market and volume is dry, downgrade to watch
+            if (!isVolumeSurge && !obvRising && relativeStrength != null && relativeStrength < -2.0) {
+                return TradeSignal(
+                    IndicatorSignal.POTENTIAL,
+                    "${qualityPrefix}Breakout Volume Guard",
+                    "Momentum is positive but lacks volume confirmation while lagging the SET index. Wait for a volume surge to confirm institutional participation."
+                )
+            }
+
             return TradeSignal(
                 IndicatorSignal.BUY,
                 "${qualityPrefix}Healthy Momentum",
@@ -800,5 +833,67 @@ object TechnicalAnalysis {
         } else null
 
         return Triple(currentMacd, currentSignal, currentHist)
+    }
+
+    enum class MarketRegime(val label: String, val isBullish: Boolean) {
+        BULLISH("Bullish Trend", true),
+        NEUTRAL("Consolidation", true),
+        BEARISH("Bear / Correction", false)
+    }
+
+    fun calculateSuggestedStopLossPrice(
+        lastPrice: Double, 
+        atr: Double? = null, 
+        isSet50: Boolean = false, 
+        customStopLossPercent: Double? = null
+    ): Double {
+        if (lastPrice <= 0.0) return 0.0
+        val atrStop = atr?.takeIf { it > 0.0 }?.let {
+            -(TradingConstants.ATR_STOP_MULTIPLIER * (it / lastPrice * 100))
+                .coerceIn(TradingConstants.ATR_STOP_MIN_PERCENT, TradingConstants.ATR_STOP_MAX_PERCENT)
+        }
+        val stopPercent = customStopLossPercent?.takeIf { it < 0.0 }
+            ?: atrStop
+            ?: if (isSet50) TradingConstants.STOP_LOSS_SET50_PERCENT else TradingConstants.STOP_LOSS_MID_SMALL_PERCENT
+        return lastPrice * (1.0 + stopPercent / 100.0)
+    }
+
+    fun calculateSuggestedTargetPrice(
+        lastPrice: Double, 
+        stopLossPrice: Double? = null,
+        minTargetPercent: Double = 10.0
+    ): Double {
+        if (lastPrice <= 0.0) return 0.0
+        if (stopLossPrice != null && stopLossPrice < lastPrice) {
+            val risk = lastPrice - stopLossPrice
+            val minReward = lastPrice * (minTargetPercent / 100.0)
+            val reward = maxOf(minReward, risk * 2.0)
+            return lastPrice + reward
+        }
+        return lastPrice * (1.0 + minTargetPercent / 100.0)
+    }
+
+    fun calculateRiskRewardRatio(
+        entryPrice: Double, 
+        targetPrice: Double, 
+        stopLossPrice: Double
+    ): Double? {
+        val reward = targetPrice - entryPrice
+        val risk = entryPrice - stopLossPrice
+        if (risk <= 0.0 || reward <= 0.0) return null
+        return reward / risk
+    }
+
+    fun getMarketRegime(setIndexCloses: List<Double>): MarketRegime {
+        if (setIndexCloses.size < 50) return MarketRegime.NEUTRAL
+        val sma50 = calculateSMA(setIndexCloses, 50) ?: return MarketRegime.NEUTRAL
+        val current = setIndexCloses.lastOrNull() ?: return MarketRegime.NEUTRAL
+        val macdData = calculateMACD(setIndexCloses)
+        val macdHist = macdData.third ?: 0.0
+        return when {
+            current >= sma50 && macdHist >= 0.0 -> MarketRegime.BULLISH
+            current >= sma50 -> MarketRegime.NEUTRAL
+            else -> MarketRegime.BEARISH
+        }
     }
 }

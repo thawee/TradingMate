@@ -1,31 +1,32 @@
-# AI Prompt Review & Optimization Plan
+# Quantitative Filter & Confluence Scoring Engine Plan
 
-- [x] **Task 1: Comprehensive Review of App AI Prompts** <!-- id: 17 -->
-  - [x] Analyze prompt structures across `DividendAdvisorScreen.kt` and `StockScreen.kt`. <!-- id: 18 -->
-  - [x] Identify conflicts between API JSON Schema (`GeminiClient`) and text prompt instructions. <!-- id: 19 -->
-  - [x] Audit data completeness (missing fields like Last Price in `StockScreen.kt`). <!-- id: 20 -->
-  - [x] Review risk management rules and consistency (R:R ratios, ELI10 vs analytical clarity). <!-- id: 21 -->
+- [x] **Phase 1: Quant Confluence Scoring Engine (0-100 pts) in `StockDna.kt`** <!-- id: 400 -->
+  - [x] Implement multi-pillar score calculation: Quality (25), Value (20), Momentum/Trend (25), Flow/RS (15), Dividend/Safety (15) <!-- id: 401 -->
+  - [x] Define `ConfluenceGrade` (`A+`, `A`, `B`, `C`) and `ConfluenceScore` data class <!-- id: 402 -->
+- [x] **Phase 2: Strategy Archetypes (Presets) in `StockDna.kt`** <!-- id: 403 -->
+  - [x] Implement `isCompounderAristocrat` (High ROE + Low D/E + Dividend Consistency) <!-- id: 404 -->
+  - [x] Implement `isVcpBreakout` (Stage 2 Uptrend: Price > 50 SMA > 200 SMA + Momentum + Quality) <!-- id: 405 -->
+  - [x] Implement `isHighYieldShield` (Yield >= 5% + Quality + D/E < 1.5 + Not near 52w low) <!-- id: 406 -->
+  - [x] Implement `isForeignWhale` (NVDR Flow + RS > 0 + Price > 50 SMA) <!-- id: 407 -->
+  - [x] Implement `isOversoldRebound` (RSI < 35 + Support + Quality) <!-- id: 408 -->
+- [x] **Phase 3: UI Integration of Badges & Archetype Presets** <!-- id: 409 -->
+  - [x] Update colorized DNA tags and badge styling in `StockComponents.kt` <!-- id: 410 -->
+  - [x] Integrate Score Grade and updated DNA tags into `AdvisorStockCard` and stock list items <!-- id: 411 -->
+  - [x] Add Strategy Archetype preset filter chips to `DividendAdvisorScreen.kt` <!-- id: 412 -->
+- [x] **Phase 4: Unit Testing & Verification** <!-- id: 413 -->
+  - [x] Add unit tests in `StockDnaTest.kt` verifying score accuracy, edge cases, and archetypes <!-- id: 414 -->
+  - [x] Run `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` <!-- id: 415 -->
 
-- [x] **Task 2: Refine Prompts & Fix Code Issues** <!-- id: 22 -->
-  - [x] Fix missing `Price` parameter in `StockScreen.kt` AI prompt. <!-- id: 23 -->
-  - [x] Harmonize in-app Gemini API prompt instructions with JSON output mode. <!-- id: 24 -->
-  - [x] Standardize Risk/Reward constraints across prompts. <!-- id: 25 -->
-  - [x] Run `./gradlew test` and verify code builds cleanly. <!-- id: 26 -->
+## Review & Verification Summary
+- **Confluence Scoring Engine (0–100 pts)**: Implemented in `StockDna.kt` computing weighted sub-scores across 5 pillars (Quality 25, Value 20, Momentum/Trend 25, Flow/RS 15, Dividend/Safety 15) and grading stocks into `A+` (Prime Alpha), `A` (Strong Conviction), `B` (Watch), and `C` (Neutral).
+- **Strategy Archetypes**: Created one-tap filter methods (`isCompounderAristocrat`, `isVcpBreakout`, `isHighYieldShield`, `isForeignWhale`, `isOversoldRebound`).
+- **Interactive UI Filter Chips**: Integrated a horizontal preset bar (`LazyRow`) in `DividendAdvisorScreen.kt` allowing users to instantly isolate high-conviction setups by archetype.
+- **Dynamic Tag Highlighting**: Colorized tags by conviction category (Mint `A+`, Blue `A`, Violet `VCP`, Emerald `MOAT`/`SHIELD`, Cyan `WHALE`, Amber `SPRING`/`OS`).
+- **Test Coverage**: Tested all scoring logic and archetypes in `StockDnaTest.kt`; verified clean execution with `BUILD SUCCESSFUL` across all 26 test tasks.
 
-- [x] **Task 3: Implement [regime-manager] (Bull/Bear Subagent) in Prompts** <!-- id: 27 -->
-  - [x] Add `[regime-manager]` role to `buildSwingPrompt` and `buildDividendPrompt` in `DividendAdvisorScreen.kt`. <!-- id: 28 -->
-  - [x] Add `[regime-manager]` role to `StockScreen.kt` prompt. <!-- id: 29 -->
-  - [x] Run `./gradlew testDebugUnitTest` to verify end-to-end. <!-- id: 30 -->
 
-- [x] **Task 4: Cash Balance & Portfolio Capital Splitting in Prompts** <!-- id: 31 -->
-  - [x] Expose `cashBalance` StateFlow in `StockViewModel.kt`. <!-- id: 32 -->
-  - [x] Include `AVAILABLE CASH BALANCE` in `DividendAdvisorScreen.kt` prompts (`buildSwingPrompt` & `buildDividendPrompt`). <!-- id: 33 -->
-  - [x] Instruct `[risk-manager]` subagent to split cash balance across top recommended tickers (position size in THB and shares). <!-- id: 34 -->
-  - [x] Update Markdown output format to show **Position Size (THB & Est. Shares)**. <!-- id: 35 -->
-  - [x] Run `./gradlew testDebugUnitTest` to verify end-to-end. <!-- id: 36 -->
 
-- [x] **Task 5: In-App Gemini API Schema & UI Card Alignment** <!-- id: 37 -->
-  - [x] Add `cashAllocation` property to `AiRecommendation` data class and JSON schema in `GeminiClient.kt`. <!-- id: 38 -->
-  - [x] Update `AiRecommendationCard` in `DividendAdvisorScreen.kt` to render Cash Allocation badge & bold price levels. <!-- id: 39 -->
-  - [x] Run `./gradlew testDebugUnitTest` to verify end-to-end. <!-- id: 40 -->
+
+
+
 

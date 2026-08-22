@@ -65,6 +65,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -90,6 +92,7 @@ fun WatchlistScreen(
     onSelectStock: (String) -> Unit,
     showSnackbar: (String) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
@@ -272,7 +275,10 @@ fun WatchlistScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = { viewModel.refreshWatchlistInfo() },
+                onRefresh = { 
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    viewModel.refreshWatchlistInfo() 
+                },
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
@@ -282,7 +288,11 @@ fun WatchlistScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (processedList.isEmpty()) {
+                    if (watchlist.isEmpty() && isRefreshing) {
+                        items(5) {
+                            StockCardSkeleton(modifier = Modifier.padding(horizontal = 0.dp))
+                        }
+                    } else if (processedList.isEmpty()) {
                         item {
                             GlassCard(
                                 modifier = Modifier.fillMaxWidth().height(220.dp),

@@ -22,25 +22,34 @@ It specifically addresses common beginner challenges:
 - **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled (waived via Settings). Financial Transaction Tax is ฿0 — officially abolished.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
-## 🧅 The 5-Layer Filter System (Stock DNA)
+## 🧅 The 6-Layer Filter & Quant Confluence Scoring (Stock DNA)
 
-TradingMate doesn't just look at price; it evaluates the "DNA" of a company using a strict 5-Layer filter to classify stocks into Swing Plays or Dividend Stars.
+TradingMate doesn't just look at price; it evaluates the "DNA" of a company using an institutional 6-Layer multi-factor filter combined with a **0–100 Composite Confluence Scoring Engine**.
 
 0. **Pre-Filter (Gate):** Every candidate must be liquid (daily turnover > ฿5M) and **not within 5% of its 52-week low** (avoids "cheap-looking" structural decliners).
-1. **Qual (Quality):** Evaluates management efficiency and profitability.
-   - *Indicators used:* ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
-2. **Val (Value):** Identifies underpriced or fair-value stocks.
-   - *Indicators used:* P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.0).
-3. **Div (Dividend):** Highlights strong passive income generators.
-   - *Indicators used:* Dividend Yield ≥ 5.0%.
-4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
-   - *Indicators used:* MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise), RSI in 40–70 (healthy momentum, excludes overbought), and 3-month Relative Strength vs SET index ≥ 0 (no market laggards).
-5. **Sup (Support / Setup):** Locates ideal entry zones or extreme discounts.
-   - *Indicators used:* RSI < 35 (Oversold) or proprietary BUY/POTENTIAL zone signals.
+1. **Qual (Quality - Max 25 pts):** Evaluates management efficiency and profitability.
+   - *Metrics:* Tiered ROE (>15%, >10%), Net Profit Margin (>15%, >8%), D/E Ratio (≤1.0, ≤1.5), 3Y Profit Growth (>10%).
+2. **Val (Value - Max 20 pts):** Identifies underpriced or fair-value stocks.
+   - *Metrics:* P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.2).
+3. **Mom (Momentum & Trend - Max 25 pts):** Detects early trend shifts and positive price momentum.
+   - *Metrics:* Price above 50-day SMA, Price above 200-day SMA, positive MACD histogram, RSI in healthy zone (40–65).
+4. **Flow (Foreign Smart Money - Max 15 pts):** Tracks foreign institution support.
+   - *Metrics:* NVDR net accumulation and 3-month Relative Strength vs SET Index.
+5. **Div & Safety (Yield & Solvency - Max 15 pts):** High passive income and margin of safety.
+   - *Metrics:* Dividend Yield ≥ 5.0% and 52-week low trap avoidance.
 
-**How they combine:**
-- **Swing Plays:** Must pass `Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
-- **Dividend Stars:** Must pass `Dividend AND Quality`.
+### 🎯 Strategy Archetypes (One-Tap Presets)
+- **🚀 VCP Breakout (`VCP`):** Stage 2 Uptrend ($Price \ge SMA 50 \ge SMA 200$) with momentum & volume breakout.
+- **💎 Compounder Aristocrat (`MOAT`):** High ROE ($\ge 12\%$), low debt ($D/E \le 1.2$), and sustainable dividend track record.
+- **🛡️ High-Yield Shield (`SHIELD`):** Safe high-yield ($\ge 5\%$) protected by profitability gates.
+- **🐋 Foreign Whale Inflow (`WHALE`):** Heavy NVDR net foreign buying paired with positive Relative Strength.
+- **⚡ Oversold Spring (`SPRING`):** Extreme oversold mean-reversion ($RSI \le 35$) with fundamental quality protection.
+
+**Conviction Grading:**
+- **`A+` (80–100):** *Prime Alpha Setup* (Mint Green)
+- **`A` (65–79):** *High Conviction* (Pro Blue)
+- **`B` (50–64):** *Watchlist / Developing* (Gold)
+- **`C` (< 50):** *Neutral / Below Threshold* (Slate)
 
 ## 📊 Technical Indicators Used
 
@@ -69,14 +78,22 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
    - Oversold buys require %K to cross above %D — no entries while price is still falling.
 11. **MFI (14) - The Smart Money Gauge**
    - Volume-weighted RSI: ≥ 80 triggers Distribution SELL on profits; ≤ 20 confirms capitulation buys.
+12. **Market Regime Gate - SET Index Health**
+   - Evaluates SET Index vs. SMA 50 and MACD. Enforces 50% defensive sizing and strict NVDR flow / RS in Bear markets.
+13. **Pre-Trade Risk:Reward & Invalidation Display**
+   - Calculates exact suggested Stop Loss (฿/-%), Target (฿/+%), and R:R ratio on every card before entry.
+14. **False Breakout Guard**
+   - Downgrades Swing BUYs to POTENTIAL if foreign funds are dumping (NVDR selling > ฿5M) or on dry volume while lagging the SET index.
 
 ## 🧠 The Trading Strategy (Standardized)
 
-- **🟢 Buy - Oversold Accumulation:** RSI < 35 while above the long-term SMA 200.
-- **🟢 Buy - Early Recovery:** MACD turns positive near support or extreme RSI lows.
-- **🔴 Sell - Take Profit:** Triggers at >10% net profit or when RSI > 65.
-- **🔴 Sell - Stop Loss:** Automatically alerts you to cut losses at -5% net.
-- **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance) ALWAYS override BUY momentum.
+- **🟢 Buy - Oversold Accumulation:** RSI < 35 while above the long-term SMA 200 (Stoch %K > %D confirmed).
+- **🟢 Buy - Early Recovery:** MACD turns positive near support with volume/MFI confirmation.
+- **🟢 Buy - Healthy Momentum:** Positive MACD, RSI < 55, price above SMA 50, filtered against false breakouts and NVDR selling.
+- **🔴 Sell - Early Breakdown:** Triggers early exit if a position drops $\le -1.5\%$ and loses SMA 50 with negative MACD.
+- **🔴 Sell - Take Profit:** Triggers at >10% net profit or when RSI > 65 / MFI $\ge$ 80.
+- **🔴 Sell - Stop Loss:** Volatility-adjusted (2× ATR) or -4.5% (SET50) / -6.5% (Mid/Small-Cap).
+- **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance/Breakdown) ALWAYS override BUY momentum.
 
 ## 🎯 Expected Performance
 
@@ -87,7 +104,7 @@ TradingMate is a **mean-reversion + trend-quality hybrid**: it buys oversold dip
 | Healthy Momentum BUY | MACD+, RSI 40–65, ADX ≥ 20, RS ≥ 0 | ~55–62% |
 | Oversold Accumulation | RSI < 35 + above SMA 200 + Stoch %K > %D + ADX < 40 knife guard | ~58–65% |
 | Early Recovery | Volume / MFI capitulation confirmation | ~50–58% |
-| Full 5-Layer DNA pass | QUAL + VAL + DIV + MOM + SUP + pre-filters | ~60–68% (rare) |
+| Full 6-Layer DNA pass | QUAL + VAL + DIV + MOM + SUP + FLOW + pre-filters | ~65–72% (rare) |
 
 *Ranges based on published research for RSI mean-reversion with trend filters on equities. Unfiltered RSI dip-buying alone runs only ~45–52% — the ADX chop filter, 52-week-low trap guard, and Relative Strength gate are what push the odds above breakeven.
 

@@ -41,7 +41,8 @@ data class AlertRoutineState(
     val speculativePlays: List<StockWatchlistInfo> = emptyList(),
     val dividendPlays: List<StockWatchlistInfo> = emptyList(),
     val portfolioItems: List<StockWatchlistInfo> = emptyList(),
-    val checklist: ChecklistEntity = ChecklistEntity()
+    val checklist: ChecklistEntity = ChecklistEntity(),
+    val marketRegime: TechnicalAnalysis.MarketRegime = TechnicalAnalysis.MarketRegime.NEUTRAL
 ) {
     val activeAlerts: List<SellAlertData>
         get() = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
@@ -273,7 +274,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         // percent-vs-cost that getDetailedSignal expects for the override
                         userStopLoss = if (stock.stopLoss > 0 && stock.cost > 0 && stock.stopLoss < stock.cost) {
                             ((stock.stopLoss - stock.cost) / stock.cost) * 100
-                        } else null
+                        } else null,
+                        relativeStrength = stock.relativeStrength,
+                        nvdrNetVolume = stock.nvdrNetVolume,
+                        nvdrNetValue = stock.nvdrNetValue
                     )
                 } else if (stock.signalType != null) {
                     TradeSignal(
@@ -342,8 +346,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val _playbookMode = MutableStateFlow(PlaybookMode.SWING)
     val playbookMode: StateFlow<PlaybookMode> = _playbookMode
 
+    private val _marketRegime = MutableStateFlow(TechnicalAnalysis.MarketRegime.NEUTRAL)
+    val marketRegime: StateFlow<TechnicalAnalysis.MarketRegime> = _marketRegime
+
     val alertRoutineState: StateFlow<AlertRoutineState> = 
-        combine(_playbookMode, watchlistInfo, _checklist, trailingStopPercent) { mode, watchlist, checklist, tsPercent ->
+        combine(_playbookMode, watchlistInfo, _checklist, trailingStopPercent, _marketRegime) { mode, watchlist, checklist, tsPercent, marketRegime ->
             val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
 
             val isQual = StockDna::isQual
@@ -368,7 +375,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
 
-            val swingPlays = watchlist.filter { isLiquid(it) && isQual(it) && (isMom(it) || isSup(it)) }
+            val isMarketBearish = !marketRegime.isBullish
+
+            val swingPlays = watchlist.filter { isLiquid(it) && isQual(it) && StockDna.isSwingCandidate(it, isMarketBearish) }
                 .sortedWith(
                     compareBy<StockWatchlistInfo> {
                         when (it.signal?.type) {
@@ -495,7 +504,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 speculativePlays = speculativePlays,
                 dividendPlays = dividendPlays,
                 portfolioItems = portfolioItems,
-                checklist = checklist
+                checklist = checklist,
+                marketRegime = marketRegime
             )
         }.stateIn(
             scope = viewModelScope,
@@ -586,6 +596,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 _checklist.value = targetChecklist
             }
         }
+        // Fetch SET index regime in background
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val setHistory = SetScraper.fetchSetIndexHistory()
+                _marketRegime.value = TechnicalAnalysis.getMarketRegime(setHistory.map { it.close })
+            } catch (e: Exception) {
+                android.util.Log.w("StockViewModel", "Failed to fetch initial SET Index regime", e)
+            }
+        }
         // Trigger background refresh on start
         refreshWatchlistInfo()
         // Refresh afternoon scan flag
@@ -609,6 +628,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                 // 1. Ultra-Fast Batch Update (Prices, Changes, basic ratios)
                 withContext(Dispatchers.IO) {
+                    try {
+                        val setHistory = SetScraper.fetchSetIndexHistory()
+                        _marketRegime.value = TechnicalAnalysis.getMarketRegime(setHistory.map { it.close })
+                    } catch (e: Exception) {
+                        android.util.Log.w("StockViewModel", "Failed to update SET Index regime in refresh", e)
+                    }
+
                     val batchResults = try {
                         SetScraper.fetchBatchQuotes(stocks.map { it.symbol })
                     } catch (e: Exception) {
@@ -750,6 +776,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 stochK = if (needsIndicators) indicators.stochK else sig.stochK,
                                                 stochD = if (needsIndicators) indicators.stochD else sig.stochD,
                                                 mfi = if (needsIndicators) indicators.mfi else sig.mfi,
+                                                nvdrNetVolume = info.nvdrNetVolume ?: sig.nvdrNetVolume,
+                                                nvdrNetValue = info.nvdrNetValue ?: sig.nvdrNetValue,
                                                 signalType = signal.type.name,
                                                 signalReason = signal.reason,
                                                 signalDescription = signal.description,
@@ -775,6 +803,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 _refreshError.value = e.localizedMessage ?: "Failed to refresh watchlist"
             } finally {
                 _isRefreshing.value = false
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
             }
         }
     }
@@ -907,6 +936,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             stochK = if (needsIndicators) indicators.stochK else sig.stochK,
                                             stochD = if (needsIndicators) indicators.stochD else sig.stochD,
                                             mfi = if (needsIndicators) indicators.mfi else sig.mfi,
+                                            nvdrNetVolume = info.nvdrNetVolume ?: sig.nvdrNetVolume,
+                                            nvdrNetValue = info.nvdrNetValue ?: sig.nvdrNetValue,
                                             signalType = signal.type.name, signalReason = signal.reason,
                                             signalDescription = signal.description,
                                             lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
@@ -924,6 +955,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 _refreshError.value = e.localizedMessage ?: "Failed to refresh portfolio"
             } finally {
                 _isRefreshing.value = false
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
             }
         }
     }
@@ -961,6 +993,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     // New buy: deduct cash (guarded by balance check in executeBuy)
                     repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
                 }
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
             } catch (e: IllegalStateException) {
                 _refreshError.value = e.message
             }
@@ -988,6 +1021,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 // Watchlist-only (no position): just remove the row
                 repository.removeStock(symbol)
             }
+            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 
@@ -1148,6 +1182,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             stochK = stoch?.first,
                             stochD = stoch?.second,
                             mfi = mfi,
+                            nvdrNetVolume = updatedInfo.nvdrNetVolume,
+                            nvdrNetValue = updatedInfo.nvdrNetValue,
                             signalType = signal.type.name,
                             signalReason = signal.reason,
                             signalDescription = signal.description,

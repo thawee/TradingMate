@@ -59,18 +59,21 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             ))
             // Also adjust cash balance up by totalReceived
             repository.adjustCashBy(totalReceived, "Dividend")
+            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 
     fun updateCashBalance(amount: Double, reason: String = "Set Balance") {
         viewModelScope.launch {
             repository.updateCash(amount, reason)
+            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 
     fun adjustCash(amount: Double, reason: String = "Adjustment") {
         viewModelScope.launch {
             repository.adjustCashBy(amount, reason)
+            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 
@@ -85,6 +88,7 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
                         note = note,
                         atsEnabled = isAtsEnabled.value
                     )
+                    apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
                 } catch (e: Exception) {
                     android.util.Log.e("PortfolioViewModel", "Error recording sell: ${e.message}", e)
                 }
@@ -96,6 +100,7 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 repository.undoSell(trade, atsEnabled = isAtsEnabled.value)
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
             } catch (e: Exception) {
                 android.util.Log.e("PortfolioViewModel", "Error undoing sell: ${e.message}", e)
             }
@@ -105,6 +110,7 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
     fun clearTradeHistory() {
         viewModelScope.launch {
             repository.clearHistory()
+            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 }

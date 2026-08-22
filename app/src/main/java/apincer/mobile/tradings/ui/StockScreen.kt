@@ -3,9 +3,11 @@ package apincer.mobile.tradings.ui
 import android.os.Build
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.launch
+import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,12 +24,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -269,9 +277,7 @@ fun StockScreen(
                             }
                         }
                         is StockUiState.Loading -> {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
-                            }
+                            StockDetailSkeleton()
                         }
                         is StockUiState.Error -> {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -300,20 +306,36 @@ fun StockScreen(
                             }
                         }
                         is StockUiState.Initial -> {
-                            when (currentScreen) {
-                                Screen.PORTFOLIO -> PortfolioScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar, scrollSymbol = openSymbol)
-                                Screen.WATCHLIST -> WatchlistScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar)
-                                Screen.ADVISOR -> DividendAdvisorScreen(
-                                    viewModel = viewModel,
-                                    settingsViewModel = settingsViewModel,
-                                    onNavigateToAcademy = { currentScreen = Screen.EDUCATION },
-                                    showSnackbar = showSnackbar
-                                )
-                                Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar, onNavigateToBacktest = { currentScreen = Screen.BACKTEST })
-                                Screen.SETTINGS -> SettingsScreen(viewModel, settingsViewModel, showSnackbar = showSnackbar)
-                                Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.ADVISOR })
-                                Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.ADVISOR })
-                                Screen.BACKTEST -> BacktestScreen(viewModel, onBack = { currentScreen = Screen.STATS }, showSnackbar = showSnackbar)
+                            AnimatedContent(
+                                targetState = currentScreen,
+                                transitionSpec = {
+                                    val targetIndex = targetState.ordinal
+                                    val initialIndex = initialState.ordinal
+                                    if (targetIndex > initialIndex) {
+                                        slideInHorizontally(initialOffsetX = { width -> width / 3 }) + fadeIn() togetherWith
+                                            slideOutHorizontally(targetOffsetX = { width -> -width / 3 }) + fadeOut()
+                                    } else {
+                                        slideInHorizontally(initialOffsetX = { width -> -width / 3 }) + fadeIn() togetherWith
+                                            slideOutHorizontally(targetOffsetX = { width -> width / 3 }) + fadeOut()
+                                    }.using(SizeTransform(clip = false))
+                                },
+                                label = "screenTransition"
+                            ) { screen ->
+                                when (screen) {
+                                    Screen.PORTFOLIO -> PortfolioScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar, scrollSymbol = openSymbol)
+                                    Screen.WATCHLIST -> WatchlistScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar)
+                                    Screen.ADVISOR -> DividendAdvisorScreen(
+                                        viewModel = viewModel,
+                                        settingsViewModel = settingsViewModel,
+                                        onNavigateToAcademy = { currentScreen = Screen.EDUCATION },
+                                        showSnackbar = showSnackbar
+                                    )
+                                    Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar, onNavigateToBacktest = { currentScreen = Screen.BACKTEST })
+                                    Screen.SETTINGS -> SettingsScreen(viewModel, settingsViewModel, showSnackbar = showSnackbar)
+                                    Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.ADVISOR })
+                                    Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.ADVISOR })
+                                    Screen.BACKTEST -> BacktestScreen(viewModel, onBack = { currentScreen = Screen.STATS }, showSnackbar = showSnackbar)
+                                }
                             }
                         }
                     }
@@ -598,68 +620,207 @@ fun StockDashboard(state: StockUiState.Success) {
 }
 
 @Composable
-fun PriceTrendChart(prices: List<Double>, isPositive: Boolean) {
+fun PriceTrendChart(
+    prices: List<Double>,
+    isPositive: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (prices.isEmpty()) return
+
     val color = if (isPositive) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
     val minPrice = prices.minOrNull() ?: 0.0
     val maxPrice = prices.maxOrNull() ?: 0.0
     val range = (maxPrice - minPrice).coerceAtLeast(0.01)
 
-    Box(modifier = Modifier.fillMaxWidth().height(100.dp)) {
-        Canvas(
+    var scrubIndex by remember { mutableStateOf<Int?>(null) }
+    val haptic = LocalHapticFeedback.current
+
+    val activeIndex = scrubIndex
+    val displayPrice = if (activeIndex != null && activeIndex in prices.indices) prices[activeIndex] else prices.last()
+    val initialPrice = prices.first()
+    val changePercent = if (initialPrice > 0) ((displayPrice - initialPrice) / initialPrice) * 100 else 0.0
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Floating Top Tooltip Bar
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 12.dp)
-                .alpha(0.8f)
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            val width = size.width
-            val height = size.height
-            val stepX = width / (prices.size - 1).coerceAtLeast(1)
-
-            val path = Path()
-            prices.forEachIndexed { i, price ->
-                val x = i * stepX
-                val y = height - ((price - minPrice) / range * height).toFloat()
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-
-            drawPath(
-                path = path,
-                color = color,
-                style = Stroke(width = 2.5.dp.toPx())
-            )
-
-            // Add a subtle gradient fill
-            val fillPath = Path().apply {
-                addPath(path)
-                lineTo(width, height)
-                lineTo(0f, height)
-                close()
-            }
-            drawPath(
-                path = fillPath,
-                brush = Brush.verticalGradient(
-                    listOf(color.copy(alpha = 0.2f), Color.Transparent)
+            if (activeIndex != null) {
+                Surface(
+                    color = color.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(0.5.dp, color.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = "฿${String.format(Locale.ENGLISH, "%.2f", displayPrice)} (${if (changePercent >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", changePercent)}%)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+                Text(
+                    text = "Point ${activeIndex + 1}/${prices.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Medium
                 )
-            )
+            } else {
+                Text(
+                    text = "High: ฿${String.format(Locale.ENGLISH, "%.2f", maxPrice)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Low: ฿${String.format(Locale.ENGLISH, "%.2f", minPrice)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
-        // Overlay Max Price at top
-        Text(
-            text = "Max: ฿${String.format(Locale.ENGLISH, "%.2f", maxPrice)}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp)
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .pointerInput(prices) {
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            val width = size.width.toFloat()
+                            val idx = ((offset.x / width) * (prices.size - 1))
+                                .toInt()
+                                .coerceIn(0, prices.size - 1)
+                            if (scrubIndex != idx) {
+                                scrubIndex = idx
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                        },
+                        onDragEnd = { scrubIndex = null },
+                        onDragCancel = { scrubIndex = null },
+                        onDrag = { change, _ ->
+                            change.consume()
+                            val width = size.width.toFloat()
+                            val idx = ((change.position.x / width) * (prices.size - 1))
+                                .toInt()
+                                .coerceIn(0, prices.size - 1)
+                            if (scrubIndex != idx) {
+                                scrubIndex = idx
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                        }
+                    )
+                }
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize().padding(vertical = 10.dp)) {
+                val width = size.width
+                val height = size.height
+                val stepX = width / (prices.size - 1).coerceAtLeast(1)
 
-        // Overlay Min Price at bottom
-        Text(
-            text = "Min: ฿${String.format(Locale.ENGLISH, "%.2f", minPrice)}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.BottomStart).padding(start = 4.dp)
-        )
+                val points = prices.mapIndexed { i, p ->
+                    val x = i * stepX
+                    val y = height - ((p - minPrice) / range * height).toFloat()
+                    Offset(x, y)
+                }
+
+                // 1. Draw smooth Cubic Bezier line
+                val path = Path()
+                val fillPath = Path()
+
+                path.moveTo(points.first().x, points.first().y)
+                fillPath.moveTo(points.first().x, points.first().y)
+
+                for (i in 0 until points.size - 1) {
+                    val p0 = points[i]
+                    val p1 = points[i + 1]
+                    val cx = (p0.x + p1.x) / 2f
+                    path.cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                    fillPath.cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                }
+
+                // Gradient fill
+                fillPath.lineTo(width, height)
+                fillPath.lineTo(0f, height)
+                fillPath.close()
+
+                drawPath(
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(color.copy(alpha = 0.25f), Color.Transparent),
+                        startY = 0f,
+                        endY = height
+                    )
+                )
+
+                drawPath(
+                    path = path,
+                    color = color,
+                    style = Stroke(
+                        width = 3.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
+
+                // 2. Draw Scrubbing Guideline & Pulse Beacon when active
+                if (activeIndex != null && activeIndex in points.indices) {
+                    val scrubPoint = points[activeIndex]
+
+                    // Vertical dashed guideline
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.35f),
+                        start = Offset(scrubPoint.x, 0f),
+                        end = Offset(scrubPoint.x, height),
+                        strokeWidth = 1.5.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                    )
+
+                    // Outer halo
+                    drawCircle(
+                        color = color.copy(alpha = 0.25f),
+                        radius = 12.dp.toPx(),
+                        center = scrubPoint
+                    )
+
+                    // Core dot
+                    drawCircle(
+                        color = color,
+                        radius = 6.dp.toPx(),
+                        center = scrubPoint
+                    )
+
+                    // White center
+                    drawCircle(
+                        color = Color.White,
+                        radius = 2.5.dp.toPx(),
+                        center = scrubPoint
+                    )
+                } else {
+                    // Static latest point beacon
+                    val lastPoint = points.last()
+                    drawCircle(
+                        color = color.copy(alpha = 0.25f),
+                        radius = 8.dp.toPx(),
+                        center = lastPoint
+                    )
+                    drawCircle(
+                        color = color,
+                        radius = 4.dp.toPx(),
+                        center = lastPoint
+                    )
+                    drawCircle(
+                        color = Color.White,
+                        radius = 2.dp.toPx(),
+                        center = lastPoint
+                    )
+                }
+            }
+        }
     }
 }
 

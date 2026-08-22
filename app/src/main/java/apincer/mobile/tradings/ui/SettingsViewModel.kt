@@ -74,6 +74,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun updateTrailingStopPercent(percent: Double) {
         viewModelScope.launch {
             preferenceRepository.setTrailingStopPercent(percent)
+            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 

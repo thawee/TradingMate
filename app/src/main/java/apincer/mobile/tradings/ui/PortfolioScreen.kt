@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +57,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -77,6 +80,7 @@ fun PortfolioScreen(
     showSnackbar: (String) -> Unit,
     scrollSymbol: String? = null
 ) {
+    val haptic = LocalHapticFeedback.current
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by portfolioViewModel.cashBalance.collectAsState()
     val cashTransactions by portfolioViewModel.allCashTransactions.collectAsState()
@@ -207,7 +211,10 @@ fun PortfolioScreen(
         
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshPortfolioOnly() },
+            onRefresh = { 
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                viewModel.refreshPortfolioOnly() 
+            },
             modifier = Modifier.fillMaxSize()
         ) {
             LazyColumn(
@@ -385,6 +392,10 @@ fun PortfolioScreen(
                         items = portfolioItems
                     )
                 }
+
+                item {
+                    SectorBreakdownCard(portfolioItems = allPortfolioItems)
+                }
             }
 
             if (portfolioItems.isEmpty()) {
@@ -479,6 +490,7 @@ fun PortfolioScreen(
         LogDividendDialog(
             onDismiss = { showDividendDialog = false },
             onConfirm = { symbol, dateMillis, dps, shares, tax ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 portfolioViewModel.logDividend(symbol, dateMillis, dps, shares, tax)
                 showDividendDialog = false
                 showSnackbar("Logged dividend for $symbol")
@@ -491,6 +503,7 @@ fun PortfolioScreen(
             stock = stock,
             onDismiss = { selectedStockForSell = null },
             onConfirm = { symbol, price, qty, note ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 portfolioViewModel.recordSell(stock, price, qty, note)
                 selectedStockForSell = null
             }
@@ -1137,6 +1150,70 @@ fun SellStockDialog(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(stringResource(R.string.action_confirm_sell), color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SectorBreakdownCard(portfolioItems: List<StockWatchlistInfo>) {
+    if (portfolioItems.isEmpty()) return
+    
+    val totalValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
+    if (totalValue == 0.0) return
+
+    val sectorAllocation = portfolioItems
+        .filter { it.info.sector != null && it.info.sector.isNotBlank() }
+        .groupBy { it.info.sector ?: "Unknown" }
+        .mapValues { (_, items) -> items.sumOf { it.info.lastPrice * it.portfolio.quantity } / totalValue }
+        .toList()
+        .sortedByDescending { it.second }
+
+    val hasWarning = sectorAllocation.any { it.second > 0.3 }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Sector Rotation",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            if (hasWarning) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).background(MaterialTheme.colorScheme.errorContainer.copy(alpha=0.5f), RoundedCornerShape(8.dp)).padding(8.dp)
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Diversification Warning: You have highly concentrated positions (>30%) in single sectors.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
+            sectorAllocation.forEach { (sector, weight) ->
+                val weightPercent = (weight * 100).toFloat()
+                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(sector, style = MaterialTheme.typography.labelMedium)
+                        Text(String.format(java.util.Locale.ENGLISH, "%.1f%%", weightPercent), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    }
+                    LinearProgressIndicator(
+                        progress = { weight.toFloat() },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).padding(top = 4.dp),
+                        color = if (weightPercent > 30f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
                 }
             }
         }

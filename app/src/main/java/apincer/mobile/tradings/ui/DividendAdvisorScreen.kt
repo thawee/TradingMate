@@ -3,6 +3,7 @@ package apincer.mobile.tradings.ui
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,12 +46,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -83,6 +87,7 @@ fun DividendAdvisorScreen(
     onNavigateToAcademy: () -> Unit,
     showSnackbar: (String) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val alertRoutineState by viewModel.alertRoutineState.collectAsState()
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
@@ -115,6 +120,7 @@ fun DividendAdvisorScreen(
     var sellAlertsOffset by remember { mutableIntStateOf(0) }
     var candidatesOffset by remember { mutableIntStateOf(0) }
     var aiOffset by remember { mutableIntStateOf(0) }
+    var selectedArchetype by rememberSaveable { mutableStateOf("ALL") }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -197,7 +203,10 @@ fun DividendAdvisorScreen(
 
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = { viewModel.refreshWatchlistInfo() },
+                onRefresh = { 
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    viewModel.refreshWatchlistInfo() 
+                },
                 modifier = Modifier.fillMaxSize()
             ) {
                 Column(
@@ -230,6 +239,37 @@ fun DividendAdvisorScreen(
                 }
             }
 
+            // Market Regime Banner
+            val marketRegime = alertRoutineState.marketRegime
+            Surface(
+                color = if (marketRegime.isBullish) {
+                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+                } else {
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                },
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = if (marketRegime.isBullish) "📈 SET Regime: ${marketRegime.label}" else "⚠️ SET Regime: ${marketRegime.label}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (marketRegime.isBullish) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = if (marketRegime.isBullish) "Normal Sizing (100%)" else "Defensive Sizing (50%)",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        color = if (marketRegime.isBullish) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
             // AI Master Prompts - Always at top for easy access
             Box(modifier = Modifier.onGloballyPositioned { coordinates ->
                 aiOffset = coordinates.positionInWindow().y.toInt() - 150
@@ -238,9 +278,11 @@ fun DividendAdvisorScreen(
                     playbookMode = playbookMode,
                     checklist = checklist,
                     onToggleAiDone = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         viewModel.toggleAlertRoutineStep(3)
                     },
                     onMarkAiDone = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         viewModel.markAlertRoutineStepDone(3)
                     },
                     watchlist = watchlist,
@@ -289,6 +331,7 @@ fun DividendAdvisorScreen(
                         StepCheckbox(
                             isDone = checklist.swingDailyDone,
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.toggleAlertRoutineStep(1)
                             }
                         )
@@ -345,6 +388,7 @@ fun DividendAdvisorScreen(
                         StepCheckbox(
                             isDone = checklist.swingWeeklyDone,
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.toggleAlertRoutineStep(2)
                                 if (isAfternoonScanAvailable) {
                                     viewModel.clearAfternoonScanFlag()
@@ -401,16 +445,68 @@ fun DividendAdvisorScreen(
                 }
             }
 
+            // Strategy Archetype Preset Chips
+            val archetypes = if (playbookMode == PlaybookMode.SWING) {
+                listOf(
+                    "ALL" to "All Setups (${combinedSwingPlays.size})",
+                    "VCP" to "🚀 VCP Breakout",
+                    "MOAT" to "💎 Compounder",
+                    "WHALE" to "🐋 Whales Inflow",
+                    "SPRING" to "⚡ Oversold Spring"
+                )
+            } else {
+                listOf(
+                    "ALL" to "All Stars (${dividendPlays.size})",
+                    "SHIELD" to "🛡️ High Yield Shield",
+                    "MOAT" to "💎 Compounder",
+                    "WHALE" to "🐋 Foreign Flow"
+                )
+            }
+
+            androidx.compose.foundation.lazy.LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            ) {
+                items(archetypes) { (key, label) ->
+                    val isSelected = selectedArchetype == key
+                    Surface(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            selectedArchetype = key
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+                        border = BorderStroke(0.5.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+
             if (playbookMode == PlaybookMode.SWING) {
-                if (combinedSwingPlays.isEmpty()) {
-                    Text("No swing setups or gap ups found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val candidateFiltered = when (selectedArchetype) {
+                    "VCP" -> combinedSwingPlays.filter { StockDna.isVcpBreakout(it) }
+                    "MOAT" -> combinedSwingPlays.filter { StockDna.isCompounderAristocrat(it) }
+                    "WHALE" -> combinedSwingPlays.filter { StockDna.isForeignWhale(it) }
+                    "SPRING" -> combinedSwingPlays.filter { StockDna.isOversoldRebound(it) }
+                    else -> combinedSwingPlays
+                }
+
+                if (candidateFiltered.isEmpty()) {
+                    Text("No setups matching preset.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    combinedSwingPlays.forEach { stock ->
+                    candidateFiltered.forEach { stock ->
                         AdvisorStockCard(stock, viewModel)
                     }
                 }
                 
-                if (speculativePlays.isNotEmpty()) {
+                if (selectedArchetype == "ALL" && speculativePlays.isNotEmpty()) {
                     Spacer(Modifier.height(16.dp))
                     Text("Speculative Watch (Low Quality)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                     Text("These stocks triggered technical buys but failed the strict Quality filter. Trade with caution.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -420,10 +516,17 @@ fun DividendAdvisorScreen(
                     }
                 }
             } else {
-                if (dividendPlays.isEmpty()) {
-                    Text("No candidates found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val candidateFiltered = when (selectedArchetype) {
+                    "SHIELD" -> dividendPlays.filter { StockDna.isHighYieldShield(it) }
+                    "MOAT" -> dividendPlays.filter { StockDna.isCompounderAristocrat(it) }
+                    "WHALE" -> dividendPlays.filter { StockDna.isForeignWhale(it) }
+                    else -> dividendPlays
+                }
+
+                if (candidateFiltered.isEmpty()) {
+                    Text("No candidates matching preset.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    dividendPlays.forEach { stock ->
+                    candidateFiltered.forEach { stock ->
                         AdvisorStockCard(stock, viewModel)
                     }
                 }
@@ -474,110 +577,200 @@ fun AdvisorStockCard(
         onClick = { viewModel.fetchStockData(stock.info.symbol) },
         containerColor = if (isSellAlert) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface.copy(alpha=0.5f)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stock.info.symbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
-                    if (stock.info.isFundamentalGood) {
-                        Spacer(Modifier.width(4.dp))
-                        Text("⭐", fontSize = 12.sp)
-                    }
-                    if (!isSellAlert && stock.signal?.type != null) {
-                        Spacer(Modifier.width(6.dp))
-                        val signalColor = when (stock.signal.type) {
-                            apincer.mobile.tradings.domain.IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
-                            apincer.mobile.tradings.domain.IndicatorSignal.POTENTIAL -> MaterialTheme.colorScheme.secondary
-                            apincer.mobile.tradings.domain.IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
-                            else -> null
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stock.info.symbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                        if (stock.info.isFundamentalGood) {
+                            Spacer(Modifier.width(4.dp))
+                            Text("⭐", fontSize = 12.sp)
                         }
-                        if (signalColor != null) {
-                            Surface(
-                                color = signalColor.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = stock.signal.type.name,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = signalColor
-                                )
+                        if (!isSellAlert && stock.signal?.type != null) {
+                            Spacer(Modifier.width(6.dp))
+                            val signalColor = when (stock.signal.type) {
+                                apincer.mobile.tradings.domain.IndicatorSignal.BUY -> MaterialTheme.colorScheme.tertiary
+                                apincer.mobile.tradings.domain.IndicatorSignal.POTENTIAL -> MaterialTheme.colorScheme.secondary
+                                apincer.mobile.tradings.domain.IndicatorSignal.SELL -> MaterialTheme.colorScheme.error
+                                else -> null
+                            }
+                            if (signalColor != null) {
+                                Surface(
+                                    color = signalColor.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = stock.signal.type.name,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = signalColor
+                                    )
+                                }
                             }
                         }
                     }
-                }
-                if (isSellAlert) {
-                    Text(sellReason ?: stock.signal?.reason ?: "Take Profit / Stop Loss", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                } else {
-                    Text(stock.info.sector ?: "Unknown", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                }
-                
-                val tags = StockDna.tags(stock)
+                    if (isSellAlert) {
+                        Text(sellReason ?: stock.signal?.reason ?: "Take Profit / Stop Loss", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    } else {
+                        Text(stock.info.sector ?: "Unknown", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    }
+                    
+                    val tags = StockDna.tags(stock)
 
-                if (tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    androidx.compose.foundation.layout.FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        tags.forEach { tag ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = tag,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+                    if (tags.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            tags.forEach { tag ->
+                                val (bgAlpha, borderAlpha, tagColor) = when (tag) {
+                                    "A+" -> Triple(0.18f, 0.4f, Color(0xFF6EE7B7))
+                                    "A" -> Triple(0.18f, 0.4f, Color(0xFF60A5FA))
+                                    "VCP", "GAP" -> Triple(0.18f, 0.35f, Color(0xFFA78BFA))
+                                    "MOAT", "SHIELD" -> Triple(0.18f, 0.35f, Color(0xFF34D399))
+                                    "WHALE" -> Triple(0.18f, 0.35f, Color(0xFF38BDF8))
+                                    "SPRING", "OS" -> Triple(0.18f, 0.35f, Color(0xFFFBBF24))
+                                    else -> Triple(0.10f, 0.0f, MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Surface(
+                                    color = tagColor.copy(alpha = bgAlpha),
+                                    shape = RoundedCornerShape(4.dp),
+                                    border = if (borderAlpha > 0f) BorderStroke(0.5.dp, tagColor.copy(alpha = borderAlpha)) else null
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (borderAlpha > 0f) tagColor else MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
                             }
+                        }
+                    }
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black
+                    )
+
+                    Spacer(Modifier.height(4.dp))
+
+                    if (isSellAlert) {
+                        val net = stock.netProfitPercent
+                        Text(
+                            text = "P/L: ${if (net > 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", net)}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (net >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        val yield = stock.info.dividendYield ?: 0.0
+                        if (yield > 0) {
+                            Text(
+                                text = "Yield: ${String.format(Locale.ENGLISH, "%.2f", yield)}%",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        } else {
+                            Text(
+                                text = "P/E: ${stock.info.pe?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "-"}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
 
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Black
+            if (!isSellAlert && stock.info.lastPrice > 0) {
+                val isSet50 = apincer.mobile.tradings.domain.TradingConstants.SET50_SYMBOLS.contains(stock.info.symbol.uppercase())
+                val stopPrice = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSuggestedStopLossPrice(
+                    lastPrice = stock.info.lastPrice,
+                    atr = stock.portfolio.atr,
+                    isSet50 = isSet50
                 )
+                val targetPrice = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSuggestedTargetPrice(
+                    lastPrice = stock.info.lastPrice,
+                    stopLossPrice = stopPrice
+                )
+                val rr = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRiskRewardRatio(stock.info.lastPrice, targetPrice, stopPrice)
+                val stopPercent = ((stopPrice - stock.info.lastPrice) / stock.info.lastPrice) * 100
 
-                Spacer(Modifier.height(4.dp))
-
-                if (isSellAlert) {
-                    val net = stock.netProfitPercent
-                    Text(
-                        text = "P/L: ${if (net > 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", net)}%",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (net >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                    )
-                } else {
-                    val yield = stock.info.dividendYield ?: 0.0
-                    if (yield > 0) {
-                        Text(
-                            text = "Yield: ${String.format(Locale.ENGLISH, "%.2f", yield)}%",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    } else {
-                        Text(
-                            text = "P/E: ${stock.info.pe?.let { String.format(Locale.ENGLISH, "%.2f", it) } ?: "-"}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Stop ฿${String.format(Locale.ENGLISH, "%.2f", stopPrice)} (${String.format(Locale.ENGLISH, "%.1f", stopPercent)}%)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "  •  ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "Target ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                        }
+                        if (rr != null) {
+                            Spacer(Modifier.width(6.dp))
+                            val (badgeBg, badgeFg) = when {
+                                rr >= 2.0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onTertiaryContainer
+                                rr >= 1.5 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onSecondaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                            Surface(
+                                color = badgeBg,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "R:R ${String.format(Locale.ENGLISH, "%.1f", rr)}:1",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = badgeFg,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -650,9 +843,9 @@ fun AiCopilotCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             if (playbookMode == PlaybookMode.SWING) {
-                val swingPlaysFilter = watchlist.filter { 
-                    it.info.lastPrice >= 1.0 && isLiquid(it) && isQual(it) && (isMom(it) || isSup(it)) 
-                }
+                val swingPlaysFilter = watchlist.filter {
+                    it.info.lastPrice >= 1.0 && isLiquid(it) && isQual(it) && (isMom(it) || isSup(it)) && StockDna.isFlow(it)
+                }.sortedByDescending { it.portfolio.relativeStrength ?: -999.0 }
                 val gapUpPlaysFilter = watchlist.filter { it.info.lastPrice >= 1.0 && isLiquid(it) && isGapUp(it) }
                 val speculativePromptPlays = speculativePlays.filter { it.info.lastPrice >= 1.0 }
                 

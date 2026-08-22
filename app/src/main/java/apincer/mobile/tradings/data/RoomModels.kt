@@ -91,6 +91,8 @@ data class StockSignalEntity(
     val stochK: Double? = null,
     val stochD: Double? = null,
     val mfi: Double? = null,
+    val nvdrNetVolume: Double? = null,
+    val nvdrNetValue: Double? = null,
     val signalType: String? = null, // BUY, SELL, NEUTRAL
     val signalReason: String? = null,
     val signalDescription: String? = null,
@@ -147,6 +149,8 @@ data class StockAggregate(
     val stochK: Double? get() = signal?.stochK
     val stochD: Double? get() = signal?.stochD
     val mfi: Double? get() = signal?.mfi
+    val nvdrNetVolume: Double? get() = signal?.nvdrNetVolume
+    val nvdrNetValue: Double? get() = signal?.nvdrNetValue
     val bb: BollingerBands? get() = signal?.let { s ->
         if (s.bbUpper != null && s.bbMiddle != null && s.bbLower != null) {
             BollingerBands(s.bbUpper, s.bbMiddle, s.bbLower)
@@ -446,7 +450,7 @@ interface PortfolioSnapshotDao {
         PortfolioSnapshotEntity::class,
         CashTransactionEntity::class
     ], 
-    version = 29
+    version = 30
 )
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
@@ -461,6 +465,13 @@ abstract class StockDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: StockDatabase? = null
+
+        val MIGRATION_29_30 = object : androidx.room.migration.Migration(29, 30) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN nvdrNetVolume REAL")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN nvdrNetValue REAL")
+            }
+        }
 
         val MIGRATION_28_29 = object : androidx.room.migration.Migration(28, 29) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -725,7 +736,7 @@ abstract class StockDatabase : RoomDatabase() {
                     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
                     MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
                     MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
-                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29
+                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30
                 )
                 .build()
                 INSTANCE = instance

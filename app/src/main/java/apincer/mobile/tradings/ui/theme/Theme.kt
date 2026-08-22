@@ -49,10 +49,10 @@ private val DarkColorScheme = darkColorScheme(
     primaryContainer = Color(0xFF003D5C), // Deep blue container
     onPrimaryContainer = Color(0xFFBAE6FD),
     
-    secondary = Color(0xFFC4B5FD),        // Soft Lavender
-    onSecondary = Color(0xFF1E1033),
-    secondaryContainer = Color(0xFF2E1065),
-    onSecondaryContainer = Color(0xFFDDD6FE),
+    secondary = SoftGold,                 // Premium Gold Accent
+    onSecondary = Color(0xFF261D0F),
+    secondaryContainer = GoldAccent.copy(alpha = 0.2f),
+    onSecondaryContainer = SoftGold,
     
     tertiary = Color(0xFF6EE7B7),         // Soft Mint (Profit)
     onTertiary = Color(0xFF003320),

@@ -192,7 +192,7 @@
     <string name="edu_workflow_title">Master the Workflow</string>
     <string name="edu_workflow_subtitle">Disciplined steps for consistent profit.</string>
     <string name="edu_step1_title">1. Discovery (Quality First)</string>
-    <string name="edu_step1_content" formatted="false">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections or use the AI Advisor to find stocks that have already passed our strict 5-Layer filter.</string>
+    <string name="edu_step1_content" formatted="false">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections or use the AI Advisor to find stocks that have already passed our strict 6-Layer filter.</string>
     <string name="edu_risk_mgmt_title">The Art of the \'Cut Loss\'</string>
     <string name="edu_risk_mgmt_content" formatted="false">The most important rule in trading is preserving your capital. \n\n• Why: Small losses are easy to recover. A -50% loss requires a +100% gain just to break even.\n• When: The app sets a volatility-adjusted stop loss at 2× the stock\'s ATR (clamped between -3.5% and -8%). Calm large-caps get tight stops; volatile stocks get room to breathe. If ATR data isn\'t available yet, it falls back to -4.5% (SET50) / -6.5% (Mid/Small-Cap). A SELL signal is your cue to exit and protect your remaining cash.</string>
     <string name="edu_yoc_title">Fundamental Guardrails</string>
@@ -253,9 +253,9 @@
     <string name="desc_max_portfolio_allocation">The maximum percentage of your total account capital that can be invested in a single stock. Prevents you from putting all your eggs in one basket.</string>
     <string name="desc_min_risk_reward">The minimum ratio between your potential profit (Reward) and potential loss (Risk) required to take a trade. A ratio of 2.0 means you expect to make twice as much as you risk losing.</string>
 
-    <!-- Education - 5 Layers -->
-    <string name="title_education_concept">TradingMate Concept: The 5 Layers</string>
-    <string name="edu_5_layers_intro" formatted="false">Our system evaluates a company\'s DNA through a strict 5-Layer filter. All candidates must first pass the Pre-Filter: enough daily liquidity (turnover > ฿1M) and NOT trading within 5% of the 52-week low (avoids structural decliners that only \'look cheap\'). Swing Plays must pass (Qual OR Val) AND (Mom OR Sup). Dividend Stars must pass (Div AND Qual).</string>
+    <!-- Education - 6 Layers -->
+    <string name="title_education_concept">TradingMate Concept: The 6 Layers</string>
+    <string name="edu_5_layers_intro" formatted="false">Our system evaluates a company\'s DNA through a strict 6-Layer filter. All candidates must first pass the Pre-Filter: enough daily liquidity (turnover > ฿1M) and NOT trading within 5% of the 52-week low (avoids structural decliners that only \'look cheap\'). Swing Plays must pass (Qual OR Val) AND (Mom OR Sup) AND Flow. Dividend Stars must pass (Div AND Qual).</string>
     <string name="edu_layer_1_title">Layer 1: QUAL (Quality/Fundamentals)</string>
     <string name="edu_layer_1_content" formatted="false">The foundation. Does the company make money? We look for ROE > 15%, Net Profit Margin > 10%, consistent 3Y profit growth, and low debt (D/E &lt; 1.5).</string>
     <string name="edu_layer_2_title">Layer 2: VAL (Valuation)</string>
@@ -266,7 +266,9 @@
     <string name="edu_layer_4_content" formatted="false">Are buyers stepping in? We detect early trend shifts and positive price momentum by checking if the MACD Histogram > 0.0, RSI is in the healthy 40–65 band, and the stock is not lagging the SET index (3-month Relative Strength ≥ 0). Never catch a falling knife — and never buy a market laggard.</string>
     <string name="edu_layer_5_title">Layer 5: SUP (Support/Technicals)</string>
     <string name="edu_layer_5_content" formatted="false">The trigger. We locate ideal entry zones or extreme discounts by finding when prices are \'oversold\' (RSI &lt; 35) or when our proprietary BUY/POTENTIAL zone signals flash.</string>
-    <string name="action_read_concept">Read Concept (The 5 Layers)</string>
+    <string name="edu_layer_6_title">Layer 6: FLOW (Foreign Fund Flow)</string>
+    <string name="edu_layer_6_content" formatted="false">The institutional tailwind. We track NVDR net buying volume and value to confirm that foreign institutions are accumulating the stock, significantly boosting the win rate.</string>
+    <string name="action_read_concept">Read Concept (The 6 Layers)</string>
 
     <string name="about_tagline">Happy Trading! 🚀</string>
 

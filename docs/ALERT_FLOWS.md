@@ -59,6 +59,7 @@ Every 30 min on weekdays
 │     │   "SELL: KBANK - RSI overbought"
 │     │
 │     ├─ Active SELL signal? → showSellReminderNotification()
+│     │   "⚠️ SELL: KBANK - Early Breakdown Warning (-1.8%)"
 │     │   "⚠️ SELL: KBANK - Take Profit"
 │     │
 │     ├─ Upcoming XD date (next 7 days)? → showXdAlertNotification()
@@ -71,7 +72,7 @@ Every 30 min on weekdays
 │     │   Dedup: once per ISO week per stock
 │     │
 │     └─ Swing exit conditions met?
-│         (gain≥10%, loss≤-5%, RSI≥65, SELL signal)
+│         (gain≥10%, loss≤-1.5% Early Breakdown, loss≤-5% Stop Loss, RSI≥65, SELL signal)
 │         └─ hasActiveSwingSellAlert = true
 │
 └─ 5. Morning Swing Exit (10:00–11:00)
@@ -85,8 +86,8 @@ Every 30 min on weekdays
 
 | Type | Method | Trigger | Priority | Dedup |
 |---|---|---|---|---|
-| Signal Change | `showSignalNotification` | Signal type changed | DEFAULT | Per stock |
-| Sell Reminder | `showSellReminderNotification` | Active SELL on portfolio | HIGH | Per stock |
+| Signal Change | `showSignalNotification` | Signal type changed (BUY, POTENTIAL, SELL) | DEFAULT | Per stock |
+| Sell Reminder | `showSellReminderNotification` | Active SELL (Take Profit, Trailing Stop, Stop Loss, Early Breakdown) | HIGH | Per stock |
 | XD Alert | `showXdAlertNotification` | XD date within 7 days | DEFAULT | Per stock+date |
 | **Yield Opportunity** | `showDividendYieldOpportunityNotification` | **DIVIDEND stock yield ≥ 5% + ROE ≥ 15% (any month)** | DEFAULT | **Per stock per ISO week** |
 | Morning Exit | `showPrimeTimeNotification` | Swing alerts + 10:00–11:00 | DEFAULT | Per day |

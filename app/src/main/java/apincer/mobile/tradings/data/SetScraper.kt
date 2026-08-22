@@ -40,6 +40,8 @@ data class ScrapedStockInfo(
     val debtToEquity: Double? = null,
     val dividendYield: Double? = null,
     val dividendDate: String? = null,
+    val nvdrNetVolume: Double? = null,
+    val nvdrNetValue: Double? = null,
     val lastUpdated: String
 ) {
     val bookValue: Double?
@@ -207,6 +209,8 @@ object SetScraper {
             info = info.copy(
                 name = setInfo.name ?: info.name,
                 businessDescription = setInfo.businessDescription ?: info.businessDescription,
+                sector = setInfo.sector ?: info.sector,
+                industry = setInfo.industry ?: info.industry,
                 lastPrice = if (setInfo.lastPrice != 0.0) setInfo.lastPrice else info.lastPrice,
                 change = if (setInfo.lastPrice != 0.0) setInfo.change else info.change,
                 percentChange = if (setInfo.lastPrice != 0.0) setInfo.percentChange else info.percentChange,
@@ -222,7 +226,9 @@ object SetScraper {
                 equity = setInfo.equity ?: info.equity,
                 debtToEquity = setInfo.debtToEquity ?: info.debtToEquity,
                 dividendYield = setInfo.dividendYield ?: info.dividendYield,
-                dividendDate = setInfo.dividendDate ?: info.dividendDate
+                dividendDate = setInfo.dividendDate ?: info.dividendDate,
+                nvdrNetVolume = setInfo.nvdrNetVolume ?: info.nvdrNetVolume,
+                nvdrNetValue = setInfo.nvdrNetValue ?: info.nvdrNetValue
             )
         }
 
@@ -262,8 +268,30 @@ object SetScraper {
                 else -> null
             }
 
+            // 6. Fetch NVDR Trading Data (Foreign Fund Flow)
+            var nvdrNetVolume: Double? = null
+            var nvdrNetValue: Double? = null
+            try {
+                val nvdrReferer = "$SET_BASE_URL/th/market/statistics/nvdr/trading-by-stock"
+                val nvdrResult = fetchJson("$SET_BASE_URL/api/set/nvdr-trade/stock-trading?sortBy=symbol&symbols=$symbolUpper", symbolUpper, nvdrReferer)
+                val latestNvdr = when (nvdrResult) {
+                    is JSONObject -> nvdrResult.optJSONArray("nvdrTradings")?.optJSONObject(0) ?: nvdrResult
+                    is JSONArray -> nvdrResult.optJSONObject(0)
+                    else -> null
+                }
+                if (latestNvdr != null) {
+                    nvdrNetVolume = latestNvdr.optDouble("netVolume", Double.NaN).takeIf { !it.isNaN() }
+                    nvdrNetValue = latestNvdr.optDouble("netValue", Double.NaN).takeIf { !it.isNaN() }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to fetch NVDR for $symbolUpper", e)
+            }
+
             val nameVal = infoObj?.optString("nameTH") ?: overviewObj?.optString("name")
             val desc = infoObj?.optString("businessDescription") ?: overviewObj?.optString("name")
+            
+            val sector = overviewObj?.optString("sectorName")?.takeIf { it.isNotBlank() } ?: overviewObj?.optString("sector")?.takeIf { it.isNotBlank() }
+            val industry = overviewObj?.optString("industryName")?.takeIf { it.isNotBlank() } ?: overviewObj?.optString("industry")?.takeIf { it.isNotBlank() }
             
             val stats = tradingStatArray?.optJSONObject(0)
             
@@ -333,6 +361,8 @@ object SetScraper {
                 symbol = symbolUpper,
                 name = cleanName(nameVal),
                 businessDescription = desc,
+                sector = sector,
+                industry = industry,
                 lastPrice = price,
                 change = change,
                 percentChange = percentChange,
@@ -349,6 +379,8 @@ object SetScraper {
                 dividendDate = xdDate,
                 marketCap = marketCap,
                 volume = volume,
+                nvdrNetVolume = nvdrNetVolume,
+                nvdrNetValue = nvdrNetValue,
                 lastUpdated = getCurrentTimestamp()
             )
         } catch (e: Exception) {
@@ -381,6 +413,7 @@ object SetScraper {
                 client.newCall(request).execute().use { response ->
                     val body = response.body?.string()
                     Log.d(TAG, "SET API Response [$url]: Code=${response.code}, Length=${body?.length ?: 0}")
+                    if (response.code == 404 || (response.code in 400..499 && response.code != 429)) return@use null
                     if (!response.isSuccessful) throw java.io.IOException("HTTP error ${response.code}")
                     if (body.isNullOrBlank()) return@use null
                     JSONTokener(body).nextValue()

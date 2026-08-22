@@ -107,6 +107,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 
                 // 3. Calculate new signal
                 val indicators = SetScraper.fetchTechnicalIndicators(entity.symbol)
+                val isSet50 = TradingConstants.SET50_SYMBOLS.contains(entity.symbol.uppercase())
+                val userStopLoss = if (entity.portfolio.stopLoss > 0 && entity.cost > 0 && entity.portfolio.stopLoss < entity.cost) {
+                    ((entity.portfolio.stopLoss - entity.cost) / entity.cost) * 100
+                } else null
+                val peakPrice = if (entity.portfolio.peakPrice > 0) entity.portfolio.peakPrice else null
+
                 val signal = TechnicalAnalysis.getDetailedSignal(
                     rsi = indicators.rsi,
                     macdHist = indicators.histogram,
@@ -126,7 +132,13 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     isFundamentalGood = false,
                     tradePurpose = entity.tradePurpose,
                     dividendYield = scraped.dividendYield,
-                    roe = scraped.roe
+                    roe = scraped.roe,
+                    peakPrice = peakPrice,
+                    isSet50 = isSet50,
+                    userStopLoss = userStopLoss,
+                    relativeStrength = indicators.relativeStrength,
+                    nvdrNetVolume = scraped.nvdrNetVolume,
+                    nvdrNetValue = scraped.nvdrNetValue
                 )
 
                 // 4. Check for state shift (entry opportunities only)
@@ -189,6 +201,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         stochK = indicators.stochK,
                         stochD = indicators.stochD,
                         mfi = indicators.mfi,
+                        nvdrNetVolume = scraped.nvdrNetVolume ?: sig.nvdrNetVolume,
+                        nvdrNetValue = scraped.nvdrNetValue ?: sig.nvdrNetValue,
                         signalType = newSignalType,
                         signalReason = signal.reason,
                         signalDescription = signal.description,

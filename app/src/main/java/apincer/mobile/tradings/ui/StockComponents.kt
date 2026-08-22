@@ -3,12 +3,14 @@ package apincer.mobile.tradings.ui
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,8 +58,103 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.*
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import apincer.mobile.tradings.domain.IndicatorSignal
 import java.util.Locale
+
+@Composable
+fun Modifier.shimmerPlaceholder(
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp)
+): Modifier {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1200f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerTranslation"
+    )
+
+    val isDark = isSystemInDarkTheme()
+    val baseColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+    val highlightColor = if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9)
+
+    val brush = Brush.linearGradient(
+        colors = listOf(
+            baseColor,
+            highlightColor,
+            baseColor
+        ),
+        start = Offset(translateAnim - 400f, translateAnim - 400f),
+        end = Offset(translateAnim, translateAnim)
+    )
+
+    return this
+        .clip(shape)
+        .background(brush)
+}
+
+@Composable
+fun StockCardSkeleton(modifier: Modifier = Modifier) {
+    GlassCard(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(width = 64.dp, height = 20.dp).shimmerPlaceholder(RoundedCornerShape(6.dp)))
+                    Spacer(Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(width = 44.dp, height = 16.dp).shimmerPlaceholder(RoundedCornerShape(4.dp)))
+                }
+                Spacer(Modifier.height(8.dp))
+                Box(modifier = Modifier.size(width = 110.dp, height = 14.dp).shimmerPlaceholder(RoundedCornerShape(4.dp)))
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Box(modifier = Modifier.size(width = 72.dp, height = 20.dp).shimmerPlaceholder(RoundedCornerShape(6.dp)))
+                Spacer(Modifier.height(8.dp))
+                Box(modifier = Modifier.size(width = 52.dp, height = 16.dp).shimmerPlaceholder(RoundedCornerShape(4.dp)))
+            }
+        }
+    }
+}
+
+@Composable
+fun StockDetailSkeleton(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Header Skeleton
+        GlassCard(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), shape = RoundedCornerShape(24.dp)) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Box(modifier = Modifier.size(width = 100.dp, height = 28.dp).shimmerPlaceholder(RoundedCornerShape(8.dp)))
+                    Box(modifier = Modifier.size(width = 90.dp, height = 28.dp).shimmerPlaceholder(RoundedCornerShape(8.dp)))
+                }
+                Spacer(Modifier.height(16.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(120.dp).shimmerPlaceholder(RoundedCornerShape(16.dp)))
+            }
+        }
+
+        // Metrics Grid Skeleton
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.weight(1f).height(90.dp).shimmerPlaceholder(RoundedCornerShape(20.dp)))
+            Box(modifier = Modifier.weight(1f).height(90.dp).shimmerPlaceholder(RoundedCornerShape(20.dp)))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Box(modifier = Modifier.fillMaxWidth().height(160.dp).shimmerPlaceholder(RoundedCornerShape(24.dp)))
+    }
+}
 
 @Composable
 fun GlassCard(
@@ -73,15 +170,19 @@ fun GlassCard(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
     )
+    val haptic = LocalHapticFeedback.current
 
+    val isDark = isSystemInDarkTheme()
+    val borderColor = if (isDark) Color.White else Color.Black
+    
     val border = androidx.compose.foundation.BorderStroke(
         width = 0.5.dp,
         brush = Brush.linearGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.25f),
-                Color.White.copy(alpha = 0.08f),
-                Color.White.copy(alpha = 0.08f),
-                Color.White.copy(alpha = 0.18f)
+                borderColor.copy(alpha = if (isDark) 0.25f else 0.15f),
+                borderColor.copy(alpha = if (isDark) 0.08f else 0.05f),
+                borderColor.copy(alpha = if (isDark) 0.08f else 0.05f),
+                borderColor.copy(alpha = if (isDark) 0.18f else 0.10f)
             ),
             start = Offset(0f, 0f),
             end = Offset(1000f, 1000f)
@@ -95,7 +196,10 @@ fun GlassCard(
 
     if (onClick != null) {
         Surface(
-            onClick = onClick,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
             modifier = animatedModifier,
             color = containerColor,
             shape = shape,
@@ -535,6 +639,7 @@ fun StockItemCard(
                         maxLines = 1
                     )
                     
+                    val score = StockDna.calculateScore(item)
                     val tags = StockDna.tags(item)
 
                     if (tags.isNotEmpty()) {
@@ -544,16 +649,26 @@ fun StockItemCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             tags.forEach { tag ->
+                                val (bgAlpha, borderAlpha, tagColor) = when (tag) {
+                                    "A+" -> Triple(0.18f, 0.4f, Color(0xFF6EE7B7))
+                                    "A" -> Triple(0.18f, 0.4f, Color(0xFF60A5FA))
+                                    "VCP", "GAP" -> Triple(0.18f, 0.35f, Color(0xFFA78BFA))
+                                    "MOAT", "SHIELD" -> Triple(0.18f, 0.35f, Color(0xFF34D399))
+                                    "WHALE" -> Triple(0.18f, 0.35f, Color(0xFF38BDF8))
+                                    "SPRING", "OS" -> Triple(0.18f, 0.35f, Color(0xFFFBBF24))
+                                    else -> Triple(0.10f, 0.0f, MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(4.dp)
+                                    color = tagColor.copy(alpha = bgAlpha),
+                                    shape = RoundedCornerShape(4.dp),
+                                    border = if (borderAlpha > 0f) BorderStroke(0.5.dp, tagColor.copy(alpha = borderAlpha)) else null
                                 ) {
                                     Text(
                                         text = tag,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                        fontSize = 12.sp,
+                                        fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        color = if (borderAlpha > 0f) tagColor else MaterialTheme.colorScheme.onSecondaryContainer
                                     )
                                 }
                             }
@@ -562,7 +677,7 @@ fun StockItemCard(
                 }
 
                 Row(
-                    modifier = Modifier.weight(1.2f),
+                    modifier = Modifier.weight(1.0f),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -604,6 +719,84 @@ fun StockItemCard(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                                 modifier = Modifier.size(16.dp)
                             )
+                        }
+                    }
+                }
+            }
+
+            if (item.portfolio.quantity == 0 && item.info.lastPrice > 0) {
+                val isSet50 = apincer.mobile.tradings.domain.TradingConstants.SET50_SYMBOLS.contains(item.info.symbol.uppercase())
+                val stopPrice = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSuggestedStopLossPrice(
+                    lastPrice = item.info.lastPrice,
+                    atr = item.portfolio.atr,
+                    isSet50 = isSet50
+                )
+                val targetPrice = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSuggestedTargetPrice(
+                    lastPrice = item.info.lastPrice,
+                    stopLossPrice = stopPrice
+                )
+                val rr = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRiskRewardRatio(item.info.lastPrice, targetPrice, stopPrice)
+                val stopPercent = ((stopPrice - item.info.lastPrice) / item.info.lastPrice) * 100
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Stop ฿${String.format(Locale.ENGLISH, "%.2f", stopPrice)} (${String.format(Locale.ENGLISH, "%.1f", stopPercent)}%)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "  •  ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "Target ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                        }
+                        if (rr != null) {
+                            Spacer(Modifier.width(6.dp))
+                            val (badgeBg, badgeFg) = when {
+                                rr >= 2.0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onTertiaryContainer
+                                rr >= 1.5 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onSecondaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                            Surface(
+                                color = badgeBg,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "R:R ${String.format(Locale.ENGLISH, "%.1f", rr)}:1",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = badgeFg,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
                 }
