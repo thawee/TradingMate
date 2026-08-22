@@ -505,4 +505,30 @@ class TechnicalAnalysisTest {
         assertEquals(IndicatorSignal.POTENTIAL, signal.type)
         assertTrue(signal.reason.contains("False Breakout Guard"))
     }
+
+    @Test
+    fun testEarlyBreakdownSuppressedOnExDividendDate() {
+        val signal = TechnicalAnalysis.getDetailedSignal(
+            rsi = 45.0,
+            macdHist = -0.5,
+            lastPrice = 98.0,
+            sma50 = 100.0,
+            sma200 = 90.0,
+            bb = null,
+            isVolumeSurge = false,
+            userCost = 100.0,
+            userQuantity = 100,
+            isNearXdDate = true
+        )
+        // With isNearXdDate = true, the early breakdown warning (-2%) is suppressed because price drop is an expected dividend cash payout
+        org.junit.Assert.assertNotEquals(IndicatorSignal.SELL, signal.type)
+    }
+
+    @Test
+    fun testIsNearExDividendDate() {
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ENGLISH).format(java.util.Date())
+        assertTrue("Today should be near XD date", TechnicalAnalysis.isNearExDividendDate(today))
+        org.junit.Assert.assertFalse("Null date should not be near XD", TechnicalAnalysis.isNearExDividendDate(null))
+        org.junit.Assert.assertFalse("Past year date should not be near XD", TechnicalAnalysis.isNearExDividendDate("2020-01-01"))
+    }
 }

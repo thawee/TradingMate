@@ -184,10 +184,16 @@ Stocks with no clear trend or extreme valuation.
 ## 🛡️ Risk Management (The Golden Rules)
 
 1. **SELL Overrides BUY:** Even if a stock has great momentum, if it hits RSI 65 or the Upper Bollinger Band, the app triggers a **SELL** warning. Never buy at the peak.
-2. **Early Breakdown Cutting:** If a trade loses $-1.5\%$ and breaks below SMA 50 with negative MACD, exit early rather than suffering full stop-loss drawdown.
+2. **Early Breakdown Cutting (with XD Grace Period):** If a trade loses $-1.5\%$ and breaks below SMA 50 with negative MACD, exit early rather than suffering full stop-loss drawdown. *Grace Period:* If the price drop occurs within $\pm 2$ trading days of an Ex-Dividend (XD) date, the sell signal is paused to account for expected cash dividend payouts.
 3. **Volatility-Adjusted Stop Loss:** The stop is 2× the stock's daily ATR (clamped -3.5% to -8.0%). If ATR is unavailable, fixed tiers apply: -4.5% (SET50) / -6.5% (Mid/Small-Cap). A breach triggers a mandatory **SELL** signal to preserve capital.
-4. **Market Regime Sizing:** Reduce position sizing to 50% defensive during Bear/Correction market regimes (SET Index < SMA 50).
-5. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
+4. **Market Regime Sizing & Dynamic Cash Buffer:** Adapt position sizing and cash reserves based on SET Index health:
+   - **Bullish Regime:** 100% full position sizing, 10–15% cash buffer.
+   - **Sideways / Chop Regime:** 75% selective sizing, 25–35% cash buffer.
+   - **Bearish / Correction Regime:** 50% defensive sizing, 50%+ cash buffer.
+5. **15% Single-Stock Exposure Cap:** Hard-cap portfolio exposure to any single company at max 15% of total account equity to prevent devastating losses from single-stock macro black swans.
+6. **Dual-Confirmation Smart Money Flow:** Foreign NVDR net accumulation is only valid when paired with non-negative Relative Strength ($\text{RS} \ge -1.0$) to avoid buying into foreign short-covering rallies on fundamentally broken stocks.
+7. **Cyclical Sector Quality Shield:** Commodity and cyclical stocks (Energy, Petrochem, Agribusiness, Shipping, Steel) must prove 3Y profit growth $\ge 8\%$ and margins $\ge 10\%$ to avoid value traps at peak commodity cycles.
+8. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
 
 ---
 

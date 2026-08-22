@@ -13,6 +13,7 @@ import androidx.room.util.recursiveFetchArrayMap
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteStatement
 import javax.`annotation`.processing.Generated
+import kotlin.Boolean
 import kotlin.Double
 import kotlin.Int
 import kotlin.Long
@@ -186,7 +187,7 @@ public class StockDao_Impl(
       }
     }
     this.__insertAdapterOfStockSignalEntity = object : EntityInsertAdapter<StockSignalEntity>() {
-      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `stock_signal` (`symbol`,`rsi`,`macdHist`,`signalType`,`signalReason`,`signalDescription`,`lastUpdated`) VALUES (?,?,?,?,?,?,?)"
+      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `stock_signal` (`symbol`,`rsi`,`macdHist`,`sma50`,`sma200`,`bbUpper`,`bbMiddle`,`bbLower`,`isVolumeSurge`,`obvRising`,`week52Low`,`week52High`,`relativeStrength`,`atr`,`adx`,`stochK`,`stochD`,`mfi`,`nvdrNetVolume`,`nvdrNetValue`,`signalType`,`signalReason`,`signalDescription`,`lastUpdated`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
       protected override fun bind(statement: SQLiteStatement, entity: StockSignalEntity) {
         statement.bindText(1, entity.symbol)
@@ -202,29 +203,123 @@ public class StockDao_Impl(
         } else {
           statement.bindDouble(3, _tmpMacdHist)
         }
-        val _tmpSignalType: String? = entity.signalType
-        if (_tmpSignalType == null) {
+        val _tmpSma50: Double? = entity.sma50
+        if (_tmpSma50 == null) {
           statement.bindNull(4)
         } else {
-          statement.bindText(4, _tmpSignalType)
+          statement.bindDouble(4, _tmpSma50)
+        }
+        val _tmpSma200: Double? = entity.sma200
+        if (_tmpSma200 == null) {
+          statement.bindNull(5)
+        } else {
+          statement.bindDouble(5, _tmpSma200)
+        }
+        val _tmpBbUpper: Double? = entity.bbUpper
+        if (_tmpBbUpper == null) {
+          statement.bindNull(6)
+        } else {
+          statement.bindDouble(6, _tmpBbUpper)
+        }
+        val _tmpBbMiddle: Double? = entity.bbMiddle
+        if (_tmpBbMiddle == null) {
+          statement.bindNull(7)
+        } else {
+          statement.bindDouble(7, _tmpBbMiddle)
+        }
+        val _tmpBbLower: Double? = entity.bbLower
+        if (_tmpBbLower == null) {
+          statement.bindNull(8)
+        } else {
+          statement.bindDouble(8, _tmpBbLower)
+        }
+        val _tmp: Int = if (entity.isVolumeSurge) 1 else 0
+        statement.bindLong(9, _tmp.toLong())
+        val _tmp_1: Int = if (entity.obvRising) 1 else 0
+        statement.bindLong(10, _tmp_1.toLong())
+        val _tmpWeek52Low: Double? = entity.week52Low
+        if (_tmpWeek52Low == null) {
+          statement.bindNull(11)
+        } else {
+          statement.bindDouble(11, _tmpWeek52Low)
+        }
+        val _tmpWeek52High: Double? = entity.week52High
+        if (_tmpWeek52High == null) {
+          statement.bindNull(12)
+        } else {
+          statement.bindDouble(12, _tmpWeek52High)
+        }
+        val _tmpRelativeStrength: Double? = entity.relativeStrength
+        if (_tmpRelativeStrength == null) {
+          statement.bindNull(13)
+        } else {
+          statement.bindDouble(13, _tmpRelativeStrength)
+        }
+        val _tmpAtr: Double? = entity.atr
+        if (_tmpAtr == null) {
+          statement.bindNull(14)
+        } else {
+          statement.bindDouble(14, _tmpAtr)
+        }
+        val _tmpAdx: Double? = entity.adx
+        if (_tmpAdx == null) {
+          statement.bindNull(15)
+        } else {
+          statement.bindDouble(15, _tmpAdx)
+        }
+        val _tmpStochK: Double? = entity.stochK
+        if (_tmpStochK == null) {
+          statement.bindNull(16)
+        } else {
+          statement.bindDouble(16, _tmpStochK)
+        }
+        val _tmpStochD: Double? = entity.stochD
+        if (_tmpStochD == null) {
+          statement.bindNull(17)
+        } else {
+          statement.bindDouble(17, _tmpStochD)
+        }
+        val _tmpMfi: Double? = entity.mfi
+        if (_tmpMfi == null) {
+          statement.bindNull(18)
+        } else {
+          statement.bindDouble(18, _tmpMfi)
+        }
+        val _tmpNvdrNetVolume: Double? = entity.nvdrNetVolume
+        if (_tmpNvdrNetVolume == null) {
+          statement.bindNull(19)
+        } else {
+          statement.bindDouble(19, _tmpNvdrNetVolume)
+        }
+        val _tmpNvdrNetValue: Double? = entity.nvdrNetValue
+        if (_tmpNvdrNetValue == null) {
+          statement.bindNull(20)
+        } else {
+          statement.bindDouble(20, _tmpNvdrNetValue)
+        }
+        val _tmpSignalType: String? = entity.signalType
+        if (_tmpSignalType == null) {
+          statement.bindNull(21)
+        } else {
+          statement.bindText(21, _tmpSignalType)
         }
         val _tmpSignalReason: String? = entity.signalReason
         if (_tmpSignalReason == null) {
-          statement.bindNull(5)
+          statement.bindNull(22)
         } else {
-          statement.bindText(5, _tmpSignalReason)
+          statement.bindText(22, _tmpSignalReason)
         }
         val _tmpSignalDescription: String? = entity.signalDescription
         if (_tmpSignalDescription == null) {
-          statement.bindNull(6)
+          statement.bindNull(23)
         } else {
-          statement.bindText(6, _tmpSignalDescription)
+          statement.bindText(23, _tmpSignalDescription)
         }
         val _tmpLastUpdated: String? = entity.lastUpdated
         if (_tmpLastUpdated == null) {
-          statement.bindNull(7)
+          statement.bindNull(24)
         } else {
-          statement.bindText(7, _tmpLastUpdated)
+          statement.bindText(24, _tmpLastUpdated)
         }
       }
     }
@@ -697,6 +792,23 @@ public class StockDao_Impl(
         val _columnIndexOfSymbol: Int = getColumnIndexOrThrow(_stmt, "symbol")
         val _columnIndexOfRsi: Int = getColumnIndexOrThrow(_stmt, "rsi")
         val _columnIndexOfMacdHist: Int = getColumnIndexOrThrow(_stmt, "macdHist")
+        val _columnIndexOfSma50: Int = getColumnIndexOrThrow(_stmt, "sma50")
+        val _columnIndexOfSma200: Int = getColumnIndexOrThrow(_stmt, "sma200")
+        val _columnIndexOfBbUpper: Int = getColumnIndexOrThrow(_stmt, "bbUpper")
+        val _columnIndexOfBbMiddle: Int = getColumnIndexOrThrow(_stmt, "bbMiddle")
+        val _columnIndexOfBbLower: Int = getColumnIndexOrThrow(_stmt, "bbLower")
+        val _columnIndexOfIsVolumeSurge: Int = getColumnIndexOrThrow(_stmt, "isVolumeSurge")
+        val _columnIndexOfObvRising: Int = getColumnIndexOrThrow(_stmt, "obvRising")
+        val _columnIndexOfWeek52Low: Int = getColumnIndexOrThrow(_stmt, "week52Low")
+        val _columnIndexOfWeek52High: Int = getColumnIndexOrThrow(_stmt, "week52High")
+        val _columnIndexOfRelativeStrength: Int = getColumnIndexOrThrow(_stmt, "relativeStrength")
+        val _columnIndexOfAtr: Int = getColumnIndexOrThrow(_stmt, "atr")
+        val _columnIndexOfAdx: Int = getColumnIndexOrThrow(_stmt, "adx")
+        val _columnIndexOfStochK: Int = getColumnIndexOrThrow(_stmt, "stochK")
+        val _columnIndexOfStochD: Int = getColumnIndexOrThrow(_stmt, "stochD")
+        val _columnIndexOfMfi: Int = getColumnIndexOrThrow(_stmt, "mfi")
+        val _columnIndexOfNvdrNetVolume: Int = getColumnIndexOrThrow(_stmt, "nvdrNetVolume")
+        val _columnIndexOfNvdrNetValue: Int = getColumnIndexOrThrow(_stmt, "nvdrNetValue")
         val _columnIndexOfSignalType: Int = getColumnIndexOrThrow(_stmt, "signalType")
         val _columnIndexOfSignalReason: Int = getColumnIndexOrThrow(_stmt, "signalReason")
         val _columnIndexOfSignalDescription: Int = getColumnIndexOrThrow(_stmt, "signalDescription")
@@ -717,6 +829,104 @@ public class StockDao_Impl(
             _tmpMacdHist = null
           } else {
             _tmpMacdHist = _stmt.getDouble(_columnIndexOfMacdHist)
+          }
+          val _tmpSma50: Double?
+          if (_stmt.isNull(_columnIndexOfSma50)) {
+            _tmpSma50 = null
+          } else {
+            _tmpSma50 = _stmt.getDouble(_columnIndexOfSma50)
+          }
+          val _tmpSma200: Double?
+          if (_stmt.isNull(_columnIndexOfSma200)) {
+            _tmpSma200 = null
+          } else {
+            _tmpSma200 = _stmt.getDouble(_columnIndexOfSma200)
+          }
+          val _tmpBbUpper: Double?
+          if (_stmt.isNull(_columnIndexOfBbUpper)) {
+            _tmpBbUpper = null
+          } else {
+            _tmpBbUpper = _stmt.getDouble(_columnIndexOfBbUpper)
+          }
+          val _tmpBbMiddle: Double?
+          if (_stmt.isNull(_columnIndexOfBbMiddle)) {
+            _tmpBbMiddle = null
+          } else {
+            _tmpBbMiddle = _stmt.getDouble(_columnIndexOfBbMiddle)
+          }
+          val _tmpBbLower: Double?
+          if (_stmt.isNull(_columnIndexOfBbLower)) {
+            _tmpBbLower = null
+          } else {
+            _tmpBbLower = _stmt.getDouble(_columnIndexOfBbLower)
+          }
+          val _tmpIsVolumeSurge: Boolean
+          val _tmp: Int
+          _tmp = _stmt.getLong(_columnIndexOfIsVolumeSurge).toInt()
+          _tmpIsVolumeSurge = _tmp != 0
+          val _tmpObvRising: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfObvRising).toInt()
+          _tmpObvRising = _tmp_1 != 0
+          val _tmpWeek52Low: Double?
+          if (_stmt.isNull(_columnIndexOfWeek52Low)) {
+            _tmpWeek52Low = null
+          } else {
+            _tmpWeek52Low = _stmt.getDouble(_columnIndexOfWeek52Low)
+          }
+          val _tmpWeek52High: Double?
+          if (_stmt.isNull(_columnIndexOfWeek52High)) {
+            _tmpWeek52High = null
+          } else {
+            _tmpWeek52High = _stmt.getDouble(_columnIndexOfWeek52High)
+          }
+          val _tmpRelativeStrength: Double?
+          if (_stmt.isNull(_columnIndexOfRelativeStrength)) {
+            _tmpRelativeStrength = null
+          } else {
+            _tmpRelativeStrength = _stmt.getDouble(_columnIndexOfRelativeStrength)
+          }
+          val _tmpAtr: Double?
+          if (_stmt.isNull(_columnIndexOfAtr)) {
+            _tmpAtr = null
+          } else {
+            _tmpAtr = _stmt.getDouble(_columnIndexOfAtr)
+          }
+          val _tmpAdx: Double?
+          if (_stmt.isNull(_columnIndexOfAdx)) {
+            _tmpAdx = null
+          } else {
+            _tmpAdx = _stmt.getDouble(_columnIndexOfAdx)
+          }
+          val _tmpStochK: Double?
+          if (_stmt.isNull(_columnIndexOfStochK)) {
+            _tmpStochK = null
+          } else {
+            _tmpStochK = _stmt.getDouble(_columnIndexOfStochK)
+          }
+          val _tmpStochD: Double?
+          if (_stmt.isNull(_columnIndexOfStochD)) {
+            _tmpStochD = null
+          } else {
+            _tmpStochD = _stmt.getDouble(_columnIndexOfStochD)
+          }
+          val _tmpMfi: Double?
+          if (_stmt.isNull(_columnIndexOfMfi)) {
+            _tmpMfi = null
+          } else {
+            _tmpMfi = _stmt.getDouble(_columnIndexOfMfi)
+          }
+          val _tmpNvdrNetVolume: Double?
+          if (_stmt.isNull(_columnIndexOfNvdrNetVolume)) {
+            _tmpNvdrNetVolume = null
+          } else {
+            _tmpNvdrNetVolume = _stmt.getDouble(_columnIndexOfNvdrNetVolume)
+          }
+          val _tmpNvdrNetValue: Double?
+          if (_stmt.isNull(_columnIndexOfNvdrNetValue)) {
+            _tmpNvdrNetValue = null
+          } else {
+            _tmpNvdrNetValue = _stmt.getDouble(_columnIndexOfNvdrNetValue)
           }
           val _tmpSignalType: String?
           if (_stmt.isNull(_columnIndexOfSignalType)) {
@@ -742,7 +952,7 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _item = StockSignalEntity(_tmpSymbol,_tmpRsi,_tmpMacdHist,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
+          _item = StockSignalEntity(_tmpSymbol,_tmpRsi,_tmpMacdHist,_tmpSma50,_tmpSma200,_tmpBbUpper,_tmpBbMiddle,_tmpBbLower,_tmpIsVolumeSurge,_tmpObvRising,_tmpWeek52Low,_tmpWeek52High,_tmpRelativeStrength,_tmpAtr,_tmpAdx,_tmpStochK,_tmpStochD,_tmpMfi,_tmpNvdrNetVolume,_tmpNvdrNetValue,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
           _result.add(_item)
         }
         _result
@@ -971,6 +1181,23 @@ public class StockDao_Impl(
         val _columnIndexOfSymbol: Int = getColumnIndexOrThrow(_stmt, "symbol")
         val _columnIndexOfRsi: Int = getColumnIndexOrThrow(_stmt, "rsi")
         val _columnIndexOfMacdHist: Int = getColumnIndexOrThrow(_stmt, "macdHist")
+        val _columnIndexOfSma50: Int = getColumnIndexOrThrow(_stmt, "sma50")
+        val _columnIndexOfSma200: Int = getColumnIndexOrThrow(_stmt, "sma200")
+        val _columnIndexOfBbUpper: Int = getColumnIndexOrThrow(_stmt, "bbUpper")
+        val _columnIndexOfBbMiddle: Int = getColumnIndexOrThrow(_stmt, "bbMiddle")
+        val _columnIndexOfBbLower: Int = getColumnIndexOrThrow(_stmt, "bbLower")
+        val _columnIndexOfIsVolumeSurge: Int = getColumnIndexOrThrow(_stmt, "isVolumeSurge")
+        val _columnIndexOfObvRising: Int = getColumnIndexOrThrow(_stmt, "obvRising")
+        val _columnIndexOfWeek52Low: Int = getColumnIndexOrThrow(_stmt, "week52Low")
+        val _columnIndexOfWeek52High: Int = getColumnIndexOrThrow(_stmt, "week52High")
+        val _columnIndexOfRelativeStrength: Int = getColumnIndexOrThrow(_stmt, "relativeStrength")
+        val _columnIndexOfAtr: Int = getColumnIndexOrThrow(_stmt, "atr")
+        val _columnIndexOfAdx: Int = getColumnIndexOrThrow(_stmt, "adx")
+        val _columnIndexOfStochK: Int = getColumnIndexOrThrow(_stmt, "stochK")
+        val _columnIndexOfStochD: Int = getColumnIndexOrThrow(_stmt, "stochD")
+        val _columnIndexOfMfi: Int = getColumnIndexOrThrow(_stmt, "mfi")
+        val _columnIndexOfNvdrNetVolume: Int = getColumnIndexOrThrow(_stmt, "nvdrNetVolume")
+        val _columnIndexOfNvdrNetValue: Int = getColumnIndexOrThrow(_stmt, "nvdrNetValue")
         val _columnIndexOfSignalType: Int = getColumnIndexOrThrow(_stmt, "signalType")
         val _columnIndexOfSignalReason: Int = getColumnIndexOrThrow(_stmt, "signalReason")
         val _columnIndexOfSignalDescription: Int = getColumnIndexOrThrow(_stmt, "signalDescription")
@@ -990,6 +1217,104 @@ public class StockDao_Impl(
             _tmpMacdHist = null
           } else {
             _tmpMacdHist = _stmt.getDouble(_columnIndexOfMacdHist)
+          }
+          val _tmpSma50: Double?
+          if (_stmt.isNull(_columnIndexOfSma50)) {
+            _tmpSma50 = null
+          } else {
+            _tmpSma50 = _stmt.getDouble(_columnIndexOfSma50)
+          }
+          val _tmpSma200: Double?
+          if (_stmt.isNull(_columnIndexOfSma200)) {
+            _tmpSma200 = null
+          } else {
+            _tmpSma200 = _stmt.getDouble(_columnIndexOfSma200)
+          }
+          val _tmpBbUpper: Double?
+          if (_stmt.isNull(_columnIndexOfBbUpper)) {
+            _tmpBbUpper = null
+          } else {
+            _tmpBbUpper = _stmt.getDouble(_columnIndexOfBbUpper)
+          }
+          val _tmpBbMiddle: Double?
+          if (_stmt.isNull(_columnIndexOfBbMiddle)) {
+            _tmpBbMiddle = null
+          } else {
+            _tmpBbMiddle = _stmt.getDouble(_columnIndexOfBbMiddle)
+          }
+          val _tmpBbLower: Double?
+          if (_stmt.isNull(_columnIndexOfBbLower)) {
+            _tmpBbLower = null
+          } else {
+            _tmpBbLower = _stmt.getDouble(_columnIndexOfBbLower)
+          }
+          val _tmpIsVolumeSurge: Boolean
+          val _tmp: Int
+          _tmp = _stmt.getLong(_columnIndexOfIsVolumeSurge).toInt()
+          _tmpIsVolumeSurge = _tmp != 0
+          val _tmpObvRising: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfObvRising).toInt()
+          _tmpObvRising = _tmp_1 != 0
+          val _tmpWeek52Low: Double?
+          if (_stmt.isNull(_columnIndexOfWeek52Low)) {
+            _tmpWeek52Low = null
+          } else {
+            _tmpWeek52Low = _stmt.getDouble(_columnIndexOfWeek52Low)
+          }
+          val _tmpWeek52High: Double?
+          if (_stmt.isNull(_columnIndexOfWeek52High)) {
+            _tmpWeek52High = null
+          } else {
+            _tmpWeek52High = _stmt.getDouble(_columnIndexOfWeek52High)
+          }
+          val _tmpRelativeStrength: Double?
+          if (_stmt.isNull(_columnIndexOfRelativeStrength)) {
+            _tmpRelativeStrength = null
+          } else {
+            _tmpRelativeStrength = _stmt.getDouble(_columnIndexOfRelativeStrength)
+          }
+          val _tmpAtr: Double?
+          if (_stmt.isNull(_columnIndexOfAtr)) {
+            _tmpAtr = null
+          } else {
+            _tmpAtr = _stmt.getDouble(_columnIndexOfAtr)
+          }
+          val _tmpAdx: Double?
+          if (_stmt.isNull(_columnIndexOfAdx)) {
+            _tmpAdx = null
+          } else {
+            _tmpAdx = _stmt.getDouble(_columnIndexOfAdx)
+          }
+          val _tmpStochK: Double?
+          if (_stmt.isNull(_columnIndexOfStochK)) {
+            _tmpStochK = null
+          } else {
+            _tmpStochK = _stmt.getDouble(_columnIndexOfStochK)
+          }
+          val _tmpStochD: Double?
+          if (_stmt.isNull(_columnIndexOfStochD)) {
+            _tmpStochD = null
+          } else {
+            _tmpStochD = _stmt.getDouble(_columnIndexOfStochD)
+          }
+          val _tmpMfi: Double?
+          if (_stmt.isNull(_columnIndexOfMfi)) {
+            _tmpMfi = null
+          } else {
+            _tmpMfi = _stmt.getDouble(_columnIndexOfMfi)
+          }
+          val _tmpNvdrNetVolume: Double?
+          if (_stmt.isNull(_columnIndexOfNvdrNetVolume)) {
+            _tmpNvdrNetVolume = null
+          } else {
+            _tmpNvdrNetVolume = _stmt.getDouble(_columnIndexOfNvdrNetVolume)
+          }
+          val _tmpNvdrNetValue: Double?
+          if (_stmt.isNull(_columnIndexOfNvdrNetValue)) {
+            _tmpNvdrNetValue = null
+          } else {
+            _tmpNvdrNetValue = _stmt.getDouble(_columnIndexOfNvdrNetValue)
           }
           val _tmpSignalType: String?
           if (_stmt.isNull(_columnIndexOfSignalType)) {
@@ -1015,7 +1340,7 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _result = StockSignalEntity(_tmpSymbol,_tmpRsi,_tmpMacdHist,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
+          _result = StockSignalEntity(_tmpSymbol,_tmpRsi,_tmpMacdHist,_tmpSma50,_tmpSma200,_tmpBbUpper,_tmpBbMiddle,_tmpBbLower,_tmpIsVolumeSurge,_tmpObvRising,_tmpWeek52Low,_tmpWeek52High,_tmpRelativeStrength,_tmpAtr,_tmpAdx,_tmpStochK,_tmpStochD,_tmpMfi,_tmpNvdrNetVolume,_tmpNvdrNetValue,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
         } else {
           _result = null
         }
@@ -1237,7 +1562,7 @@ public class StockDao_Impl(
       return
     }
     val _stringBuilder: StringBuilder = StringBuilder()
-    _stringBuilder.append("SELECT `symbol`,`rsi`,`macdHist`,`signalType`,`signalReason`,`signalDescription`,`lastUpdated` FROM `stock_signal` WHERE `symbol` IN (")
+    _stringBuilder.append("SELECT `symbol`,`rsi`,`macdHist`,`sma50`,`sma200`,`bbUpper`,`bbMiddle`,`bbLower`,`isVolumeSurge`,`obvRising`,`week52Low`,`week52High`,`relativeStrength`,`atr`,`adx`,`stochK`,`stochD`,`mfi`,`nvdrNetVolume`,`nvdrNetValue`,`signalType`,`signalReason`,`signalDescription`,`lastUpdated` FROM `stock_signal` WHERE `symbol` IN (")
     val _inputSize: Int = __mapKeySet.size
     appendPlaceholders(_stringBuilder, _inputSize)
     _stringBuilder.append(")")
@@ -1256,10 +1581,27 @@ public class StockDao_Impl(
       val _columnIndexOfSymbol: Int = 0
       val _columnIndexOfRsi: Int = 1
       val _columnIndexOfMacdHist: Int = 2
-      val _columnIndexOfSignalType: Int = 3
-      val _columnIndexOfSignalReason: Int = 4
-      val _columnIndexOfSignalDescription: Int = 5
-      val _columnIndexOfLastUpdated: Int = 6
+      val _columnIndexOfSma50: Int = 3
+      val _columnIndexOfSma200: Int = 4
+      val _columnIndexOfBbUpper: Int = 5
+      val _columnIndexOfBbMiddle: Int = 6
+      val _columnIndexOfBbLower: Int = 7
+      val _columnIndexOfIsVolumeSurge: Int = 8
+      val _columnIndexOfObvRising: Int = 9
+      val _columnIndexOfWeek52Low: Int = 10
+      val _columnIndexOfWeek52High: Int = 11
+      val _columnIndexOfRelativeStrength: Int = 12
+      val _columnIndexOfAtr: Int = 13
+      val _columnIndexOfAdx: Int = 14
+      val _columnIndexOfStochK: Int = 15
+      val _columnIndexOfStochD: Int = 16
+      val _columnIndexOfMfi: Int = 17
+      val _columnIndexOfNvdrNetVolume: Int = 18
+      val _columnIndexOfNvdrNetValue: Int = 19
+      val _columnIndexOfSignalType: Int = 20
+      val _columnIndexOfSignalReason: Int = 21
+      val _columnIndexOfSignalDescription: Int = 22
+      val _columnIndexOfLastUpdated: Int = 23
       while (_stmt.step()) {
         val _tmpKey: String
         _tmpKey = _stmt.getText(_itemKeyIndex)
@@ -1278,6 +1620,104 @@ public class StockDao_Impl(
             _tmpMacdHist = null
           } else {
             _tmpMacdHist = _stmt.getDouble(_columnIndexOfMacdHist)
+          }
+          val _tmpSma50: Double?
+          if (_stmt.isNull(_columnIndexOfSma50)) {
+            _tmpSma50 = null
+          } else {
+            _tmpSma50 = _stmt.getDouble(_columnIndexOfSma50)
+          }
+          val _tmpSma200: Double?
+          if (_stmt.isNull(_columnIndexOfSma200)) {
+            _tmpSma200 = null
+          } else {
+            _tmpSma200 = _stmt.getDouble(_columnIndexOfSma200)
+          }
+          val _tmpBbUpper: Double?
+          if (_stmt.isNull(_columnIndexOfBbUpper)) {
+            _tmpBbUpper = null
+          } else {
+            _tmpBbUpper = _stmt.getDouble(_columnIndexOfBbUpper)
+          }
+          val _tmpBbMiddle: Double?
+          if (_stmt.isNull(_columnIndexOfBbMiddle)) {
+            _tmpBbMiddle = null
+          } else {
+            _tmpBbMiddle = _stmt.getDouble(_columnIndexOfBbMiddle)
+          }
+          val _tmpBbLower: Double?
+          if (_stmt.isNull(_columnIndexOfBbLower)) {
+            _tmpBbLower = null
+          } else {
+            _tmpBbLower = _stmt.getDouble(_columnIndexOfBbLower)
+          }
+          val _tmpIsVolumeSurge: Boolean
+          val _tmp: Int
+          _tmp = _stmt.getLong(_columnIndexOfIsVolumeSurge).toInt()
+          _tmpIsVolumeSurge = _tmp != 0
+          val _tmpObvRising: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfObvRising).toInt()
+          _tmpObvRising = _tmp_1 != 0
+          val _tmpWeek52Low: Double?
+          if (_stmt.isNull(_columnIndexOfWeek52Low)) {
+            _tmpWeek52Low = null
+          } else {
+            _tmpWeek52Low = _stmt.getDouble(_columnIndexOfWeek52Low)
+          }
+          val _tmpWeek52High: Double?
+          if (_stmt.isNull(_columnIndexOfWeek52High)) {
+            _tmpWeek52High = null
+          } else {
+            _tmpWeek52High = _stmt.getDouble(_columnIndexOfWeek52High)
+          }
+          val _tmpRelativeStrength: Double?
+          if (_stmt.isNull(_columnIndexOfRelativeStrength)) {
+            _tmpRelativeStrength = null
+          } else {
+            _tmpRelativeStrength = _stmt.getDouble(_columnIndexOfRelativeStrength)
+          }
+          val _tmpAtr: Double?
+          if (_stmt.isNull(_columnIndexOfAtr)) {
+            _tmpAtr = null
+          } else {
+            _tmpAtr = _stmt.getDouble(_columnIndexOfAtr)
+          }
+          val _tmpAdx: Double?
+          if (_stmt.isNull(_columnIndexOfAdx)) {
+            _tmpAdx = null
+          } else {
+            _tmpAdx = _stmt.getDouble(_columnIndexOfAdx)
+          }
+          val _tmpStochK: Double?
+          if (_stmt.isNull(_columnIndexOfStochK)) {
+            _tmpStochK = null
+          } else {
+            _tmpStochK = _stmt.getDouble(_columnIndexOfStochK)
+          }
+          val _tmpStochD: Double?
+          if (_stmt.isNull(_columnIndexOfStochD)) {
+            _tmpStochD = null
+          } else {
+            _tmpStochD = _stmt.getDouble(_columnIndexOfStochD)
+          }
+          val _tmpMfi: Double?
+          if (_stmt.isNull(_columnIndexOfMfi)) {
+            _tmpMfi = null
+          } else {
+            _tmpMfi = _stmt.getDouble(_columnIndexOfMfi)
+          }
+          val _tmpNvdrNetVolume: Double?
+          if (_stmt.isNull(_columnIndexOfNvdrNetVolume)) {
+            _tmpNvdrNetVolume = null
+          } else {
+            _tmpNvdrNetVolume = _stmt.getDouble(_columnIndexOfNvdrNetVolume)
+          }
+          val _tmpNvdrNetValue: Double?
+          if (_stmt.isNull(_columnIndexOfNvdrNetValue)) {
+            _tmpNvdrNetValue = null
+          } else {
+            _tmpNvdrNetValue = _stmt.getDouble(_columnIndexOfNvdrNetValue)
           }
           val _tmpSignalType: String?
           if (_stmt.isNull(_columnIndexOfSignalType)) {
@@ -1303,7 +1743,7 @@ public class StockDao_Impl(
           } else {
             _tmpLastUpdated = _stmt.getText(_columnIndexOfLastUpdated)
           }
-          _item_1 = StockSignalEntity(_tmpSymbol,_tmpRsi,_tmpMacdHist,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
+          _item_1 = StockSignalEntity(_tmpSymbol,_tmpRsi,_tmpMacdHist,_tmpSma50,_tmpSma200,_tmpBbUpper,_tmpBbMiddle,_tmpBbLower,_tmpIsVolumeSurge,_tmpObvRising,_tmpWeek52Low,_tmpWeek52High,_tmpRelativeStrength,_tmpAtr,_tmpAdx,_tmpStochK,_tmpStochD,_tmpMfi,_tmpNvdrNetVolume,_tmpNvdrNetValue,_tmpSignalType,_tmpSignalReason,_tmpSignalDescription,_tmpLastUpdated)
           _map.put(_tmpKey, _item_1)
         }
       }

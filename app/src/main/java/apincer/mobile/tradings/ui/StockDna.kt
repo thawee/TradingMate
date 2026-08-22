@@ -97,11 +97,27 @@ object StockDna {
         s.signal?.type == IndicatorSignal.BUY ||
         s.signal?.type == IndicatorSignal.POTENTIAL
 
-    /** Layer 6 — Flow: Foreign Fund NVDR net accumulation. */
+    /** Layer 6 — Flow: Foreign Fund NVDR net accumulation with Dual Confirmation.
+     *  Ensures NVDR buying is not a dead-cat bounce or short-covering in a collapsing stock. */
     fun isFlow(s: StockWatchlistInfo): Boolean {
         val nvdrVol = s.portfolio.nvdrNetVolume
         if (nvdrVol == null) return true // Null-tolerant until data source is fully populated
-        return nvdrVol > 0.0
+        val rs = s.portfolio.relativeStrength ?: 0.0
+        return nvdrVol > 0.0 && rs >= -1.0
+    }
+
+    val CYCLICAL_SECTORS = setOf(
+        "Energy & Utilities",
+        "Petrochemicals & Chemicals",
+        "Agribusiness",
+        "Transportation & Logistics",
+        "Steel",
+        "Mining"
+    )
+
+    fun isCyclical(sector: String?): Boolean {
+        if (sector.isNullOrBlank()) return false
+        return CYCLICAL_SECTORS.any { sector.contains(it, ignoreCase = true) || it.contains(sector, ignoreCase = true) }
     }
 
     /** Earnings gap-up play: +4% day on a profitable stock with high volume. */
@@ -135,6 +151,8 @@ object StockDna {
         val roe = info.roe ?: 0.0
         val de = info.debtToEquity ?: 1.0
         val divYield = info.dividendYield ?: 0.0
+        // Exclude unhedged cyclical peak traps from compounder aristocrats
+        if (isCyclical(info.sector) && (info.profitGrowth3Y ?: 0.0) < 10.0) return false
         return roe >= 12.0 && de <= 1.2 && divYield >= 3.0 && (info.netProfitMargin ?: 0.0) >= 8.0
     }
 
@@ -158,7 +176,7 @@ object StockDna {
         if (!preFilter(s)) return false
         val nvdr = s.portfolio.nvdrNetVolume ?: 0.0
         val rs = s.portfolio.relativeStrength ?: 0.0
-        return nvdr > 0.0 && rs > 0.0
+        return nvdr > 0.0 && rs >= 0.0
     }
 
     /** Archetype 5: Oversold Mean-Reversion Spring */
@@ -205,6 +223,12 @@ object StockDna {
         if (growth >= 10.0) qualityPts += 5
         else if (growth > 0.0) qualityPts += 2
 
+        // Cyclical Peak Dampener: Penalize cyclical stocks with unstable profit growth
+        if (isCyclical(info.sector) && (growth < 8.0 || npm < 10.0)) {
+            qualityPts = (qualityPts - 5).coerceAtLeast(0)
+            highlights.add("Cyclical Volatility")
+        }
+
         // 2. Value Pillar (Max 20)
         val pe = info.pe ?: 0.0
         if (pe in 0.1..15.0) { valuePts += 10; highlights.add("Low P/E") }
@@ -228,7 +252,7 @@ object StockDna {
         val rs = portfolio.relativeStrength ?: 0.0
         if (rs > 0.0) { flowPts += 8; highlights.add("Outperforming SET") }
         val nvdr = portfolio.nvdrNetVolume ?: 0.0
-        if (nvdr > 0.0) { flowPts += 7; highlights.add("Foreign Inflow") }
+        if (nvdr > 0.0 && rs >= -1.0) { flowPts += 7; highlights.add("Foreign Inflow") }
 
         // 5. Dividend & Safety Pillar (Max 15)
         val yield = info.dividendYield ?: 0.0
@@ -276,6 +300,7 @@ object StockDna {
         if (isSup(s)) add("SUP")
         if (isGapUp(s)) add("GAP")
         if (isFlow(s) && s.portfolio.nvdrNetVolume != null) add("FLOW")
+        if (isCyclical(s.info.sector)) add("CYC")
         if ((s.portfolio.relativeStrength ?: 0.0) > 0.0) add("RS")
         if ((s.portfolio.rsi ?: 50.0) < TradingConstants.RSI_OVERSOLD - 5.0) add("OS")
     }

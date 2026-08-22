@@ -60,11 +60,11 @@ public class StockDatabase_Impl : StockDatabase() {
   }
 
   protected override fun createOpenDelegate(): RoomOpenDelegate {
-    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(25, "9da92a332a14c758c6f9f922bfed932d", "15e4cec9e4b9fb0829c4b1cf347d6a73") {
+    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(30, "e346a68dd183f3fe0a33bfd52b02b92b", "463285118ba4385c632dfd4ea379ce3a") {
       public override fun createAllTables(connection: SQLiteConnection) {
         connection.execSQL("CREATE TABLE IF NOT EXISTS `portfolio` (`symbol` TEXT NOT NULL, `cost` REAL NOT NULL, `quantity` INTEGER NOT NULL, `tradePurpose` TEXT NOT NULL, `buyFees` REAL NOT NULL, `stopLoss` REAL NOT NULL, `playbookNote` TEXT NOT NULL, `peakPrice` REAL NOT NULL, PRIMARY KEY(`symbol`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `stock_cache` (`symbol` TEXT NOT NULL, `name` TEXT, `nameTH` TEXT, `businessDescription` TEXT, `sector` TEXT, `industry` TEXT, `dividendPerShare` REAL, `lastPrice` REAL NOT NULL, `change` REAL NOT NULL, `percentChange` REAL NOT NULL, `pe` REAL, `pbv` REAL, `roe` REAL, `eps` REAL, `netProfit` REAL, `equity` REAL, `debtToEquity` REAL, `dividendYield` REAL, `dividendDate` TEXT, `netProfitMargin` REAL, `profitGrowth3Y` REAL, `lastUpdated` TEXT, `volume` INTEGER, PRIMARY KEY(`symbol`))")
-        connection.execSQL("CREATE TABLE IF NOT EXISTS `stock_signal` (`symbol` TEXT NOT NULL, `rsi` REAL, `macdHist` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, PRIMARY KEY(`symbol`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `stock_signal` (`symbol` TEXT NOT NULL, `rsi` REAL, `macdHist` REAL, `sma50` REAL, `sma200` REAL, `bbUpper` REAL, `bbMiddle` REAL, `bbLower` REAL, `isVolumeSurge` INTEGER NOT NULL, `obvRising` INTEGER NOT NULL, `week52Low` REAL, `week52High` REAL, `relativeStrength` REAL, `atr` REAL, `adx` REAL, `stochK` REAL, `stochD` REAL, `mfi` REAL, `nvdrNetVolume` REAL, `nvdrNetValue` REAL, `signalType` TEXT, `signalReason` TEXT, `signalDescription` TEXT, `lastUpdated` TEXT, PRIMARY KEY(`symbol`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `trade_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `symbol` TEXT NOT NULL, `buyPrice` REAL NOT NULL, `sellPrice` REAL NOT NULL, `quantity` INTEGER NOT NULL, `netProfitPercent` REAL NOT NULL, `netProfitBaht` REAL NOT NULL, `dateMillis` INTEGER NOT NULL, `note` TEXT NOT NULL)")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_trade_history_dateMillis` ON `trade_history` (`dateMillis`)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `cash` (`id` INTEGER NOT NULL, `balance` REAL NOT NULL, PRIMARY KEY(`id`))")
@@ -74,7 +74,7 @@ public class StockDatabase_Impl : StockDatabase() {
         connection.execSQL("CREATE TABLE IF NOT EXISTS `portfolio_snapshot` (`date` TEXT NOT NULL, `totalValue` REAL NOT NULL, `totalCost` REAL NOT NULL, `cashBalance` REAL NOT NULL, PRIMARY KEY(`date`))")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `cash_transaction` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `dateMillis` INTEGER NOT NULL, `note` TEXT NOT NULL)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9da92a332a14c758c6f9f922bfed932d')")
+        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e346a68dd183f3fe0a33bfd52b02b92b')")
       }
 
       public override fun dropAllTables(connection: SQLiteConnection) {
@@ -168,6 +168,23 @@ public class StockDatabase_Impl : StockDatabase() {
         _columnsStockSignal.put("symbol", TableInfo.Column("symbol", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStockSignal.put("rsi", TableInfo.Column("rsi", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStockSignal.put("macdHist", TableInfo.Column("macdHist", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("sma50", TableInfo.Column("sma50", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("sma200", TableInfo.Column("sma200", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("bbUpper", TableInfo.Column("bbUpper", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("bbMiddle", TableInfo.Column("bbMiddle", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("bbLower", TableInfo.Column("bbLower", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("isVolumeSurge", TableInfo.Column("isVolumeSurge", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("obvRising", TableInfo.Column("obvRising", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("week52Low", TableInfo.Column("week52Low", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("week52High", TableInfo.Column("week52High", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("relativeStrength", TableInfo.Column("relativeStrength", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("atr", TableInfo.Column("atr", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("adx", TableInfo.Column("adx", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("stochK", TableInfo.Column("stochK", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("stochD", TableInfo.Column("stochD", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("mfi", TableInfo.Column("mfi", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("nvdrNetVolume", TableInfo.Column("nvdrNetVolume", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsStockSignal.put("nvdrNetValue", TableInfo.Column("nvdrNetValue", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStockSignal.put("signalType", TableInfo.Column("signalType", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStockSignal.put("signalReason", TableInfo.Column("signalReason", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsStockSignal.put("signalDescription", TableInfo.Column("signalDescription", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))

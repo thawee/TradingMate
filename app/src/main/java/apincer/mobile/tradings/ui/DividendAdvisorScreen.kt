@@ -239,34 +239,82 @@ fun DividendAdvisorScreen(
                 }
             }
 
-            // Market Regime Banner
+            // Market Regime Banner with Cash Buffer Recommendation
             val marketRegime = alertRoutineState.marketRegime
+            val isBull = marketRegime == apincer.mobile.tradings.domain.TechnicalAnalysis.MarketRegime.BULLISH
+            val isBear = marketRegime == apincer.mobile.tradings.domain.TechnicalAnalysis.MarketRegime.BEARISH
+            val regimeBg = when {
+                isBull -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
+                isBear -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            }
+            val regimeFg = when {
+                isBull -> MaterialTheme.colorScheme.onTertiaryContainer
+                isBear -> MaterialTheme.colorScheme.onErrorContainer
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            val sizingText = when {
+                isBull -> "Normal Sizing (100%)"
+                isBear -> "Defensive Sizing (50%)"
+                else -> "Selective Sizing (75%)"
+            }
+            val cashBufferRec = when {
+                isBull -> "Cash Buffer: 10–15%"
+                isBear -> "Cash Buffer: 50%+"
+                else -> "Cash Buffer: 25–35%"
+            }
+
             Surface(
-                color = if (marketRegime.isBullish) {
-                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
-                } else {
-                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
-                },
-                shape = RoundedCornerShape(8.dp),
+                color = regimeBg,
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = if (marketRegime.isBullish) "📈 SET Regime: ${marketRegime.label}" else "⚠️ SET Regime: ${marketRegime.label}",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (marketRegime.isBullish) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Text(
-                        text = if (marketRegime.isBullish) "Normal Sizing (100%)" else "Defensive Sizing (50%)",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black,
-                        color = if (marketRegime.isBullish) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                    )
+                    Column(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = if (isBull) "📈" else if (isBear) "⚠️" else "⚖️",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "SET: ${marketRegime.label}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = regimeFg,
+                                maxLines = 1
+                            )
+                        }
+                        Text(
+                            text = sizingText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = regimeFg.copy(alpha = 0.8f),
+                            maxLines = 1
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Surface(
+                        color = regimeFg.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = cashBufferRec,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = regimeFg,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            maxLines = 1
+                        )
+                    }
                 }
             }
 
@@ -896,8 +944,9 @@ fun AiCopilotCard(
                            - High risk trades. Fundamentals are poor, but technicals are flashing oversold or reversal. Some are MACD-confirmed, others are early/unconfirmed (weaker signal). Trade only if the catalyst is extremely strong.
                         4. General Risk Constraints:
                            - Risk/Reward ratio MUST be asymmetric (minimum 2.0:1 R:R, e.g. Target Profit >= +6%, Stop Loss <= -3%). Stop loss must be placed below key technical support.
-                           - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk.
-                           
+                           - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk. Max 15% capital allocation in any single stock.
+                           - CYCLICAL SHIELD: If recommending a cyclical/commodity stock, require volume catalyst and tighter stop loss.
+                            
                         GUARDRAILS & NEGATIVE CONSTRAINTS:
                         - DO NOT recommend penny stocks (price < 1.0 THB) or highly illiquid assets.
                         - DO NOT recommend leveraged or complex structured products (e.g. DWs, TFEX warrants).
@@ -917,7 +966,7 @@ fun AiCopilotCard(
                         DELEGATED TASKS:
                         1. [market-researcher]: Search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also check current SET index level, sector trends, and interest rates for macro context. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, technical indicators, and known market knowledge).
                         2. [regime-manager]: Evaluate market regime (Bullish, Bearish, or Choppy/Sideways based on price relative to SMA 200/50 and MACD). In a Bull market, allow higher profit targets and breakout trailing stops; in a Bear/Choppy market, enforce capital preservation, tighter stop losses, and buying strictly at major technical support.
-                        3. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (min 2.0:1 R:R), and strict Stop Loss for each setup. IMPORTANT: Intelligently split my available cash balance ($cashBalanceFormatted) across these recommended picks (specify recommended capital in THB and estimated share count for each stock, reserving a cash buffer if market risk is elevated). For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
+                        3. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (min 2.0:1 R:R), and strict Stop Loss for each setup. IMPORTANT: Intelligently split my available cash balance ($cashBalanceFormatted) across these recommended picks (specify recommended capital in THB and estimated share count for each stock, capping any single position at max 15% of equity, reserving a cash buffer if market risk is elevated). For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
                         
                         EXPLAIN INSTRUCTIONS:
                         - Break down the recommendations step-by-step using clear, accessible logic.
@@ -995,7 +1044,8 @@ fun AiCopilotCard(
                         - Yield Threshold: Starting Dividend Yield MUST be >= 5%.
                         - Hard rule: Never average down on a breaking technical trend.
                         - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
-                        - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset.
+                        - RISK: Max 15% total portfolio allocation per asset (hard-capped).
+                        - CYCLICAL DIVIDEND SHIELD: Verify dividend is backed by operational cash flow, not cyclical commodity peaks or one-off asset sales.
                         
                         GUARDRAILS & NEGATIVE CONSTRAINTS:
                         - DO NOT recommend penny stocks (price < 1.0 THB) or highly illiquid assets.

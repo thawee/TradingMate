@@ -170,7 +170,8 @@ object TechnicalAnalysis {
         userStopLoss: Double? = null,
         relativeStrength: Double? = null,
         nvdrNetVolume: Double? = null,
-        nvdrNetValue: Double? = null
+        nvdrNetValue: Double? = null,
+        isNearXdDate: Boolean = false
     ): TradeSignal {
         if (rsi == null || macdHist == null) return TradeSignal(IndicatorSignal.NEUTRAL, "Waiting for data", "We need more historical data to generate a signal.")
         
@@ -251,7 +252,8 @@ object TechnicalAnalysis {
                 }
 
                 // EARLY BREAKDOWN WARNING: Position in loss (-1.5% to dynamic stop) and momentum breaks below SMA50 with negative MACD
-                if (netProfitPercent <= -1.5 && !isMacdBullish && !isPriceAboveSma50) {
+                // Suppressed if within 2 days of XD date (price drop is cash dividend adjustment)
+                if (!isNearXdDate && netProfitPercent <= -1.5 && !isMacdBullish && !isPriceAboveSma50) {
                     return TradeSignal(
                         IndicatorSignal.SELL,
                         "${qualityPrefix}Early Breakdown Warning (${String.format(Locale.ENGLISH, "%.1f", netProfitPercent)}%)",
@@ -259,47 +261,47 @@ object TechnicalAnalysis {
                     )
                 }
 
-                // DYNAMIC TRAILING STOP: Protect profits if price pulled back significantly from peak.
-                // Threshold adapts to volatility: 2.5×ATR% (clamped 4–10%), falling back to 5% fixed.
-                val highestPeak = maxOf(userCost, peakPrice ?: userCost)
-                if (highestPeak > userCost && netProfitPercent > 3.0) {
-                    val trailingThreshold = atrPercent?.takeIf { it > 0.0 }?.let {
-                        (TradingConstants.ATR_TRAILING_MULTIPLIER * it)
-                            .coerceIn(TradingConstants.ATR_TRAILING_MIN_PERCENT, TradingConstants.ATR_TRAILING_MAX_PERCENT)
-                    } ?: 5.0
-                    val dropFromPeakPercent = ((highestPeak - lastPrice) / highestPeak) * 100
-                    if (dropFromPeakPercent >= trailingThreshold) {
-                        return TradeSignal(
-                            IndicatorSignal.SELL,
-                            "${qualityPrefix}Trailing Stop Triggered",
-                            "Price dropped ${String.format(Locale.ENGLISH,"%.2f", dropFromPeakPercent)}% from high of ฿${String.format(Locale.ENGLISH,"%.2f", highestPeak)}. Protect gains while profit remains."
-                        )
-                    }
+            // DYNAMIC TRAILING STOP: Protect profits if price pulled back significantly from peak.
+            // Threshold adapts to volatility: 2.5×ATR% (clamped 4–10%), falling back to 5% fixed.
+            val highestPeak = maxOf(userCost, peakPrice ?: userCost)
+            if (highestPeak > userCost && netProfitPercent > 3.0) {
+                val trailingThreshold = atrPercent?.takeIf { it > 0.0 }?.let {
+                    (TradingConstants.ATR_TRAILING_MULTIPLIER * it)
+                        .coerceIn(TradingConstants.ATR_TRAILING_MIN_PERCENT, TradingConstants.ATR_TRAILING_MAX_PERCENT)
+                } ?: 5.0
+                val dropFromPeakPercent = ((highestPeak - lastPrice) / highestPeak) * 100
+                if (dropFromPeakPercent >= trailingThreshold) {
+                    return TradeSignal(
+                        IndicatorSignal.SELL,
+                        "${qualityPrefix}Trailing Stop Triggered",
+                        "Price dropped ${String.format(Locale.ENGLISH,"%.2f", dropFromPeakPercent)}% from high of ฿${String.format(Locale.ENGLISH,"%.2f", highestPeak)}. Protect gains while profit remains."
+                    )
                 }
+            }
 
-                // SWING PLAYBOOK: Take Profit / Scale Out
-                // Scale threshold relative to position size (minimum 5% or 5% of total position value)
-                val minBahtThreshold = if (positionValue > 0) maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.05) else TradingConstants.TAKE_PROFIT_MIN_BAHT
-                val meetsProfitTarget = netProfitPercent > TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minBahtThreshold
+            // SWING PLAYBOOK: Take Profit / Scale Out
+            // Scale threshold relative to position size (minimum 5% or 5% of total position value)
+            val minBahtThreshold = if (positionValue > 0) maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.05) else TradingConstants.TAKE_PROFIT_MIN_BAHT
+            val meetsProfitTarget = netProfitPercent > TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minBahtThreshold
 
-                if (meetsProfitTarget) {
-                    // If trend is still strongly bullish (MACD positive and RSI < 70), recommend scaling out / partial profit taking
-                    if (isMacdBullish && rsi < 70.0) {
-                        return TradeSignal(
-                            IndicatorSignal.SELL,
-                            "${qualityPrefix}Scale Out Target (+${String.format(Locale.ENGLISH,"%.1f", netProfitPercent)}%)",
-                            "Position is up ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% (฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}). Trend is strong; consider taking partial profits (50%) and trailing the rest."
-                        )
-                    } else {
-                        return TradeSignal(
-                            IndicatorSignal.SELL,
-                            "${qualityPrefix}Exit Target (Profit Secured)",
-                            "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% (฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}). Momentum is weakening; good level to lock in gains."
-                        )
-                    }
+            if (meetsProfitTarget) {
+                // If trend is still strongly bullish (MACD positive and RSI < 70), recommend scaling out / partial profit taking
+                if (isMacdBullish && rsi < 70.0) {
+                    return TradeSignal(
+                        IndicatorSignal.SELL,
+                        "${qualityPrefix}Scale Out Target (+${String.format(Locale.ENGLISH,"%.1f", netProfitPercent)}%)",
+                        "Position is up ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% (฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}). Trend is strong; consider taking partial profits (50%) and trailing the rest."
+                    )
+                } else {
+                    return TradeSignal(
+                        IndicatorSignal.SELL,
+                        "${qualityPrefix}Exit Target (Profit Secured)",
+                        "Your profit is ${String.format(Locale.ENGLISH,"%.2f", netProfitPercent)}% (฿${String.format(Locale.ENGLISH,"%,.2f", netProfitBaht)}). Momentum is weakening; good level to lock in gains."
+                    )
                 }
             }
         }
+    }
 
         // 2. SELL PRIORITY: Technical Overbought (only if already profitable)
         val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= TradingConstants.DIVIDEND_YIELD_PROTECTION
@@ -457,11 +459,17 @@ object TechnicalAnalysis {
             val holdingNetProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
                 calculateNetProfitPercent(userCost, lastPrice)
             } else null
-            return if (holdingNetProfit != null && holdingNetProfit < -2.0) {
+            return if (!isNearXdDate && holdingNetProfit != null && holdingNetProfit < -2.0) {
                 TradeSignal(
                     IndicatorSignal.SELL,
                     "${qualityPrefix}Weak Trend",
                     "The stock is losing momentum, trading below its average, and your position is down ${String.format(Locale.ENGLISH, "%.2f", holdingNetProfit)}%. Likely to continue falling."
+                )
+            } else if (isNearXdDate) {
+                TradeSignal(
+                    IndicatorSignal.NEUTRAL,
+                    "${qualityPrefix}Ex-Dividend Grace Period",
+                    "Price dip reflects XD cash dividend adjustment. Trend breakdown sell signals are paused around XD date."
                 )
             } else if (holdingNetProfit != null) {
                 TradeSignal(
@@ -894,6 +902,25 @@ object TechnicalAnalysis {
             current >= sma50 && macdHist >= 0.0 -> MarketRegime.BULLISH
             current >= sma50 -> MarketRegime.NEUTRAL
             else -> MarketRegime.BEARISH
+        }
+    }
+
+    fun isNearExDividendDate(dividendDateStr: String?): Boolean {
+        if (dividendDateStr.isNullOrBlank()) return false
+        return try {
+            val formats = listOf(
+                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ENGLISH),
+                java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.ENGLISH),
+                java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.ENGLISH)
+            )
+            val parsedDate = formats.firstNotNullOfOrNull { fmt ->
+                try { fmt.parse(dividendDateStr.trim()) } catch (_: Exception) { null }
+            } ?: return false
+            val now = java.util.Calendar.getInstance().timeInMillis
+            val diffDays = java.lang.Math.abs(now - parsedDate.time) / (1000 * 60 * 60 * 24)
+            diffDays <= 2
+        } catch (_: Exception) {
+            false
         }
     }
 }

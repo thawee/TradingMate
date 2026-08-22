@@ -6,7 +6,7 @@ https://www.set.or.th/api/set/factsheet/KTB/financialstatement-submission?lang=t
 https://www.set.or.th/api/set/stock/KTB/info?lang=th
 
 https://www.set.or.th/api/set/stock/KTB/company-highlight/financial-data?lang=th
-
+https://www.set.or.th/api/set/nvdr-trade/stock-trading?sortBy=symbol&symbols=KTB
 
 set50
 https://www.set.or.th/api/set/index/set50/composition?lang=th

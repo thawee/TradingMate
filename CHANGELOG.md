@@ -5,6 +5,18 @@ All notable changes to the TradingMate project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-08-22
+
+### Added
+- **Dual-Confirmation Smart Money Flow**: Updated `StockDna.isFlow` and `isForeignWhale` to strictly couple NVDR net buying volume with Relative Strength ($\text{RS} \ge -1.0 / \ge 0.0$). Eliminates false institutional accumulation signals triggered by foreign hedge fund short-covering in downtrends.
+- **Cyclical Sector Quality Shield**: Built-in detection for commodity and cyclical sectors (Petrochemicals & Chemicals, Energy & Utilities, Agribusiness, Transportation & Logistics, Steel, Mining). Penalizes volatile 3Y profit growth ($<8\%$) or margin ($<10\%$) with a score dampener, adds the **`CYC`** tag, and shields Compounder Aristocrat archetypes from peak-cycle traps.
+- **Ex-Dividend (XD) Price Drop Grace Period**: Added `TechnicalAnalysis.isNearExDividendDate` to detect when a stock is within $\pm 2$ trading days of its XD date. Automatically pauses `Early Breakdown Warning` and `Weak Trend` sell signals on price drops resulting from expected cash dividend payouts.
+- **Dynamic Cash Buffer Recommendations**: The Market Regime Banner on `DividendAdvisorScreen.kt` now displays adaptive cash allocation targets: **10–15% in Bull**, **25–35% in Sideways/Chop**, and **50%+ in Bearish** regimes.
+- **15% Single-Stock Max Allocation Limit**: Added strict single-stock concentration caps across AI Advisor Master Prompts to protect against macro black swan risk.
+
+### Fixed
+- **Responsive Market Regime Banner UX**: Refactored the Regime Banner into a clean 2-column layout with a dedicated rounded pill badge for cash reserves, resolving text wrapping and vertical column crushing on narrow mobile screens.
+
 ## [2.6.0] - 2026-08-22
 
 ### Added

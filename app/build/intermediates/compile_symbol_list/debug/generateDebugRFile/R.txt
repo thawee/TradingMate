@@ -51,7 +51,13 @@ int string desc_max_risk_per_trade 0x0
 int string desc_min_risk_reward 0x0
 int string desc_refresh 0x0
 int string desc_trailing_stop_percent 0x0
+int string edu_52w_content 0x0
+int string edu_52w_title 0x0
 int string edu_5_layers_intro 0x0
+int string edu_adx_content 0x0
+int string edu_adx_title 0x0
+int string edu_atr_content 0x0
+int string edu_atr_title 0x0
 int string edu_bollinger_content 0x0
 int string edu_bollinger_title 0x0
 int string edu_golden_rule_content 0x0
@@ -66,10 +72,18 @@ int string edu_layer_4_content 0x0
 int string edu_layer_4_title 0x0
 int string edu_layer_5_content 0x0
 int string edu_layer_5_title 0x0
+int string edu_layer_6_content 0x0
+int string edu_layer_6_title 0x0
 int string edu_macd_content 0x0
 int string edu_macd_title 0x0
+int string edu_mfi_content 0x0
+int string edu_mfi_title 0x0
+int string edu_obv_content 0x0
+int string edu_obv_title 0x0
 int string edu_risk_mgmt_content 0x0
 int string edu_risk_mgmt_title 0x0
+int string edu_rs_content 0x0
+int string edu_rs_title 0x0
 int string edu_rsi_content 0x0
 int string edu_rsi_title 0x0
 int string edu_sma_content 0x0
@@ -80,6 +94,8 @@ int string edu_step2_content 0x0
 int string edu_step2_title 0x0
 int string edu_step3_content 0x0
 int string edu_step3_title 0x0
+int string edu_stoch_content 0x0
+int string edu_stoch_title 0x0
 int string edu_workflow_subtitle 0x0
 int string edu_workflow_title 0x0
 int string edu_yoc_content 0x0
@@ -231,6 +247,7 @@ int string title_academy 0x0
 int string title_add_stock 0x0
 int string title_adjust_cash 0x0
 int string title_advisor 0x0
+int string title_backtest 0x0
 int string title_clear_history 0x0
 int string title_clear_watchlist 0x0
 int string title_edit_holding 0x0
@@ -243,4 +260,5 @@ int string title_record_purchase 0x0
 int string title_sell_stock 0x0
 int string title_settings 0x0
 int string title_watchlist 0x0
+int xml file_paths 0x0
 int xml trading_mate_widget_info 0x0

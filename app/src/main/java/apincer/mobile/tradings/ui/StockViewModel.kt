@@ -277,7 +277,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         } else null,
                         relativeStrength = stock.relativeStrength,
                         nvdrNetVolume = stock.nvdrNetVolume,
-                        nvdrNetValue = stock.nvdrNetValue
+                        nvdrNetValue = stock.nvdrNetValue,
+                        isNearXdDate = TechnicalAnalysis.isNearExDividendDate(info.dividendDate ?: stock.dividendDate)
                     )
                 } else if (stock.signalType != null) {
                     TradeSignal(

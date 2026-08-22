@@ -1,28 +1,25 @@
-# Quantitative Filter & Confluence Scoring Engine Plan
+# Strategic Safeguards & Edge-Decay Protection Plan
 
-- [x] **Phase 1: Quant Confluence Scoring Engine (0-100 pts) in `StockDna.kt`** <!-- id: 400 -->
-  - [x] Implement multi-pillar score calculation: Quality (25), Value (20), Momentum/Trend (25), Flow/RS (15), Dividend/Safety (15) <!-- id: 401 -->
-  - [x] Define `ConfluenceGrade` (`A+`, `A`, `B`, `C`) and `ConfluenceScore` data class <!-- id: 402 -->
-- [x] **Phase 2: Strategy Archetypes (Presets) in `StockDna.kt`** <!-- id: 403 -->
-  - [x] Implement `isCompounderAristocrat` (High ROE + Low D/E + Dividend Consistency) <!-- id: 404 -->
-  - [x] Implement `isVcpBreakout` (Stage 2 Uptrend: Price > 50 SMA > 200 SMA + Momentum + Quality) <!-- id: 405 -->
-  - [x] Implement `isHighYieldShield` (Yield >= 5% + Quality + D/E < 1.5 + Not near 52w low) <!-- id: 406 -->
-  - [x] Implement `isForeignWhale` (NVDR Flow + RS > 0 + Price > 50 SMA) <!-- id: 407 -->
-  - [x] Implement `isOversoldRebound` (RSI < 35 + Support + Quality) <!-- id: 408 -->
-- [x] **Phase 3: UI Integration of Badges & Archetype Presets** <!-- id: 409 -->
-  - [x] Update colorized DNA tags and badge styling in `StockComponents.kt` <!-- id: 410 -->
-  - [x] Integrate Score Grade and updated DNA tags into `AdvisorStockCard` and stock list items <!-- id: 411 -->
-  - [x] Add Strategy Archetype preset filter chips to `DividendAdvisorScreen.kt` <!-- id: 412 -->
-- [x] **Phase 4: Unit Testing & Verification** <!-- id: 413 -->
-  - [x] Add unit tests in `StockDnaTest.kt` verifying score accuracy, edge cases, and archetypes <!-- id: 414 -->
-  - [x] Run `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` <!-- id: 415 -->
+- [x] **Phase 1: Dual-Confirmation Smart Money Flow (NVDR + RS) in `StockDna.kt`** <!-- id: 500 -->
+  - [x] Require Relative Strength $\ge 0$ in `StockDna.isFlow` and `isForeignWhale` to eliminate dead-cat bounce fake smart money spikes <!-- id: 501 -->
+- [x] **Phase 2: Cyclical Sector Quality Shield in `StockDna.kt`** <!-- id: 502 -->
+  - [x] Detect cyclical sectors (Petrochem, Energy, Shipping, Agri) and enforce 3Y margin consistency <!-- id: 503 -->
+  - [x] Add `CYC` tag and prevent deceptive `A+` grades at peak commodity cycles <!-- id: 504 -->
+- [x] **Phase 3: Ex-Dividend (XD) Price Drop Grace Period** <!-- id: 505 -->
+  - [x] Add `isNearXdDate` check in `TechnicalAnalysis.kt` and `StockViewModel.kt` to suppress false early breakdown sell alerts around XD dates <!-- id: 506 -->
+- [x] **Phase 4: Dynamic Cash Buffer & 15% Position Exposure Cap** <!-- id: 507 -->
+  - [x] Display recommended cash buffer (10% Bull / 25% Neutral / 50% Bear) in `DividendAdvisorScreen.kt` and Regime Banners <!-- id: 508 -->
+  - [x] Enforce 15% single-stock max capital allocation in AI Advisor prompts <!-- id: 509 -->
+- [x] **Phase 5: Unit Testing & Verification** <!-- id: 510 -->
+  - [x] Add tests in `StockDnaTest.kt` and `TechnicalAnalysisTest.kt` for all new guardrails <!-- id: 511 -->
+  - [x] Run `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` (all passed) <!-- id: 512 -->
 
-## Review & Verification Summary
-- **Confluence Scoring Engine (0–100 pts)**: Implemented in `StockDna.kt` computing weighted sub-scores across 5 pillars (Quality 25, Value 20, Momentum/Trend 25, Flow/RS 15, Dividend/Safety 15) and grading stocks into `A+` (Prime Alpha), `A` (Strong Conviction), `B` (Watch), and `C` (Neutral).
-- **Strategy Archetypes**: Created one-tap filter methods (`isCompounderAristocrat`, `isVcpBreakout`, `isHighYieldShield`, `isForeignWhale`, `isOversoldRebound`).
-- **Interactive UI Filter Chips**: Integrated a horizontal preset bar (`LazyRow`) in `DividendAdvisorScreen.kt` allowing users to instantly isolate high-conviction setups by archetype.
-- **Dynamic Tag Highlighting**: Colorized tags by conviction category (Mint `A+`, Blue `A`, Violet `VCP`, Emerald `MOAT`/`SHIELD`, Cyan `WHALE`, Amber `SPRING`/`OS`).
-- **Test Coverage**: Tested all scoring logic and archetypes in `StockDnaTest.kt`; verified clean execution with `BUILD SUCCESSFUL` across all 26 test tasks.
+## Review & Verification
+- All 47 unit tests passed across `TechnicalAnalysisTest` and `StockDnaTest`.
+- Dual-confirmation NVDR flow prevents false signals on severe SET-lagging dead-cat bounces.
+- Cyclical sector quality shield properly penalizes peak cyclical traps and tags them with `CYC`.
+- Ex-Dividend grace period suppresses false Early Breakdown / Weak Trend sell alarms within 2 trading days of XD date.
+- Dynamic Cash buffer guidelines (10% Bull / 25–35% Sideways / 50%+ Bear) and 15% max single-stock exposure cap integrated into Market Regime banner and AI Copilot prompts.
 
 
 

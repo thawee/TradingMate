@@ -193,4 +193,44 @@ class StockDnaTest {
         }
         assertTrue("Should be Oversold Rebound (RSI=28)", StockDna.isOversoldRebound(oversoldStock))
     }
+
+    @Test
+    fun testIsFlowDualConfirmationLaggingSet() {
+        // Stock has positive NVDR, but is severely lagging the market (RS = -3.5)
+        val deadCatStock = createStock(nvdrNetVolume = 500_000.0).let { s ->
+            val signal = s.portfolio.signal!!.copy(relativeStrength = -3.5)
+            s.copy(portfolio = s.portfolio.copy(signal = signal))
+        }
+        assertFalse("Positive NVDR on severely lagging stock should fail isFlow dual confirmation", StockDna.isFlow(deadCatStock))
+        assertFalse("Foreign whale requires RS >= 0", StockDna.isForeignWhale(deadCatStock))
+    }
+
+    @Test
+    fun testCyclicalSectorShieldPenaltyAndTag() {
+        val cyclicalStock = createStock(nvdrNetVolume = 100_000.0).let { s ->
+            val cache = s.portfolio.cache!!.copy(
+                sector = "Petrochemicals & Chemicals",
+                roe = 16.0,
+                debtToEquity = 0.9,
+                profitGrowth3Y = 4.0, // Low profit growth
+                netProfitMargin = 6.0 // Low net profit margin
+            )
+            s.copy(
+                info = s.info.copy(
+                    sector = "Petrochemicals & Chemicals",
+                    roe = 16.0,
+                    debtToEquity = 0.9,
+                    profitGrowth3Y = 4.0,
+                    netProfitMargin = 6.0
+                ),
+                portfolio = s.portfolio.copy(cache = cache)
+            )
+        }
+
+        assertTrue("Should identify cyclical sector", StockDna.isCyclical(cyclicalStock.info.sector))
+        assertTrue("Tags should contain CYC", StockDna.tags(cyclicalStock).contains("CYC"))
+        assertFalse("Cyclical stock with low profit growth should not be a compounder aristocrat", StockDna.isCompounderAristocrat(cyclicalStock))
+        val score = StockDna.calculateScore(cyclicalStock)
+        assertTrue("Highlights should warn of cyclical volatility", score.highlights.contains("Cyclical Volatility"))
+    }
 }

@@ -23,7 +23,7 @@
     <string name="action_confirm_focus">Confirm Focus</string>
     <string name="action_confirm_sell">Confirm Sell</string>
     <string name="action_delete_all">Delete All</string>
-    <string name="action_read_concept">Read Concept (The 5 Layers)</string>
+    <string name="action_read_concept">Read Concept (The 6 Layers)</string>
     <string name="action_ready_to_trade">I\'m ready to trade</string>
     <string name="action_restore_data">Restore Data</string>
     <string name="action_set_balance">Set Balance</string>
@@ -45,7 +45,13 @@
     <string name="desc_min_risk_reward">The minimum ratio between your potential profit (Reward) and potential loss (Risk) required to take a trade. A ratio of 2.0 means you expect to make twice as much as you risk losing.</string>
     <string name="desc_refresh">Refresh</string>
     <string name="desc_trailing_stop_percent">The percentage drop from a stock\'s peak price that will trigger a stop loss alert.</string>
-    <string formatted="false" name="edu_5_layers_intro">Our system evaluates a company\'s DNA through a strict 5-Layer filter. Swing Plays must pass (Qual OR Val) AND (Mom OR Sup). Dividend Stars must pass (Div AND Qual).</string>
+    <string name="edu_52w_content">Stocks trading within 5% of their 52-week low often \'look cheap\' on RSI and P/E, but are structural decliners making new lows. The Pre-Filter automatically excludes them from all Swing, Dividend, and Gap-Up candidate lists.</string>
+    <string name="edu_52w_title">52-Week Low Guard (The Trap Detector)</string>
+    <string formatted="false" name="edu_5_layers_intro">Our system evaluates a company\'s DNA through a strict 6-Layer filter. All candidates must first pass the Pre-Filter: enough daily liquidity (turnover > ฿1M) and NOT trading within 5% of the 52-week low (avoids structural decliners that only \'look cheap\'). Swing Plays must pass (Qual OR Val) AND (Mom OR Sup) AND Flow. Dividend Stars must pass (Div AND Qual).</string>
+    <string name="edu_adx_content">ADX measures trend STRENGTH (not direction). \n\n• Below 20: Choppy range — momentum buy signals are suppressed (whipsaw noise).\n• 25–40: Healthy trend — momentum entries are valid.\n• Above 40: Violent move — oversold \'bargains\' are downgraded to watch-only (Falling Knife Guard).</string>
+    <string name="edu_adx_title">ADX (The Regime Detector)</string>
+    <string name="edu_atr_content">Average True Range measures how much a stock typically moves per day. \n\n• Stop Loss: set at 2× ATR (clamped -3.5% to -8%) — tight on calm stocks, wider on volatile ones so normal wiggles don\'t shake you out.\n• Trailing Stop: 2.5× ATR from the peak protects profits without exiting on noise.</string>
+    <string name="edu_atr_title">ATR (The Breathing Room)</string>
     <string name="edu_bollinger_content">A \'Volatility Tube\' that wraps around price. \n\n• Lower Band (Value): Prices here are statistically cheap for their current movement.\n• Upper Band (Resistance): Prices here are stretched too far. High risk of a reversal.</string>
     <string name="edu_bollinger_title">Bollinger Bands (Volatility Map)</string>
     <string name="edu_golden_rule_content">SELL signals ALWAYS override BUY signals. If a stock has great momentum but hits RSI 65 or the Upper Bollinger Band, the app will warn you to wait. Never buy at the peak!</string>
@@ -56,24 +62,34 @@
     <string name="edu_layer_2_title">Layer 2: VAL (Valuation)</string>
     <string formatted="false" name="edu_layer_3_content">For income investors. We accumulate and compound high-yield stocks (> 5%) indefinitely. Keep holding and reinvesting dividends unless fundamentals break (ROE &lt; 15% or high debt) or the dividend yield drops below 3%.</string>
     <string name="edu_layer_3_title">Layer 3: DIV (Dividend)</string>
-    <string formatted="false" name="edu_layer_4_content">Are buyers stepping in? We detect early trend shifts and positive price momentum by checking if the MACD Histogram > 0.0. Never catch a falling knife.</string>
+    <string formatted="false" name="edu_layer_4_content">Are buyers stepping in? We detect early trend shifts and positive price momentum by checking if the MACD Histogram > 0.0, RSI is in the healthy 40–65 band, and the stock is not lagging the SET index (3-month Relative Strength ≥ 0). Never catch a falling knife — and never buy a market laggard.</string>
     <string name="edu_layer_4_title">Layer 4: MOM (Momentum)</string>
     <string formatted="false" name="edu_layer_5_content">The trigger. We locate ideal entry zones or extreme discounts by finding when prices are \'oversold\' (RSI &lt; 35) or when our proprietary BUY/POTENTIAL zone signals flash.</string>
     <string name="edu_layer_5_title">Layer 5: SUP (Support/Technicals)</string>
+    <string formatted="false" name="edu_layer_6_content">The institutional tailwind. We track NVDR net buying volume and value to confirm that foreign institutions are accumulating the stock, significantly boosting the win rate.</string>
+    <string name="edu_layer_6_title">Layer 6: FLOW (Foreign Fund Flow)</string>
     <string name="edu_macd_content">Think of this as the car\'s gears. Even if a stock is cheap (RSI 35), we look for the MACD Histogram to turn positive. This confirms that the momentum has shifted to the upside.</string>
     <string name="edu_macd_title">MACD (The Momentum Switch)</string>
-    <string formatted="false" name="edu_risk_mgmt_content">The most important rule in trading is preserving your capital. \n\n• Why: Small losses are easy to recover. A -50% loss requires a +100% gain just to break even.\n• When: If a stock drops -5% from your cost, the app will trigger a SELL signal. This is your cue to exit and protect your remaining cash.</string>
+    <string name="edu_mfi_content">A volume-weighted RSI — it tracks where the MONEY flows, not just price. \n\n• MFI ≥ 80 (Distribution): Heavy volume selling into strength. On a profitable position, the app triggers a SELL.\n• MFI ≤ 20 (Capitulation): A panic-volume flush that often marks the bottom — counts as volume confirmation for Early Recovery buys.</string>
+    <string name="edu_mfi_title">MFI (The Smart Money Gauge)</string>
+    <string name="edu_obv_content">On-Balance Volume adds volume on up days and subtracts it on down days. \n\n• Rising OBV: Big money is quietly accumulating — the rally is real.\n• Flat/Falling OBV during a price rise: The move lacks conviction. The app uses a rising OBV to confirm \'Early Recovery\' buy signals.</string>
+    <string name="edu_obv_title">OBV (The Lie Detector)</string>
+    <string formatted="false" name="edu_risk_mgmt_content">The most important rule in trading is preserving your capital. \n\n• Why: Small losses are easy to recover. A -50% loss requires a +100% gain just to break even.\n• When: The app sets a volatility-adjusted stop loss at 2× the stock\'s ATR (clamped between -3.5% and -8%). Calm large-caps get tight stops; volatile stocks get room to breathe. If ATR data isn\'t available yet, it falls back to -4.5% (SET50) / -6.5% (Mid/Small-Cap). A SELL signal is your cue to exit and protect your remaining cash.</string>
     <string name="edu_risk_mgmt_title">The Art of the \'Cut Loss\'</string>
+    <string name="edu_rs_content">Compares a stock\'s 3-month return against the SET index. \n\n• RS > 0: The stock is outperforming the market — winners tend to keep winning.\n• RS &lt; 0: A market laggard. Even if it looks cheap, money is flowing elsewhere. Stocks with positive RS earn the \'RS\' tag.</string>
+    <string name="edu_rs_title">Relative Strength vs SET (The Race)</string>
     <string name="edu_rsi_content">The Relative Strength Index (14 days). \n\n• Target 35 (Value): The stock is oversold. Prices are \'compressed\' and ready to bounce.\n• Target 65 (Caution): The stock is overbought. Risk of a pullback is high.</string>
     <string name="edu_rsi_title">RSI (The Speedometer)</string>
     <string name="edu_sma_content">Moving Averages track the \'Average\' price over time.\n\n• SMA 200: The long-term \'Line in the Sand\'. Above this is a healthy Bull Market.\n• SMA 50: Mid-term health. Price above this suggests the trend is your friend.</string>
     <string name="edu_sma_title">SMA 50 &amp; 200 (Trend Guards)</string>
-    <string formatted="false" name="edu_step1_content">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections or use the AI Advisor to find stocks that have already passed our strict 5-Layer filter.</string>
+    <string formatted="false" name="edu_step1_content">Don\'t gamble on random stocks. Use the \'+\' button to import curated collections or use the AI Advisor to find stocks that have already passed our strict 6-Layer filter.</string>
     <string name="edu_step1_title">1. Discovery (Quality First)</string>
     <string name="edu_step2_content">Move stocks into your Watchlist. The app monitors them 24/7:\n\n• AMBER (Potential): RSI &lt; 42. The stock is getting cheap or testing support.\n• GREEN (Buy): RSI &lt; 35 or confirmed momentum. Confirmed value + confirmed momentum.</string>
     <string name="edu_step2_title">2. Monitoring (The Traffic Lights)</string>
     <string formatted="false" name="edu_step3_content">When you see a Buy signal, use the \'Risk/Reward Calculator\'. Set a target (+10-20%) and a stop loss (-5%). Swing trades are held for a short period of 2–4 weeks. If the math doesn\'t show at least 2x reward for your risk, wait for a better price.</string>
     <string name="edu_step3_title">3. Execution (The Plan)</string>
+    <string name="edu_stoch_content">Shows where today\'s close sits within the recent 14-day range (%K), smoothed into %D. \n\n• Oversold BUY signals require %K to cross ABOVE %D first — proof the bounce has actually started.\n• If %K &lt; 20 and still below %D, the stock is cheap but STILL FALLING. The app waits (\'Reversal Not Confirmed\').</string>
+    <string name="edu_stoch_title">Stochastic (The Reversal Timer)</string>
     <string name="edu_workflow_subtitle">Disciplined steps for consistent profit.</string>
     <string name="edu_workflow_title">Master the Workflow</string>
     <string formatted="false" name="edu_yoc_content">We evaluate the \'DNA\' of every company before suggesting it. A stock earns the \'⭐ Quality\' tag if it meets these strict checks:\n\n• ROE > 15%: Superior management efficiency.\n• Net Profit Margin > 10%: Healthy business profitability.\n• Profit Growth (3Y) > 10%: Consistent bottom-line growth.\n• D/E Ratio &lt; 1.5: Safe levels of financial debt.</string>
@@ -225,10 +241,11 @@
     <string name="title_add_stock">Add Stock</string>
     <string name="title_adjust_cash">Adjust Cash Balance</string>
     <string name="title_advisor">Advisor</string>
+    <string name="title_backtest">Backtest</string>
     <string name="title_clear_history">Clear History</string>
     <string name="title_clear_watchlist">Clear Watchlist</string>
     <string name="title_edit_holding">Edit Holding</string>
-    <string name="title_education_concept">TradingMate Concept: The 5 Layers</string>
+    <string name="title_education_concept">TradingMate Concept: The 6 Layers</string>
     <string name="title_focus_on">Focus on %1$s</string>
     <string name="title_history">History</string>
     <string name="title_import_set">Import SET Collection</string>
