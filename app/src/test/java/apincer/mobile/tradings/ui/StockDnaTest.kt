@@ -233,4 +233,17 @@ class StockDnaTest {
         val score = StockDna.calculateScore(cyclicalStock)
         assertTrue("Highlights should warn of cyclical volatility", score.highlights.contains("Cyclical Volatility"))
     }
+
+    @Test
+    fun testIsMtfAlignedAndMtfTag() {
+        val mtfStock = createStock(nvdrNetVolume = 100_000.0).let { s ->
+            val signal = s.portfolio.signal!!.copy(sma50 = 9.0, sma200 = 8.0, macdHist = 0.4)
+            s.copy(
+                info = s.info.copy(lastPrice = 10.0),
+                portfolio = s.portfolio.copy(signal = signal)
+            )
+        }
+        assertTrue("Stock above SMA50/200 with positive MACD hist is MTF aligned", StockDna.isMtfAligned(mtfStock))
+        assertTrue("Tags should contain MTF chip", StockDna.tags(mtfStock).contains("MTF"))
+    }
 }

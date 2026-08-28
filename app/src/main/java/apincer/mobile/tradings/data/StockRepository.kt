@@ -197,6 +197,13 @@ class StockRepository(
             if (current != null && current.balance - deduction < 0) {
                 throw IllegalStateException("Insufficient balance: has ${current.balance}, needs $deduction")
             }
+            cashTransactionDao.insertTransaction(
+                CashTransactionEntity(
+                    amount = -deduction,
+                    type = "BUY ${symbol.uppercase()}",
+                    note = "Bought $quantity shares @ ฿$cost"
+                )
+            )
             cashDao.adjustCashBy(-deduction)
             addStock(symbol, cost, quantity, tradePurpose, buyFees, stopLoss, playbookNote)
         }
@@ -208,6 +215,13 @@ class StockRepository(
             val sellValueRaw = trade.sellPrice * trade.quantity
             val sellFees = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(sellValueRaw, true, atsEnabled)
             val refundCash = sellValueRaw - sellFees
+            cashTransactionDao.insertTransaction(
+                CashTransactionEntity(
+                    amount = -refundCash,
+                    type = "UNDO SELL ${trade.symbol.uppercase()}",
+                    note = "Reversed sale of ${trade.quantity} shares"
+                )
+            )
             cashDao.adjustCashBy(-refundCash)
             
             val existing = stockDao.getPortfolioBySymbol(trade.symbol)
@@ -251,7 +265,15 @@ class StockRepository(
                 (netProfitValue / (totalCostRaw + buyFees)) * 100
             } else 0.0
 
-            cashDao.adjustCashBy(sellValueRaw - sellFees)
+            val netCashReceived = sellValueRaw - sellFees
+            cashTransactionDao.insertTransaction(
+                CashTransactionEntity(
+                    amount = netCashReceived,
+                    type = "SELL ${symbol.uppercase()}",
+                    note = "Sold $sellQuantity shares @ ฿$sellPrice"
+                )
+            )
+            cashDao.adjustCashBy(netCashReceived)
 
             tradeDao.insertTrade(
                 TradeEntity(

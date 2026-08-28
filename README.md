@@ -14,12 +14,21 @@ It specifically addresses common beginner challenges:
 
 ## ✨ Key Features
 
-- **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. It suggests high-yield "Dividend Stars" based on strict fundamental criteria.
-- **Market Pulse:** Real-time monitoring of your watchlist with automated technical signals (BUY, SELL, POTENTIAL).
-- **AI Advisor:** A centralized AI discovery hub that evaluates Swing, Gap, and Dividend opportunities. Integrates Google Gemini directly via the "Analyze with AI" button for structured recommendations with confidence scores, with an optional "Copy Master Prompt" button.
-- **Consolidated Portfolio:** A professional-grade financial dashboard grouping stock holdings, cash balance, net profit, and fee tracking in one unified view.
+- **Institutional Risk Management & CRO Suite:**
+  - **1-Day 95% Historical Value-at-Risk (VaR)** and **Conditional VaR (CVaR / Expected Shortfall)** to model extreme downside tail risk in ฿ and %.
+  - **Anti-Ruin Fixed Fractional Position Sizing:** Automatically computes exact share size per trade based on account risk budget ($1.0\%-2.0\%$) and stop-loss distance, rounded down to SET 100-share board lots.
+  - **Concentration Shields:** Strictly enforces a **15% Single-Stock Allocation Limit** and **30% Sector Allocation Cap**.
+  - **Max Drawdown (MDD) & High-Water Mark Tracker:** Visualizes all-time peak equity and drawdown recovery status in the Stats dashboard.
+  - **63-Day Rolling Covariance Portfolio Beta ($\beta$):** Tracks systematic volatility vs. SET Index (*Defensive Low-Vol*, *Balanced*, or *Aggressive High-Beta*).
+- **Multi-Timeframe (MTF) Macro Trend Alignment:** Daily candle resampling to compute **Weekly 20-EMA** macro trends. Prevents counter-trend daily whipsaw buys with the **Macro Weekly Bearish Guard** and awards the `MTF` confluence tag.
+- **Thai Dividend Tax Shield (Section 47 bis):** Calculates reclaimable Corporate Income Tax (CIT 20%) credits ($\text{Gross} \times \frac{20}{80}$) and Net Yield-on-Cost ($\text{YoC}_{\text{net}}$) after 10% Withholding Tax.
+- **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. Suggests high-yield "Dividend Stars" based on strict fundamental and solvency criteria.
+- **Market Pulse:** Real-time monitoring of your watchlist with automated multi-factor technical signals (BUY, SELL, POTENTIAL).
+- **AI Advisor:** Centralized AI discovery hub evaluating Swing, Gap, and Dividend opportunities. Integrates Google Gemini directly for structured recommendations with confidence scores.
+- **Consolidated Portfolio:** Professional financial dashboard grouping stock holdings, cash balance, net profit, fee tracking, and sector risk meters in one unified view.
 - **Automated Trading Zones:** Real-time calculation of "Buy Below" and "Sell Above" price ranges using RSI (35/65 targets).
-- **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled (waived via Settings). Financial Transaction Tax is ฿0 — officially abolished.
+- **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled.
+- **10/10 FinTech Design System:** Ambient radial gradient glows, adaptive glassmorphic contrast borders, OpenType `tnum` tabular numbers for zero decimal jitter, Catmull-Rom $C^1$ smooth spline charts, and live directional price tick pulses.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
 ## 🧅 The 6-Layer Filter & Quant Confluence Scoring (Stock DNA)

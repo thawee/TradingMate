@@ -531,4 +531,167 @@ class TechnicalAnalysisTest {
         org.junit.Assert.assertFalse("Null date should not be near XD", TechnicalAnalysis.isNearExDividendDate(null))
         org.junit.Assert.assertFalse("Past year date should not be near XD", TechnicalAnalysis.isNearExDividendDate("2020-01-01"))
     }
+
+    @Test
+    fun testWeeklyResamplingAndMacroBullish() {
+        val dailyCloses = List(120) { 10.0 + it * 0.5 } // Consistent uptrend
+        val weekly = TechnicalAnalysis.resampleToWeeklyCloses(dailyCloses)
+        assertEquals(24, weekly.size)
+        val isBullish = TechnicalAnalysis.isWeeklyMacroBullish(dailyCloses, 20)
+        assertEquals(true, isBullish)
+
+        val downtrend = List(120) { 100.0 - it * 0.5 } // Consistent downtrend
+        val isBearish = TechnicalAnalysis.isWeeklyMacroBullish(downtrend, 20)
+        assertEquals(false, isBearish)
+    }
+
+    @Test
+    fun testMtfMacroBearishDowngradesBuySignal() {
+        val signal = TechnicalAnalysis.getDetailedSignal(
+            rsi = 50.0,
+            macdHist = 0.5,
+            lastPrice = 52.0,
+            sma50 = 50.0,
+            sma200 = 45.0,
+            bb = null,
+            isVolumeSurge = true,
+            adx = 25.0,
+            isWeeklyTrendBullish = false // Weekly macro trend broken
+        )
+        assertEquals(IndicatorSignal.POTENTIAL, signal.type)
+        assertTrue(signal.reason.contains("Macro Weekly Bearish Guard"))
+    }
+
+    @Test
+    fun testSectorExposureAndConcentrationCap() {
+        val holdings = listOf(
+            Pair("Energy & Utilities", 400_000.0),
+            Pair("Banking", 200_000.0),
+            Pair("Commerce", 100_000.0)
+        )
+        val cash = 300_000.0 // Total assets = 1,000,000
+        val exposures = TechnicalAnalysis.calculateSectorExposures(holdings, cash)
+        assertEquals(3, exposures.size)
+        
+        val energy = exposures.first { it.sector == "Energy & Utilities" }
+        assertEquals(40.0, energy.portfolioPercent, 0.01)
+        assertTrue("Energy should breach 30% cap", energy.isOverexposed)
+
+        val banking = exposures.first { it.sector == "Banking" }
+        assertEquals(20.0, banking.portfolioPercent, 0.01)
+        org.junit.Assert.assertFalse("Banking should not breach cap", banking.isOverexposed)
+    }
+
+    @Test
+    fun testThaiDividendTaxCreditAndNetYoC() {
+        // ฿9,000 net dividend received (after 10% WHT from ฿10,000 gross)
+        // With 20% CIT rate: Tax credit = ฿10,000 * (20/80) = ฿2,500
+        val credit = TechnicalAnalysis.calculateThaiDividendTaxCredit(9000.0, citRate = 20.0, whtRate = 10.0)
+        assertEquals(2500.0, credit, 0.01)
+
+        // Annual DPS = ฿5.0, Cost = ฿50.0 -> Gross yield 10%, Net YoC = 9%
+        val netYoC = TechnicalAnalysis.calculateNetYieldOnCost(annualDps = 5.0, avgCost = 50.0, whtRate = 10.0)
+        assertEquals(9.0, netYoC, 0.01)
+    }
+
+    @Test
+    fun testBetaAndPortfolioBeta() {
+        val index = List(70) { 1000.0 + (it % 5) * 10.0 + it * 2.0 }
+        val stockDouble = List(70) { 10.0 + (it % 5) * 0.2 + it * 0.04 }
+        val beta = TechnicalAnalysis.calculateBeta(stockDouble, index, 63)
+        assertTrue(beta != null && beta > 0)
+
+        val portfolioBeta = TechnicalAnalysis.calculatePortfolioBeta(
+            listOf(Pair(60.0, 1.2), Pair(40.0, 0.8))
+        )
+        assertEquals(1.04, portfolioBeta, 0.01)
+    }
+
+    @Test
+    fun testHistoricalVaRAndCVaR() {
+        // Return distribution: 95 positive (1%), 5 negative losses (-1%, -2%, -3%, -4%, -5%)
+        val returns = List(95) { 0.01 } + listOf(-0.01, -0.02, -0.03, -0.04, -0.05)
+        val var95 = TechnicalAnalysis.calculateHistoricalVaR(returns, 0.95)
+        assertTrue("VaR 95% should be positive loss percentage >= 1.0%", var95 >= 1.0)
+
+        val cvar95 = TechnicalAnalysis.calculateConditionalVaR(returns, 0.95)
+        assertTrue("CVaR 95% should exceed or equal VaR", cvar95 >= var95)
+        assertEquals(3.0, cvar95, 0.01)
+    }
+
+    @Test
+    fun testCalculateRecommendedPositionSize() {
+        // Total assets: ฿1,000,000. Risk 1.5% = ฿15,000 max risk.
+        // Entry: ฿50.0, StopLoss: ฿45.0 -> Risk/share: ฿5.0
+        // Raw shares: 15,000 / 5 = 3,000 shares.
+        // 15% single-stock capital limit: ฿150,000 / ฿50 = 3,000 shares.
+        val rec = TechnicalAnalysis.calculateRecommendedPositionSize(
+            totalAssets = 1_000_000.0,
+            entryPrice = 50.0,
+            stopLossPrice = 45.0,
+            riskPercent = 1.5,
+            maxStockAllocationPercent = 15.0
+        )
+        assertEquals(3000, rec.shares)
+        assertEquals(150_000.0, rec.totalCapital, 0.01)
+        assertEquals(15_000.0, rec.totalRiskBaht, 0.01)
+        assertEquals(1.5, rec.riskPercent, 0.01)
+        org.junit.Assert.assertFalse("Should not be capped", rec.isCappedByMaxStockLimit)
+
+        // Tight stop loss test: Entry ฿50.0, StopLoss ฿49.0 -> Risk/share ฿1.0
+        // Raw shares: 15,000 / 1 = 15,000 shares (฿750,000 capital -> 75% of account!)
+        // Should be capped by 15% single stock ceiling: ฿150,000 / 50 = 3,000 shares
+        val cappedRec = TechnicalAnalysis.calculateRecommendedPositionSize(
+            totalAssets = 1_000_000.0,
+            entryPrice = 50.0,
+            stopLossPrice = 49.0,
+            riskPercent = 1.5,
+            maxStockAllocationPercent = 15.0
+        )
+        assertEquals(3000, cappedRec.shares)
+        assertTrue("Should be capped by 15% limit", cappedRec.isCappedByMaxStockLimit)
+    }
+
+    @Test
+    fun testCalculateMaxDrawdown() {
+        // Equity series: starts 100k -> peaks 120k -> drops to 96k (-20% drawdown) -> recovers to 110k (-8.3% drawdown)
+        val equitySeries = listOf(100_000.0, 110_000.0, 120_000.0, 108_000.0, 96_000.0, 110_000.0)
+        val result = TechnicalAnalysis.calculateMaxDrawdown(equitySeries)
+
+        assertEquals(20.0, result.maxDrawdownPercent, 0.01)
+        assertEquals(120_000.0, result.highWaterMark, 0.01)
+        assertEquals(8.33, result.currentDrawdownPercent, 0.01)
+    }
+
+    @Test
+    fun testConfigurableSectorAndTaxCreditCalculations() {
+        // Test custom 25% sector cap
+        val holdings = listOf(
+            Pair("BANK", 280_000.0),
+            Pair("ENERGY", 200_000.0)
+        )
+        val exposures = TechnicalAnalysis.calculateSectorExposures(
+            holdings = holdings,
+            cashBalance = 520_000.0, // Total assets = 1,000,000
+            maxSectorPercent = 25.0
+        )
+        val bankExposure = exposures.first { it.sector == "BANK" }
+        assertEquals(28.0, bankExposure.portfolioPercent, 0.01)
+        assertTrue("Bank at 28% exceeds custom 25% cap", bankExposure.isOverexposed)
+
+        val energyExposure = exposures.first { it.sector == "ENERGY" }
+        assertEquals(20.0, energyExposure.portfolioPercent, 0.01)
+        org.junit.Assert.assertFalse("Energy at 20% is within custom 25% cap", energyExposure.isOverexposed)
+
+        // Test custom 15% SME CIT rate vs standard 20% CIT rate
+        // Net dividend received = ฿9,000 (Gross = ฿10,000 after 10% WHT)
+        val taxCreditStandard = TechnicalAnalysis.calculateThaiDividendTaxCredit(9000.0, citRate = 20.0)
+        assertEquals(2500.0, taxCreditStandard, 0.01) // 10,000 * (20 / 80) = 2,500
+
+        val taxCreditSme = TechnicalAnalysis.calculateThaiDividendTaxCredit(9000.0, citRate = 15.0)
+        assertEquals(1764.71, taxCreditSme, 0.01) // 10,000 * (15 / 85) = 1,764.71
+
+        val taxCreditReit = TechnicalAnalysis.calculateThaiDividendTaxCredit(9000.0, citRate = 0.0)
+        assertEquals(0.0, taxCreditReit, 0.01)
+    }
 }

@@ -62,7 +62,6 @@ import java.util.Locale
  * This is intentionally a simple single-position, fully-compounded simulation —
  * see BacktestEngine's kdoc for the full list of simplifying assumptions.
  */
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BacktestScreen(

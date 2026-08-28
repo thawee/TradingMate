@@ -69,7 +69,6 @@ import apincer.mobile.tradings.R
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioScreen(
@@ -87,6 +86,9 @@ fun PortfolioScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
     val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
+    val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
+    val maxSectorAllocation by settingsViewModel.maxSectorAllocation.collectAsState()
+    val citTaxRate by settingsViewModel.citTaxRate.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
@@ -394,7 +396,21 @@ fun PortfolioScreen(
                 }
 
                 item {
-                    SectorBreakdownCard(portfolioItems = allPortfolioItems)
+                    SectorBreakdownCard(
+                        portfolioItems = allPortfolioItems,
+                        cashBalance = cashBalance,
+                        maxSectorPercent = maxSectorAllocation
+                    )
+                }
+
+                if (selectedPlaybook == "DIVIDEND" && dividendHistory.isNotEmpty()) {
+                    item {
+                        DividendTaxShieldCard(
+                            dividendHistory = dividendHistory,
+                            avgYieldOnCost = avgYieldOnCost,
+                            citRate = citTaxRate
+                        )
+                    }
                 }
             }
 
@@ -455,6 +471,7 @@ fun PortfolioScreen(
             initialStock = selectedStockForEdit,
             accountEquity = accountEquity,
             maxRiskPerTradePercent = maxRiskPerTrade,
+            maxStockAllocationPercent = maxPortfolioAllocation,
             onDismiss = {
                 showBuyDialog = false
                 selectedStockForEdit = null
@@ -749,6 +766,7 @@ fun BuyStockDialog(
     initialStock: StockWatchlistInfo? = null,
     accountEquity: Double = 0.0,
     maxRiskPerTradePercent: Double = 1.0,
+    maxStockAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SINGLE_STOCK_ALLOCATION_PERCENT,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, Double, Double, String, String) -> Unit
 ) {
@@ -774,7 +792,16 @@ fun BuyStockDialog(
     val riskPerShare = entry - stopLoss
     val rewardPerShare = target - entry
     val rrRatio = if (riskPerShare > 0) rewardPerShare / riskPerShare else 0.0
-    val suggestedQty = if (riskPerShare > 0) {
+    val positionRecommendation = if (entry > 0 && stopLoss > 0 && accountEquity > 0) {
+        TechnicalAnalysis.calculateRecommendedPositionSize(
+            totalAssets = accountEquity,
+            entryPrice = entry,
+            stopLossPrice = stopLoss,
+            riskPercent = maxRiskPerTradePercent,
+            maxStockAllocationPercent = maxStockAllocationPercent
+        )
+    } else null
+    val suggestedQty = positionRecommendation?.shares ?: if (riskPerShare > 0) {
         TechnicalAnalysis.calculateSuggestedQuantity(accountEquity, maxRiskPerTradePercent, riskPerShare)
     } else 0
     val currentTradeRiskBaht = riskPerShare.coerceAtLeast(0.0) * amount
@@ -953,8 +980,8 @@ fun BuyStockDialog(
                                 }
                             }
                             Text(
-                                "Risking ${String.format(Locale.ENGLISH, "%.1f", maxRiskPerTradePercent)}% of your ฿${String.format(Locale.ENGLISH, "%,.0f", accountEquity)} equity " +
-                                    "(risk/share ฿${String.format(Locale.ENGLISH, "%.2f", riskPerShare)}) caps this trade at $suggestedQty shares.",
+                                "Risking ${String.format(Locale.ENGLISH, "%.1f", maxRiskPerTradePercent)}% of ฿${String.format(Locale.ENGLISH, "%,.0f", accountEquity)} equity (risk/share ฿${String.format(Locale.ENGLISH, "%.2f", riskPerShare)}) caps this trade at $suggestedQty shares (100-share board lots)" +
+                                    (if (positionRecommendation?.isCappedByMaxStockLimit == true) " · Capped by 15% single-stock ceiling." else "."),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -1157,34 +1184,73 @@ fun SellStockDialog(
 }
 
 @Composable
-fun SectorBreakdownCard(portfolioItems: List<StockWatchlistInfo>) {
+fun SectorBreakdownCard(
+    portfolioItems: List<StockWatchlistInfo>,
+    cashBalance: Double = 0.0,
+    maxSectorPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SECTOR_ALLOCATION_PERCENT
+) {
     if (portfolioItems.isEmpty()) return
     
     val totalValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     if (totalValue == 0.0) return
 
-    val sectorAllocation = portfolioItems
-        .filter { it.info.sector != null && it.info.sector.isNotBlank() }
-        .groupBy { it.info.sector ?: "Unknown" }
-        .mapValues { (_, items) -> items.sumOf { it.info.lastPrice * it.portfolio.quantity } / totalValue }
-        .toList()
-        .sortedByDescending { it.second }
+    val totalAssets = totalValue + maxOf(cashBalance, 0.0)
+    val sectorExposures = TechnicalAnalysis.calculateSectorExposures(
+        portfolioItems.map { Pair(it.info.sector ?: "Other", it.info.lastPrice * it.portfolio.quantity) },
+        cashBalance,
+        maxSectorPercent = maxSectorPercent
+    )
 
-    val hasWarning = sectorAllocation.any { it.second > 0.3 }
+    val hasWarning = sectorExposures.any { it.isOverexposed }
+
+    // Beta calculation
+    val betaWeights = portfolioItems.mapNotNull { item ->
+        val weight = (item.info.lastPrice * item.portfolio.quantity)
+        val beta = (item.portfolio.relativeStrength ?: 0.0).let { rs ->
+            // Beta estimation: 1.0 + (RS / 100) clamped 0.4 to 2.0
+            (1.0 + rs / 100.0).coerceIn(0.4, 2.0)
+        }
+        if (weight > 0) Pair(weight, beta) else null
+    }
+    val portfolioBeta = if (betaWeights.isNotEmpty()) TechnicalAnalysis.calculatePortfolioBeta(betaWeights) else 1.0
+    val betaProfile = when {
+        portfolioBeta < 0.85 -> Pair("Defensive Low-Vol", Color(0xFF6EE7B7))
+        portfolioBeta <= 1.15 -> Pair("Balanced Index Track", Color(0xFF60A5FA))
+        else -> Pair("Aggressive High-Beta", Color(0xFFFCD34D))
+    }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Sector Rotation",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Risk Matrix & Sectors",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Surface(
+                    color = betaProfile.second.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Beta ${String.format(java.util.Locale.ENGLISH, "%.2f", portfolioBeta)} · ${betaProfile.first}",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = betaProfile.second
+                    )
+                }
+            }
             
+            Spacer(Modifier.height(12.dp))
+
             if (hasWarning) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1193,26 +1259,94 @@ fun SectorBreakdownCard(portfolioItems: List<StockWatchlistInfo>) {
                     Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Diversification Warning: You have highly concentrated positions (>30%) in single sectors.",
+                        text = "Sector Cap Warning: Positions exceed ${String.format(java.util.Locale.ENGLISH, "%.0f", maxSectorPercent)}% concentration limit in a single sector.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
 
-            sectorAllocation.forEach { (sector, weight) ->
-                val weightPercent = (weight * 100).toFloat()
+            sectorExposures.forEach { exposure ->
                 Column(modifier = Modifier.padding(bottom = 8.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(sector, style = MaterialTheme.typography.labelMedium)
-                        Text(String.format(java.util.Locale.ENGLISH, "%.1f%%", weightPercent), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text(exposure.sector, style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            String.format(java.util.Locale.ENGLISH, "%.1f%%", exposure.portfolioPercent),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (exposure.isOverexposed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     LinearProgressIndicator(
-                        progress = { weight.toFloat() },
+                        progress = { (exposure.portfolioPercent / 100.0).toFloat().coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().height(6.dp).padding(top = 4.dp),
-                        color = if (weightPercent > 30f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        color = if (exposure.isOverexposed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DividendTaxShieldCard(
+    dividendHistory: List<apincer.mobile.tradings.data.DividendHistoryEntity>,
+    avgYieldOnCost: Double?,
+    citRate: Double = apincer.mobile.tradings.domain.TradingConstants.DEFAULT_CIT_TAX_RATE
+) {
+    val totalReceivedNet = dividendHistory.sumOf { it.totalReceived }
+    val totalTaxWithheld = dividendHistory.sumOf { it.taxDeducted }
+    val totalTaxCredit = dividendHistory.sumOf { 
+        TechnicalAnalysis.calculateThaiDividendTaxCredit(it.totalReceived, citRate = citRate) 
+    }
+    val netYoC = avgYieldOnCost?.let { it * (1.0 - apincer.mobile.tradings.domain.TradingConstants.THAI_DIVIDEND_WHT_RATE / 100.0) }
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Dividend Tax Shield (Section 47 bis)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "${String.format(java.util.Locale.ENGLISH, "%.0f", citRate)}% CIT Credit",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Reclaimable Tax Credit", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("฿${String.format(java.util.Locale.ENGLISH, "%,.2f", totalTaxCredit)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("10% WHT Withheld", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("฿${String.format(java.util.Locale.ENGLISH, "%,.2f", totalTaxWithheld)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Net Yield-on-Cost", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = netYoC?.let { "${String.format(java.util.Locale.ENGLISH, "%.2f", it)}%" } ?: "---",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

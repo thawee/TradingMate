@@ -48,6 +48,17 @@ object TradingConstants {
     // displayed price. Aligned with the Gap-Up play's existing ฿5M bar.
     const val MIN_LIQUIDITY_TURNOVER_BAHT = 5_000_000.0
 
+    // Portfolio Risk & Concentration Limits
+    const val MAX_SINGLE_STOCK_ALLOCATION_PERCENT = 15.0 // Maximum portfolio exposure in any single ticker
+    const val MAX_SECTOR_ALLOCATION_PERCENT = 30.0       // Maximum portfolio exposure in any single industry sector
+
+    // Multi-Timeframe Macro Trend Parameters
+    const val WEEKLY_EMA_PERIOD = 20                     // 20-week EMA line in the sand for macro bull/bear regime
+
+    // Thai Dividend Tax Shield Constants (Section 47 bis)
+    const val DEFAULT_CIT_TAX_RATE = 20.0                // Thai standard Corporate Income Tax rate (20%)
+    const val THAI_DIVIDEND_WHT_RATE = 10.0              // Standard Thai dividend withholding tax rate (10%)
+
     // SET50 Benchmark Components for Market Cap Tiering
     // Official SET50 constituents, H1 2025 review (SET50_100_H1_2025.pdf).
     // NOTE: SET revises this list twice a year (Jan/Jul) — refresh periodically.

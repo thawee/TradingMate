@@ -82,7 +82,6 @@ enum class WatchlistSortOrder(val label: String) {
     SIGNAL("Signal")
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchlistScreen(

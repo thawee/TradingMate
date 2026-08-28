@@ -58,7 +58,15 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import apincer.mobile.tradings.domain.IndicatorSignal
@@ -173,16 +181,16 @@ fun GlassCard(
     val haptic = LocalHapticFeedback.current
 
     val isDark = isSystemInDarkTheme()
-    val borderColor = if (isDark) Color.White else Color.Black
+    val borderColor = if (isDark) Color.White else Color(0xFF0F172A)
     
     val border = androidx.compose.foundation.BorderStroke(
-        width = 0.5.dp,
+        width = if (isDark) 0.5.dp else 1.0.dp,
         brush = Brush.linearGradient(
             colors = listOf(
-                borderColor.copy(alpha = if (isDark) 0.25f else 0.15f),
-                borderColor.copy(alpha = if (isDark) 0.08f else 0.05f),
-                borderColor.copy(alpha = if (isDark) 0.08f else 0.05f),
-                borderColor.copy(alpha = if (isDark) 0.18f else 0.10f)
+                borderColor.copy(alpha = if (isDark) 0.25f else 0.18f),
+                borderColor.copy(alpha = if (isDark) 0.08f else 0.08f),
+                borderColor.copy(alpha = if (isDark) 0.08f else 0.08f),
+                borderColor.copy(alpha = if (isDark) 0.18f else 0.14f)
             ),
             start = Offset(0f, 0f),
             end = Offset(1000f, 1000f)
@@ -552,6 +560,31 @@ fun StockItemCard(
     showSignalBadge: Boolean = true
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var lastKnownPrice by remember(item.info.symbol) { mutableDoubleStateOf(item.info.lastPrice) }
+    var priceTickDirection by remember(item.info.symbol) { mutableIntStateOf(0) }
+
+    LaunchedEffect(item.info.lastPrice) {
+        if (item.info.lastPrice > lastKnownPrice && lastKnownPrice > 0.0) {
+            priceTickDirection = 1
+        } else if (item.info.lastPrice < lastKnownPrice && lastKnownPrice > 0.0) {
+            priceTickDirection = -1
+        }
+        lastKnownPrice = item.info.lastPrice
+        if (priceTickDirection != 0) {
+            kotlinx.coroutines.delay(1000)
+            priceTickDirection = 0
+        }
+    }
+
+    val tickBgColor by animateColorAsState(
+        targetValue = when (priceTickDirection) {
+            1 -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.22f)
+            -1 -> MaterialTheme.colorScheme.error.copy(alpha = 0.22f)
+            else -> Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 350),
+        label = "priceTickFlash"
+    )
 
     if (showDeleteConfirm) {
         val hasPosition = item.portfolio.quantity > 0
@@ -681,7 +714,12 @@ fun StockItemCard(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier
+                            .background(tickBgColor, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
                         Text(
                             text = "฿${String.format(Locale.ENGLISH, "%.2f", item.info.lastPrice)}",
                             style = MaterialTheme.typography.titleMedium,
@@ -1227,9 +1265,6 @@ fun PortfolioSummaryCard(
 
 @Composable
 fun AppBackground(content: @Composable () -> Unit) {
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val screenHeight = configuration.screenHeightDp.dp
     val colorScheme = MaterialTheme.colorScheme
 
     Box(
@@ -1239,36 +1274,38 @@ fun AppBackground(content: @Composable () -> Unit) {
     ) {
         // Dynamic background "blobs" for better glass effect and premium feel
         Canvas(modifier = Modifier.fillMaxSize()) {
+            val canvasW = size.width
+            val canvasH = size.height
             // Sophisticated Teal Glow (Primary Action/Trust)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(colorScheme.primary.copy(alpha = 0.08f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * -0.1f, screenHeight.toPx() * -0.05f),
-                    radius = screenWidth.toPx() * 1.5f
+                    center = Offset(canvasW * -0.1f, canvasH * -0.05f),
+                    radius = canvasW * 1.5f
                 )
             )
             // Champagne Gold Glow (Wealth/Achievement)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(colorScheme.secondary.copy(alpha = 0.08f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 1.1f, screenHeight.toPx() * 0.15f),
-                    radius = screenWidth.toPx() * 1.2f
+                    center = Offset(canvasW * 1.1f, canvasH * 0.15f),
+                    radius = canvasW * 1.2f
                 )
             )
             // Success Green Glow (Subtle growth hint)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(colorScheme.tertiary.copy(alpha = 0.05f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * -0.05f, screenHeight.toPx() * 1.05f),
-                    radius = screenWidth.toPx() * 1.4f
+                    center = Offset(canvasW * -0.05f, canvasH * 1.05f),
+                    radius = canvasW * 1.4f
                 )
             )
             // Soft Surface Bloom
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(colorScheme.primary.copy(alpha = 0.03f), Color.Transparent),
-                    center = Offset(screenWidth.toPx() * 1.05f, screenHeight.toPx() * 0.95f),
-                    radius = screenWidth.toPx() * 1.1f
+                    center = Offset(canvasW * 1.05f, canvasH * 0.95f),
+                    radius = canvasW * 1.1f
                 )
             )
         }
@@ -1366,3 +1403,73 @@ fun AllocationDonutChart(
         }
     }
 }
+
+/**
+ * Catmull-Rom to Cubic Bezier spline interpolation.
+ * Generates smooth C1 continuous curves without sharp elbows or overshoot.
+ */
+fun Path.addSmoothCubicCurve(points: List<Offset>) {
+    if (points.isEmpty()) return
+    if (points.size == 1) {
+        moveTo(points[0].x, points[0].y)
+        return
+    }
+    moveTo(points[0].x, points[0].y)
+    for (i in 0 until points.size - 1) {
+        val p0 = if (i > 0) points[i - 1] else points[i]
+        val p1 = points[i]
+        val p2 = points[i + 1]
+        val p3 = if (i + 2 < points.size) points[i + 2] else p2
+
+        val cp1x = p1.x + (p2.x - p0.x) / 6f
+        val cp1y = p1.y + (p2.y - p0.y) / 6f
+
+        val cp2x = p2.x - (p3.x - p1.x) / 6f
+        val cp2y = p2.y - (p3.y - p1.y) / 6f
+
+        cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
+    }
+}
+
+@Composable
+fun MiniSparkline(
+    prices: List<Double>,
+    isPositive: Boolean,
+    modifier: Modifier = Modifier.size(width = 64.dp, height = 24.dp)
+) {
+    if (prices.size < 2) return
+    val color = if (isPositive) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+    val minP = prices.minOrNull() ?: 0.0
+    val maxP = prices.maxOrNull() ?: 1.0
+    val range = (maxP - minP).coerceAtLeast(0.01)
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stepX = w / (prices.size - 1).coerceAtLeast(1)
+        val points = prices.mapIndexed { i, p ->
+            Offset(i * stepX, h - ((p - minP) / range * (h - 4.dp.toPx())).toFloat() - 2.dp.toPx())
+        }
+        val path = Path().apply { addSmoothCubicCurve(points) }
+        val fillPath = Path().apply {
+            addSmoothCubicCurve(points)
+            lineTo(w, h)
+            lineTo(0f, h)
+            close()
+        }
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(color.copy(alpha = 0.25f), Color.Transparent),
+                startY = 0f,
+                endY = h
+            )
+        )
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+    }
+}
+

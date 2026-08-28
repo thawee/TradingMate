@@ -15,11 +15,11 @@ The bottom navigation bar provides instant access to the five main functional ar
     *   **Focus:** Actionable trade setups and Risk Management.
     *   **Features:** Permanent top-level Sell Alerts, tabbed browsing for Swing Trades, Earnings Gaps, and Dividend plays. Generates AI Master Prompts directly to clipboard.
 3.  **💼 Portfolio (Financial Hub)**
-    *   **Focus:** Consolidated asset tracking.
-    *   **Features:** Total Asset summary (Stock + Cash), inline cash management, detailed holdings list, and inline Modal Bottom Sheet for trades.
-4.  **📈 History (Performance Review)**
-    *   **Focus:** Learning from past trades.
-    *   **Features:** Closed trade records, win/loss ratios, and total realized profit tracking.
+    *   **Focus:** Consolidated asset tracking & Risk Management.
+    *   **Features:** Total Asset summary (Stock + Cash), inline cash management & ledger audit, Sector Breakdown with 30% concentration caps, Section 47 bis Dividend Tax Shield card, and 1-Click Anti-Ruin Position Sizing in trade entry dialogs.
+4.  **📈 History & Stats (CRO Dashboard)**
+    *   **Focus:** Performance review & Quantitative Risk Matrix.
+    *   **Features:** Closed trade records, cumulative profit trajectory with Catmull-Rom splines, 1-Day 95% Historical Value-at-Risk (VaR), Conditional VaR (Expected Shortfall), Max Drawdown (MDD), and 63-day rolling Portfolio Beta ($\beta$).
 5.  **⚙️ Settings (App Configuration)**
     *   **Focus:** Core application preferences.
     *   **Features:** Real-time Risk Management limits (Max Risk Per Trade, Exposure, Portfolio Allocation) driving the AI prompts.
@@ -61,18 +61,18 @@ The Portfolio screen manages the full financial lifecycle of an investment:
 ### 1. The Buy/Update Flow
 *   **Path:** `Portfolio` -> `+ (Add Button)` or `Holdings` -> `Edit Icon`.
 *   **Process:** Opens a dialog to enter Symbol, Avg Cost, and Quantity.
-*   **Intelligent Assist:** Features a **Risk/Reward Calculator** that automatically suggests Target and Stop Loss prices based on the stock's quality.
+*   **Intelligent Assist:** Features an **Anti-Ruin Fixed Fractional Position Sizing Calculator** that suggests exact share count based on account risk budget ($1.0\%-2.0\%$), stop loss distance, 100-share SET board lots, and the 15% single-stock allocation cap.
 
 ### 2. The Cash Management Flow
 *   **Path:** `Portfolio` -> `Summary Card` -> `Edit Icon (next to Cash)`.
 *   **Modes:**
-    *   **Deposit/Withdraw:** Add or subtract from existing balance.
+    *   **Deposit/Withdraw:** Add or subtract from existing balance (logged in cash audit ledger).
     *   **Account Reconcile:** Set a hard balance to match bank records.
 
 ### 3. The Sell/Exit Flow
 *   **Path:** `Portfolio` -> `Holdings` -> `Sell Icon`.
 *   **Process:** Enter sell price and quantity. 
-*   **Outcome:** The trade is moved to the **History** tab, and the cash balance is automatically updated with the net proceeds (minus Thai fees).
+*   **Outcome:** The trade is moved to the **History** tab, and the cash balance is automatically updated with the net proceeds (minus Thai fees) with an atomic cash audit ledger entry.
 
 ---
 

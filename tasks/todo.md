@@ -1,25 +1,38 @@
-# Strategic Safeguards & Edge-Decay Protection Plan
+# Configurable Settings & User Information Plan
 
-- [x] **Phase 1: Dual-Confirmation Smart Money Flow (NVDR + RS) in `StockDna.kt`** <!-- id: 500 -->
-  - [x] Require Relative Strength $\ge 0$ in `StockDna.isFlow` and `isForeignWhale` to eliminate dead-cat bounce fake smart money spikes <!-- id: 501 -->
-- [x] **Phase 2: Cyclical Sector Quality Shield in `StockDna.kt`** <!-- id: 502 -->
-  - [x] Detect cyclical sectors (Petrochem, Energy, Shipping, Agri) and enforce 3Y margin consistency <!-- id: 503 -->
-  - [x] Add `CYC` tag and prevent deceptive `A+` grades at peak commodity cycles <!-- id: 504 -->
-- [x] **Phase 3: Ex-Dividend (XD) Price Drop Grace Period** <!-- id: 505 -->
-  - [x] Add `isNearXdDate` check in `TechnicalAnalysis.kt` and `StockViewModel.kt` to suppress false early breakdown sell alerts around XD dates <!-- id: 506 -->
-- [x] **Phase 4: Dynamic Cash Buffer & 15% Position Exposure Cap** <!-- id: 507 -->
-  - [x] Display recommended cash buffer (10% Bull / 25% Neutral / 50% Bear) in `DividendAdvisorScreen.kt` and Regime Banners <!-- id: 508 -->
-  - [x] Enforce 15% single-stock max capital allocation in AI Advisor prompts <!-- id: 509 -->
-- [x] **Phase 5: Unit Testing & Verification** <!-- id: 510 -->
-  - [x] Add tests in `StockDnaTest.kt` and `TechnicalAnalysisTest.kt` for all new guardrails <!-- id: 511 -->
-  - [x] Run `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` (all passed) <!-- id: 512 -->
+- [x] **Settings Pillar 1: DataStore & ViewModel Expansion** <!-- id: 951 -->
+  - [x] Add `maxSectorAllocation` (default 30.0%) and `citTaxRate` (default 20.0%) to `PreferenceRepository.kt` <!-- id: 952 -->
+  - [x] Update `maxPortfolioAllocation` default to 15.0% in `PreferenceRepository.kt` <!-- id: 953 -->
+  - [x] Implement range clamping and sanity bounds in `SettingsViewModel.kt` <!-- id: 954 -->
+- [x] **Settings Pillar 2: Rich Guidance UI in SettingsScreen.kt** <!-- id: 955 -->
+  - [x] Add comprehensive institutional explanatory helper text and standard benchmark ranges for every setting <!-- id: 956 -->
+  - [x] Add input fields for Single-Stock Cap, Sector Cap, and Thai Section 47 bis CIT Rate <!-- id: 957 -->
+- [x] **Settings Pillar 3: Wire Settings to Portfolio & Dialogs** <!-- id: 958 -->
+  - [x] Connect `maxSectorAllocation` to `SectorBreakdownCard` in `PortfolioScreen.kt` <!-- id: 959 -->
+  - [x] Connect `citTaxRate` to `DividendTaxShieldCard` in `PortfolioScreen.kt` <!-- id: 960 -->
+  - [x] Pass `maxPortfolioAllocation` into `BuyStockDialog` position sizing calculation <!-- id: 961 -->
+- [x] **Settings Pillar 4: Verification & Test Suite** <!-- id: 962 -->
+  - [x] Run `./gradlew compileDebugKotlin` & `./gradlew testDebugUnitTest` (57 tests passed) <!-- id: 963 -->
+  - [x] Run `./gradlew lintDebug` (0 errors) <!-- id: 964 -->
 
 ## Review & Verification
-- All 47 unit tests passed across `TechnicalAnalysisTest` and `StockDnaTest`.
-- Dual-confirmation NVDR flow prevents false signals on severe SET-lagging dead-cat bounces.
-- Cyclical sector quality shield properly penalizes peak cyclical traps and tags them with `CYC`.
-- Ex-Dividend grace period suppresses false Early Breakdown / Weak Trend sell alarms within 2 trading days of XD date.
-- Dynamic Cash buffer guidelines (10% Bull / 25–35% Sideways / 50%+ Bear) and 15% max single-stock exposure cap integrated into Market Regime banner and AI Copilot prompts.
+- **Full Settings Configurability:**
+  - Added user configurable **Max Sector Concentration Cap** (10%–80%, default 30%) with live warning thresholds in `SectorBreakdownCard`.
+  - Added user configurable **Thai Dividend CIT Tax Rate** (0%–30%, default 20%) for Section 47 bis tax credit calculations in `DividendTaxShieldCard`.
+  - Upgraded **Max Single-Stock Allocation Cap** (2%–50%, default 15%) to dynamically throttle maximum capital in `calculateRecommendedPositionSize` across all buy dialogs.
+- **Input Sanitization & Range Clamping:**
+  - Enforced defensive `.coerceIn()` / `.coerceAtLeast()` bounds in `SettingsViewModel.kt` to prevent runtime crashes, zero divisions, or corrupted calculation states.
+- **Rich Guidance & Tooltips:**
+  - Provided clear institutional-grade guidance and standard industry benchmark ranges (e.g. 1.0%–2.0% risk per trade, 10%–15% single-stock cap, 25%–30% sector cap) below every input field.
+- **Verification:**
+  - Added `testConfigurableSectorAndTaxCreditCalculations` in `TechnicalAnalysisTest.kt`.
+  - `./gradlew testDebugUnitTest` passed (57/57 tests).
+  - `./gradlew lintDebug` passed with 0 errors.
+
+
+
+
+
 
 
 

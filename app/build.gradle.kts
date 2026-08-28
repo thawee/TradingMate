@@ -13,11 +13,11 @@ android {
 
     defaultConfig {
         applicationId = "apincer.mobile.tradings"
-        minSdk = 24
+        minSdk = 26
         //noinspection OldTargetApi
         targetSdk = 36
-        versionCode = 23
-        versionName = "2.7.0"
+        versionCode = 24
+        versionName = "3.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

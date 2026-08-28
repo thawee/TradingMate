@@ -21,7 +21,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateTargetMonthlyDividend(amount: Double) {
         viewModelScope.launch {
-            preferenceRepository.setTargetMonthlyDividend(amount)
+            preferenceRepository.setTargetMonthlyDividend(amount.coerceAtLeast(0.0))
         }
     }
 
@@ -34,7 +34,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updatePriceAlertThreshold(percent: Double) {
         viewModelScope.launch {
-            preferenceRepository.setPriceAlertThreshold(percent)
+            preferenceRepository.setPriceAlertThreshold(percent.coerceIn(1.0, 50.0))
         }
     }
 
@@ -47,7 +47,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateDividendAlertWindow(days: Int) {
         viewModelScope.launch {
-            preferenceRepository.setDividendAlertWindow(days)
+            preferenceRepository.setDividendAlertWindow(days.coerceIn(1, 365))
         }
     }
 
@@ -73,7 +73,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateTrailingStopPercent(percent: Double) {
         viewModelScope.launch {
-            preferenceRepository.setTrailingStopPercent(percent)
+            preferenceRepository.setTrailingStopPercent(percent.coerceIn(1.0, 25.0))
             apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
@@ -100,7 +100,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateMaxRiskPerTrade(percent: Double) {
         viewModelScope.launch {
-            preferenceRepository.setMaxRiskPerTrade(percent)
+            preferenceRepository.setMaxRiskPerTrade(percent.coerceIn(0.1, 10.0))
         }
     }
 
@@ -113,7 +113,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateMaxOpenExposure(percent: Double) {
         viewModelScope.launch {
-            preferenceRepository.setMaxOpenExposure(percent)
+            preferenceRepository.setMaxOpenExposure(percent.coerceIn(1.0, 50.0))
         }
     }
 
@@ -121,12 +121,38 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         preferenceRepository.maxPortfolioAllocation.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 10.0
+            initialValue = 15.0
         )
 
     fun updateMaxPortfolioAllocation(percent: Double) {
         viewModelScope.launch {
-            preferenceRepository.setMaxPortfolioAllocation(percent)
+            preferenceRepository.setMaxPortfolioAllocation(percent.coerceIn(2.0, 50.0))
+        }
+    }
+
+    val maxSectorAllocation: StateFlow<Double> =
+        preferenceRepository.maxSectorAllocation.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 30.0
+        )
+
+    fun updateMaxSectorAllocation(percent: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setMaxSectorAllocation(percent.coerceIn(10.0, 80.0))
+        }
+    }
+
+    val citTaxRate: StateFlow<Double> =
+        preferenceRepository.citTaxRate.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 20.0
+        )
+
+    fun updateCitTaxRate(rate: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setCitTaxRate(rate.coerceIn(0.0, 30.0))
         }
     }
 
@@ -139,7 +165,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateMinRiskRewardRatio(ratio: Double) {
         viewModelScope.launch {
-            preferenceRepository.setMinRiskRewardRatio(ratio)
+            preferenceRepository.setMinRiskRewardRatio(ratio.coerceIn(1.0, 10.0))
         }
     }
 

@@ -65,7 +65,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
@@ -272,6 +271,22 @@ fun StatsScreen(
 
             item {
                 CumulativeProfitChart(cumulativeProfits = cumulativeProfits)
+            }
+
+            item {
+                SectionHeader(
+                    title = "Quantitative Risk Matrix",
+                    icon = Icons.Default.Insights,
+                    subtitle = "VaR 95%, Tail Risk (CVaR) & Max Drawdown"
+                )
+            }
+
+            item {
+                InstitutionalRiskCard(
+                    portfolioItems = watchlist.filter { it.portfolio.quantity > 0 },
+                    cashBalance = cashBalance,
+                    cumulativeProfits = cumulativeProfits
+                )
             }
 
             // Trading Efficiency Section
@@ -606,21 +621,22 @@ fun CumulativeProfitChart(cumulativeProfits: List<Pair<String, Double>>) {
             drawContext.canvas.nativeCanvas.drawText(formatCompact(minProfit), chartWidth + 4.dp.toPx(), height + 10.sp.toPx() / 2, labelPaint)
             
             val stepX = chartWidth / (cumulativeProfits.size - 1).coerceAtLeast(1).toFloat()
-            val path = Path()
-            val fillPath = Path()
-            
-            cumulativeProfits.forEachIndexed { index, (month, totalProfit) ->
+            val points = cumulativeProfits.mapIndexed { index, (_, totalProfit) ->
                 val x = index * stepX
                 val y = height - ((totalProfit - minProfit) / range * height).toFloat()
-                
-                if (index == 0) {
-                    path.moveTo(x, y)
-                    fillPath.moveTo(x, height)
-                    fillPath.lineTo(x, y)
-                } else {
-                    path.lineTo(x, y)
-                    fillPath.lineTo(x, y)
-                }
+                Offset(x, y)
+            }
+
+            val path = Path().apply { addSmoothCubicCurve(points) }
+            val fillPath = Path().apply {
+                addSmoothCubicCurve(points)
+                lineTo(chartWidth, height)
+                lineTo(0f, height)
+                close()
+            }
+            
+            cumulativeProfits.forEachIndexed { index, (month, _) ->
+                val pt = points[index]
                 
                 // Draw month label
                 val paint = android.graphics.Paint().apply {
@@ -631,7 +647,7 @@ fun CumulativeProfitChart(cumulativeProfits: List<Pair<String, Double>>) {
                 
                 drawContext.canvas.nativeCanvas.drawText(
                     month,
-                    x,
+                    pt.x,
                     height + 20.dp.toPx(),
                     paint
                 )
@@ -640,13 +656,9 @@ fun CumulativeProfitChart(cumulativeProfits: List<Pair<String, Double>>) {
                 drawCircle(
                     color = lineColor,
                     radius = 3.dp.toPx(),
-                    center = Offset(x, y)
+                    center = pt
                 )
             }
-            
-            // Finish fill path
-            fillPath.lineTo(chartWidth, height)
-            fillPath.close()
             
             // Draw fill
             drawPath(
@@ -667,3 +679,103 @@ fun CumulativeProfitChart(cumulativeProfits: List<Pair<String, Double>>) {
         }
     }
 }
+
+@Composable
+fun InstitutionalRiskCard(
+    portfolioItems: List<StockWatchlistInfo>,
+    cashBalance: Double,
+    cumulativeProfits: List<Pair<String, Double>>
+) {
+    val totalStockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
+    val totalAssets = totalStockValue + maxOf(cashBalance, 0.0)
+
+    // 1. Beta Calculation
+    val betaWeights = portfolioItems.mapNotNull { item ->
+        val weight = (item.info.lastPrice * item.portfolio.quantity)
+        val beta = (item.portfolio.relativeStrength ?: 0.0).let { rs ->
+            (1.0 + rs / 100.0).coerceIn(0.4, 2.0)
+        }
+        if (weight > 0) Pair(weight, beta) else null
+    }
+    val portfolioBeta = if (betaWeights.isNotEmpty()) TechnicalAnalysis.calculatePortfolioBeta(betaWeights) else 1.0
+    val betaProfile = when {
+        portfolioBeta < 0.85 -> Pair("Defensive Low-Vol", Color(0xFF6EE7B7))
+        portfolioBeta <= 1.15 -> Pair("Balanced Index Track", Color(0xFF60A5FA))
+        else -> Pair("Aggressive High-Beta", Color(0xFFFCD34D))
+    }
+
+    // 2. Max Drawdown from Cumulative Profit trajectory
+    val equitySeries = if (cumulativeProfits.isNotEmpty()) {
+        cumulativeProfits.map { totalAssets + it.second }
+    } else {
+        listOf(totalAssets)
+    }
+    val mddResult = TechnicalAnalysis.calculateMaxDrawdown(equitySeries)
+
+    // 3. Historical 1-day Returns Distribution from holdings
+    val stockDailyReturns = portfolioItems.map { it.info.percentChange / 100.0 }
+    val var95 = if (stockDailyReturns.isNotEmpty()) TechnicalAnalysis.calculateHistoricalVaR(stockDailyReturns, 0.95) else 0.0
+    val cvar95 = if (stockDailyReturns.isNotEmpty()) TechnicalAnalysis.calculateConditionalVaR(stockDailyReturns, 0.95) else 0.0
+    val varBaht = totalAssets * (var95 / 100.0)
+    val cvarBaht = totalAssets * (cvar95 / 100.0)
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Risk Matrix & Volatility",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Value-at-Risk & Tail Risk Profile",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Surface(
+                    color = betaProfile.second.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Beta ${String.format(Locale.ENGLISH, "%.2f", portfolioBeta)} · ${betaProfile.first}",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = betaProfile.second
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.alpha(0.08f))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("1-Day VaR (95%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text("฿${String.format(Locale.ENGLISH, "%,.0f", varBaht)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                    Text("(-${String.format(Locale.ENGLISH, "%.2f", var95)}%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Tail Risk (CVaR)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text("฿${String.format(Locale.ENGLISH, "%,.0f", cvarBaht)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                    Text("(-${String.format(Locale.ENGLISH, "%.2f", cvar95)}%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Max Drawdown (MDD)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text("-${String.format(Locale.ENGLISH, "%.2f", mddResult.maxDrawdownPercent)}%", fontSize = 15.sp, fontWeight = FontWeight.Black, color = if (mddResult.maxDrawdownPercent > 15.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                    Text("Current: -${String.format(Locale.ENGLISH, "%.1f", mddResult.currentDrawdownPercent)}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+

@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -64,7 +65,6 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
     BACKTEST(R.string.title_backtest, Icons.Default.Insights, false)
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockScreen(
@@ -421,7 +421,7 @@ fun StockDashboard(state: StockUiState.Success) {
                     Text(stringResource(R.string.label_view_quote), fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Black)
                     Spacer(Modifier.width(4.dp))
                     Icon(
-                        imageVector = Icons.Default.OpenInNew,
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(14.dp)
@@ -728,25 +728,14 @@ fun PriceTrendChart(
                     Offset(x, y)
                 }
 
-                // 1. Draw smooth Cubic Bezier line
-                val path = Path()
-                val fillPath = Path()
-
-                path.moveTo(points.first().x, points.first().y)
-                fillPath.moveTo(points.first().x, points.first().y)
-
-                for (i in 0 until points.size - 1) {
-                    val p0 = points[i]
-                    val p1 = points[i + 1]
-                    val cx = (p0.x + p1.x) / 2f
-                    path.cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
-                    fillPath.cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                // 1. Draw smooth Catmull-Rom Cubic Spline line
+                val path = Path().apply { addSmoothCubicCurve(points) }
+                val fillPath = Path().apply {
+                    addSmoothCubicCurve(points)
+                    lineTo(width, height)
+                    lineTo(0f, height)
+                    close()
                 }
-
-                // Gradient fill
-                fillPath.lineTo(width, height)
-                fillPath.lineTo(0f, height)
-                fillPath.close()
 
                 drawPath(
                     path = fillPath,

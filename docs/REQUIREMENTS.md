@@ -39,13 +39,20 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Speculative Plays:** Must pass `Liquidity AND (NOT Quality) AND Support`. Higher-risk BUY/POTENTIAL setups on stocks that pass the liquidity gate but fail the Quality layer; sorted with MACD-confirmed setups ranked above unconfirmed ones.
 - **Liquidity/Trap Risk:** Any not-yet-owned stock with a live BUY/POTENTIAL signal that fails the Pre-filter (illiquid turnover and/or within 5% of its 52-week low). Surfaced separately with a stronger warning rather than silently hidden, since it's the highest-risk bucket.
 
-### 2.3 Portfolio Management
+### 2.3 Portfolio Management & Institutional Risk Suite
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.
 - **Transaction Recording:** Allow users to record buy and sell transactions with entry price and quantity.
 - **Fee Engine:** Automatically calculate trading fees using the InnovestX structure (Commission 0.15%, Market Fee, VAT). Applies a ฿50/day minimum commission unless ATS + E-Statement is enabled (waived). Financial Transaction Tax (FTT) is ฿0 — officially abolished.
-- **Profit/Loss tracking:** Display Gross and Net Profit/Loss in both currency (THB) and percentage.
-- **Cash Management:** Provide a quick way to adjust or set the current cash balance.
-- **Yield-on-Cost:** Calculate and display dividend yield relative to purchase price.
+- **Profit/Loss Tracking:** Display Gross and Net Profit/Loss in both currency (THB) and percentage.
+- **Cash Management & Audit Ledger:** Maintain double-entry cash adjustments and cash audit log across buy/sell/undo operations.
+- **Quantitative Risk Management Suite:**
+  - **1-Day 95% Historical Value-at-Risk (VaR):** Real-time empirical quantile estimation of daily downside risk.
+  - **Conditional VaR (CVaR / Expected Shortfall):** Average tail loss estimation during extreme market corrections.
+  - **Max Drawdown (MDD) & High-Water Mark (HWM):** All-time peak equity curve tracking and recovery progress meter.
+  - **Anti-Ruin Fixed Fractional Position Sizing:** Automatically calculates recommended position sizes according to exact stop-loss distance and account risk budget (1.0%–2.0%), rounded to 100-share SET board lots and clamped by the 15% single-stock ceiling.
+  - **Concentration Caps:** Enforce a **15% Single-Stock Allocation Limit** and a **30% Sector Allocation Cap** with warning alerts.
+  - **63-Day Rolling Portfolio Beta ($\beta$):** Tracks systematic portfolio volatility vs. the SET Index.
+- **Thai Dividend Tax Shield (Section 47 bis):** Computes estimated reclaimable Corporate Income Tax (CIT 20%) credits and Net Yield-on-Cost after 10% Withholding Tax.
 
 ### 2.4 Watchlist Management
 - **Multi-source Search:** Enable searching for stocks using both SET and Yahoo Finance data.

@@ -114,6 +114,48 @@ Rather than waiting for a full stop loss ($-4.5\%$ to $-8.0\%$), the engine acti
 - **Trigger:** If a holding is in a slight net loss ($\le -1.5\%$) and price breaks below the 50-day SMA while momentum (MACD) turns negative.
 - **Action:** Generates an immediate `SELL` (*Early Breakdown Warning*) alert, allowing traders to cut deteriorating positions early with minimal capital loss.
 
+### 16. Multi-Timeframe (MTF) Macro Trend Alignment (Weekly 20-EMA)
+To avoid counter-trend "knife-catching" in larger macro downtrends:
+- **Resampling:** Daily price series are resampled into calendar-week closing candles (`TechnicalAnalysis.resampleToWeeklyCloses`).
+- **Weekly 20-EMA:** Computes the 20-period Exponential Moving Average on weekly closes.
+- **Macro Alignment Guard:** If the latest weekly close is below the Weekly 20-EMA (`isWeeklyMacroBullish == false`), daily momentum `BUY` signals are downgraded to `POTENTIAL` (*Macro Weekly Bearish*).
+- **Confluence Tag (`MTF`):** Stocks that are simultaneously bullish on the daily chart (Price $\ge$ SMA 50 $\ge$ SMA 200) AND weekly chart (Weekly Close $\ge$ Weekly 20-EMA) receive the `MTF` confluence tag.
+
+### 17. 63-Day Rolling Covariance Portfolio Beta ($\beta$)
+Measures systemic volatility relative to the SET Index (`^SET.BK`) over 63 trading days (approx. 3 calendar months):
+$$\beta = \frac{\text{Cov}(R_{\text{stock}}, R_{\text{SET}})}{\text{Var}(R_{\text{SET}})}$$
+$$\text{Portfolio } \beta = \frac{\sum (w_i \times \beta_i)}{\sum w_i}$$
+- **Defensive Low-Vol ($\beta < 0.85$):** Insulates portfolio from broader market selloffs.
+- **Balanced Index Track ($0.85 \le \beta \le 1.15$):** Moves in tandem with the SET Index.
+- **Aggressive High-Beta ($\beta > 1.15$):** Outperforms in bull markets but requires strict risk buffers.
+
+### 18. Historical Value-at-Risk ($\text{VaR}_{95\%}$) & Conditional VaR (CVaR)
+Quantitative downside tail-risk modeling on empirical daily returns:
+- **1-Day 95% Historical VaR:** The 5th percentile worst daily loss:
+  $$\text{VaR}_{95\%} = -\text{Percentile}_{5\%}(R_{\text{daily}}) \times \text{Total Assets}$$
+- **Conditional VaR (CVaR / Expected Shortfall):** The expected average loss given that the market drops beyond the 95% VaR threshold:
+  $$\text{CVaR}_{95\%} = -\mathbb{E}[R \mid R \le \text{Percentile}_{5\%}(R)] \times \text{Total Assets}$$
+
+### 19. Maximum Drawdown (MDD) & High-Water Mark (HWM)
+Tracks cumulative equity trajectory to measure downside capital preservation:
+$$\text{HWM}_t = \max_{1 \le i \le t}(\text{Equity}_i)$$
+$$\text{Drawdown}_t = \frac{\text{Equity}_t - \text{HWM}_t}{\text{HWM}_t} \times 100\%$$
+$$\text{Max Drawdown (MDD)} = \min_t(\text{Drawdown}_t)$$
+
+### 20. Fixed-Fractional Anti-Ruin Position Sizing Engine
+Calculates optimal share count based on predefined account risk ($1.0\% - 2.0\%$):
+$$\text{Max Risk Baht} = \text{Total Assets} \times \text{Risk\%}$$
+$$\text{Raw Shares} = \left\lfloor \frac{\text{Max Risk Baht}}{\text{Entry Price} - \text{Stop Loss Price}} \right\rfloor$$
+- **100-Share Board Lot Rounding:** Automatically rounded down to the nearest 100 shares for SET standard board lots.
+- **15% Single-Stock Ceiling:** Caps total position capital at max 15% of portfolio equity:
+  $$\text{Capped Shares} = \min\left(\text{Raw Shares}, \left\lfloor \frac{\text{Total Assets} \times 15\%}{\text{Entry Price}} \right\rfloor\right)$$
+
+### 21. Thai Dividend Tax Shield (Section 47 bis Reclaim)
+Thailand Revenue Code Section 47 bis allows individual tax residents to claim tax credits on dividend income based on the paying company's Corporate Income Tax (CIT) rate (standard 20%):
+$$\text{Gross Dividend} = \frac{\text{Net Received}}{1 - \text{WHT (10\%)}}$$
+$$\text{Tax Credit} = \text{Gross Dividend} \times \left(\frac{\text{CIT Rate}}{100 - \text{CIT Rate}}\right)$$
+$$\text{Net Yield on Cost (YoC}_{\text{net}}\text{)} = \left(\frac{\text{Annual DPS} \times (1 - \text{WHT})}{\text{Average Cost}}\right) \times 100\%$$
+
 ---
 
 ## 🧬 The 6-Layer Filter (Stock DNA)
@@ -153,6 +195,7 @@ The **Dividend Advisor** screen helps you plan for long-term passive income.
 - **Capital Calculation:** The advisor calculates the total capital required to reach your monthly goal (assuming a 5% average yield).
 - **Suggested Stocks:** The advisor suggests stocks from the "Dividend Stars" collection. These are filtered to ensure they have a **positive dividend yield** and pass the **Fundamental Guardrails** mentioned above.
 - **Progress Tracking:** The app compares your current portfolio's estimated monthly dividends against your target to show your "Goal Progress."
+- **Section 47 bis Tax Shield:** Displays estimated tax credits reclaimable during annual personal income tax filing.
 
 ---
 
@@ -168,7 +211,7 @@ Stocks here represent the best value-to-risk ratio.
 ### 🟡 Potential Zone (Watchlist)
 Stocks that are becoming cheap but haven't confirmed a reversal yet.
 - **Criteria:** RSI < 42 **OR** Price is near Lower Bollinger Band.
-- **Signal:** *Nearing Value Zone*, *Support Testing*, *False Breakout Guard*, or *Falling Knife Guard*.
+- **Signal:** *Nearing Value Zone*, *Support Testing*, *False Breakout Guard*, *Falling Knife Guard*, or *Macro Weekly Bearish*.
 
 ### 🔴 Selling Zone (Distribution)
 Stocks that are overvalued or have broken their upward trend.
@@ -181,7 +224,7 @@ Stocks with no clear trend or extreme valuation.
 
 ---
 
-## 🛡️ Risk Management (The Golden Rules)
+## 🛡️ Institutional Risk Management (The Golden Rules)
 
 1. **SELL Overrides BUY:** Even if a stock has great momentum, if it hits RSI 65 or the Upper Bollinger Band, the app triggers a **SELL** warning. Never buy at the peak.
 2. **Early Breakdown Cutting (with XD Grace Period):** If a trade loses $-1.5\%$ and breaks below SMA 50 with negative MACD, exit early rather than suffering full stop-loss drawdown. *Grace Period:* If the price drop occurs within $\pm 2$ trading days of an Ex-Dividend (XD) date, the sell signal is paused to account for expected cash dividend payouts.
@@ -190,10 +233,12 @@ Stocks with no clear trend or extreme valuation.
    - **Bullish Regime:** 100% full position sizing, 10–15% cash buffer.
    - **Sideways / Chop Regime:** 75% selective sizing, 25–35% cash buffer.
    - **Bearish / Correction Regime:** 50% defensive sizing, 50%+ cash buffer.
-5. **15% Single-Stock Exposure Cap:** Hard-cap portfolio exposure to any single company at max 15% of total account equity to prevent devastating losses from single-stock macro black swans.
-6. **Dual-Confirmation Smart Money Flow:** Foreign NVDR net accumulation is only valid when paired with non-negative Relative Strength ($\text{RS} \ge -1.0$) to avoid buying into foreign short-covering rallies on fundamentally broken stocks.
-7. **Cyclical Sector Quality Shield:** Commodity and cyclical stocks (Energy, Petrochem, Agribusiness, Shipping, Steel) must prove 3Y profit growth $\ge 8\%$ and margins $\ge 10\%$ to avoid value traps at peak commodity cycles.
-8. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
+5. **15% Single-Stock Allocation Cap:** Hard-cap exposure to any single company at max 15% of total account equity.
+6. **30% Sector Allocation Cap:** Automatic warning alert if a single sector exceeds 30% concentration.
+7. **Dual-Confirmation Smart Money Flow:** Foreign NVDR net accumulation is only valid when paired with non-negative Relative Strength ($\text{RS} \ge -1.0$) to avoid buying into foreign short-covering rallies on fundamentally broken stocks.
+8. **Cyclical Sector Quality Shield:** Commodity and cyclical stocks (Energy, Petrochem, Agribusiness, Shipping, Steel) must prove 3Y profit growth $\ge 8\%$ and margins $\ge 10\%$ to avoid value traps at peak commodity cycles.
+9. **Multi-Timeframe Weekly 20-EMA Filter:** Do not buy daily breakouts if the stock is trending below its weekly 20-EMA.
+10. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
 
 ---
 
@@ -221,7 +266,8 @@ TradingMate calculates **Net Profit** by accounting for the following fees (appr
 - **Commission:** 0.15% (Safety estimate).
 - **Market Fee:** 0.007% (Trading + Clearing + Regulatory).
 - **VAT:** 7% on total commissions.
-- **Selling Tax:** 0.11% (applied only on sell orders).
-- **Minimum Fee:** 50 THB daily (if applicable).
+- **Financial Transaction Tax:** ฿0 (Officially abolished).
+- **Minimum Fee:** 50 THB daily (waived when ATS + E-Statement enabled).
 
 > **Formula:** Net Profit = (Selling Price - Sell Fees) - (Buying Price + Buy Fees)
+

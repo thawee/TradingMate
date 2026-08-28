@@ -281,6 +281,17 @@ object StockDna {
         )
     }
 
+    /** Multi-Timeframe (MTF) Trend Alignment: Price above SMA 200/50 and positive momentum */
+    fun isMtfAligned(s: StockWatchlistInfo): Boolean {
+        val price = s.info.lastPrice
+        val sma50 = s.portfolio.sma50 ?: 0.0
+        val sma200 = s.portfolio.sma200 ?: 0.0
+        val hist = s.portfolio.macdHist ?: 0.0
+        if (price <= 0.0) return false
+        val isTrendBullish = (sma200 > 0 && price >= sma200) || (sma50 > 0 && price >= sma50)
+        return isTrendBullish && hist > 0.0
+    }
+
     /** DNA tag chips displayed on stock cards. */
     fun tags(s: StockWatchlistInfo): List<String> = buildList {
         val score = calculateScore(s)
@@ -292,6 +303,7 @@ object StockDna {
         if (isHighYieldShield(s)) add("SHIELD")
         if (isForeignWhale(s)) add("WHALE")
         if (isOversoldRebound(s)) add("SPRING")
+        if (isMtfAligned(s)) add("MTF")
 
         if (isQual(s)) add("QUAL")
         if (isVal(s)) add("VAL")

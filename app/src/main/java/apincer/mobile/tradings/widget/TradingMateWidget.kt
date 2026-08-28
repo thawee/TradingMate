@@ -333,14 +333,19 @@ private fun createTrendGraphBitmap(
         fillPath.lineTo(width - paddingX, points[0].y)
     } else {
         for (i in 0 until points.size - 1) {
-            val p0 = points[i]
-            val p1 = points[i + 1]
-            val controlX1 = (p0.x + p1.x) / 2f
-            val controlY1 = p0.y
-            val controlX2 = (p0.x + p1.x) / 2f
-            val controlY2 = p1.y
-            strokePath.cubicTo(controlX1, controlY1, controlX2, controlY2, p1.x, p1.y)
-            fillPath.cubicTo(controlX1, controlY1, controlX2, controlY2, p1.x, p1.y)
+            val p0 = if (i > 0) points[i - 1] else points[i]
+            val p1 = points[i]
+            val p2 = points[i + 1]
+            val p3 = if (i + 2 < points.size) points[i + 2] else p2
+
+            val cp1x = p1.x + (p2.x - p0.x) / 6f
+            val cp1y = p1.y + (p2.y - p0.y) / 6f
+
+            val cp2x = p2.x - (p3.x - p1.x) / 6f
+            val cp2y = p2.y - (p3.y - p1.y) / 6f
+
+            strokePath.cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
+            fillPath.cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
         }
     }
 

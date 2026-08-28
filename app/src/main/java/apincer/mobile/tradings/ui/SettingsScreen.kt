@@ -146,6 +146,38 @@ fun SettingsScreen(
                     prefix = { Text("฿ ") },
                     shape = RoundedCornerShape(14.dp)
                 )
+                Text(
+                    text = "Your target monthly passive income from stock dividends. Used to calculate capital requirements and portfolio goal completion.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val citTaxRate by settingsViewModel.citTaxRate.collectAsState()
+                var editingCitRate by remember(citTaxRate) { mutableStateOf(citTaxRate.toString()) }
+
+                OutlinedTextField(
+                    value = editingCitRate,
+                    onValueChange = { 
+                        editingCitRate = it
+                        it.toDoubleOrNull()?.let { rate ->
+                            settingsViewModel.updateCitTaxRate(rate)
+                        }
+                    },
+                    label = { Text(stringResource(R.string.label_cit_tax_rate)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = stringResource(R.string.desc_cit_tax_rate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
             }
 
             SectionContent(title = stringResource(R.string.section_price_alerts), icon = Icons.Default.NotificationsActive) {
@@ -166,6 +198,14 @@ fun SettingsScreen(
                     suffix = { Text("%") },
                     shape = RoundedCornerShape(14.dp)
                 )
+                Text(
+                    text = "Proximity threshold percentage for target buy/sell price alerts (e.g. within 10% of target).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 val dividendWindow by settingsViewModel.dividendAlertWindow.collectAsState()
                 var editingWindow by remember(dividendWindow) { mutableStateOf(dividendWindow.toString()) }
@@ -196,7 +236,6 @@ fun SettingsScreen(
                     Switch(checked = isEndYear, onCheckedChange = { settingsViewModel.toggleDividendAlertEndYear() })
                 }
             }
-            
 
             SectionContent(title = "Risk Management", icon = Icons.Default.Warning) {
                 val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
@@ -297,7 +336,7 @@ fun SettingsScreen(
                                 editingMaxAlloc = it
                                 it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxPortfolioAllocation(percent) }
                             },
-                            label = { Text("Max Portfolio Allocation per Asset") },
+                            label = { Text(stringResource(R.string.label_max_portfolio_allocation)) },
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             suffix = { Text("%") },
@@ -305,6 +344,30 @@ fun SettingsScreen(
                         )
                         Text(
                             text = stringResource(R.string.desc_max_portfolio_allocation),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val maxSector by settingsViewModel.maxSectorAllocation.collectAsState()
+                        var editingMaxSector by remember(maxSector) { mutableStateOf(maxSector.toString()) }
+
+                        OutlinedTextField(
+                            value = editingMaxSector,
+                            onValueChange = { 
+                                editingMaxSector = it
+                                it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateMaxSectorAllocation(percent) }
+                            },
+                            label = { Text(stringResource(R.string.label_max_sector_allocation)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            suffix = { Text("%") },
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.desc_max_sector_allocation),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 8.dp, top = 4.dp)

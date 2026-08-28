@@ -78,7 +78,6 @@ enum class PlaybookMode(val label: String) {
 }
 
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DividendAdvisorScreen(
@@ -611,12 +610,11 @@ fun DividendAdvisorScreen(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AdvisorStockCard(
     stock: StockWatchlistInfo, 
     viewModel: StockViewModel, 
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     isSellAlert: Boolean = false, 
     sellReason: String? = null
 ) {

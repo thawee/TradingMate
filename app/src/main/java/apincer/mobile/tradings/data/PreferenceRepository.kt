@@ -26,6 +26,8 @@ class PreferenceRepository(private val context: Context) {
     private val MAX_RISK_PER_TRADE = doublePreferencesKey("max_risk_per_trade")
     private val MAX_OPEN_EXPOSURE = doublePreferencesKey("max_open_exposure")
     private val MAX_PORTFOLIO_ALLOCATION = doublePreferencesKey("max_portfolio_allocation")
+    private val MAX_SECTOR_ALLOCATION = doublePreferencesKey("max_sector_allocation")
+    private val CIT_TAX_RATE = doublePreferencesKey("cit_tax_rate")
     private val MIN_RISK_REWARD_RATIO = doublePreferencesKey("min_risk_reward_ratio")
     private val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
     private val GEMINI_MODEL = stringPreferencesKey("gemini_model")
@@ -120,12 +122,34 @@ class PreferenceRepository(private val context: Context) {
 
     val maxPortfolioAllocation: Flow<Double> = context.settingsDataStore.data
         .map { preferences ->
-            preferences[MAX_PORTFOLIO_ALLOCATION] ?: 10.0
+            preferences[MAX_PORTFOLIO_ALLOCATION] ?: 15.0
         }
 
     suspend fun setMaxPortfolioAllocation(percent: Double) {
         context.settingsDataStore.edit { preferences ->
             preferences[MAX_PORTFOLIO_ALLOCATION] = percent
+        }
+    }
+
+    val maxSectorAllocation: Flow<Double> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[MAX_SECTOR_ALLOCATION] ?: 30.0
+        }
+
+    suspend fun setMaxSectorAllocation(percent: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[MAX_SECTOR_ALLOCATION] = percent
+        }
+    }
+
+    val citTaxRate: Flow<Double> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[CIT_TAX_RATE] ?: 20.0
+        }
+
+    suspend fun setCitTaxRate(rate: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[CIT_TAX_RATE] = rate
         }
     }
 

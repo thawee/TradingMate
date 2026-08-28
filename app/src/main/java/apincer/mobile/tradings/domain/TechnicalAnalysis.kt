@@ -171,7 +171,8 @@ object TechnicalAnalysis {
         relativeStrength: Double? = null,
         nvdrNetVolume: Double? = null,
         nvdrNetValue: Double? = null,
-        isNearXdDate: Boolean = false
+        isNearXdDate: Boolean = false,
+        isWeeklyTrendBullish: Boolean? = null
     ): TradeSignal {
         if (rsi == null || macdHist == null) return TradeSignal(IndicatorSignal.NEUTRAL, "Waiting for data", "We need more historical data to generate a signal.")
         
@@ -413,6 +414,15 @@ object TechnicalAnalysis {
                     IndicatorSignal.POTENTIAL,
                     "${qualityPrefix}Breakout Volume Guard",
                     "Momentum is positive but lacks volume confirmation while lagging the SET index. Wait for a volume surge to confirm institutional participation."
+                )
+            }
+
+            // MULTI-TIMEFRAME (MTF) MACRO GUARD:
+            if (isWeeklyTrendBullish == false) {
+                return TradeSignal(
+                    IndicatorSignal.POTENTIAL,
+                    "${qualityPrefix}Macro Weekly Bearish Guard",
+                    "Daily momentum is positive, but the macro weekly trend is bearish (Price < Weekly EMA 20). Counter-trend entries carry higher whipsaw risk."
                 )
             }
 
@@ -922,5 +932,260 @@ object TechnicalAnalysis {
         } catch (_: Exception) {
             false
         }
+    }
+
+    // ==========================================
+    // Multi-Timeframe (MTF) Macro Resampling
+    // ==========================================
+
+    fun resampleToWeeklyCloses(dailyPrices: List<Double>): List<Double> {
+        if (dailyPrices.isEmpty()) return emptyList()
+        // Chunk daily closes into weekly bars (5 trading days ≈ 1 week)
+        return dailyPrices.chunked(5) { it.last() }
+    }
+
+    fun isWeeklyMacroBullish(dailyCloses: List<Double>, weeklyPeriod: Int = TradingConstants.WEEKLY_EMA_PERIOD): Boolean? {
+        val weeklyCloses = resampleToWeeklyCloses(dailyCloses)
+        if (weeklyCloses.size < weeklyPeriod) return null
+        val weeklyEma = calculateEMA(weeklyCloses, weeklyPeriod).lastOrNull() ?: return null
+        val currentPrice = dailyCloses.lastOrNull() ?: return null
+        return currentPrice >= weeklyEma
+    }
+
+    // ==========================================
+    // Portfolio Risk Concentration & Sector Cap
+    // ==========================================
+
+    data class SectorExposure(
+        val sector: String,
+        val marketValue: Double,
+        val portfolioPercent: Double,
+        val isOverexposed: Boolean
+    )
+
+    fun calculateSectorExposures(
+        holdings: List<Pair<String, Double>>, // Pair(sector, marketValue)
+        cashBalance: Double,
+        maxSectorPercent: Double = TradingConstants.MAX_SECTOR_ALLOCATION_PERCENT
+    ): List<SectorExposure> {
+        val totalAssets = holdings.sumOf { it.second } + maxOf(cashBalance, 0.0)
+        if (totalAssets <= 0.0) return emptyList()
+
+        val grouped = holdings.groupBy({ it.first.ifBlank { "Other" } }, { it.second })
+        return grouped.map { (sector, values) ->
+            val sectorValue = values.sum()
+            val percent = (sectorValue / totalAssets) * 100.0
+            SectorExposure(
+                sector = sector,
+                marketValue = sectorValue,
+                portfolioPercent = percent,
+                isOverexposed = percent > maxSectorPercent
+            )
+        }.sortedByDescending { it.marketValue }
+    }
+
+    // ==========================================
+    // Thai Dividend Tax Shield & Net YoC
+    // ==========================================
+
+    /**
+     * Thai Dividend Tax Credit (Section 47 bis, Revenue Code):
+     * Tax Credit = Gross Dividend * (CIT_rate / (100 - CIT_rate))
+     * Where Gross Dividend = Net Dividend Received / (1 - WHT_rate)
+     */
+    fun calculateThaiDividendTaxCredit(
+        netDividendReceived: Double,
+        citRate: Double = TradingConstants.DEFAULT_CIT_TAX_RATE,
+        whtRate: Double = TradingConstants.THAI_DIVIDEND_WHT_RATE
+    ): Double {
+        if (netDividendReceived <= 0.0 || citRate <= 0.0 || citRate >= 100.0) return 0.0
+        val grossDividend = netDividendReceived / (1.0 - (whtRate / 100.0))
+        val creditMultiplier = citRate / (100.0 - citRate)
+        return grossDividend * creditMultiplier
+    }
+
+    /**
+     * Net Yield-on-Cost (YoC) after standard 10% withholding tax.
+     */
+    fun calculateNetYieldOnCost(
+        annualDps: Double,
+        avgCost: Double,
+        whtRate: Double = TradingConstants.THAI_DIVIDEND_WHT_RATE
+    ): Double {
+        if (avgCost <= 0.0 || annualDps <= 0.0) return 0.0
+        val netDps = annualDps * (1.0 - (whtRate / 100.0))
+        return (netDps / avgCost) * 100.0
+    }
+
+    // ==========================================
+    // Portfolio & Single Stock Beta vs SET Index
+    // ==========================================
+
+    /**
+     * Beta of stock vs benchmark index over N trading days:
+     * Beta = Cov(R_stock, R_index) / Var(R_index)
+     */
+    fun calculateBeta(
+        stockPrices: List<Double>,
+        indexPrices: List<Double>,
+        days: Int = 63
+    ): Double? {
+        if (stockPrices.size < days + 1 || indexPrices.size < days + 1) return null
+        val stockSub = stockPrices.takeLast(days + 1)
+        val indexSub = indexPrices.takeLast(days + 1)
+
+        val stockReturns = stockSub.zipWithNext { a, b -> if (a > 0.0) (b - a) / a else 0.0 }
+        val indexReturns = indexSub.zipWithNext { a, b -> if (a > 0.0) (b - a) / a else 0.0 }
+
+        val meanStock = stockReturns.average()
+        val meanIndex = indexReturns.average()
+
+        var covariance = 0.0
+        var varianceIndex = 0.0
+        for (i in stockReturns.indices) {
+            val diffStock = stockReturns[i] - meanStock
+            val diffIndex = indexReturns[i] - meanIndex
+            covariance += diffStock * diffIndex
+            varianceIndex += diffIndex * diffIndex
+        }
+
+        if (varianceIndex <= 1e-12) return null
+        return covariance / varianceIndex
+    }
+
+    /**
+     * Weighted Portfolio Beta: sum(weight_i * beta_i) / sum(weight_i)
+     */
+    fun calculatePortfolioBeta(weightedBetas: List<Pair<Double, Double>>): Double {
+        val totalWeight = weightedBetas.sumOf { it.first }
+        if (totalWeight <= 0.0) return 1.0
+        val weightedSum = weightedBetas.sumOf { (weight, beta) -> weight * beta }
+        return weightedSum / totalWeight
+    }
+
+    // ==========================================
+    // Quantitative Risk Management & CRO Models
+    // ==========================================
+
+    data class PositionSizeRecommendation(
+        val shares: Int,
+        val totalCapital: Double,
+        val totalRiskBaht: Double,
+        val riskPercent: Double,
+        val isCappedByMaxStockLimit: Boolean
+    )
+
+    /**
+     * Fixed-fractional anti-ruin position sizing:
+     * Max Risk Baht = Total Assets * Risk%
+     * Per Share Risk = Entry Price - Stop Loss Price
+     * Raw Shares = Max Risk Baht / Per Share Risk
+     * Rounded down to nearest 100 SET board lot and capped by max single-stock allocation limit (15%).
+     */
+    fun calculateRecommendedPositionSize(
+        totalAssets: Double,
+        entryPrice: Double,
+        stopLossPrice: Double,
+        riskPercent: Double = 1.5,
+        maxStockAllocationPercent: Double = TradingConstants.MAX_SINGLE_STOCK_ALLOCATION_PERCENT
+    ): PositionSizeRecommendation {
+        if (totalAssets <= 0.0 || entryPrice <= 0.0 || stopLossPrice >= entryPrice || stopLossPrice <= 0.0) {
+            return PositionSizeRecommendation(
+                shares = 0,
+                totalCapital = 0.0,
+                totalRiskBaht = 0.0,
+                riskPercent = 0.0,
+                isCappedByMaxStockLimit = false
+            )
+        }
+
+        val maxRiskBaht = totalAssets * (riskPercent / 100.0)
+        val perShareRisk = entryPrice - stopLossPrice
+        val rawShares = (maxRiskBaht / perShareRisk).toInt()
+
+        // Single stock capital ceiling
+        val maxStockCapital = totalAssets * (maxStockAllocationPercent / 100.0)
+        val maxStockShares = (maxStockCapital / entryPrice).toInt()
+
+        val isCapped = rawShares > maxStockShares
+        val finalSharesUnrounded = if (isCapped) maxStockShares else rawShares
+
+        // Round down to SET board lot (100 shares)
+        val boardLotShares = (finalSharesUnrounded / 100) * 100
+        val finalShares = boardLotShares.coerceAtLeast(0)
+
+        val totalCapital = finalShares * entryPrice
+        val totalRiskBaht = finalShares * perShareRisk
+        val effectiveRiskPercent = if (totalAssets > 0.0) (totalRiskBaht / totalAssets) * 100.0 else 0.0
+
+        return PositionSizeRecommendation(
+            shares = finalShares,
+            totalCapital = totalCapital,
+            totalRiskBaht = totalRiskBaht,
+            riskPercent = effectiveRiskPercent,
+            isCappedByMaxStockLimit = isCapped
+        )
+    }
+
+    data class DrawdownResult(
+        val maxDrawdownPercent: Double,
+        val currentDrawdownPercent: Double,
+        val highWaterMark: Double
+    )
+
+    /**
+     * Max Drawdown (MDD) and current drawdown from High Water Mark (HWM)
+     */
+    fun calculateMaxDrawdown(equitySeries: List<Double>): DrawdownResult {
+        if (equitySeries.isEmpty()) {
+            return DrawdownResult(0.0, 0.0, 0.0)
+        }
+
+        var hwm = equitySeries.first()
+        var maxDd = 0.0
+        var currentDd = 0.0
+
+        for (equity in equitySeries) {
+            if (equity > hwm) {
+                hwm = equity
+            }
+            val dd = if (hwm > 0.0) ((hwm - equity) / hwm) * 100.0 else 0.0
+            if (dd > maxDd) {
+                maxDd = dd
+            }
+            currentDd = dd
+        }
+
+        return DrawdownResult(
+            maxDrawdownPercent = maxDd,
+            currentDrawdownPercent = currentDd,
+            highWaterMark = hwm
+        )
+    }
+
+    /**
+     * Historical 1-day Value at Risk (VaR):
+     * Return at the (1 - confidenceLevel) percentile of the empirical return distribution.
+     * Returned as a positive percentage loss (e.g. 2.45%).
+     */
+    fun calculateHistoricalVaR(returns: List<Double>, confidenceLevel: Double = 0.95): Double {
+        if (returns.isEmpty()) return 0.0
+        val sorted = returns.sorted()
+        val index = ((1.0 - confidenceLevel) * (sorted.size - 1)).toInt().coerceIn(0, sorted.size - 1)
+        val varReturn = sorted[index]
+        return if (varReturn < 0.0) -varReturn * 100.0 else 0.0
+    }
+
+    /**
+     * Conditional Value at Risk (CVaR / Expected Shortfall):
+     * The average loss in the worst (1 - confidenceLevel) tail beyond the VaR threshold.
+     */
+    fun calculateConditionalVaR(returns: List<Double>, confidenceLevel: Double = 0.95): Double {
+        if (returns.isEmpty()) return 0.0
+        val sorted = returns.sorted()
+        val cutoffIndex = ((1.0 - confidenceLevel) * sorted.size).toInt().coerceIn(1, sorted.size)
+        val tailReturns = sorted.subList(0, cutoffIndex)
+        val avgTailReturn = tailReturns.average()
+        return if (avgTailReturn < 0.0) -avgTailReturn * 100.0 else 0.0
     }
 }

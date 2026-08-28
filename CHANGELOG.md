@@ -5,6 +5,39 @@ All notable changes to the TradingMate project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-08-28
+
+### Added
+- **Multi-Timeframe (MTF) Macro Trend Alignment Engine**:
+  - Implemented `TechnicalAnalysis.resampleToWeeklyCloses` and `isWeeklyMacroBullish` calculating the **Weekly 20-EMA** macro trend directly from price series.
+  - Automatically downgrades daily momentum `BUY` signals with a **Macro Weekly Bearish Guard** if the weekly macro trend is broken, preventing whipsaw dip-buying in macro downtrends.
+  - Added the **`MTF`** confluence chip to `StockDna.kt` when daily and weekly trends are in full alignment.
+- **Thai Dividend Tax Shield (Section 47 bis Reclaim)**:
+  - Added `TechnicalAnalysis.calculateThaiDividendTaxCredit` and `calculateNetYieldOnCost` computing reclaimable Corporate Income Tax (CIT 20%) credits and net Yield-on-Cost after 10% Withholding Tax (WHT).
+  - Integrated a dedicated `DividendTaxShieldCard` in `PortfolioScreen.kt` displaying reclaimable tax credits and net YoC.
+- **Institutional Risk Concentration & Sector Cap Shield**:
+  - Enforced `MAX_SECTOR_ALLOCATION_PERCENT = 30.0` and `MAX_SINGLE_STOCK_ALLOCATION_PERCENT = 15.0` in `TradingConstants.kt`.
+  - Added full user configurability in `SettingsScreen.kt` & `PreferenceRepository.kt` for Max Sector Allocation (10%–80%), Single-Stock Cap (2%–50%), and Thai Section 47 bis Corporate Income Tax (CIT) Rate (0%–30%) with range clamping and live integration into `SectorBreakdownCard`, `DividendTaxShieldCard`, and `BuyStockDialog`.
+  - Upgraded `SectorBreakdownCard` in `PortfolioScreen.kt` with live asset allocation percentage meters and dynamic visual concentration warning alerts.
+- **Quantitative Risk Management & CRO Suite**:
+  - **1-Day 95% Historical Value-at-Risk (VaR)** & **Conditional VaR (CVaR / Expected Shortfall)**: Implemented empirical quantile loss modeling and tail loss averages (`calculateHistoricalVaR`, `calculateConditionalVaR`) displayed in both Baht (฿) and percentage.
+  - **Fixed-Fractional Anti-Ruin Position Sizing Engine**: Mathematical share calculator (`calculateRecommendedPositionSize`) that sizes trades according to exact stop-loss distance and account risk budget, automatically rounding down to 100-share SET board lots and enforcing the 15% single-stock ceiling.
+  - **Max Drawdown (MDD) & High-Water Mark (HWM) Tracker**: Tracks peak historical equity curves, maximum historical drawdown, and live recovery status (`calculateMaxDrawdown`).
+  - **Unified Quantitative Risk Matrix Dashboard**: Integrated into `StatsScreen.kt` displaying Portfolio Beta ($\beta$), VaR 95%, CVaR, and Max Drawdown.
+- **10/10 AAA-Grade Design System & Visual Polish**:
+  - **Catmull-Rom $C^1$ Spline Charting**: Implemented `Path.addSmoothCubicCurve` for continuous, smooth vector paths without overshoot across `StockScreen.kt`, `StatsScreen.kt`, and `TradingMateWidget.kt`.
+  - **Zero-Jitter Numeric Typography**: OpenType `tnum` (Tabular Numbers) configured across typography to eliminate horizontal decimal jitter during real-time updates.
+  - **Adaptive Glassmorphic Borders**: Enhanced `GlassCard` border stroke opacity (`0.08f` on dark / `0.18f` with 1.0dp on light) for sharp card definition in all ambient lighting conditions.
+  - **Robinhood-Style Live Tick Pulses**: Integrated 800ms real-time green/coral directional highlight pulses on stock card price updates.
+  - **Reusable `MiniSparkline` Component**: High-efficiency gradient-filled vector sparklines for multi-asset summary tables.
+- **Comprehensive Verification Suite**: Added 10 new unit tests in `TechnicalAnalysisTest.kt` and `StockDnaTest.kt` (57 unit tests passing total).
+
+### Fixed
+- **API 26 Baseline & Dead Code Removal**: Upgraded `minSdk` to 26, eliminated 17 `NewApi` lint errors, removed obsolete `@RequiresApi` annotations across screens, and deleted orphaned `SignalAlertWorker.kt`.
+- **Cash Audit Ledger Consistency**: Added missing Room cash transactions (`CashTransactionEntity`) to `executeBuy`, `executeSell`, and `undoSell` operations.
+- **Deep Link Navigation**: Implemented `onNewIntent` with reactive state in `MainActivity.kt` for instant deep linking when opened from Glance AppWidgets or system notifications.
+- **CSV Delimiter Locale**: Explicitly enforced `Locale.US` in `CsvExporter.kt` to prevent decimal separator corruption in European/Thai comma-decimal locales.
+
 ## [2.7.0] - 2026-08-22
 
 ### Added

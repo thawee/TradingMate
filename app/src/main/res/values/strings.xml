@@ -214,13 +214,13 @@
     <string name="edu_rs_title">Relative Strength vs SET (The Race)</string>
     <string name="edu_rs_content">Compares a stock\'s 3-month return against the SET index. \n\n• RS &gt; 0: The stock is outperforming the market — winners tend to keep winning.\n• RS &lt; 0: A market laggard. Even if it looks cheap, money is flowing elsewhere. Stocks with positive RS earn the \'RS\' tag.</string>
     <string name="edu_52w_title">52-Week Low Guard (The Trap Detector)</string>
-    <string name="edu_52w_content">Stocks trading within 5% of their 52-week low often \'look cheap\' on RSI and P/E, but are structural decliners making new lows. The Pre-Filter automatically excludes them from all Swing, Dividend, and Gap-Up candidate lists.</string>
+    <string name="edu_52w_content" formatted="false">Stocks trading within 5% of their 52-week low often \'look cheap\' on RSI and P/E, but are structural decliners making new lows. The Pre-Filter automatically excludes them from all Swing, Dividend, and Gap-Up candidate lists.</string>
     <string name="edu_atr_title">ATR (The Breathing Room)</string>
-    <string name="edu_atr_content">Average True Range measures how much a stock typically moves per day. \n\n• Stop Loss: set at 2× ATR (clamped -3.5% to -8%) — tight on calm stocks, wider on volatile ones so normal wiggles don\'t shake you out.\n• Trailing Stop: 2.5× ATR from the peak protects profits without exiting on noise.</string>
+    <string name="edu_atr_content" formatted="false">Average True Range measures how much a stock typically moves per day. \n\n• Stop Loss: set at 2× ATR (clamped -3.5% to -8%) — tight on calm stocks, wider on volatile ones so normal wiggles don\'t shake you out.\n• Trailing Stop: 2.5× ATR from the peak protects profits without exiting on noise.</string>
     <string name="edu_adx_title">ADX (The Regime Detector)</string>
     <string name="edu_adx_content">ADX measures trend STRENGTH (not direction). \n\n• Below 20: Choppy range — momentum buy signals are suppressed (whipsaw noise).\n• 25–40: Healthy trend — momentum entries are valid.\n• Above 40: Violent move — oversold \'bargains\' are downgraded to watch-only (Falling Knife Guard).</string>
     <string name="edu_stoch_title">Stochastic (The Reversal Timer)</string>
-    <string name="edu_stoch_content">Shows where today\'s close sits within the recent 14-day range (%K), smoothed into %D. \n\n• Oversold BUY signals require %K to cross ABOVE %D first — proof the bounce has actually started.\n• If %K &lt; 20 and still below %D, the stock is cheap but STILL FALLING. The app waits (\'Reversal Not Confirmed\').</string>
+    <string name="edu_stoch_content" formatted="false">Shows where today\'s close sits within the recent 14-day range (%K), smoothed into %D. \n\n• Oversold BUY signals require %K to cross ABOVE %D first — proof the bounce has actually started.\n• If %K &lt; 20 and still below %D, the stock is cheap but STILL FALLING. The app waits (\'Reversal Not Confirmed\').</string>
     <string name="edu_mfi_title">MFI (The Smart Money Gauge)</string>
     <string name="edu_mfi_content">A volume-weighted RSI — it tracks where the MONEY flows, not just price. \n\n• MFI ≥ 80 (Distribution): Heavy volume selling into strength. On a profitable position, the app triggers a SELL.\n• MFI ≤ 20 (Capitulation): A panic-volume flush that often marks the bottom — counts as volume confirmation for Early Recovery buys.</string>
     <string name="edu_golden_rule_title">The Golden Rule</string>
@@ -246,12 +246,17 @@
     <string name="label_dividend_alert_end_year">Show until end of year</string>
     <string name="label_no_upcoming_dividends">No upcoming dividends in the specified window.</string>
     <!-- Settings Descriptions -->
-    <string name="desc_max_risk_per_trade">The maximum percentage of your total account equity you are willing to lose on a single trade. If your stop loss is hit, you will lose exactly this amount.</string>
+    <string name="desc_max_risk_per_trade" formatted="false">The maximum percentage of your total account equity you are willing to lose on a single trade (Standard: 1.0%–2.0%). Used by the Fixed-Fractional Position Sizing Engine.</string>
     <string name="label_trailing_stop_percent">Trailing Stop Loss</string>
-    <string name="desc_trailing_stop_percent">The percentage drop from a stock\'s peak price that will trigger a stop loss alert.</string>
-    <string name="desc_max_open_exposure">The maximum combined risk across all your currently open trades. This protects your account from sudden, broad market crashes.</string>
-    <string name="desc_max_portfolio_allocation">The maximum percentage of your total account capital that can be invested in a single stock. Prevents you from putting all your eggs in one basket.</string>
-    <string name="desc_min_risk_reward">The minimum ratio between your potential profit (Reward) and potential loss (Risk) required to take a trade. A ratio of 2.0 means you expect to make twice as much as you risk losing.</string>
+    <string name="desc_trailing_stop_percent" formatted="false">The percentage drop from a stock\'s peak price that will trigger a stop loss alert (Standard: 4.0%–7.0%).</string>
+    <string name="desc_max_open_exposure" formatted="false">The maximum combined risk across all your currently open trades. Protects your total capital from broad market flash crashes.</string>
+    <string name="label_max_portfolio_allocation">Max Single-Stock Allocation Cap</string>
+    <string name="desc_max_portfolio_allocation" formatted="false">The maximum percentage of your total account capital that can be invested in any single stock (Standard: 10%–15%). Protects against company-specific black swan catastrophes.</string>
+    <string name="label_max_sector_allocation">Max Sector Concentration Cap</string>
+    <string name="desc_max_sector_allocation" formatted="false">The maximum portfolio capital allocated to any single industry sector (Standard: 25%–30%). Triggers yellow concentration warnings in the Portfolio dashboard.</string>
+    <string name="label_cit_tax_rate">Thai Dividend CIT Rate (Sec. 47 bis)</string>
+    <string name="desc_cit_tax_rate" formatted="false">Corporate Income Tax (CIT) rate used to estimate personal income tax credits on Thai cash dividend payouts (Standard SET: 20%, SMEs: 15%, REITs/Infra: 0%).</string>
+    <string name="desc_min_risk_reward" formatted="false">The minimum ratio between potential profit (Reward) and potential loss (Risk) required to take a trade (Standard: 2.0:1 or higher).</string>
 
     <!-- Education - 6 Layers -->
     <string name="title_education_concept">TradingMate Concept: The 6 Layers</string>

@@ -112,7 +112,6 @@ data class StockFocusInfo(
     val info: ScrapedStockInfo? = null
 )
 
-@RequiresApi(Build.VERSION_CODES.O)
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = application.appRepository
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
@@ -543,7 +542,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun checkAndResetChecklist(existing: ChecklistEntity): ChecklistEntity {
         val zoneId = java.time.ZoneId.of("Asia/Bangkok")
         val now = java.time.ZonedDateTime.now(zoneId)

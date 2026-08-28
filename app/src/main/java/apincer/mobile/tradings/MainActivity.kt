@@ -27,13 +27,14 @@ import java.util.concurrent.TimeUnit
 
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
-import androidx.annotation.RequiresApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 class MainActivity : ComponentActivity() {
-    private var openSymbol: String? = null
-    private var startScreen: String? = null
+    private var openSymbolState by mutableStateOf<String?>(null)
+    private var startScreenState by mutableStateOf<String?>(null)
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -45,12 +46,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openSymbolState = intent.getStringExtra("OPEN_SYMBOL")
+        startScreenState = intent.getStringExtra("START_SCREEN")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        openSymbol = intent?.getStringExtra("OPEN_SYMBOL")
-        startScreen = intent?.getStringExtra("START_SCREEN")
+        openSymbolState = intent?.getStringExtra("OPEN_SYMBOL")
+        startScreenState = intent?.getStringExtra("START_SCREEN")
 
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
@@ -72,7 +79,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    StockScreen(openSymbol = openSymbol, startScreen = startScreen)
+                    StockScreen(openSymbol = openSymbolState, startScreen = startScreenState)
                 }
             }
         }

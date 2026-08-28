@@ -21,8 +21,17 @@ object CsvExporter {
             val profit = (price - cost) * qty
             val profitPct = if (cost > 0) ((price - cost) / cost) * 100 else 0.0
 
-            "\"${item.info.symbol}\",\"${item.info.name ?: ""}\",$qty,%.2f,%.2f,%.2f,%.2f,%.2f%%".format(
-                cost, price, value, profit, profitPct
+            String.format(
+                java.util.Locale.US,
+                "\"%s\",\"%s\",%d,%.2f,%.2f,%.2f,%.2f,%.2f%%",
+                item.info.symbol,
+                item.info.name ?: "",
+                qty,
+                cost,
+                price,
+                value,
+                profit,
+                profitPct
             )
         }
 
