@@ -5,6 +5,27 @@ All notable changes to the TradingMate project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-09-08
+
+### Added
+- **Regime-Aware Spendable Cash & Mandated Reserve Guards**:
+  - Implemented `TechnicalAnalysis.getRecommendedCashBufferPercent` and `calculateSpendableCash` establishing institutional cash reserve targets based on macroeconomic regimes: **15% in Bullish**, **30% in Sideways/Neutral**, and **50% in Bearish** conditions.
+  - Injected mandated cash buffer percentages, target reserve balances in THB, and true spendable capital into Gemini AI Advisor Master Prompts (`buildSwingPrompt`, `buildDividendPrompt` in `DividendAdvisorScreen.kt`, and single-stock AI prompt in `StockScreen.kt`). Prevents AI recommendations from breaching safe liquidity reserves.
+- **Interactive Live Cash Buffer Guard in Buy Order Dialog**:
+  - Integrated a real-time **Cash Buffer & Liquidity** gauge card directly into `BuyStockDialog` (`PortfolioScreen.kt`).
+  - Dynamically calculates post-trade cash balance and projected cash buffer percentage as the user modifies purchase share quantity.
+  - Features real-time visual alerts: **Healthy (Green)** when preserving target reserve, **Warning (Orange)** when depleting cash below regime target, and **Error (Red)** on insufficient cash balance.
+- **63-Day Rolling Weighted Time-Series VaR & Tail Risk (CVaR)**:
+  - Added `TechnicalAnalysis.calculatePortfolioHistoricalReturns` to construct weighted portfolio daily return time series ($R_{p,t} = \sum_i w_i R_{i,t} / \sum_i w_i$) across 63 trading days (approx. 1 financial quarter).
+  - Updated `InstitutionalRiskCard` in `StatsScreen.kt` to evaluate empirical 1-day 95% Historical Value-at-Risk (VaR) and Expected Shortfall (CVaR) based on true multi-asset time-series returns rather than single-day snapshot proxies.
+  - Added asynchronous background fetching and in-memory caching of historical closes in `PortfolioViewModel.kt` (`loadHistoricalClosesForHoldings`).
+- **Mark-to-Market (MTM) Daily NAV Performance Trajectory**:
+  - Exposed `allSnapshots` StateFlow in `PortfolioViewModel.kt` and added automatic daily snapshot recording upon portfolio inspection.
+  - Upgraded `StatsScreen.kt` with a segmented `FilterChip` toggle between **MTM NAV (Daily)** and **Realized PnL (Monthly)**.
+  - Linked daily MTM snapshots into `TechnicalAnalysis.calculateMaxDrawdown` to measure real peak-to-trough mark-to-market drawdown including unrealized portfolio price swings.
+- **Expanded Verification Suite**:
+  - Added comprehensive unit tests in `TechnicalAnalysisTest.kt` for regime cash buffers, spendable cash calculations, 63-day portfolio historical return distributions, and empirical VaR/CVaR (59 unit tests passing total, 100% success rate).
+
 ## [3.0.0] - 2026-08-28
 
 ### Added

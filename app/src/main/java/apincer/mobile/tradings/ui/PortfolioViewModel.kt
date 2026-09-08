@@ -6,11 +6,15 @@ import androidx.lifecycle.viewModelScope
 import apincer.mobile.tradings.appRepository
 import apincer.mobile.tradings.data.PreferenceRepository
 import apincer.mobile.tradings.data.TradeEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 class PortfolioViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = application.appRepository
@@ -37,7 +41,56 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             started = SharingStarted.Lazily,
             initialValue = emptyList()
         )
-    
+
+    val allSnapshots: StateFlow<List<apincer.mobile.tradings.data.PortfolioSnapshotEntity>> =
+        repository.allSnapshots.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = emptyList()
+        )
+
+    private val historicalClosesCache = ConcurrentHashMap<String, List<Double>>()
+    private val _portfolioHistoricalCloses = MutableStateFlow<Map<String, List<Double>>>(emptyMap())
+    val portfolioHistoricalCloses: StateFlow<Map<String, List<Double>>> = _portfolioHistoricalCloses.asStateFlow()
+
+    fun loadHistoricalClosesForHoldings(symbols: List<String>) {
+        if (symbols.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val resultMap = HashMap<String, List<Double>>(historicalClosesCache)
+            var hasNew = false
+            for (sym in symbols) {
+                val upper = sym.uppercase()
+                if (!resultMap.containsKey(upper)) {
+                    val prices = apincer.mobile.tradings.data.SetScraper.fetchHistoricalPrices(upper).map { it.close }
+                    if (prices.isNotEmpty()) {
+                        resultMap[upper] = prices
+                        historicalClosesCache[upper] = prices
+                        hasNew = true
+                    }
+                }
+            }
+            if (hasNew || _portfolioHistoricalCloses.value.isEmpty()) {
+                _portfolioHistoricalCloses.value = resultMap
+            }
+        }
+    }
+
+    fun takeSnapshot(holdings: List<StockWatchlistInfo>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val openHoldings = holdings.filter { it.portfolio.quantity > 0 }
+            val totalValue = openHoldings.sumOf { it.info.lastPrice * it.portfolio.quantity }
+            val totalCost = openHoldings.sumOf { it.portfolio.cost * it.portfolio.quantity + it.portfolio.buyFees }
+            val currentCash = cashBalance.value
+            val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            val snapshot = apincer.mobile.tradings.data.PortfolioSnapshotEntity(
+                date = todayStr,
+                totalValue = totalValue,
+                totalCost = totalCost,
+                cashBalance = currentCash
+            )
+            repository.insertSnapshot(snapshot)
+        }
+    }
 
     val dividendHistory: StateFlow<List<apincer.mobile.tradings.data.DividendHistoryEntity>> = 
         repository.allDividends.stateIn(

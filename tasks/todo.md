@@ -1,33 +1,32 @@
-# Configurable Settings & User Information Plan
+# Option C Implementation Plan: Comprehensive Risk, Cash & Quant Suite
 
-- [x] **Settings Pillar 1: DataStore & ViewModel Expansion** <!-- id: 951 -->
-  - [x] Add `maxSectorAllocation` (default 30.0%) and `citTaxRate` (default 20.0%) to `PreferenceRepository.kt` <!-- id: 952 -->
-  - [x] Update `maxPortfolioAllocation` default to 15.0% in `PreferenceRepository.kt` <!-- id: 953 -->
-  - [x] Implement range clamping and sanity bounds in `SettingsViewModel.kt` <!-- id: 954 -->
-- [x] **Settings Pillar 2: Rich Guidance UI in SettingsScreen.kt** <!-- id: 955 -->
-  - [x] Add comprehensive institutional explanatory helper text and standard benchmark ranges for every setting <!-- id: 956 -->
-  - [x] Add input fields for Single-Stock Cap, Sector Cap, and Thai Section 47 bis CIT Rate <!-- id: 957 -->
-- [x] **Settings Pillar 3: Wire Settings to Portfolio & Dialogs** <!-- id: 958 -->
-  - [x] Connect `maxSectorAllocation` to `SectorBreakdownCard` in `PortfolioScreen.kt` <!-- id: 959 -->
-  - [x] Connect `citTaxRate` to `DividendTaxShieldCard` in `PortfolioScreen.kt` <!-- id: 960 -->
-  - [x] Pass `maxPortfolioAllocation` into `BuyStockDialog` position sizing calculation <!-- id: 961 -->
-- [x] **Settings Pillar 4: Verification & Test Suite** <!-- id: 962 -->
-  - [x] Run `./gradlew compileDebugKotlin` & `./gradlew testDebugUnitTest` (57 tests passed) <!-- id: 963 -->
-  - [x] Run `./gradlew lintDebug` (0 errors) <!-- id: 964 -->
+- [x] **Phase 1: Regime-Aware Spendable Cash in AI Prompts** <!-- id: 201 -->
+  - [x] Add regime-based cash buffer target calculation (Bull: 15%, Sideways: 30%, Bear: 50%) <!-- id: 202 -->
+  - [x] Inject mandated buffer, target cash reserve, and spendable capital into `buildSwingPrompt` and `buildDividendPrompt` in `DividendAdvisorScreen.kt` <!-- id: 203 -->
+  - [x] Update single-stock AI prompt in `StockScreen.kt` to include cash and regime context <!-- id: 204 -->
+- [x] **Phase 2: Live Cash Buffer Warning in Buy Stock Dialog** <!-- id: 205 -->
+  - [x] Pass `marketRegime` into `BuyStockDialog` in `PortfolioScreen.kt` <!-- id: 206 -->
+  - [x] Compute projected remaining cash and cash buffer % in real-time as user changes share quantity <!-- id: 207 -->
+  - [x] Render dynamic visual cash buffer badge (healthy green vs low-cash warning banner) in `BuyStockDialog` <!-- id: 208 -->
+- [x] **Phase 3: 63-Day Rolling Time-Series Portfolio VaR & CVaR** <!-- id: 209 -->
+  - [x] Add `calculatePortfolioHistoricalReturns` in `TechnicalAnalysis.kt` to construct weighted daily return time series <!-- id: 210 -->
+  - [x] Update `StatsScreen.kt` to use the 63-day time-series return distribution for 1-day 95% VaR & CVaR <!-- id: 211 -->
+- [x] **Phase 4: Mark-to-Market Equity Trajectory from Daily Snapshots** <!-- id: 212 -->
+  - [x] Expose `allSnapshots` StateFlow in `PortfolioViewModel.kt` <!-- id: 213 -->
+  - [x] Integrate snapshot trajectory into `StatsScreen.kt` equity visualization <!-- id: 214 -->
+- [x] **Phase 5: Verification & Testing** <!-- id: 215 -->
+  - [x] Add unit tests in `TechnicalAnalysisTest.kt` for time-series VaR, cash buffer, and spendable cash calculations <!-- id: 216 -->
+  - [x] Run `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` <!-- id: 217 -->
 
-## Review & Verification
-- **Full Settings Configurability:**
-  - Added user configurable **Max Sector Concentration Cap** (10%–80%, default 30%) with live warning thresholds in `SectorBreakdownCard`.
-  - Added user configurable **Thai Dividend CIT Tax Rate** (0%–30%, default 20%) for Section 47 bis tax credit calculations in `DividendTaxShieldCard`.
-  - Upgraded **Max Single-Stock Allocation Cap** (2%–50%, default 15%) to dynamically throttle maximum capital in `calculateRecommendedPositionSize` across all buy dialogs.
-- **Input Sanitization & Range Clamping:**
-  - Enforced defensive `.coerceIn()` / `.coerceAtLeast()` bounds in `SettingsViewModel.kt` to prevent runtime crashes, zero divisions, or corrupted calculation states.
-- **Rich Guidance & Tooltips:**
-  - Provided clear institutional-grade guidance and standard industry benchmark ranges (e.g. 1.0%–2.0% risk per trade, 10%–15% single-stock cap, 25%–30% sector cap) below every input field.
-- **Verification:**
-  - Added `testConfigurableSectorAndTaxCreditCalculations` in `TechnicalAnalysisTest.kt`.
-  - `./gradlew testDebugUnitTest` passed (57/57 tests).
-  - `./gradlew lintDebug` passed with 0 errors.
+## Release 3.1.0 Packaging & Documentation
+- [x] Update `CHANGELOG.md` with version 3.1.0 release notes <!-- id: 301 -->
+- [x] Update `README.md` with new features (cash buffers, time-series VaR, MTM NAV trajectory) <!-- id: 302 -->
+- [x] Bump version in `app/build.gradle.kts` to `versionCode = 25`, `versionName = "3.1.0"` <!-- id: 303 -->
+- [x] Verify build and tests via `./gradlew testDebugUnitTest` <!-- id: 304 -->
+- [x] Commit all changes with conventional commit message <!-- id: 305 -->
+
+
+
 
 
 

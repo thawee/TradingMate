@@ -15,10 +15,11 @@ It specifically addresses common beginner challenges:
 ## ✨ Key Features
 
 - **Institutional Risk Management & CRO Suite:**
-  - **1-Day 95% Historical Value-at-Risk (VaR)** and **Conditional VaR (CVaR / Expected Shortfall)** to model extreme downside tail risk in ฿ and %.
-  - **Anti-Ruin Fixed Fractional Position Sizing:** Automatically computes exact share size per trade based on account risk budget ($1.0\%-2.0\%$) and stop-loss distance, rounded down to SET 100-share board lots.
-  - **Concentration Shields:** Strictly enforces a **15% Single-Stock Allocation Limit** and **30% Sector Allocation Cap**.
-  - **Max Drawdown (MDD) & High-Water Mark Tracker:** Visualizes all-time peak equity and drawdown recovery status in the Stats dashboard.
+  - **63-Day Rolling Time-Series VaR (95%) & Conditional VaR (CVaR)**: Constructs a true weighted daily return time series across 63 trading days ($R_{p,t} = \sum_i w_i R_{i,t} / \sum_i w_i$) to evaluate empirical downside tail risk and expected shortfall in ฿ and %.
+  - **Dynamic Regime-Aware Cash Buffers & Spendable Cash Engine**: Mathematically mandates cash buffer reserves (**15% in Bull, 30% in Sideways, 50% in Bear**). Enforces real-time cash guards in `BuyStockDialog` and injects exact spendable capital limits into Gemini AI prompts.
+  - **Mark-to-Market (MTM) Daily NAV Trajectory & Peak Drawdown**: Tracks real daily portfolio equity snapshots with interactive toggle between **MTM NAV (Daily)** and **Realized PnL (Monthly)**, computing true peak-to-trough mark-to-market Max Drawdown (MDD).
+  - **Anti-Ruin Fixed Fractional Position Sizing**: Automatically computes exact share size per trade based on account risk budget ($1.0\%-2.0\%$) and stop-loss distance, rounded down to SET 100-share board lots.
+  - **Concentration Shields**: Strictly enforces a **15% Single-Stock Allocation Limit** and **30% Sector Allocation Cap** (user-configurable in Settings).
   - **63-Day Rolling Covariance Portfolio Beta ($\beta$):** Tracks systematic volatility vs. SET Index (*Defensive Low-Vol*, *Balanced*, or *Aggressive High-Beta*).
 - **Multi-Timeframe (MTF) Macro Trend Alignment:** Daily candle resampling to compute **Weekly 20-EMA** macro trends. Prevents counter-trend daily whipsaw buys with the **Macro Weekly Bearish Guard** and awards the `MTF` confluence tag.
 - **Thai Dividend Tax Shield (Section 47 bis):** Calculates reclaimable Corporate Income Tax (CIT 20%) credits ($\text{Gross} \times \frac{20}{80}$) and Net Yield-on-Cost ($\text{YoC}_{\text{net}}$) after 10% Withholding Tax.
@@ -88,8 +89,8 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
    - Oversold buys require %K to cross above %D — no entries while price is still falling.
 11. **MFI (14) - The Smart Money Gauge**
    - Volume-weighted RSI: ≥ 80 triggers Distribution SELL on profits; ≤ 20 confirms capitulation buys.
-12. **Market Regime Gate & Cash Buffer Guidance**
-   - Evaluates SET Index vs. SMA 50 and MACD. Enforces 50% defensive sizing in Bear markets and dynamic cash reserve buffers (10–15% Bull, 25–35% Sideways, 50%+ Bear).
+12. **Market Regime Gate & Dynamic Cash Buffer Enforcement**
+   - Evaluates SET Index vs. SMA 50 and MACD. Enforces 50% defensive sizing in Bear markets and dynamic cash reserve buffers (**15% Bull, 30% Sideways, 50% Bear**). Integrates spendable cash limits into Gemini AI prompts and live liquidity breach warnings into the Buy Order dialog.
 13. **Pre-Trade Risk:Reward & Invalidation Display**
    - Calculates exact suggested Stop Loss (฿/-%), Target (฿/+%), and R:R ratio on every card before entry.
 14. **False Breakout Guard**

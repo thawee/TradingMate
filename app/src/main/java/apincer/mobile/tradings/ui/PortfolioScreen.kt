@@ -89,6 +89,7 @@ fun PortfolioScreen(
     val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
     val maxSectorAllocation by settingsViewModel.maxSectorAllocation.collectAsState()
     val citTaxRate by settingsViewModel.citTaxRate.collectAsState()
+    val marketRegime by viewModel.marketRegime.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
@@ -470,6 +471,8 @@ fun PortfolioScreen(
         BuyStockDialog(
             initialStock = selectedStockForEdit,
             accountEquity = accountEquity,
+            cashBalance = cashBalance,
+            marketRegime = marketRegime,
             maxRiskPerTradePercent = maxRiskPerTrade,
             maxStockAllocationPercent = maxPortfolioAllocation,
             onDismiss = {
@@ -765,6 +768,8 @@ fun AdjustCashDialog(
 fun BuyStockDialog(
     initialStock: StockWatchlistInfo? = null,
     accountEquity: Double = 0.0,
+    cashBalance: Double = 0.0,
+    marketRegime: TechnicalAnalysis.MarketRegime = TechnicalAnalysis.MarketRegime.NEUTRAL,
     maxRiskPerTradePercent: Double = 1.0,
     maxStockAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SINGLE_STOCK_ALLOCATION_PERCENT,
     onDismiss: () -> Unit,
@@ -998,6 +1003,125 @@ fun BuyStockDialog(
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            if (accountEquity > 0 && (entry > 0 || cashBalance > 0)) {
+                item {
+                    val recommendedBufferPercent = TechnicalAnalysis.getRecommendedCashBufferPercent(marketRegime)
+                    val targetCashReserve = accountEquity * (recommendedBufferPercent / 100.0)
+                    val previousCost = (initialStock?.portfolio?.cost ?: 0.0) * (initialStock?.portfolio?.quantity ?: 0)
+                    val newCost = entry * amount
+                    val incrementalCost = if (initialStock != null) (newCost - previousCost).coerceAtLeast(0.0) else newCost
+                    val projectedCashRemaining = cashBalance - incrementalCost
+                    val projectedBufferPercent = if (accountEquity > 0) (projectedCashRemaining / accountEquity * 100.0).coerceAtLeast(0.0) else 0.0
+                    val isInsufficientCash = incrementalCost > cashBalance
+                    val isBufferDeficit = projectedCashRemaining < targetCashReserve
+
+                    val statusColor = when {
+                        isInsufficientCash -> MaterialTheme.colorScheme.error
+                        isBufferDeficit -> Color(0xFFFFA726)
+                        else -> MaterialTheme.colorScheme.tertiary
+                    }
+
+                    GlassCard(
+                        containerColor = statusColor.copy(alpha = 0.08f),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (isBufferDeficit || isInsufficientCash) Icons.Default.Warning else Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = statusColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        "Cash Buffer & Liquidity",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = statusColor
+                                    )
+                                }
+                                Surface(
+                                    color = statusColor.copy(alpha = 0.18f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = "${marketRegime.name} TARGET: ${recommendedBufferPercent.toInt()}%",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = statusColor,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Post-Trade Cash", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "฿${String.format(Locale.ENGLISH, "%,.0f", projectedCashRemaining.coerceAtLeast(0.0))}",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = statusColor
+                                    )
+                                    Text(
+                                        "${String.format(Locale.ENGLISH, "%.1f", projectedBufferPercent)}% of Equity",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Mandated Buffer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        "${recommendedBufferPercent.toInt()}% Reserve",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            LinearProgressIndicator(
+                                progress = { ((projectedBufferPercent / 50.0).toFloat()).coerceIn(0.02f, 1f) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                color = statusColor,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+
+                            val statusMsg = when {
+                                isInsufficientCash -> "Insufficient cash: Trade cost (฿${String.format(Locale.ENGLISH, "%,.0f", incrementalCost)}) exceeds available cash (฿${String.format(Locale.ENGLISH, "%,.0f", cashBalance)})."
+                                isBufferDeficit -> "Buffer Breach: Post-trade cash (${String.format(Locale.ENGLISH, "%.1f", projectedBufferPercent)}%) falls below ${recommendedBufferPercent.toInt()}% regime target. Deficit: ฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve - projectedCashRemaining)}."
+                                else -> "Healthy liquidity: Preserves ${recommendedBufferPercent.toInt()}% cash buffer (฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}) required for ${marketRegime.name.lowercase().replaceFirstChar { it.uppercase() }} conditions."
+                            }
+                            Text(
+                                text = statusMsg,
+                                fontSize = 11.sp,
+                                fontWeight = if (isBufferDeficit || isInsufficientCash) FontWeight.Medium else FontWeight.Normal,
+                                color = if (isInsufficientCash) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }

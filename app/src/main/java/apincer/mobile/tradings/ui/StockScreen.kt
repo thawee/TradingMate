@@ -77,6 +77,9 @@ fun StockScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val minRR by settingsViewModel.minRiskRewardRatio.collectAsState()
+    val cashBalance by viewModel.cashBalance.collectAsState()
+    val watchlist by viewModel.watchlistInfo.collectAsState()
+    val marketRegime by viewModel.marketRegime.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -137,6 +140,19 @@ fun StockScreen(
                             val npm = state.stockInfo.netProfitMargin?.let { String.format(Locale.ENGLISH, "%.1f%%", it) } ?: "N/A"
                             val lastUpdated = state.stockInfo.lastUpdated
 
+                            val totalStockEquity = watchlist.filter { it.portfolio.quantity > 0 }.sumOf { it.info.lastPrice * it.portfolio.quantity }
+                            val totalPortfolioEquity = cashBalance + totalStockEquity
+                            val spendableInfo = TechnicalAnalysis.calculateSpendableCash(
+                                totalAssets = totalPortfolioEquity,
+                                cashBalance = cashBalance,
+                                regime = marketRegime
+                            )
+                            val cashBalanceFormatted = String.format(Locale.ENGLISH, "%,.2f THB", cashBalance)
+                            val totalAssetsFormatted = String.format(Locale.ENGLISH, "%,.2f THB", totalPortfolioEquity)
+                            val spendableCashFormatted = String.format(Locale.ENGLISH, "%,.2f THB", spendableInfo.spendableCashBaht)
+                            val targetReserveFormatted = String.format(Locale.ENGLISH, "%,.2f THB", spendableInfo.targetReserveBaht)
+                            val bufferPercentStr = String.format(Locale.ENGLISH, "%.0f", spendableInfo.recommendedBufferPercent)
+
                             val prompt = """
                                 Act as my expert subagents to evaluate the Stock Exchange of Thailand (SET) ticker $symbol.
                                 
@@ -146,11 +162,18 @@ fun StockScreen(
                                 - Technicals: RSI: $rsi | MACD Hist: $macdHist | SMA 50: $sma50 | SMA 200: $sma200
                                 - Current Signal: $signalType ($signalReason)
                                 - Technical Zone: $zone
+
+                                PORTFOLIO CAPITAL & REGIME:
+                                - Total Account Equity: $totalAssetsFormatted (Stock Holdings: ฿${String.format(Locale.ENGLISH, "%,.2f", totalStockEquity)} | Cash: $cashBalanceFormatted)
+                                - SET Market Regime: ${spendableInfo.regime.label} (${spendableInfo.regime.name})
+                                - Regime-Mandated Cash Buffer: $bufferPercentStr% (Target Reserve: $targetReserveFormatted)
+                                - Maximum Spendable Cash: $spendableCashFormatted ${if (spendableInfo.isDeficit) "⚠️ DEFICIT: Cash balance is below required buffer!" else ""}
                                 
                                 PLAYBOOK RULES & CONSTRAINTS:
                                 - Holding Period: 2-4 weeks (Swing) or Long-term (Dividend).
                                 - Technical Alignment: Focus on technical support and indicator confirmations.
                                 - RISK: Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required below technical support.
+                                - Max 15% total capital allocation in any single stock.
                                 
                                 GUARDRAILS & NEGATIVE CONSTRAINTS:
                                 - DO NOT recommend if liquidity is dangerously low.
@@ -161,6 +184,7 @@ fun StockScreen(
                                 1. [market-researcher]: Search for recent news (last 7 days), upcoming earnings events, and catalysts on $symbol. Evaluate business moat strength. Also check current SET index level and sector trends for macro context. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, technical indicators, and known market knowledge).
                                 2. [regime-manager]: Assess whether $symbol is in a Bullish, Bearish, or Choppy market structure (based on Price vs SMA 50/200 and MACD trend). Adjust profit targets and risk posture according to the prevailing regime.
                                 3. [risk-manager]: Evaluate setup safety and downside scenarios. Determine an exact Buy Zone, Target Profit (min 2.0:1 R:R), and strict Stop Loss relative to the current price ($lastPrice THB).
+                                Also recommend an exact Position Size in THB and share count (rounded down to SET 100-share board lots) based on available spendable cash ($spendableCashFormatted) and the 15% single-stock allocation cap. If spendable cash is 0 THB or account is in cash deficit, explicitly recommend 0 THB / 0 shares and advise preserving the $bufferPercentStr% cash buffer.
                                 
                                 EXPLAIN INSTRUCTIONS:
                                 - Break down the final decision step-by-step using clear, accessible logic.

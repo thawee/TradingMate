@@ -25,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import apincer.mobile.tradings.R
+import apincer.mobile.tradings.data.PortfolioSnapshotEntity
 import apincer.mobile.tradings.data.TradeEntity
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.text.SimpleDateFormat
@@ -76,8 +79,19 @@ fun StatsScreen(
     val history by portfolioViewModel.tradeHistory.collectAsState()
     val cashBalance by portfolioViewModel.cashBalance.collectAsState()
     val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
+    val snapshots by portfolioViewModel.allSnapshots.collectAsState()
+    val portfolioHistoricalCloses by portfolioViewModel.portfolioHistoricalCloses.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
     val watchlist by viewModel.watchlistInfo.collectAsState()
+    var trajectoryMode by remember { mutableStateOf("MTM") }
+
+    LaunchedEffect(watchlist) {
+        val openPositions = watchlist.filter { it.portfolio.quantity > 0 }
+        if (openPositions.isNotEmpty()) {
+            portfolioViewModel.loadHistoricalClosesForHoldings(openPositions.map { it.portfolio.symbol })
+            portfolioViewModel.takeSnapshot(watchlist)
+        }
+    }
 
     val totalProfit = history.sumOf { it.netProfitBaht }
     val totalDividendReceived = dividendHistory.sumOf { it.totalReceived }
@@ -263,14 +277,39 @@ fun StatsScreen(
 
             item {
                 SectionHeader(
-                    title = "Cumulative Profit",
+                    title = if (trajectoryMode == "MTM" && snapshots.size >= 2) "Mark-to-Market NAV" else "Cumulative Profit",
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    subtitle = "12-Month Trajectory"
+                    subtitle = if (trajectoryMode == "MTM" && snapshots.size >= 2) "${snapshots.size}-Day Daily NAV Trajectory" else "12-Month Realized PnL Trajectory"
                 )
             }
 
+            if (snapshots.size >= 2) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = trajectoryMode == "MTM",
+                            onClick = { trajectoryMode = "MTM" },
+                            label = { Text("MTM NAV (Daily)", fontSize = 12.sp) }
+                        )
+                        FilterChip(
+                            selected = trajectoryMode == "REALIZED",
+                            onClick = { trajectoryMode = "REALIZED" },
+                            label = { Text("Realized PnL (Monthly)", fontSize = 12.sp) }
+                        )
+                    }
+                }
+            }
+
             item {
-                CumulativeProfitChart(cumulativeProfits = cumulativeProfits)
+                val chartData = if (trajectoryMode == "MTM" && snapshots.size >= 2) {
+                    snapshots.map { Pair(it.date.takeLast(5), it.totalValue + it.cashBalance) }
+                } else {
+                    cumulativeProfits
+                }
+                CumulativeProfitChart(cumulativeProfits = chartData)
             }
 
             item {
@@ -285,7 +324,9 @@ fun StatsScreen(
                 InstitutionalRiskCard(
                     portfolioItems = watchlist.filter { it.portfolio.quantity > 0 },
                     cashBalance = cashBalance,
-                    cumulativeProfits = cumulativeProfits
+                    cumulativeProfits = cumulativeProfits,
+                    snapshots = snapshots,
+                    portfolioHistoricalCloses = portfolioHistoricalCloses
                 )
             }
 
@@ -684,7 +725,9 @@ fun CumulativeProfitChart(cumulativeProfits: List<Pair<String, Double>>) {
 fun InstitutionalRiskCard(
     portfolioItems: List<StockWatchlistInfo>,
     cashBalance: Double,
-    cumulativeProfits: List<Pair<String, Double>>
+    cumulativeProfits: List<Pair<String, Double>>,
+    snapshots: List<PortfolioSnapshotEntity> = emptyList(),
+    portfolioHistoricalCloses: Map<String, List<Double>> = emptyMap()
 ) {
     val totalStockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     val totalAssets = totalStockValue + maxOf(cashBalance, 0.0)
@@ -704,18 +747,36 @@ fun InstitutionalRiskCard(
         else -> Pair("Aggressive High-Beta", Color(0xFFFCD34D))
     }
 
-    // 2. Max Drawdown from Cumulative Profit trajectory
-    val equitySeries = if (cumulativeProfits.isNotEmpty()) {
+    // 2. Max Drawdown from MTM daily snapshots if available, else cumulative profit trajectory
+    val equitySeries = if (snapshots.size >= 2) {
+        snapshots.map { it.totalValue + it.cashBalance }
+    } else if (cumulativeProfits.isNotEmpty()) {
         cumulativeProfits.map { totalAssets + it.second }
     } else {
         listOf(totalAssets)
     }
     val mddResult = TechnicalAnalysis.calculateMaxDrawdown(equitySeries)
 
-    // 3. Historical 1-day Returns Distribution from holdings
-    val stockDailyReturns = portfolioItems.map { it.info.percentChange / 100.0 }
-    val var95 = if (stockDailyReturns.isNotEmpty()) TechnicalAnalysis.calculateHistoricalVaR(stockDailyReturns, 0.95) else 0.0
-    val cvar95 = if (stockDailyReturns.isNotEmpty()) TechnicalAnalysis.calculateConditionalVaR(stockDailyReturns, 0.95) else 0.0
+    // 3. 63-Day Rolling Time-Series Return Distribution (Historical VaR/CVaR)
+    val holdingsWithPrices = portfolioItems.mapNotNull { item ->
+        val closes = portfolioHistoricalCloses[item.portfolio.symbol.uppercase()]
+        val value = item.info.lastPrice * item.portfolio.quantity
+        if (closes != null && closes.size >= 2 && value > 0.0) {
+            Pair(value, closes)
+        } else null
+    }
+    val timeSeriesReturns = if (holdingsWithPrices.isNotEmpty()) {
+        TechnicalAnalysis.calculatePortfolioHistoricalReturns(holdingsWithPrices, 63)
+    } else emptyList()
+
+    val isTimeSeriesVaR = timeSeriesReturns.isNotEmpty()
+    val empiricalReturns = if (isTimeSeriesVaR) {
+        timeSeriesReturns
+    } else {
+        portfolioItems.map { it.info.percentChange / 100.0 }
+    }
+    val var95 = if (empiricalReturns.isNotEmpty()) TechnicalAnalysis.calculateHistoricalVaR(empiricalReturns, 0.95) else 0.0
+    val cvar95 = if (empiricalReturns.isNotEmpty()) TechnicalAnalysis.calculateConditionalVaR(empiricalReturns, 0.95) else 0.0
     val varBaht = totalAssets * (var95 / 100.0)
     val cvarBaht = totalAssets * (cvar95 / 100.0)
 
@@ -737,7 +798,7 @@ fun InstitutionalRiskCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Value-at-Risk & Tail Risk Profile",
+                        text = if (isTimeSeriesVaR) "63-Day Rolling Empirical VaR" else "Value-at-Risk & Tail Risk Profile",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -760,7 +821,7 @@ fun InstitutionalRiskCard(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text("1-Day VaR (95%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(if (isTimeSeriesVaR) "63-Day VaR (95%)" else "1-Day VaR (95%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     Text("฿${String.format(Locale.ENGLISH, "%,.0f", varBaht)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
                     Text("(-${String.format(Locale.ENGLISH, "%.2f", var95)}%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -772,7 +833,7 @@ fun InstitutionalRiskCard(
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Max Drawdown (MDD)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     Text("-${String.format(Locale.ENGLISH, "%.2f", mddResult.maxDrawdownPercent)}%", fontSize = 15.sp, fontWeight = FontWeight.Black, color = if (mddResult.maxDrawdownPercent > 15.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                    Text("Current: -${String.format(Locale.ENGLISH, "%.1f", mddResult.currentDrawdownPercent)}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (snapshots.size >= 2) "MTM Daily NAV" else "Current: -${String.format(Locale.ENGLISH, "%.1f", mddResult.currentDrawdownPercent)}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

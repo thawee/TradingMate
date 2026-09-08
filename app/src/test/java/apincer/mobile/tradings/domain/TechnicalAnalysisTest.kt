@@ -694,4 +694,72 @@ class TechnicalAnalysisTest {
         val taxCreditReit = TechnicalAnalysis.calculateThaiDividendTaxCredit(9000.0, citRate = 0.0)
         assertEquals(0.0, taxCreditReit, 0.01)
     }
+
+    @Test
+    fun testRegimeCashBufferAndSpendableCash() {
+        // 1. Regime buffer percentages
+        assertEquals(15.0, TechnicalAnalysis.getRecommendedCashBufferPercent(TechnicalAnalysis.MarketRegime.BULLISH), 0.01)
+        assertEquals(30.0, TechnicalAnalysis.getRecommendedCashBufferPercent(TechnicalAnalysis.MarketRegime.NEUTRAL), 0.01)
+        assertEquals(50.0, TechnicalAnalysis.getRecommendedCashBufferPercent(TechnicalAnalysis.MarketRegime.BEARISH), 0.01)
+
+        // 2. Bullish regime: 15% buffer on 1,000,000 NAV = 150,000 target reserve
+        val bullSpendable = TechnicalAnalysis.calculateSpendableCash(
+            totalAssets = 1_000_000.0,
+            cashBalance = 300_000.0,
+            regime = TechnicalAnalysis.MarketRegime.BULLISH
+        )
+        assertEquals(150_000.0, bullSpendable.targetReserveBaht, 0.01)
+        assertEquals(150_000.0, bullSpendable.spendableCashBaht, 0.01)
+        assertEquals(300_000.0, bullSpendable.cashBalance, 0.01)
+        org.junit.Assert.assertFalse(bullSpendable.isDeficit)
+
+        // 3. Bearish regime: 50% buffer on 1,000,000 NAV = 500,000 target reserve
+        // If cash is 200,000 (below 500,000) -> spendable = 0, isDeficit = true
+        val bearDeficit = TechnicalAnalysis.calculateSpendableCash(
+            totalAssets = 1_000_000.0,
+            cashBalance = 200_000.0,
+            regime = TechnicalAnalysis.MarketRegime.BEARISH
+        )
+        assertEquals(500_000.0, bearDeficit.targetReserveBaht, 0.01)
+        assertEquals(0.0, bearDeficit.spendableCashBaht, 0.01)
+        assertEquals(200_000.0, bearDeficit.cashBalance, 0.01)
+        assertTrue(bearDeficit.isDeficit)
+    }
+
+    @Test
+    fun testPortfolioHistoricalReturnsAndTimeSeriesVaR() {
+        // Holding A: Value 60,000, prices: [100.0, 105.0, 102.0] (returns: +5.0%, -2.857%)
+        // Holding B: Value 40,000, prices: [50.0, 50.0, 48.0] (returns: 0.0%, -4.0%)
+        // Total weight = 100,000 (Weight A = 0.6, Weight B = 0.4)
+        val holdings = listOf(
+            Pair(60_000.0, listOf(100.0, 105.0, 102.0)),
+            Pair(40_000.0, listOf(50.0, 50.0, 48.0))
+        )
+
+        val portfolioReturns = TechnicalAnalysis.calculatePortfolioHistoricalReturns(holdings, 2)
+        assertEquals(2, portfolioReturns.size)
+
+        // Day 1 return: 0.6 * (+5.0%) + 0.4 * (0.0%) = +3.0% (0.03)
+        assertEquals(0.03, portfolioReturns[0], 0.001)
+
+        // Day 2 return: 0.6 * (-3.0 / 105.0) + 0.4 * (-2.0 / 50.0)
+        // = 0.6 * (-0.028571) + 0.4 * (-0.04) = -0.017143 - 0.016 = -0.033143
+        assertEquals(-0.03314, portfolioReturns[1], 0.001)
+
+        // VaR and CVaR on a known 20-element return series
+        // Worst losses: -5.0%, -4.0%, -3.0%, -2.0% ...
+        val returnSeries = listOf(
+            -0.05, -0.04, -0.03, -0.02, -0.01,
+            0.00, 0.01, 0.01, 0.015, 0.02,
+            0.02, 0.025, 0.03, 0.03, 0.035,
+            0.04, 0.045, 0.05, 0.055, 0.06
+        )
+        val var95 = TechnicalAnalysis.calculateHistoricalVaR(returnSeries, 0.95)
+        val cvar95 = TechnicalAnalysis.calculateConditionalVaR(returnSeries, 0.95)
+
+        // 95% VaR should reflect the severe tail boundary (at or beyond -5%)
+        assertTrue("VaR 95% should be positive percentage loss", var95 >= 4.0)
+        // CVaR is expected shortfall in the worst 5% tail, which must be >= VaR
+        assertTrue("CVaR should be at least as severe as VaR", cvar95 >= var95)
+    }
 }

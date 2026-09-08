@@ -915,6 +915,44 @@ object TechnicalAnalysis {
         }
     }
 
+    data class SpendableCashBreakdown(
+        val totalAssets: Double,
+        val cashBalance: Double,
+        val regime: MarketRegime,
+        val recommendedBufferPercent: Double,
+        val targetReserveBaht: Double,
+        val spendableCashBaht: Double,
+        val isDeficit: Boolean
+    )
+
+    fun getRecommendedCashBufferPercent(regime: MarketRegime): Double = when (regime) {
+        MarketRegime.BULLISH -> 15.0
+        MarketRegime.NEUTRAL -> 30.0
+        MarketRegime.BEARISH -> 50.0
+    }
+
+    fun calculateSpendableCash(
+        totalAssets: Double,
+        cashBalance: Double,
+        regime: MarketRegime
+    ): SpendableCashBreakdown {
+        val bufferPercent = getRecommendedCashBufferPercent(regime)
+        val baseCapital = maxOf(totalAssets, cashBalance)
+        val targetReserve = baseCapital * (bufferPercent / 100.0)
+        val spendable = maxOf(0.0, cashBalance - targetReserve)
+        val isDeficit = cashBalance < targetReserve
+        return SpendableCashBreakdown(
+            totalAssets = totalAssets,
+            cashBalance = cashBalance,
+            regime = regime,
+            recommendedBufferPercent = bufferPercent,
+            targetReserveBaht = targetReserve,
+            spendableCashBaht = spendable,
+            isDeficit = isDeficit
+        )
+    }
+
+
     fun isNearExDividendDate(dividendDateStr: String?): Boolean {
         if (dividendDateStr.isNullOrBlank()) return false
         return try {
@@ -1161,6 +1199,47 @@ object TechnicalAnalysis {
             currentDrawdownPercent = currentDd,
             highWaterMark = hwm
         )
+    }
+
+    /**
+     * Constructs a rolling daily return time series for the portfolio across N trading days (default 63).
+     * For each trading day t, the portfolio return is the weighted average of individual holding daily returns:
+     * R_p,t = sum_i (w_i * R_i,t) / sum_i(w_i)
+     * This forms the empirical return distribution for Historical Value at Risk (VaR).
+     */
+    fun calculatePortfolioHistoricalReturns(
+        holdingsWithPrices: List<Pair<Double, List<Double>>>, // Pair(marketValueBaht, historicalClosePrices)
+        days: Int = 63
+    ): List<Double> {
+        if (holdingsWithPrices.isEmpty()) return emptyList()
+        val validHoldings = holdingsWithPrices.filter { it.first > 0.0 && it.second.size >= 2 }
+        if (validHoldings.isEmpty()) return emptyList()
+
+        val totalWeight = validHoldings.sumOf { it.first }
+        if (totalWeight <= 0.0) return emptyList()
+
+        val availableReturnLengths = validHoldings.map { it.second.size - 1 }
+        val effectiveDays = minOf(days, availableReturnLengths.minOrNull() ?: 0)
+        if (effectiveDays <= 0) return emptyList()
+
+        val portfolioReturns = mutableListOf<Double>()
+        for (step in 0 until effectiveDays) {
+            var weightedReturnSum = 0.0
+            for ((weight, prices) in validHoldings) {
+                val endIdx = prices.size - effectiveDays + step
+                val startIdx = endIdx - 1
+                if (startIdx >= 0 && endIdx < prices.size) {
+                    val prevPrice = prices[startIdx]
+                    val currPrice = prices[endIdx]
+                    if (prevPrice > 0.0) {
+                        val stockReturn = (currPrice - prevPrice) / prevPrice
+                        weightedReturnSum += weight * stockReturn
+                    }
+                }
+            }
+            portfolioReturns.add(weightedReturnSum / totalWeight)
+        }
+        return portfolioReturns
     }
 
     /**

@@ -348,6 +348,7 @@ fun DividendAdvisorScreen(
                     apiKey = geminiApiKey,
                     geminiModelId = geminiModelId,
                     cashBalance = cashBalance,
+                    marketRegime = marketRegime,
                     showSnackbar = showSnackbar
                 )
             }
@@ -846,6 +847,7 @@ fun AiCopilotCard(
     apiKey: String,
     geminiModelId: String = "gemini-3.6-flash",
     cashBalance: Double = 0.0,
+    marketRegime: apincer.mobile.tradings.domain.TechnicalAnalysis.MarketRegime = apincer.mobile.tradings.domain.TechnicalAnalysis.MarketRegime.NEUTRAL,
     showSnackbar: (String) -> Unit
 ) {
     @Suppress("DEPRECATION")
@@ -912,7 +914,20 @@ fun AiCopilotCard(
                 // Swing Trade Prompts
                 val buildSwingPrompt = {
                     val lastSyncLocal = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+                    val totalStockEquity = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
+                    val totalPortfolioEquity = cashBalance + totalStockEquity
+                    val currentMarketRegime = marketRegime
+                    val spendableInfo = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSpendableCash(
+                        totalAssets = totalPortfolioEquity,
+                        cashBalance = cashBalance,
+                        regime = currentMarketRegime
+                    )
+
                     val cashBalanceFormatted = String.format(Locale.ENGLISH, "%,.2f THB", cashBalance)
+                    val totalAssetsFormatted = String.format(Locale.ENGLISH, "%,.2f THB", totalPortfolioEquity)
+                    val targetReserveFormatted = String.format(Locale.ENGLISH, "%,.2f THB", spendableInfo.targetReserveBaht)
+                    val spendableCashFormatted = String.format(Locale.ENGLISH, "%,.2f THB", spendableInfo.spendableCashBaht)
+                    val bufferPercentStr = String.format(Locale.ENGLISH, "%.0f", spendableInfo.recommendedBufferPercent)
                     
                     val swingCandidates = if (swingPlaysFilter.isEmpty()) "None" else swingPlaysFilter.joinToString("\n") {
                         "- ${it.info.symbol}: Price=${it.info.lastPrice}, Vol=${it.info.volume ?: 0L}, P/E=${it.info.pe?.let { pe -> String.format(Locale.ENGLISH, "%.1f", pe) } ?: "N/A"}, ROE=${it.info.roe?.let { r -> String.format(Locale.ENGLISH, "%.1f", r) } ?: "N/A"}%, RSI=${it.portfolio.rsi?.let { rsi -> String.format(Locale.ENGLISH, "%.1f", rsi) } ?: "N/A"}, MACD Hist=${it.portfolio.macdHist?.let { m -> String.format(Locale.ENGLISH, "%.2f", m) } ?: "N/A"}, Signal=${it.portfolio.signalType ?: "NEUTRAL"} (${it.portfolio.signalReason ?: "N/A"})"
@@ -929,7 +944,10 @@ fun AiCopilotCard(
                         
                         DATA FRESHNESS & CAPITAL:
                         - Metrics last updated/synced on: $lastSyncLocal
-                        - Available Cash Balance: $cashBalanceFormatted
+                        - Total Account Equity: $totalAssetsFormatted (Stock Holdings: ฿${String.format(Locale.ENGLISH, "%,.2f", totalStockEquity)} | Cash: $cashBalanceFormatted)
+                        - Current SET Market Regime: ${spendableInfo.regime.label} (${spendableInfo.regime.name})
+                        - Regime-Mandated Cash Buffer: $bufferPercentStr% (Target Reserve: $targetReserveFormatted)
+                        - Maximum Spendable Capital: $spendableCashFormatted ${if (spendableInfo.isDeficit) "⚠️ DEFICIT: Cash balance is below required buffer! Enforce capital preservation." else ""}
                         
                         PLAYBOOK RULES & CONSTRAINTS:
                         1. Swing/Breakout Candidates (VIP Quality):
@@ -964,7 +982,13 @@ fun AiCopilotCard(
                         DELEGATED TASKS:
                         1. [market-researcher]: Search for upcoming earnings, news catalysts (last 7 days), and general sentiment for these tickers. Also check current SET index level, sector trends, and interest rates for macro context. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, technical indicators, and known market knowledge).
                         2. [regime-manager]: Evaluate market regime (Bullish, Bearish, or Choppy/Sideways based on price relative to SMA 200/50 and MACD). In a Bull market, allow higher profit targets and breakout trailing stops; in a Bear/Choppy market, enforce capital preservation, tighter stop losses, and buying strictly at major technical support.
-                        3. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (min 2.0:1 R:R), and strict Stop Loss for each setup. IMPORTANT: Intelligently split my available cash balance ($cashBalanceFormatted) across these recommended picks (specify recommended capital in THB and estimated share count for each stock, capping any single position at max 15% of equity, reserving a cash buffer if market risk is elevated). For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
+                        3. [risk-manager]: Select and rank the Top 3 setups across all lists. Prioritize VIP Swing and Gap Up plays over Speculative ones. Verify entry zones (e.g. SMA support or gap support). Define the exact Buy Zone, target profit (min 2.0:1 R:R), and strict Stop Loss for each setup.
+                        IMPORTANT CASH ALLOCATION & BUFFER RULES:
+                        - Spendable Capital Ceiling: $spendableCashFormatted (after strictly preserving the $bufferPercentStr% regime cash reserve of $targetReserveFormatted).
+                        - If Spendable Capital is 0.00 THB or account is in a cash deficit, explicitly state that cash preservation takes priority and assign 0 THB / 0 shares.
+                        - Otherwise, split ONLY from this spendable capital across the recommended picks (specify recommended capital in THB and estimated share count rounded down to 100-share SET board lots, capping any single position at max 15% of total account equity).
+                        - For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
+
                         
                         EXPLAIN INSTRUCTIONS:
                         - Break down the recommendations step-by-step using clear, accessible logic.
@@ -1023,7 +1047,21 @@ fun AiCopilotCard(
 
                 val buildDividendPrompt = {
                     val lastSyncLocal = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
+                    val totalStockEquity = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
+                    val totalPortfolioEquity = cashBalance + totalStockEquity
+                    val currentMarketRegime = marketRegime
+                    val spendableInfo = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSpendableCash(
+                        totalAssets = totalPortfolioEquity,
+                        cashBalance = cashBalance,
+                        regime = currentMarketRegime
+                    )
+
                     val cashBalanceFormatted = String.format(Locale.ENGLISH, "%,.2f THB", cashBalance)
+                    val totalAssetsFormatted = String.format(Locale.ENGLISH, "%,.2f THB", totalPortfolioEquity)
+                    val targetReserveFormatted = String.format(Locale.ENGLISH, "%,.2f THB", spendableInfo.targetReserveBaht)
+                    val spendableCashFormatted = String.format(Locale.ENGLISH, "%,.2f THB", spendableInfo.spendableCashBaht)
+                    val bufferPercentStr = String.format(Locale.ENGLISH, "%.0f", spendableInfo.recommendedBufferPercent)
+
                     val dividendCandidates = if (dividendPlays.isEmpty()) "None" else dividendPlays
                         .sortedByDescending { it.info.dividendYield }
                         .joinToString("\n") {
@@ -1035,7 +1073,10 @@ fun AiCopilotCard(
                         
                         DATA FRESHNESS & CAPITAL:
                         - Metrics last updated/synced on: $lastSyncLocal
-                        - Available Cash Balance: $cashBalanceFormatted
+                        - Total Account Equity: $totalAssetsFormatted (Stock Holdings: ฿${String.format(Locale.ENGLISH, "%,.2f", totalStockEquity)} | Cash: $cashBalanceFormatted)
+                        - Current SET Market Regime: ${spendableInfo.regime.label} (${spendableInfo.regime.name})
+                        - Regime-Mandated Cash Buffer: $bufferPercentStr% (Target Reserve: $targetReserveFormatted)
+                        - Maximum Spendable Capital: $spendableCashFormatted ${if (spendableInfo.isDeficit) "⚠️ DEFICIT: Cash balance is below required buffer! Enforce capital preservation." else ""}
                         
                         CONSTRAINTS & PLAYBOOK (Dividend Accumulation):
                         - Holding Period: Long-term (indefinite hold for compound growth).
@@ -1059,7 +1100,13 @@ fun AiCopilotCard(
                         DELEGATED TASKS:
                         1. [market-researcher]: Search for forward-looking dividend safety (check cash flow trend, forward payout ratio, and upcoming earnings outlook) for these SET tickers. Also check current SET index level and general market sentiment. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, fundamental indicators, and known market knowledge).
                         2. [regime-manager]: Assess market regime (Bullish vs Bearish/Choppy). In a Bear/Choppy market, prioritize defensive blue-chips with higher yields (>6%) and safe payout ratios; in a Bull market, focus on dividend growth & compounding.
-                        3. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure. IMPORTANT: Intelligently split my available cash balance ($cashBalanceFormatted) across these recommended picks (specify recommended capital in THB and estimated share count for each stock). For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
+                        3. [risk-manager]: Recommend the Top 3 additions. Calculate the 'Max Buy Price' for each to guarantee a >=5% yield and ensure it fits my overall risk exposure.
+                        IMPORTANT CASH ALLOCATION & BUFFER RULES:
+                        - Spendable Capital Ceiling: $spendableCashFormatted (after strictly preserving the $bufferPercentStr% regime cash reserve of $targetReserveFormatted).
+                        - If Spendable Capital is 0.00 THB or account is in a cash deficit, explicitly state that cash preservation takes priority and assign 0 THB / 0 shares.
+                        - Otherwise, split ONLY from this spendable capital across the recommended picks (specify recommended capital in THB and estimated share count rounded down to 100-share SET board lots, capping any single position at max 15% of total account equity).
+                        - For each ranked pick, assign a Confidence Score (0-100%) and brief justification.
+
                         
                         EXPLAIN INSTRUCTIONS:
                         - Break down the recommendations step-by-step using clear, accessible logic.
