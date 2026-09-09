@@ -872,6 +872,16 @@ fun BuyStockDialog(
                             Text("Dividend")
                         }
                     }
+                    Text(
+                        text = if (tradePurpose == "SWING") {
+                            "⚡ Swing: Active trade management. Enforces daily trailing stops, +5% take-profit alerts, and technical exits."
+                        } else {
+                            "💰 Dividend: Long-term compounding. Bypasses daily trailing stops; alerts only on fundamental breaks (ROE < 15%) or deep drawdown (> 20%)."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
                     OutlinedTextField(
                         value = entryPrice,
                         onValueChange = { entryPrice = it },

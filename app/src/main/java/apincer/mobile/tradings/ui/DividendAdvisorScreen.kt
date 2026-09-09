@@ -27,16 +27,20 @@ import androidx.compose.material.icons.filled.DoorFront
 import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.School
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -619,10 +623,26 @@ fun AdvisorStockCard(
     isSellAlert: Boolean = false, 
     sellReason: String? = null
 ) {
+    val isProfitAlert = isSellAlert && sellReason?.contains("Take Profit", ignoreCase = true) == true
+    val isOverboughtAlert = isSellAlert && sellReason?.contains("Overbought", ignoreCase = true) == true
+    val cardContainerColor = when {
+        !isSellAlert -> MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+        isProfitAlert -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f)
+        isOverboughtAlert -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f)
+        else -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+    }
+    val alertTextColor = when {
+        isProfitAlert -> MaterialTheme.colorScheme.tertiary
+        isOverboughtAlert -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.error
+    }
+
+    var selectedLegendTag by remember { mutableStateOf<String?>(null) }
+
     GlassCard(
         modifier = modifier.padding(vertical = 4.dp),
         onClick = { viewModel.fetchStockData(stock.info.symbol) },
-        containerColor = if (isSellAlert) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface.copy(alpha=0.5f)
+        containerColor = cardContainerColor
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -662,7 +682,12 @@ fun AdvisorStockCard(
                         }
                     }
                     if (isSellAlert) {
-                        Text(sellReason ?: stock.signal?.reason ?: "Take Profit / Stop Loss", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                        val prefix = when {
+                            isProfitAlert -> "🎯 "
+                            isOverboughtAlert -> "⚡ "
+                            else -> "🛑 "
+                        }
+                        Text(prefix + (sellReason ?: stock.signal?.reason ?: "Exit Alert"), style = MaterialTheme.typography.labelSmall, color = alertTextColor, fontWeight = FontWeight.Bold)
                     } else {
                         Text(stock.info.sector ?: "Unknown", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
@@ -688,7 +713,8 @@ fun AdvisorStockCard(
                                 Surface(
                                     color = tagColor.copy(alpha = bgAlpha),
                                     shape = RoundedCornerShape(4.dp),
-                                    border = if (borderAlpha > 0f) BorderStroke(0.5.dp, tagColor.copy(alpha = borderAlpha)) else null
+                                    border = if (borderAlpha > 0f) BorderStroke(0.5.dp, tagColor.copy(alpha = borderAlpha)) else null,
+                                    onClick = { selectedLegendTag = tag }
                                 ) {
                                     Text(
                                         text = tag,
@@ -764,65 +790,192 @@ fun AdvisorStockCard(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Row(
-                            modifier = Modifier.weight(1f, fill = false),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "Stop ฿${String.format(Locale.ENGLISH, "%.2f", stopPrice)} (${String.format(Locale.ENGLISH, "%.1f", stopPercent)}%)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = "  •  ",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = "Target ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                        }
-                        if (rr != null) {
-                            Spacer(Modifier.width(6.dp))
-                            val (badgeBg, badgeFg) = when {
-                                rr >= 2.0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onTertiaryContainer
-                                rr >= 1.5 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onSecondaryContainer
-                                else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                            Surface(
-                                color = badgeBg,
-                                shape = RoundedCornerShape(4.dp)
+                            Row(
+                                modifier = Modifier.weight(1f, fill = false),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "R:R ${String.format(Locale.ENGLISH, "%.1f", rr)}:1",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = badgeFg,
-                                    maxLines = 1,
-                                    softWrap = false
+                                    text = "Plan: Cut < ฿${String.format(Locale.ENGLISH, "%.2f", stopPrice)} (${String.format(Locale.ENGLISH, "%.1f", stopPercent)}%)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "  •  ",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "Aim > ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
                                 )
                             }
+                            if (rr != null) {
+                                Spacer(Modifier.width(6.dp))
+                                val (badgeBg, badgeFg) = when {
+                                    rr >= 2.0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onTertiaryContainer
+                                    rr >= 1.5 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onSecondaryContainer
+                                    else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                Surface(
+                                    color = badgeBg,
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "Reward:Risk ${String.format(Locale.ENGLISH, "%.1f", rr)}:1",
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = badgeFg,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                            }
+                        }
+
+                        val bb = stock.portfolio.bb
+                        val wLow = stock.portfolio.week52Low
+                        val wHigh = stock.portfolio.week52High
+                        val rangeText = when {
+                            bb != null && bb.lower > 0 && bb.upper > 0 ->
+                                "Est. Range: ฿${String.format(Locale.ENGLISH, "%.2f", bb.lower)} - ฿${String.format(Locale.ENGLISH, "%.2f", bb.upper)} (BB ±2σ)"
+                            wLow != null && wHigh != null && wLow > 0 && wHigh > 0 ->
+                                "52W Range: ฿${String.format(Locale.ENGLISH, "%.2f", wLow)} - ฿${String.format(Locale.ENGLISH, "%.2f", wHigh)}"
+                            else -> null
+                        }
+                        if (rangeText != null) {
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = rangeText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
                         }
                     }
                 }
             }
         }
     }
+
+    if (selectedLegendTag != null) {
+        ArchetypeLegendDialog(
+            selectedTag = selectedLegendTag,
+            onDismiss = { selectedLegendTag = null }
+        )
+    }
+}
+
+@Composable
+fun ArchetypeLegendDialog(
+    selectedTag: String?,
+    onDismiss: () -> Unit
+) {
+    if (selectedTag == null) return
+
+    val descriptions = mapOf(
+        "A+" to "Prime Quant Grade (Score 80–100): Highest-conviction confluence across quality, value, momentum, flow, and safety.",
+        "A" to "Strong Quant Grade (Score 65–79): Solid confluence of fundamental quality, trend, and setup support.",
+        "VCP" to "Minervini VCP: Volatility Contraction Pattern — tightening price action preceding a potential Stage-2 breakout.",
+        "MOAT" to "Compounder Aristocrat: High ROE (≥12%), low debt (D/E ≤1.2), healthy margins, and durable competitive moat.",
+        "SHIELD" to "High-Yield Shield: High dividend yield (≥5%) with robust safety buffer well above 52-week low.",
+        "WHALE" to "Foreign Smart Money: Institutional accumulation via positive foreign NVDR net buying and relative strength.",
+        "SPRING" to "Wyckoff Oversold Spring: Profitable company (ROE ≥8%) experiencing extreme oversold mean-reversion (RSI ≤35).",
+        "MTF" to "Multi-Timeframe Trend: Macro trend alignment across SMA 200/50 and positive MACD histogram.",
+        "QUAL" to "Quality: Strong profitability and balance sheet (ROE > 15%, NPM > 10%, D/E < 1.5).",
+        "VAL" to "Value Pricing: Undervalued multiples (P/E 0.1–15.0 and P/BV 0.1–1.0).",
+        "DIV" to "Dividend: High current dividend yield (≥ 5.0%).",
+        "MOM" to "Momentum: Meaningful MACD histogram expansion and active momentum (RSI 40–65).",
+        "SUP" to "Setup Confirmation: Active BUY or POTENTIAL technical indicator signal.",
+        "GAP" to "Volume Gap-Up: +4% daily surge on heavy volume with profitable fundamentals.",
+        "FLOW" to "Foreign Flow: Confirmed positive foreign NVDR net volume.",
+        "CYC" to "Cyclical Sector: Commodity/cyclical industry — requires active profit-taking discipline."
+    )
+
+    val currentDesc = descriptions[selectedTag] ?: "Quantitative screening filter tag."
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = selectedTag,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Text("Archetype Tag Guide", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = currentDesc,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "All Archetype Tags:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(6.dp))
+                descriptions.forEach { (tag, desc) ->
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                        Text(
+                            text = "• $tag: ",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = desc,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Got It", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
 }
 
 @Composable
@@ -1266,7 +1419,7 @@ fun AiRecommendationCard(rec: apincer.mobile.tradings.domain.AiRecommendation) {
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
-                        text = "Confidence ${rec.confidenceScore}%",
+                        text = "AI Conviction: ${rec.confidenceScore}%",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,

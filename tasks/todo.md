@@ -1,41 +1,51 @@
-# Option C Implementation Plan: Comprehensive Risk, Cash & Quant Suite
+# Plan: Fix All Confusing Financial & UI Terminology
 
-- [x] **Phase 1: Regime-Aware Spendable Cash in AI Prompts** <!-- id: 201 -->
-  - [x] Add regime-based cash buffer target calculation (Bull: 15%, Sideways: 30%, Bear: 50%) <!-- id: 202 -->
-  - [x] Inject mandated buffer, target cash reserve, and spendable capital into `buildSwingPrompt` and `buildDividendPrompt` in `DividendAdvisorScreen.kt` <!-- id: 203 -->
-  - [x] Update single-stock AI prompt in `StockScreen.kt` to include cash and regime context <!-- id: 204 -->
-- [x] **Phase 2: Live Cash Buffer Warning in Buy Stock Dialog** <!-- id: 205 -->
-  - [x] Pass `marketRegime` into `BuyStockDialog` in `PortfolioScreen.kt` <!-- id: 206 -->
-  - [x] Compute projected remaining cash and cash buffer % in real-time as user changes share quantity <!-- id: 207 -->
-  - [x] Render dynamic visual cash buffer badge (healthy green vs low-cash warning banner) in `BuyStockDialog` <!-- id: 208 -->
-- [x] **Phase 3: 63-Day Rolling Time-Series Portfolio VaR & CVaR** <!-- id: 209 -->
-  - [x] Add `calculatePortfolioHistoricalReturns` in `TechnicalAnalysis.kt` to construct weighted daily return time series <!-- id: 210 -->
-  - [x] Update `StatsScreen.kt` to use the 63-day time-series return distribution for 1-day 95% VaR & CVaR <!-- id: 211 -->
-- [x] **Phase 4: Mark-to-Market Equity Trajectory from Daily Snapshots** <!-- id: 212 -->
-  - [x] Expose `allSnapshots` StateFlow in `PortfolioViewModel.kt` <!-- id: 213 -->
-  - [x] Integrate snapshot trajectory into `StatsScreen.kt` equity visualization <!-- id: 214 -->
+## Overview
+Address all identified ambiguous, panic-inducing, or misleading UI labels and badges across the application:
+1. Reframe RSI "Buy Below" / "Sell Above" into technical zones ("Oversold Zone" / "Overbought Zone").
+2. Reframe giant "BUY" / "SELL" banner into "Bullish Setup" / "Bearish / Exit".
+3. Differentiate "Sale Alert" colors and titles: green for Take Profit, amber for Overbought, red for Stop Loss.
+4. Add archetype explanation legend dialog/sheet for cryptic DNA tags (VCP, WHALE, SPRING, MOAT, SHIELD).
+5. Clarify Reward-to-Risk notation from `R:R 2.0:1` to `Reward:Risk 2.0:1`.
+6. Clarify AI Copilot confidence from `Confidence 85%` to `AI Conviction: 85%`.
+7. Add explicit helper captions explaining the difference between `SWING` (daily stops & take profit) and `DIVIDEND` (long-term, no trailing stops).
+
+---
+
+## Todo Checklist
+
+- [x] **Phase 1: RSI & Technical Signal Clarity (`StockScreen.kt` & `strings.xml`)** <!-- id: 201 -->
+  - [x] Update `strings.xml` and `StockScreen.kt` for RSI zones: `Oversold (RSI ≤ 35)` & `Overbought (RSI ≥ 65)` <!-- id: 202 -->
+  - [x] Update `SignalCard` in `StockScreen.kt`: replace bare "Buy"/"Sell" with "Bullish Setup" / "Bearish / Exit" <!-- id: 203 -->
+- [x] **Phase 2: Alert Color & Sentiment Differentiation (`DividendAdvisorScreen.kt` & `StockViewModel.kt`)** <!-- id: 204 -->
+  - [x] Style Take Profit alerts with green/tertiary container & `🎯 Take Profit` title <!-- id: 205 -->
+  - [x] Style Overbought alerts with amber container & `⚡ Overbought (RSI ≥ 65)` <!-- id: 206 -->
+  - [x] Keep red container strictly for actual risk/loss alerts (Stop Loss, Drawdown, Trailing Stop) <!-- id: 207 -->
+  - [x] Distinguish initial stop loss from trailing stop in `StockViewModel.kt` when stock has not reached new peaks <!-- id: 208 -->
+- [x] **Phase 3: Candidate Card Notation & Archetype Legend (`DividendAdvisorScreen.kt`, `StockComponents.kt`)** <!-- id: 209 -->
+  - [x] Update badge notation to `Reward:Risk 2.0:1` <!-- id: 210 -->
+  - [x] Update AI card from `Confidence 85%` to `AI Conviction: 85%` <!-- id: 211 -->
+  - [x] Add an Archetype Legend dialog in `DividendAdvisorScreen.kt` explaining tags (`VCP`, `WHALE`, `SPRING`, `MOAT`, etc.) <!-- id: 212 -->
+- [x] **Phase 4: Trade Purpose Helper Caption in `PortfolioScreen.kt`** <!-- id: 213 -->
+  - [x] Add explanatory helper text for `SWING` vs `DIVIDEND` trade purpose in stock dialogs <!-- id: 214 -->
 - [x] **Phase 5: Verification & Testing** <!-- id: 215 -->
-  - [x] Add unit tests in `TechnicalAnalysisTest.kt` for time-series VaR, cash buffer, and spendable cash calculations <!-- id: 216 -->
-  - [x] Run `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` <!-- id: 217 -->
+  - [x] Compile and run all unit tests <!-- id: 216 -->
+  - [x] Document results in `tasks/todo.md` <!-- id: 217 -->
 
-## Release 3.1.0 Packaging & Documentation
-- [x] Update `CHANGELOG.md` with version 3.1.0 release notes <!-- id: 301 -->
-- [x] Update `README.md` with new features (cash buffers, time-series VaR, MTM NAV trajectory) <!-- id: 302 -->
-- [x] Bump version in `app/build.gradle.kts` to `versionCode = 25`, `versionName = "3.1.0"` <!-- id: 303 -->
-- [x] Verify build and tests via `./gradlew testDebugUnitTest` <!-- id: 304 -->
-- [x] Commit all changes with conventional commit message <!-- id: 305 -->
+---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## Review & Results
+- **RSI & Signal Clarity:**
+  - Replaced ambiguous "Buy Below" / "Sell Above" with "Oversold (RSI ≤ 35)" and "Overbought (RSI ≥ 65)".
+  - Replaced commanding "Buy" / "Sell" in `SignalCard` with "Bullish Setup" / "Bearish / Exit".
+- **Alert Sentiment Differentiation:**
+  - In `AdvisorStockCard`, Take Profit alerts now render with a green surface (`🎯 Take Profit...`), Overbought with amber (`⚡ Overbought...`), and Stop Loss with red (`🛑 Stop Loss...`).
+  - In `StockViewModel.kt`, clarified "Trailing Stop Loss (Drop <= -5% from peak)" vs initial "Stop Loss".
+- **Candidate Notation & Tag Guide:**
+  - Changed `R:R 2.0:1` to `Reward:Risk 2.0:1` in candidate cards.
+  - Changed `Confidence 85%` to `AI Conviction: 85%` in AI recommendations.
+  - Made archetype tags (`VCP`, `MOAT`, `WHALE`, etc.) interactive with an informative `ArchetypeLegendDialog`.
+- **Trade Purpose Clarification:**
+  - Added clear helper text in `PortfolioScreen.kt` clarifying that Swing enforces trailing stops and take profit, while Dividend mode ignores trailing stops for long-term compounding.
+- **Verification:**
+  - `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` passed with 0 errors.

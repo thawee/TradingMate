@@ -59,8 +59,8 @@
     <string name="label_market_cap">Market Cap</string>
     <string name="label_volume">Volume</string>
     <string name="label_last_sync">Last Synced: %1$s</string>
-    <string name="label_buy_below">Buy Below</string>
-    <string name="label_sell_above">Sell Above</string>
+    <string name="label_buy_below">Oversold (RSI ≤ 35)</string>
+    <string name="label_sell_above">Overbought (RSI ≥ 65)</string>
     <string name="label_rsi_zones">RSI Zones</string>
     <string name="label_price_return_history">Price Return History</string>
     <string name="label_rsi_14">RSI (14)</string>
@@ -113,7 +113,7 @@
     <string name="label_premium_financials">Premium Financials</string>
     <string name="label_high_dividend_alert">High Dividend Yield Alert!</string>
     <string name="label_view_quote">View Official Quote ↗</string>
-    <string name="label_rsi_zone_desc">Targets based on RSI reversal levels (35 Buy / 65 Sell).</string>
+    <string name="label_rsi_zone_desc">Price levels where 14-day RSI reaches extreme zones (RSI ≤ 35 oversold dip / RSI ≥ 65 overbought extension).</string>
     <string name="label_start_price">Start Price</string>
     <string name="label_roe">ROE (%)</string>
     <string name="label_net_profit">Net Profit</string>
@@ -127,6 +127,10 @@
     <string name="label_pe_ratio">P/E Ratio</string>
     <string name="label_pbv_ratio">P/BV Ratio</string>
     <string name="label_book_value">Book Value (P/BV=1.0)</string>
+    <string name="label_expected_boundaries_title">Expected Price Boundaries</string>
+    <string name="label_expected_floor">Floor (Support / -2σ)</string>
+    <string name="label_expected_ceiling">Ceiling (Resistance / +2σ)</string>
+    <string name="label_expected_boundaries_desc">Statistical boundaries based on 20-day Bollinger Bands (±2σ) and 52-week price extremes. ~95% of normal trading price action stays within the ±2σ bounds.</string>
     <string name="label_rsi_zones_title">RSI Zones</string>
     <string name="label_price_return_history_title">Price Return History</string>
     <string name="label_volume_surge">VOLUME SURGE</string>

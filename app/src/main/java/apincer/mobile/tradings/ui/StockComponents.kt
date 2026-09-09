@@ -782,59 +782,84 @@ fun StockItemCard(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Row(
-                            modifier = Modifier.weight(1f, fill = false),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "Stop ฿${String.format(Locale.ENGLISH, "%.2f", stopPrice)} (${String.format(Locale.ENGLISH, "%.1f", stopPercent)}%)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = "  •  ",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = "Target ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                        }
-                        if (rr != null) {
-                            Spacer(Modifier.width(6.dp))
-                            val (badgeBg, badgeFg) = when {
-                                rr >= 2.0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onTertiaryContainer
-                                rr >= 1.5 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onSecondaryContainer
-                                else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                            Surface(
-                                color = badgeBg,
-                                shape = RoundedCornerShape(4.dp)
+                            Row(
+                                modifier = Modifier.weight(1f, fill = false),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "R:R ${String.format(Locale.ENGLISH, "%.1f", rr)}:1",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = badgeFg,
-                                    maxLines = 1,
-                                    softWrap = false
+                                    text = "Plan: Cut < ฿${String.format(Locale.ENGLISH, "%.2f", stopPrice)} (${String.format(Locale.ENGLISH, "%.1f", stopPercent)}%)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "  •  ",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "Aim > ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
                                 )
                             }
+                            if (rr != null) {
+                                Spacer(Modifier.width(6.dp))
+                                val (badgeBg, badgeFg) = when {
+                                    rr >= 2.0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onTertiaryContainer
+                                    rr >= 1.5 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f) to MaterialTheme.colorScheme.onSecondaryContainer
+                                    else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                Surface(
+                                    color = badgeBg,
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "Reward:Risk ${String.format(Locale.ENGLISH, "%.1f", rr)}:1",
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = badgeFg,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                            }
+                        }
+
+                        val bb = item.portfolio.bb
+                        val wLow = item.portfolio.week52Low
+                        val wHigh = item.portfolio.week52High
+                        val rangeText = when {
+                            bb != null && bb.lower > 0 && bb.upper > 0 ->
+                                "Est. Range: ฿${String.format(Locale.ENGLISH, "%.2f", bb.lower)} - ฿${String.format(Locale.ENGLISH, "%.2f", bb.upper)} (BB ±2σ)"
+                            wLow != null && wHigh != null && wLow > 0 && wHigh > 0 ->
+                                "52W Range: ฿${String.format(Locale.ENGLISH, "%.2f", wLow)} - ฿${String.format(Locale.ENGLISH, "%.2f", wHigh)}"
+                            else -> null
+                        }
+                        if (rangeText != null) {
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = rangeText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
                         }
                     }
                 }

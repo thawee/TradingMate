@@ -485,7 +485,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         targetAlerts.add(SellAlertData(stock, reason))
                     } else if (dropFromPeak <= -tsPercent) {
-                        targetAlerts.add(SellAlertData(stock, "Trailing Stop Loss (Drop <= -$tsPercent%)"))
+                        val stopLabel = if (peakPrice > cost) "Trailing Stop Loss (Drop <= -$tsPercent% from peak)" else "Stop Loss (Drop <= -$tsPercent%)"
+                        targetAlerts.add(SellAlertData(stock, stopLabel))
                     } else if (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) {
                         targetAlerts.add(SellAlertData(stock, "Stop Loss (Price <= $explicitStopLoss)"))
                     } else if (netProfit > 0.0 && rsi >= 65.0) {

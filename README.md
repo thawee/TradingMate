@@ -133,9 +133,9 @@ The Swing Playbook is a 3-step daily workflow to keep traders disciplined during
 
 | Step | Name | What It Does |
 |------|------|--------------|
-| 1 | 🚨 Check Exits | Review sell alerts — Take Profit (≥10%), Stop Loss (≤-5%), Overbought (RSI ≥65), SELL signal |
-| 2 | 🔍 Scan Setups | Review swing/gap candidates filtered by Quality, Momentum, and Support criteria |
-| 3 | 🤖 Ask AI | Copy an AI prompt to clipboard for external analysis (ChatGPT/Gemini/Claude), or tap "Analyze with AI" for an in-app Gemini call returning ranked picks with a Confidence Score (0–100%) |
+| 1 | 🚨 Check Exits | Review sell alerts — Take Profit (≥5%), Stop Loss (≤-5%), Overbought (RSI ≥65), Bearish / Exit signal |
+| 2 | 🔍 Scan Setups | Review swing/gap candidates with trade execution plans (Cut/Aim), Reward:Risk ratio, and Expected Price Boundaries |
+| 3 | 🤖 Ask AI | Copy an AI prompt to clipboard for external analysis (ChatGPT/Gemini/Claude), or tap "Analyze with AI" for an in-app Gemini call returning ranked picks with an AI Conviction Score (0–100%) |
 
 - Each step has a checkbox. Tapping **"Next →"** scrolls to the next step.
 - When all 3 steps are checked, the bar shows **"✅ All 3 steps done! You're ready to trade."**

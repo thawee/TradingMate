@@ -5,6 +5,28 @@ All notable changes to the TradingMate project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-09-09
+
+### Added
+- **Expected Price Boundaries & Volatility Range Modeling**:
+  - Added statistical trading channel bounds (`Est. Range: ฿[Lower] - ฿[Upper] (BB ±2σ)`) to candidate and watchlist cards in `DividendAdvisorScreen.kt` and `StockComponents.kt`, with automatic fallback to 52-week price extremes.
+  - Added a dedicated **Expected Price Boundaries** card to `StockScreen.kt` displaying technical floors (support / $-2\sigma$), ceilings (resistance / $+2\sigma$), and an interactive 52-week price position range bar.
+- **Interactive Archetype Tag Guide**:
+  - Implemented `ArchetypeLegendDialog` in `DividendAdvisorScreen.kt` allowing users to tap any quantitative tag chip (`VCP`, `WHALE`, `SPRING`, `MOAT`, `SHIELD`, `MTF`, `QUAL`, etc.) to view its strategic definition and criteria.
+- **Trade Purpose Helper Guidance**:
+  - Added clear explanatory helper text in `PortfolioScreen.kt` (Buy & Edit Stock Dialogs) clarifying the fundamental rules between **Swing Trade** (enforces daily trailing stops, take-profit, and technical exits) and **Dividend** (long-term compounding, ignores swing trailing stops).
+
+### Changed & Refined
+- **Trade Plan Disambiguation**:
+  - Replaced misleading `Stop ฿X • Target ฿Y` with action-oriented execution bounds: `Plan: Cut < ฿X (-...%) • Aim > ฿Y` alongside `Reward:Risk 2.0:1` notation. Eliminates the misconception that stop/target levels represent forecasted price guarantees.
+- **Alert Sentiment & Visual Differentiation**:
+  - Categorized Sell Alerts in `AdvisorStockCard` by sentiment: **Take Profit** alerts now render in positive green (`🎯 Take Profit...`), **Overbought** alerts in amber (`⚡ Overbought...`), and **Stop Loss** in red (`🛑 Stop Loss...`).
+  - Clarified initial stop loss vs trailing stop in `StockViewModel.kt` (`Trailing Stop Loss (Drop <= -X% from peak)` vs `Stop Loss (Drop <= -X%)`).
+- **Signal & Zone Terminology Polish**:
+  - Renamed RSI zone badges from "Buy Below" / "Sell Above" to **"Oversold (RSI ≤ 35)"** and **"Overbought (RSI ≥ 65)"** to prevent knife-catching and premature profit-taking misconceptions.
+  - Re-labeled bare "Buy" / "Sell" header in `SignalCard` (`StockScreen.kt`) to **"Bullish Setup"** / **"Bearish / Exit"**.
+  - Updated AI recommendation badge from "Confidence 85%" to **"AI Conviction: 85%"**.
+
 ## [3.1.0] - 2026-09-08
 
 ### Added

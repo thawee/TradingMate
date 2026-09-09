@@ -565,6 +565,80 @@ fun StockDashboard(state: StockUiState.Success) {
         }
 
         SectionContent(title = stringResource(R.string.section_strategy_zones), icon = Icons.Default.TrackChanges) {
+            val bbLower = state.bb?.lower
+            val bbUpper = state.bb?.upper
+            val week52Low = state.portfolio?.week52Low ?: state.historicalPrices.takeIf { it.isNotEmpty() }?.minOrNull()
+            val week52High = state.portfolio?.week52High ?: state.historicalPrices.takeIf { it.isNotEmpty() }?.maxOrNull()
+
+            if ((bbLower != null && bbUpper != null && bbLower > 0 && bbUpper > 0) || (week52Low != null && week52High != null)) {
+                Text(
+                    text = stringResource(R.string.label_expected_boundaries_title),
+                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TargetPriceBadge(
+                        label = stringResource(R.string.label_expected_floor),
+                        price = bbLower ?: week52Low,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    TargetPriceBadge(
+                        label = stringResource(R.string.label_expected_ceiling),
+                        price = bbUpper ?: week52High,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+
+                if (week52Low != null && week52High != null && week52High > week52Low) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "52W Low: ฿${String.format(Locale.ENGLISH, "%.2f", week52Low)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "52W High: ฿${String.format(Locale.ENGLISH, "%.2f", week52High)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            val progress = ((state.stockInfo.lastPrice - week52Low) / (week52High - week52Low)).toFloat().coerceIn(0f, 1f)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = stringResource(R.string.label_expected_boundaries_desc),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+                    fontWeight = FontWeight.Medium
+                )
+            }
             
             Text(text = stringResource(R.string.label_rsi_zones_title), fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
             Row(
@@ -992,7 +1066,7 @@ fun RowScope.TargetPriceBadge(label: String, price: Double?, color: Color) {
             Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), fontWeight = FontWeight.Bold)
             
             Text(
-                text = if (price != null) "฿${String.format(Locale.ENGLISH,"%.1f", price)}" else "---",
+                text = if (price != null) "฿${String.format(Locale.ENGLISH,"%.2f", price)}" else "---",
                 color = color,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black
@@ -1027,9 +1101,9 @@ fun SignalCard(signal: TradeSignal, zone: TradingZone) {
                 
                 Text(
                     text = when (signal.type) {
-                        IndicatorSignal.BUY -> "Buy"
-                        IndicatorSignal.POTENTIAL -> "Potential"
-                        IndicatorSignal.SELL -> "Sell"
+                        IndicatorSignal.BUY -> "Bullish Setup"
+                        IndicatorSignal.POTENTIAL -> "Potential Setup"
+                        IndicatorSignal.SELL -> "Bearish / Exit"
                         IndicatorSignal.NEUTRAL -> "Neutral"
                     },
                     fontWeight = FontWeight.Black,
