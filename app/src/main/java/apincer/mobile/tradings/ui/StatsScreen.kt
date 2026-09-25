@@ -81,14 +81,24 @@ fun StatsScreen(
     val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
     val snapshots by portfolioViewModel.allSnapshots.collectAsState()
     val portfolioHistoricalCloses by portfolioViewModel.portfolioHistoricalCloses.collectAsState()
+    val indexHistory by portfolioViewModel.indexHistory.collectAsState()
+    val chronologicalSnapshots = remember(snapshots) { navSnapshotsInDateOrder(snapshots) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     val watchlist by viewModel.watchlistInfo.collectAsState()
     var trajectoryMode by remember { mutableStateOf("MTM") }
 
-    LaunchedEffect(watchlist) {
+    val openSymbols = watchlist.filter { it.portfolio.quantity > 0 }.map { it.portfolio.symbol }.sorted()
+    LaunchedEffect(openSymbols) {
+        if (openSymbols.isNotEmpty()) {
+            while (true) {
+                portfolioViewModel.loadHistoricalClosesForHoldings(openSymbols)
+                kotlinx.coroutines.delay(60L * 60L * 1000L)
+            }
+        }
+    }
+    LaunchedEffect(watchlist, cashBalance) {
         val openPositions = watchlist.filter { it.portfolio.quantity > 0 }
-        if (openPositions.isNotEmpty()) {
-            portfolioViewModel.loadHistoricalClosesForHoldings(openPositions.map { it.portfolio.symbol })
+        if (openPositions.isNotEmpty() || cashBalance != 0.0) {
             portfolioViewModel.takeSnapshot(watchlist)
         }
     }
@@ -305,7 +315,7 @@ fun StatsScreen(
 
             item {
                 val chartData = if (trajectoryMode == "MTM" && snapshots.size >= 2) {
-                    snapshots.map { Pair(it.date.takeLast(5), it.totalValue + it.cashBalance) }
+                    chronologicalSnapshots.map { Pair(it.date.takeLast(5), it.totalValue + it.cashBalance) }
                 } else {
                     cumulativeProfits
                 }
@@ -325,8 +335,9 @@ fun StatsScreen(
                     portfolioItems = watchlist.filter { it.portfolio.quantity > 0 },
                     cashBalance = cashBalance,
                     cumulativeProfits = cumulativeProfits,
-                    snapshots = snapshots,
-                    portfolioHistoricalCloses = portfolioHistoricalCloses
+                    snapshots = chronologicalSnapshots,
+                    portfolioHistoricalCloses = portfolioHistoricalCloses,
+                    indexHistory = indexHistory
                 )
             }
 
@@ -416,6 +427,10 @@ fun StatsScreen(
         }
     }
 }
+
+/** The DAO emits newest first, but the NAV chart and peak-to-trough drawdown need oldest first. */
+internal fun navSnapshotsInDateOrder(snapshots: List<PortfolioSnapshotEntity>): List<PortfolioSnapshotEntity> =
+    snapshots.sortedBy { it.date }
 
 @Composable
 fun StatMetric(label: String, value: Double) {
@@ -727,21 +742,31 @@ fun InstitutionalRiskCard(
     cashBalance: Double,
     cumulativeProfits: List<Pair<String, Double>>,
     snapshots: List<PortfolioSnapshotEntity> = emptyList(),
-    portfolioHistoricalCloses: Map<String, List<Double>> = emptyMap()
+    portfolioHistoricalCloses: Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>> = emptyMap(),
+    indexHistory: List<apincer.mobile.tradings.data.ScrapedHistoricalPrice> = emptyList()
 ) {
     val totalStockValue = portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     val totalAssets = totalStockValue + maxOf(cashBalance, 0.0)
 
     // 1. Beta Calculation
+    val indexByDate = indexHistory.associate { it.date to it.close }
+    val latestIndexIsRecent = indexHistory.lastOrNull()?.date?.let { date ->
+        runCatching { !java.time.LocalDate.parse(date).isBefore(
+            java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).minusDays(7)) }.getOrDefault(false)
+    } ?: false
     val betaWeights = portfolioItems.mapNotNull { item ->
-        val weight = (item.info.lastPrice * item.portfolio.quantity)
-        val beta = (item.portfolio.relativeStrength ?: 0.0).let { rs ->
-            (1.0 + rs / 100.0).coerceIn(0.4, 2.0)
-        }
-        if (weight > 0) Pair(weight, beta) else null
+        val prices = portfolioHistoricalCloses[item.portfolio.symbol.uppercase()].orEmpty()
+        val aligned = prices.filter { it.date in indexByDate }.takeLast(64)
+        val weight = item.info.lastPrice * item.portfolio.quantity
+        val beta = if (aligned.size == 64) TechnicalAnalysis.calculateBeta(
+            aligned.map { it.close }, aligned.map { indexByDate.getValue(it.date) }) else null
+        if (weight > 0.0 && beta != null) weight to beta else null
     }
-    val portfolioBeta = if (betaWeights.isNotEmpty()) TechnicalAnalysis.calculatePortfolioBeta(betaWeights) else 1.0
+    val portfolioBeta = if (latestIndexIsRecent && betaWeights.size == portfolioItems.size &&
+        betaWeights.isNotEmpty() && totalAssets > 0.0)
+        TechnicalAnalysis.calculatePortfolioBeta(betaWeights) * totalStockValue / totalAssets else null
     val betaProfile = when {
+        portfolioBeta == null -> Pair("History unavailable", MaterialTheme.colorScheme.onSurfaceVariant)
         portfolioBeta < 0.85 -> Pair("Defensive Low-Vol", Color(0xFF6EE7B7))
         portfolioBeta <= 1.15 -> Pair("Balanced Index Track", Color(0xFF60A5FA))
         else -> Pair("Aggressive High-Beta", Color(0xFFFCD34D))
@@ -758,23 +783,21 @@ fun InstitutionalRiskCard(
     val mddResult = TechnicalAnalysis.calculateMaxDrawdown(equitySeries)
 
     // 3. 63-Day Rolling Time-Series Return Distribution (Historical VaR/CVaR)
-    val holdingsWithPrices = portfolioItems.mapNotNull { item ->
-        val closes = portfolioHistoricalCloses[item.portfolio.symbol.uppercase()]
-        val value = item.info.lastPrice * item.portfolio.quantity
-        if (closes != null && closes.size >= 2 && value > 0.0) {
-            Pair(value, closes)
-        } else null
-    }
-    val timeSeriesReturns = if (holdingsWithPrices.isNotEmpty()) {
-        TechnicalAnalysis.calculatePortfolioHistoricalReturns(holdingsWithPrices, 63)
+    val histories = portfolioItems.map { item -> portfolioHistoricalCloses[item.portfolio.symbol.uppercase()].orEmpty() }
+    val commonDates = histories.map { history -> history.map { it.date }.toSet() }
+        .reduceOrNull { a, b -> a intersect b }.orEmpty().sorted().takeLast(64)
+    val holdingsWithPrices = if (commonDates.size == 64) portfolioItems.mapIndexed { index, item ->
+        val pricesByDate = histories[index].associate { it.date to it.close }
+        (item.info.lastPrice * item.portfolio.quantity) to commonDates.map { pricesByDate.getValue(it) }
     } else emptyList()
-
-    val isTimeSeriesVaR = timeSeriesReturns.isNotEmpty()
-    val empiricalReturns = if (isTimeSeriesVaR) {
-        timeSeriesReturns
-    } else {
-        portfolioItems.map { it.info.percentChange / 100.0 }
-    }
+    val empiricalReturns = if (holdingsWithPrices.size == portfolioItems.size && holdingsWithPrices.isNotEmpty())
+        TechnicalAnalysis.calculatePortfolioHistoricalReturns(holdingsWithPrices, 63) else emptyList()
+    val asOfDate = commonDates.lastOrNull()
+    val isRecentHistory = asOfDate?.let { date ->
+        runCatching { !java.time.LocalDate.parse(date).isBefore(
+            java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).minusDays(7)) }.getOrDefault(false)
+    } ?: false
+    val isTimeSeriesVaR = empiricalReturns.size == 63 && isRecentHistory
     val var95 = if (empiricalReturns.isNotEmpty()) TechnicalAnalysis.calculateHistoricalVaR(empiricalReturns, 0.95) else 0.0
     val cvar95 = if (empiricalReturns.isNotEmpty()) TechnicalAnalysis.calculateConditionalVaR(empiricalReturns, 0.95) else 0.0
     val varBaht = totalAssets * (var95 / 100.0)
@@ -798,7 +821,8 @@ fun InstitutionalRiskCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isTimeSeriesVaR) "63-Day Rolling Empirical VaR" else "Value-at-Risk & Tail Risk Profile",
+                        text = if (isTimeSeriesVaR) "63 daily observations · as of $asOfDate" else
+                            "Price history unavailable or stale${asOfDate?.let { " (last $it)" } ?: ""}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -808,7 +832,7 @@ fun InstitutionalRiskCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "Beta ${String.format(Locale.ENGLISH, "%.2f", portfolioBeta)} · ${betaProfile.first}",
+                        text = if (portfolioBeta == null) "Beta unavailable" else "Beta ${String.format(Locale.ENGLISH, "%.2f", portfolioBeta)} · ${betaProfile.first}",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -821,14 +845,14 @@ fun InstitutionalRiskCard(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text(if (isTimeSeriesVaR) "63-Day VaR (95%)" else "1-Day VaR (95%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    Text("฿${String.format(Locale.ENGLISH, "%,.0f", varBaht)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
-                    Text("(-${String.format(Locale.ENGLISH, "%.2f", var95)}%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("1-Day VaR (95%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(if (isTimeSeriesVaR) "฿${String.format(Locale.ENGLISH, "%,.0f", varBaht)}" else "—", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                    Text(if (isTimeSeriesVaR) "(-${String.format(Locale.ENGLISH, "%.2f", var95)}%)" else "Need 64 shared closes", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Tail Risk (CVaR)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    Text("฿${String.format(Locale.ENGLISH, "%,.0f", cvarBaht)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
-                    Text("(-${String.format(Locale.ENGLISH, "%.2f", cvar95)}%)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (isTimeSeriesVaR) "฿${String.format(Locale.ENGLISH, "%,.0f", cvarBaht)}" else "—", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                    Text(if (isTimeSeriesVaR) "(-${String.format(Locale.ENGLISH, "%.2f", cvar95)}%)" else "Unavailable", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Max Drawdown (MDD)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
@@ -839,4 +863,3 @@ fun InstitutionalRiskCard(
         }
     }
 }
-

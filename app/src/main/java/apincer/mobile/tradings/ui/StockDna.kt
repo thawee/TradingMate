@@ -25,6 +25,10 @@ data class ConfluenceScore(
     val highlights: List<String>
 )
 
+enum class CandidateStatus { READY, WATCH, BLOCKED }
+
+data class CandidateAssessment(val status: CandidateStatus, val reasons: List<String>)
+
 /**
  * The Institutional Multi-Layer Filter & Quant Scoring System (Stock DNA).
  * Single source of truth for stock classification, used by the Advisor screen,
@@ -52,10 +56,7 @@ object StockDna {
      *  to execute at the displayed price without excessive slippage. */
     fun isLiquid(s: StockWatchlistInfo): Boolean {
         val volume = s.info.volume
-        if (volume == null) {
-            Log.w("StockDna", "isLiquid: Null volume for ${s.info.symbol}, failing open.")
-            return true // Fail-open: allow if volume data hasn't been fetched yet
-        }
+        if (volume == null) return false
         val price = s.info.lastPrice
         return price > 0 && volume * price > TradingConstants.MIN_LIQUIDITY_TURNOVER_BAHT
     }
@@ -64,13 +65,36 @@ object StockDna {
      *  52-week low. Structural decliners "look cheap" on RSI/P-E but keep making
      *  new lows. Null-tolerant: passes if 52w data hasn't been computed yet. */
     fun isNotNear52wLow(s: StockWatchlistInfo): Boolean {
-        val low = s.portfolio.week52Low ?: return true
+        val low = s.portfolio.week52Low ?: return false
         val price = s.info.lastPrice
         return price <= 0 || price >= low * 1.05
     }
 
+    /** Require stock and benchmark bars from the same latest known trading session. */
+    fun isFresh(s: StockWatchlistInfo, today: java.time.LocalDate =
+        java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok"))): Boolean {
+        val observed = runCatching { java.time.LocalDate.parse(s.portfolio.observationDate) }.getOrNull()
+            ?: return false
+        val benchmark = runCatching { java.time.LocalDate.parse(s.portfolio.benchmarkDate) }.getOrNull()
+            ?: return false
+        return observed == benchmark && !observed.isAfter(today) &&
+            !benchmark.isBefore(today.minusDays(7))
+    }
+
     /** Combined pre-filter gate applied before all DNA layers. */
-    fun preFilter(s: StockWatchlistInfo): Boolean = isLiquid(s) && isNotNear52wLow(s)
+    fun preFilter(s: StockWatchlistInfo): Boolean =
+        isLiquid(s) && isNotNear52wLow(s) && isFresh(s)
+
+    fun preFilterReason(s: StockWatchlistInfo): String? = when {
+        s.info.volume == null -> "Volume data missing"
+        s.portfolio.week52Low == null -> "52-week low data missing"
+        s.portfolio.observationDate == null || s.portfolio.benchmarkDate == null ->
+            "Price or SET benchmark history missing"
+        !isFresh(s) -> "Stock and SET sessions differ or history is too old"
+        !isLiquid(s) -> "Turnover below ฿5 million"
+        !isNotNear52wLow(s) -> "Within 5% of the 52-week low"
+        else -> null
+    }
 
     /** Layer 2 — Value: P/E 0.1–15.0 and P/BV 0.1–1.0. */
     fun isVal(s: StockWatchlistInfo): Boolean =
@@ -89,7 +113,7 @@ object StockDna {
         val price = s.info.lastPrice
         return price > 0 && hist > price * 0.001 &&
                (s.portfolio.rsi ?: 50.0) in 40.0..TradingConstants.RSI_MOMENTUM_MAX &&
-               (s.portfolio.relativeStrength ?: 0.0) >= 0.0
+               (s.portfolio.relativeStrength ?: return false) >= 0.0
     }
 
     /** Layer 5 — Support/Setup: BUY/POTENTIAL signal only. */
@@ -101,8 +125,8 @@ object StockDna {
      *  Ensures NVDR buying is not a dead-cat bounce or short-covering in a collapsing stock. */
     fun isFlow(s: StockWatchlistInfo): Boolean {
         val nvdrVol = s.portfolio.nvdrNetVolume
-        if (nvdrVol == null) return true // Null-tolerant until data source is fully populated
-        val rs = s.portfolio.relativeStrength ?: 0.0
+        if (nvdrVol == null) return false // Missing flow cannot confirm accumulation
+        val rs = s.portfolio.relativeStrength ?: return false
         return nvdrVol > 0.0 && rs >= -1.0
     }
 
@@ -120,25 +144,45 @@ object StockDna {
         return CYCLICAL_SECTORS.any { sector.contains(it, ignoreCase = true) || it.contains(sector, ignoreCase = true) }
     }
 
-    /** Earnings gap-up play: +4% day on a profitable stock with high volume. */
+    /** Strong daily move: +4% day on a profitable stock with high volume. */
     fun isGapUp(s: StockWatchlistInfo): Boolean {
         val turnover = (s.info.volume ?: 0L) * s.info.lastPrice
-        return s.info.percentChange >= 4.0 && 
+        return preFilter(s) && s.signal?.type != IndicatorSignal.SELL &&
+               s.info.percentChange >= 4.0 &&
                turnover >= TradingConstants.MIN_LIQUIDITY_TURNOVER_BAHT &&
                ((s.info.roe ?: 0.0) > 10.0 || (s.info.netProfitMargin ?: 0.0) > 5.0)
     }
 
-    /** Market Regime Aware Swing Filter */
-    fun isSwingCandidate(s: StockWatchlistInfo, isMarketBearish: Boolean = false): Boolean {
-        if (!preFilter(s) || !isQual(s)) return false
-        if (!isMom(s) && !isSup(s) && !isGapUp(s)) return false
-        if (isMarketBearish) {
-            val hasFlow = isFlow(s) && s.portfolio.nvdrNetVolume != null
-            val hasOutperformed = (s.portfolio.relativeStrength ?: 0.0) > 0.0
-            return hasFlow || hasOutperformed
+    /** Shared entry assessment; only READY may become an actionable swing plan. */
+    fun assessSwing(s: StockWatchlistInfo, isMarketBearish: Boolean = false): CandidateAssessment {
+        preFilterReason(s)?.let { return CandidateAssessment(CandidateStatus.BLOCKED, listOf(it)) }
+        if (s.signal?.type == IndicatorSignal.SELL)
+            return CandidateAssessment(CandidateStatus.BLOCKED, listOf("Active sell or invalidation signal"))
+        if (!isQual(s))
+            return CandidateAssessment(CandidateStatus.BLOCKED, listOf("Quality rules not met"))
+        when (s.portfolio.weeklyTrendBullish) {
+            false -> return CandidateAssessment(CandidateStatus.BLOCKED, listOf("Completed weekly trend is bearish"))
+            null -> return CandidateAssessment(CandidateStatus.WATCH, listOf("Completed weekly trend is unavailable"))
+            true -> Unit
         }
-        return true
+        if (!isMom(s) && !isSup(s) && !isGapUp(s))
+            return CandidateAssessment(CandidateStatus.WATCH, listOf("No confirmed momentum or support setup"))
+        if (isMarketBearish) {
+            val hasFlow = isFlow(s)
+            val hasOutperformed = (s.portfolio.relativeStrength ?: Double.NEGATIVE_INFINITY) > 0.0
+            if (!hasFlow && !hasOutperformed)
+                return CandidateAssessment(CandidateStatus.BLOCKED, listOf("No positive flow or relative strength in this market regime"))
+        }
+        if (s.signal?.type != IndicatorSignal.BUY)
+            return CandidateAssessment(CandidateStatus.WATCH, listOf("Entry signal is not confirmed BUY"))
+        return CandidateAssessment(CandidateStatus.READY, emptyList())
     }
+
+    fun isSwingCandidate(s: StockWatchlistInfo, isMarketBearish: Boolean = false): Boolean =
+        assessSwing(s, isMarketBearish).status == CandidateStatus.READY
+
+    fun isDividendCandidate(s: StockWatchlistInfo): Boolean =
+        preFilter(s) && isDiv(s) && isQual(s) && s.signal?.type != IndicatorSignal.SELL
 
     // ==========================================
     // Strategy Archetypes (One-Tap Quant Presets)
@@ -281,7 +325,7 @@ object StockDna {
         )
     }
 
-    /** Multi-Timeframe (MTF) Trend Alignment: Price above SMA 200/50 and positive momentum */
+    /** Daily trend with confirmed completed-week uptrend. */
     fun isMtfAligned(s: StockWatchlistInfo): Boolean {
         val price = s.info.lastPrice
         val sma50 = s.portfolio.sma50 ?: 0.0
@@ -289,7 +333,7 @@ object StockDna {
         val hist = s.portfolio.macdHist ?: 0.0
         if (price <= 0.0) return false
         val isTrendBullish = (sma200 > 0 && price >= sma200) || (sma50 > 0 && price >= sma50)
-        return isTrendBullish && hist > 0.0
+        return isTrendBullish && hist > 0.0 && s.portfolio.weeklyTrendBullish == true
     }
 
     /** DNA tag chips displayed on stock cards. */
@@ -310,7 +354,7 @@ object StockDna {
         if (isDiv(s)) add("DIV")
         if (isMom(s)) add("MOM")
         if (isSup(s)) add("SUP")
-        if (isGapUp(s)) add("GAP")
+        if (isGapUp(s)) add("MOVE")
         if (isFlow(s) && s.portfolio.nvdrNetVolume != null) add("FLOW")
         if (isCyclical(s.info.sector)) add("CYC")
         if ((s.portfolio.relativeStrength ?: 0.0) > 0.0) add("RS")

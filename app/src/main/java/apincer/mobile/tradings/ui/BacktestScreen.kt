@@ -85,7 +85,6 @@ fun BacktestScreen(
 
     fun runSingle() {
         val symbol = selectedSymbol ?: return
-        val watchInfo = watchlist.find { it.info.symbol == symbol }
         isRunning = true
         errorMessage = null
         batchResults = emptyList()
@@ -95,11 +94,7 @@ fun BacktestScreen(
                     val history = SetScraper.fetchHistoricalPrices(symbol)
                     BacktestEngine.run(
                         symbol = symbol,
-                        history = history,
-                        isSet50 = TradingConstants.SET50_SYMBOLS.contains(symbol.uppercase()),
-                        isFundamentalGood = watchInfo?.info?.isFundamentalGood ?: false,
-                        dividendYield = watchInfo?.info?.dividendYield,
-                        roe = watchInfo?.info?.roe
+                        history = history
                     )
                 }
             }
@@ -124,11 +119,7 @@ fun BacktestScreen(
                         val history = SetScraper.fetchHistoricalPrices(w.info.symbol)
                         BacktestEngine.run(
                             symbol = w.info.symbol,
-                            history = history,
-                            isSet50 = TradingConstants.SET50_SYMBOLS.contains(w.info.symbol.uppercase()),
-                            isFundamentalGood = w.info.isFundamentalGood,
-                            dividendYield = w.info.dividendYield,
-                            roe = w.info.roe
+                            history = history
                         )
                     }.getOrNull()
                 }
@@ -167,12 +158,11 @@ fun BacktestScreen(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            "Replays the app's real BUY/SELL signal logic day-by-day over ~1 year of " +
-                                "each stock's own price history (no look-ahead). Buys the day after a BUY " +
-                                "signal, sells when the same logic used on the Watchlist/Portfolio screens " +
-                                "(stop-loss, trailing stop, take-profit, overbought) says SELL. Fees are " +
-                                "netted in. This is an estimate, not a guarantee — it doesn't model " +
-                                "slippage, partial fills, or the 5-Layer DNA candidate filters.",
+                            "Technical-signal replay only. A signal at a daily close fills at the " +
+                                "next available close. Fees are estimated; spread, slippage, " +
+                                "historical fundamentals, flow, AI picks, saved trade plans and " +
+                                "portfolio risk limits are unavailable here. Drawdown includes " +
+                                "open positions marked at daily closes.",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -290,12 +280,12 @@ private fun BacktestSummaryCard(result: BacktestResult, compact: Boolean = false
                     "Avg Loss", String.format(Locale.ENGLISH, "%.1f%%", result.avgLossPercent)
                 )
                 StatRow(
-                    "Expectancy/Trade", String.format(Locale.ENGLISH, "%.2f%%", result.expectancyPercent),
-                    "Max Drawdown", String.format(Locale.ENGLISH, "-%.1f%%", result.maxDrawdownPercent)
+                    "Closed-trade expectancy", String.format(Locale.ENGLISH, "%.2f%%", result.expectancyPercent),
+                    "Daily-close drawdown", String.format(Locale.ENGLISH, "-%.1f%%", result.maxDrawdownPercent)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Compounded Return: ${String.format(Locale.ENGLISH, "%+.1f%%", result.totalReturnPercent)}",
+                    "Closed-trade compounded return: ${String.format(Locale.ENGLISH, "%+.1f%%", result.totalReturnPercent)}",
                     fontWeight = FontWeight.Bold,
                     color = winColor,
                     fontSize = 14.sp

@@ -769,11 +769,10 @@ fun StockItemCard(
                     atr = item.portfolio.atr,
                     isSet50 = isSet50
                 )
-                val targetPrice = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSuggestedTargetPrice(
-                    lastPrice = item.info.lastPrice,
-                    stopLossPrice = stopPrice
-                )
-                val rr = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRiskRewardRatio(item.info.lastPrice, targetPrice, stopPrice)
+                val targetPrice = item.portfolio.portfolio.targetPrice.takeIf { it > item.info.lastPrice }
+                val rr = targetPrice?.let {
+                    apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRiskRewardRatio(item.info.lastPrice, it, stopPrice)
+                }
                 val stopPercent = ((stopPrice - item.info.lastPrice) / item.info.lastPrice) * 100
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -810,7 +809,8 @@ fun StockItemCard(
                                     maxLines = 1
                                 )
                                 Text(
-                                    text = "Aim > ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
+                                    text = targetPrice?.let { "Saved target ฿${String.format(Locale.ENGLISH, "%.2f", it)}" }
+                                        ?: "Target unavailable",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.tertiary,
                                     fontWeight = FontWeight.Bold,
@@ -1497,4 +1497,3 @@ fun MiniSparkline(
         )
     }
 }
-

@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 
 class PortfolioViewModel(application: Application) : AndroidViewModel(application) {
@@ -49,28 +51,39 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             initialValue = emptyList()
         )
 
-    private val historicalClosesCache = ConcurrentHashMap<String, List<Double>>()
-    private val _portfolioHistoricalCloses = MutableStateFlow<Map<String, List<Double>>>(emptyMap())
-    val portfolioHistoricalCloses: StateFlow<Map<String, List<Double>>> = _portfolioHistoricalCloses.asStateFlow()
+    private val historicalClosesCache = ConcurrentHashMap<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>()
+    private val historyFetchMutex = Mutex()
+    private var lastHistoryFetchedAt = 0L
+    private val historyRefreshIntervalMillis = 60L * 60L * 1000L
+    private val _portfolioHistoricalCloses = MutableStateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>>(emptyMap())
+    val portfolioHistoricalCloses: StateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>> = _portfolioHistoricalCloses.asStateFlow()
+    private val _indexHistory = MutableStateFlow<List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>(emptyList())
+    val indexHistory: StateFlow<List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>> = _indexHistory.asStateFlow()
 
     fun loadHistoricalClosesForHoldings(symbols: List<String>) {
         if (symbols.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
-            val resultMap = HashMap<String, List<Double>>(historicalClosesCache)
-            var hasNew = false
-            for (sym in symbols) {
-                val upper = sym.uppercase()
-                if (!resultMap.containsKey(upper)) {
-                    val prices = apincer.mobile.tradings.data.SetScraper.fetchHistoricalPrices(upper).map { it.close }
-                    if (prices.isNotEmpty()) {
-                        resultMap[upper] = prices
-                        historicalClosesCache[upper] = prices
-                        hasNew = true
+            historyFetchMutex.withLock {
+                val now = System.currentTimeMillis()
+                val expired = now - lastHistoryFetchedAt >= historyRefreshIntervalMillis
+                val resultMap = HashMap<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>(historicalClosesCache)
+                for (sym in symbols) {
+                    val upper = sym.uppercase()
+                    if (expired || !resultMap.containsKey(upper)) {
+                        val prices = apincer.mobile.tradings.data.SetScraper.fetchHistoricalPrices(upper)
+                        if (prices.isNotEmpty()) {
+                            resultMap[upper] = prices
+                            historicalClosesCache[upper] = prices
+                        }
                     }
                 }
-            }
-            if (hasNew || _portfolioHistoricalCloses.value.isEmpty()) {
                 _portfolioHistoricalCloses.value = resultMap
+                if (expired || _indexHistory.value.isEmpty()) {
+                    _indexHistory.value = apincer.mobile.tradings.data.SetScraper.fetchSetIndexHistory()
+                }
+                if (_indexHistory.value.isNotEmpty() && symbols.all { resultMap.containsKey(it.uppercase()) }) {
+                    lastHistoryFetchedAt = now
+                }
             }
         }
     }
@@ -78,9 +91,11 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
     fun takeSnapshot(holdings: List<StockWatchlistInfo>) {
         viewModelScope.launch(Dispatchers.IO) {
             val openHoldings = holdings.filter { it.portfolio.quantity > 0 }
-            val totalValue = openHoldings.sumOf { it.info.lastPrice * it.portfolio.quantity }
+            val totalValue = openHoldings.sumOf { item ->
+                (item.info.lastPrice.takeIf { it > 0.0 } ?: item.portfolio.cost) * item.portfolio.quantity
+            }
             val totalCost = openHoldings.sumOf { it.portfolio.cost * it.portfolio.quantity + it.portfolio.buyFees }
-            val currentCash = cashBalance.value
+            val currentCash = repository.getCashSync()?.balance ?: 0.0
             val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
             val snapshot = apincer.mobile.tradings.data.PortfolioSnapshotEntity(
                 date = todayStr,
@@ -99,41 +114,52 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             initialValue = emptyList()
         )
 
-    fun logDividend(symbol: String, dateMillis: Long, amountPerShare: Double, sharesHeld: Int, taxDeducted: Double) {
+    fun logDividend(symbol: String, dateMillis: Long, amountPerShare: Double, sharesHeld: Int, taxDeducted: Double,
+                    onResult: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
             val totalReceived = (amountPerShare * sharesHeld) - taxDeducted
-            repository.insertDividend(apincer.mobile.tradings.data.DividendHistoryEntity(
+            val dividend = apincer.mobile.tradings.data.DividendHistoryEntity(
                 symbol = symbol.uppercase(),
                 dateMillis = dateMillis,
                 amountPerShare = amountPerShare,
                 sharesHeld = sharesHeld,
                 totalReceived = totalReceived,
                 taxDeducted = taxDeducted
-            ))
-            // Also adjust cash balance up by totalReceived
-            repository.adjustCashBy(totalReceived, "Dividend")
-            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
+            )
+            try {
+                repository.recordDividend(dividend)
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
+                onResult(Result.success(Unit))
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
         }
     }
 
-    fun updateCashBalance(amount: Double, reason: String = "Set Balance") {
+    fun updateCashBalance(amount: Double, reason: String = "Set Balance", onResult: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
-            repository.updateCash(amount, reason)
-            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
+            try {
+                repository.updateCash(amount, reason)
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
+                onResult(Result.success(Unit))
+            } catch (e: Exception) { onResult(Result.failure(e)) }
         }
     }
 
-    fun adjustCash(amount: Double, reason: String = "Adjustment") {
+    fun adjustCash(amount: Double, reason: String = "Adjustment", onResult: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
-            repository.adjustCashBy(amount, reason)
-            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
+            try {
+                repository.adjustCashBy(amount, reason)
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
+                onResult(Result.success(Unit))
+            } catch (e: Exception) { onResult(Result.failure(e)) }
         }
     }
 
-    fun recordSell(item: StockWatchlistInfo, sellPrice: Double, sellQuantity: Int, note: String = "") {
+    fun recordSell(item: StockWatchlistInfo, sellPrice: Double, sellQuantity: Int, note: String = "",
+                   onResult: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
-            if (item.portfolio.quantity >= sellQuantity) {
-                try {
+            try {
                     repository.executeSell(
                         symbol = item.portfolio.symbol,
                         sellPrice = sellPrice,
@@ -142,9 +168,10 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
                         atsEnabled = isAtsEnabled.value
                     )
                     apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
-                } catch (e: Exception) {
-                    android.util.Log.e("PortfolioViewModel", "Error recording sell: ${e.message}", e)
-                }
+                    onResult(Result.success(Unit))
+            } catch (e: Exception) {
+                android.util.Log.e("PortfolioViewModel", "Error recording sell: ${e.message}", e)
+                onResult(Result.failure(e))
             }
         }
     }

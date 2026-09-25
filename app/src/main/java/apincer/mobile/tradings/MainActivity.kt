@@ -117,7 +117,7 @@ class MainActivity : ComponentActivity() {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "stock_alert_worker",
-            ExistingPeriodicWorkPolicy.REPLACE,  // Replace stale worker when interval changes
+            ExistingPeriodicWorkPolicy.KEEP,  // Reopening the app must not restart the alert cadence
             workRequest
         )
     }

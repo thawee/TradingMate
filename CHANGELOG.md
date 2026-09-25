@@ -5,6 +5,30 @@ All notable changes to the TradingMate project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [3.3.0] - 2026-09-25
+
+### Added
+- Saved, versioned swing trade plans with entry, stop, target, source, time, and exit policy. Plan acceptance, clearing, AI ranking, fills, sales, and undo actions are recorded in a local advice journal.
+- A shared pre-trade risk check for proposed swing buys: supported target and the configured minimum net reward to risk (default 2:1), per-trade stop risk, combined stock and sector exposure, cash reserve, and 100-share board lots. The buy dialog previews the same checks used when saving.
+- Trade-history snapshots of the accepted plan, fees, peak price, and notes. JSON backups now include these records, cash transactions, advice events, dividend history, daily portfolio snapshots, and position plans. Room schema advanced to version 33, with migrations from earlier versions.
+- A forward evaluation protocol in [docs/ADVISOR_EVALUATION.md](docs/ADVISOR_EVALUATION.md) for measuring advisor outcomes against recorded decisions and actual fills.
+
+### Changed
+- Swing candidate status distinguishes Ready, Watch, and Blocked based on data freshness, liquidity, 52-week-low proximity, quality, completed-week trend, and signal. Relative strength aligns stock and SET observation dates. AI can rank and explain only locally validated swing plans; its assessments are qualitative, and dividend AI output is informational.
+- Fixed-plan exit alerts use the accepted stop, confirmed technical invalidation, and target in that order across the app and background worker. Legacy holdings retain their earlier exit behavior until a complete plan is saved. Alerts do not place orders or guarantee execution prices.
+- The historical backtest fills signals at the next daily close and includes open positions in daily drawdown. It remains a technical-only replay; closed-trade return excludes unrealized results.
+- Market quotes and fundamentals have separate freshness timestamps. Portfolio beta uses historical stock/SET returns; VaR and CVaR require 63 aligned daily observations and show unavailable when the history is incomplete or stale. AI narrative is labeled as unverified interpretation.
+- Unverifiable three-year profit growth is displayed as unavailable instead of being inferred from adjacent financial-data rows. Previously cached values are cleared on upgrade; growth-dependent cyclical screening remains conservative.
+
+### Fixed
+- Clearing a target clears its fixed plan instead of silently retaining an obsolete target. Additional buys retain the saved plan and combine cost and fees; editing quantity to zero now requires a recorded sale.
+- Removing a watchlist item no longer creates a sale at a cached quote or deletes a holding after a failed sale. Concurrent sales validate the remaining quantity inside the database transaction, and undo of a full sale restores the plan and fee state.
+- Backup import preserves existing history by assigning new IDs and deduplicating matching content rather than overwriting rows with colliding IDs. Older backups still import, though data they never contained cannot be reconstructed.
+- Invalid or failed quote/indicator fetches no longer replace usable cached prices; partial refresh failures identify affected symbols. Sales, purchases, cash changes, and dividends report persistence errors before their forms close. Dividend and cash ledger changes are atomic even on a new account.
+- A sale cannot be undone twice. NAV charts and drawdown use chronological snapshots, scheduled alerts retain their cadence across app launches, and risk history is refreshed while the Stats screen is open.
+
 ## [3.2.0] - 2026-09-09
 
 ### Added

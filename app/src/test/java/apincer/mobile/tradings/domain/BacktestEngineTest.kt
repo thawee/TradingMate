@@ -68,4 +68,13 @@ class BacktestEngineTest {
         val resultMidSmall = BacktestEngine.run("TESTMID", history, isSet50 = false)
         assertTrue(resultSet50 != null && resultMidSmall != null)
     }
+
+    @Test
+    fun testDailyDrawdownCountsOpenLossBeforeRecovery() {
+        val drawdown = DailyDrawdownTracker()
+        drawdown.observe(0.80) // Open position loses 20% before it closes.
+        drawdown.observe(1.10) // It later recovers and closes profitably.
+        org.junit.Assert.assertEquals("The open loss must remain in drawdown",
+            20.0, drawdown.maxDrawdownPercent, 0.000001)
+    }
 }

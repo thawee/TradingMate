@@ -9,7 +9,12 @@ import kotlinx.serialization.Serializable
 data class TradingBackup(
     val watchlistSymbols: List<String>,
     val portfolioItems: List<SimplePortfolio>,
-    val cashBalance: Double
+    val cashBalance: Double,
+    val tradeHistory: List<TradeEntity> = emptyList(),
+    val adviceEvents: List<AdviceEventEntity> = emptyList(),
+    val cashTransactions: List<CashTransactionEntity> = emptyList(),
+    val dividendHistory: List<DividendHistoryEntity> = emptyList(),
+    val portfolioSnapshots: List<PortfolioSnapshotEntity> = emptyList()
 )
 
 @Serializable
@@ -17,7 +22,18 @@ data class SimplePortfolio(
     val symbol: String,
     val cost: Double,
     val quantity: Int,
-    val tradePurpose: String
+    val tradePurpose: String,
+    val buyFees: Double = 0.0,
+    val stopLoss: Double = 0.0,
+    val targetPrice: Double = 0.0,
+    val plannedEntryPrice: Double = 0.0,
+    val planId: String = "",
+    val planVersion: Int = 0,
+    val planCreatedAtMillis: Long = 0L,
+    val planSource: String = "LEGACY",
+    val exitPolicy: String = "LEGACY",
+    val playbookNote: String? = null,
+    val peakPrice: Double? = null
 )
 
 @Entity(tableName = "portfolio")
@@ -30,8 +46,25 @@ data class PortfolioEntity(
     val buyFees: Double = 0.0,
     val stopLoss: Double = 0.0,
     val playbookNote: String = "",
-    val peakPrice: Double = 0.0
-)
+    val peakPrice: Double = 0.0,
+    @ColumnInfo(defaultValue = "0.0") val targetPrice: Double = 0.0,
+    @ColumnInfo(defaultValue = "0.0") val plannedEntryPrice: Double = 0.0,
+    @ColumnInfo(defaultValue = "''") val planId: String = "",
+    @ColumnInfo(defaultValue = "0") val planVersion: Int = 0,
+    @ColumnInfo(defaultValue = "0") val planCreatedAtMillis: Long = 0L,
+    @ColumnInfo(defaultValue = "'LEGACY'") val planSource: String = "LEGACY",
+    @ColumnInfo(defaultValue = "'LEGACY'") val exitPolicy: String = "LEGACY"
+) {
+    fun toTradePlan(): apincer.mobile.tradings.domain.TradePlan =
+        if (exitPolicy == "FIXED_TARGET" && planId.isNotBlank() && targetPrice > 0.0) {
+            apincer.mobile.tradings.domain.TradePlan.fixed(
+                symbol, plannedEntryPrice, stopLoss, targetPrice, tradePurpose,
+                planSource, planId, planCreatedAtMillis, planVersion
+            )
+        } else {
+            apincer.mobile.tradings.domain.TradePlan.legacy(symbol, cost, stopLoss, tradePurpose)
+        }
+}
 
 @Entity(tableName = "portfolio_snapshot")
 @Serializable
@@ -67,6 +100,7 @@ data class StockCacheEntity(
     val netProfitMargin: Double? = null,
     val profitGrowth3Y: Double? = null,
     val lastUpdated: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val fundamentalsUpdatedAt: String? = null,
     val volume: Long? = null
 )
 
@@ -93,6 +127,9 @@ data class StockSignalEntity(
     val mfi: Double? = null,
     val nvdrNetVolume: Double? = null,
     val nvdrNetValue: Double? = null,
+    val weeklyTrendBullish: Boolean? = null,
+    val observationDate: String? = null,
+    val benchmarkDate: String? = null,
     val signalType: String? = null, // BUY, SELL, NEUTRAL
     val signalReason: String? = null,
     val signalDescription: String? = null,
@@ -144,6 +181,9 @@ data class StockAggregate(
     val week52Low: Double? get() = signal?.week52Low
     val week52High: Double? get() = signal?.week52High
     val relativeStrength: Double? get() = signal?.relativeStrength
+    val weeklyTrendBullish: Boolean? get() = signal?.weeklyTrendBullish
+    val observationDate: String? get() = signal?.observationDate
+    val benchmarkDate: String? get() = signal?.benchmarkDate
     val atr: Double? get() = signal?.atr
     val adx: Double? get() = signal?.adx
     val stochK: Double? get() = signal?.stochK
@@ -207,8 +247,64 @@ data class TradeEntity(
     val netProfitPercent: Double,
     val netProfitBaht: Double,
     val dateMillis: Long,
-    val note: String = "" // Lessons learned
+    val note: String = "", // Lessons learned
+    @ColumnInfo(defaultValue = "''") val planId: String = "",
+    @ColumnInfo(defaultValue = "0") val planVersion: Int = 0,
+    @ColumnInfo(defaultValue = "0.0") val plannedEntryPrice: Double = 0.0,
+    @ColumnInfo(defaultValue = "0.0") val stopLoss: Double = 0.0,
+    @ColumnInfo(defaultValue = "0.0") val targetPrice: Double = 0.0,
+    @ColumnInfo(defaultValue = "0") val planCreatedAtMillis: Long = 0L,
+    @ColumnInfo(defaultValue = "'LEGACY'") val planSource: String = "LEGACY",
+    @ColumnInfo(defaultValue = "'LEGACY'") val exitPolicy: String = "LEGACY",
+    @ColumnInfo(defaultValue = "'SWING'") val tradePurpose: String = "SWING",
+    @ColumnInfo(defaultValue = "0.0") val buyFees: Double = 0.0,
+    @ColumnInfo(defaultValue = "0.0") val sellFees: Double = 0.0,
+    @ColumnInfo(defaultValue = "0.0") val peakPrice: Double = 0.0,
+    @ColumnInfo(defaultValue = "''") val playbookNote: String = ""
 )
+
+/** Rebuild a fully sold holding when its broker sale is undone. */
+fun TradeEntity.toRestoredPortfolio(): PortfolioEntity = PortfolioEntity(
+    symbol = symbol.uppercase(), cost = buyPrice, quantity = quantity,
+    tradePurpose = tradePurpose, buyFees = buyFees, stopLoss = stopLoss,
+    peakPrice = peakPrice, playbookNote = playbookNote,
+    targetPrice = targetPrice, plannedEntryPrice = plannedEntryPrice,
+    planId = planId, planVersion = planVersion,
+    planCreatedAtMillis = planCreatedAtMillis, planSource = planSource,
+    exitPolicy = exitPolicy
+)
+
+/** Local evidence of a plan, model ranking or actual fill; no API credentials are stored. */
+@Entity(tableName = "advice_event")
+@Serializable
+data class AdviceEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val symbol: String,
+    val planId: String,
+    val planVersion: Int,
+    val kind: String,
+    val timeMillis: Long,
+    val entryPrice: Double? = null,
+    val stopPrice: Double? = null,
+    val targetPrice: Double? = null,
+    val fillPrice: Double? = null,
+    val quantity: Int = 0,
+    val fees: Double = 0.0,
+    val source: String = "",
+    val note: String = ""
+)
+
+@Dao
+interface AdviceEventDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(event: AdviceEventEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(events: List<AdviceEventEntity>)
+
+    @Query("SELECT * FROM advice_event ORDER BY timeMillis ASC, id ASC")
+    suspend fun getAllSync(): List<AdviceEventEntity>
+}
 
 
 @Entity(tableName = "cash_transaction")
@@ -308,6 +404,9 @@ interface TradeDao {
     @Query("SELECT * FROM trade_history ORDER BY dateMillis DESC")
     suspend fun getAllTradesSync(): List<TradeEntity>
 
+    @Query("SELECT * FROM trade_history WHERE id = :id")
+    suspend fun getTradeById(id: Int): TradeEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTrade(trade: TradeEntity)
 
@@ -319,6 +418,9 @@ interface TradeDao {
 
     @Delete
     suspend fun deleteTrade(trade: TradeEntity)
+
+    @Query("DELETE FROM trade_history WHERE id = :id")
+    suspend fun deleteTradeById(id: Int): Int
 }
 
 
@@ -326,6 +428,9 @@ interface TradeDao {
 interface CashTransactionDao {
     @Query("SELECT * FROM cash_transaction ORDER BY dateMillis DESC")
     fun getAllTransactions(): Flow<List<CashTransactionEntity>>
+
+    @Query("SELECT * FROM cash_transaction ORDER BY dateMillis DESC")
+    suspend fun getAllTransactionsSync(): List<CashTransactionEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: CashTransactionEntity)
@@ -400,6 +505,9 @@ interface DividendDao {
     @Query("SELECT * FROM dividend_history ORDER BY dateMillis DESC")
     fun getAllDividends(): Flow<List<DividendHistoryEntity>>
 
+    @Query("SELECT * FROM dividend_history ORDER BY dateMillis DESC")
+    suspend fun getAllDividendsSync(): List<DividendHistoryEntity>
+
     @Query("SELECT * FROM dividend_history WHERE symbol = :symbol ORDER BY dateMillis DESC")
     fun getDividendsBySymbol(symbol: String): Flow<List<DividendHistoryEntity>>
 
@@ -448,9 +556,10 @@ interface PortfolioSnapshotDao {
         ChecklistEntity::class,
         DividendHistoryEntity::class,
         PortfolioSnapshotEntity::class,
-        CashTransactionEntity::class
+        CashTransactionEntity::class,
+        AdviceEventEntity::class
     ], 
-    version = 30
+    version = 33
 )
 abstract class StockDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
@@ -461,10 +570,68 @@ abstract class StockDatabase : RoomDatabase() {
     abstract fun checklistDao(): ChecklistDao
     abstract fun dividendDao(): DividendDao
     abstract fun portfolioSnapshotDao(): PortfolioSnapshotDao
+    abstract fun adviceEventDao(): AdviceEventDao
 
     companion object {
         @Volatile
         private var INSTANCE: StockDatabase? = null
+
+        val MIGRATION_32_33 = object : androidx.room.migration.Migration(32, 33) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stock_cache ADD COLUMN fundamentalsUpdatedAt TEXT DEFAULT NULL")
+                // Older builds populated this three-year field from two adjacent, unverified periods.
+                db.execSQL("UPDATE stock_cache SET profitGrowth3Y = NULL")
+            }
+        }
+
+        val MIGRATION_31_32 = object : androidx.room.migration.Migration(31, 32) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN planId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN planVersion INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN plannedEntryPrice REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN stopLoss REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN targetPrice REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN planCreatedAtMillis INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN planSource TEXT NOT NULL DEFAULT 'LEGACY'")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN exitPolicy TEXT NOT NULL DEFAULT 'LEGACY'")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN tradePurpose TEXT NOT NULL DEFAULT 'SWING'")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN buyFees REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN sellFees REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN peakPrice REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE trade_history ADD COLUMN playbookNote TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_30_31 = object : androidx.room.migration.Migration(30, 31) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN targetPrice REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN plannedEntryPrice REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN planId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN planVersion INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN planCreatedAtMillis INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN planSource TEXT NOT NULL DEFAULT 'LEGACY'")
+                db.execSQL("ALTER TABLE portfolio ADD COLUMN exitPolicy TEXT NOT NULL DEFAULT 'LEGACY'")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN weeklyTrendBullish INTEGER")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN observationDate TEXT")
+                db.execSQL("ALTER TABLE stock_signal ADD COLUMN benchmarkDate TEXT")
+                db.execSQL("""CREATE TABLE IF NOT EXISTS advice_event (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    planId TEXT NOT NULL,
+                    planVersion INTEGER NOT NULL,
+                    kind TEXT NOT NULL,
+                    timeMillis INTEGER NOT NULL,
+                    entryPrice REAL,
+                    stopPrice REAL,
+                    targetPrice REAL,
+                    fillPrice REAL,
+                    quantity INTEGER NOT NULL,
+                    fees REAL NOT NULL,
+                    source TEXT NOT NULL,
+                    note TEXT NOT NULL
+                )""")
+            }
+        }
 
         val MIGRATION_29_30 = object : androidx.room.migration.Migration(29, 30) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -736,7 +903,7 @@ abstract class StockDatabase : RoomDatabase() {
                     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
                     MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
                     MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
-                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30
+                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33
                 )
                 .build()
                 INSTANCE = instance

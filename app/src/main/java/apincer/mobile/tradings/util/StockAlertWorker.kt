@@ -33,6 +33,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
         val prefRepo = apincer.mobile.tradings.data.PreferenceRepository(applicationContext)
         val trailingStopPercent = prefRepo.trailingStopPercent.firstOrNull() ?: 5.0
+        val atsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
         val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
 
         var hasActiveSwingSellAlert = false
@@ -104,16 +105,24 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             try {
                 // 2. Fetch latest data
                 val scraped = SetScraper.fetchStockInfo(entity.symbol)
+                if (!scraped.lastPrice.isFinite() || scraped.lastPrice <= 0.0) {
+                    Log.w("StockAlertWorker", "Skipping ${entity.symbol}: no valid quote")
+                    return@forEach
+                }
                 
                 // 3. Calculate new signal
                 val indicators = SetScraper.fetchTechnicalIndicators(entity.symbol)
+                if (indicators.rsi == null || indicators.histogram == null) {
+                    Log.w("StockAlertWorker", "Skipping ${entity.symbol}: no valid technical history")
+                    return@forEach
+                }
                 val isSet50 = TradingConstants.SET50_SYMBOLS.contains(entity.symbol.uppercase())
                 val userStopLoss = if (entity.portfolio.stopLoss > 0 && entity.cost > 0 && entity.portfolio.stopLoss < entity.cost) {
                     ((entity.portfolio.stopLoss - entity.cost) / entity.cost) * 100
                 } else null
                 val peakPrice = if (entity.portfolio.peakPrice > 0) entity.portfolio.peakPrice else null
 
-                val signal = TechnicalAnalysis.getDetailedSignal(
+                val rawSignal = TechnicalAnalysis.getDetailedSignal(
                     rsi = indicators.rsi,
                     macdHist = indicators.histogram,
                     lastPrice = scraped.lastPrice,
@@ -138,8 +147,28 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     userStopLoss = userStopLoss,
                     relativeStrength = indicators.relativeStrength,
                     nvdrNetVolume = scraped.nvdrNetVolume,
-                    nvdrNetValue = scraped.nvdrNetValue
+                    nvdrNetValue = scraped.nvdrNetValue,
+                    isWeeklyTrendBullish = indicators.weeklyTrendBullish,
+                    userBuyFees = entity.buyFees,
+                    atsEnabled = atsEnabled
                 )
+                val explicitStopHit = entity.quantity > 0 && entity.portfolio.stopLoss > 0.0 &&
+                    scraped.lastPrice > 0.0 && scraped.lastPrice <= entity.portfolio.stopLoss
+                val signal = if (explicitStopHit) {
+                    apincer.mobile.tradings.domain.TradeSignal(IndicatorSignal.SELL, "STOP",
+                        "Saved stop reached at ฿${entity.portfolio.stopLoss}")
+                } else if (entity.quantity > 0 && entity.portfolio.exitPolicy == "FIXED_TARGET") {
+                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
+                        entity.portfolio.toTradePlan(), scraped.lastPrice,
+                        indicators.histogram, indicators.sma50,
+                        TechnicalAnalysis.isNearExDividendDate(scraped.dividendDate)
+                    )
+                    if (decision != null) apincer.mobile.tradings.domain.TradeSignal(
+                        IndicatorSignal.SELL, decision.reason.name, decision.description
+                    ) else apincer.mobile.tradings.domain.TradeSignal(
+                        IndicatorSignal.NEUTRAL, "Saved plan active", "No saved exit trigger reached"
+                    )
+                } else rawSignal
 
                 // 4. Check for state shift (entry opportunities only)
                 val oldSignalType = entity.signalType
@@ -163,20 +192,36 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
                 val sellReasonsList = mutableListOf<String>()
                 if (entity.quantity > 0 && signal.type == IndicatorSignal.SELL) {
-                    signal.reason?.let { sellReasonsList.add(it) }
+                    val reason = if (entity.portfolio.exitPolicy == "FIXED_TARGET" || explicitStopHit)
+                        signal.description else signal.reason
+                    reason?.takeIf { it.isNotBlank() }?.let { sellReasonsList.add(it) }
+                    if (entity.portfolio.exitPolicy == "FIXED_TARGET" || explicitStopHit)
+                        hasActiveSwingSellAlert = true
                 }
 
                 // 5. Update cache in DB
                 val cache = entity.cache ?: apincer.mobile.tradings.data.StockCacheEntity(entity.symbol)
                 repository.updateStockCache(
                     cache.copy(
+                        name = scraped.name ?: cache.name,
+                        sector = scraped.sector ?: cache.sector,
+                        industry = scraped.industry ?: cache.industry,
                         lastPrice = scraped.lastPrice,
                         change = scraped.change,
                         percentChange = scraped.percentChange,
-                        roe = scraped.roe,
-                        debtToEquity = scraped.debtToEquity,
+                        pe = scraped.pe,
+                        pbv = scraped.pbv,
+                        roe = scraped.roe ?: cache.roe,
+                        debtToEquity = scraped.debtToEquity ?: cache.debtToEquity,
+                        netProfitMargin = scraped.netProfitMargin,
+                        profitGrowth3Y = null,
+                        netProfit = scraped.netProfit,
+                        equity = scraped.equity,
                         dividendYield = scraped.dividendYield,
                         dividendDate = scraped.dividendDate,
+                        fundamentalsUpdatedAt = if (scraped.roe != null && scraped.debtToEquity != null &&
+                            scraped.sector != null)
+                            scraped.lastUpdated else cache.fundamentalsUpdatedAt,
                         volume = scraped.volume ?: cache.volume,
                         lastUpdated = scraped.lastUpdated
                     )
@@ -194,6 +239,9 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         isVolumeSurge = indicators.isVolumeSurge,
                         obvRising = indicators.obvRising,
                         week52Low = indicators.week52Low,
+                        weeklyTrendBullish = indicators.weeklyTrendBullish,
+                        observationDate = indicators.observationDate,
+                        benchmarkDate = indicators.benchmarkDate,
                         week52High = indicators.week52High,
                         relativeStrength = indicators.relativeStrength,
                         atr = indicators.atr,
@@ -269,11 +317,15 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
                 // 7. Check if this stock is currently in a swing exit condition
                 val isSwingHold = entity.tradePurpose == "SWING"
-                val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" && (scraped.dividendYield ?: 0.0) < TradingConstants.DIVIDEND_YIELD_PROTECTION
+                val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" &&
+                    scraped.dividendYield?.let { it < TradingConstants.DIVIDEND_YIELD_PROTECTION } == true
                 
-                if (entity.quantity > 0 && (isSwingHold || isDividendTransitionHold)) {
-                    val netProfit = TechnicalAnalysis.calculateNetProfitPercent(entity.cost, scraped.lastPrice)
-                    val netProfitBaht = TechnicalAnalysis.calculateNetProfitBaht(entity.cost, scraped.lastPrice, entity.quantity)
+                if (entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
+                    (isSwingHold || isDividendTransitionHold)) {
+                    val netProfit = TechnicalAnalysis.calculatePositionNetProfitPercent(
+                        entity.cost, scraped.lastPrice, entity.quantity, entity.buyFees, atsEnabled)
+                    val netProfitBaht = TechnicalAnalysis.calculatePositionNetProfitBaht(
+                        entity.cost, scraped.lastPrice, entity.quantity, entity.buyFees, atsEnabled)
                     val rsi = indicators.rsi ?: 50.0
                     val isSell = signal.type == IndicatorSignal.SELL
                     
@@ -334,9 +386,9 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         // Calculate portfolio snapshot
         var totalValue = 0.0
         var totalCost = 0.0
-        allStocks.forEach { item ->
+        repository.getAllStocksSync().forEach { item ->
             val cache = item.cache
-            val currentPrice = cache?.lastPrice ?: item.portfolio.cost
+            val currentPrice = cache?.lastPrice?.takeIf { it > 0.0 } ?: item.portfolio.cost
             val qty = item.portfolio.quantity
             totalValue += currentPrice * qty
             totalCost += item.portfolio.cost * qty + item.portfolio.buyFees

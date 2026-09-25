@@ -155,7 +155,7 @@ class PreferenceRepository(private val context: Context) {
 
     val minRiskRewardRatio: Flow<Double> = context.settingsDataStore.data
         .map { preferences ->
-            preferences[MIN_RISK_REWARD_RATIO] ?: 2.0
+            preferences[MIN_RISK_REWARD_RATIO]?.takeIf { it.isFinite() && it in 1.0..10.0 } ?: 2.0
         }
 
     suspend fun setMinRiskRewardRatio(ratio: Double) {

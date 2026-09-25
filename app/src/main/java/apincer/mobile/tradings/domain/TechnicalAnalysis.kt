@@ -25,7 +25,10 @@ data class Indicators(
     val stochD: Double? = null,
     val mfi: Double? = null,
     val nvdrNetVolume: Double? = null,
-    val nvdrNetValue: Double? = null
+    val nvdrNetValue: Double? = null,
+    val weeklyTrendBullish: Boolean? = null,
+    val observationDate: String? = null,
+    val benchmarkDate: String? = null
 )
 
 data class BollingerBands(
@@ -172,8 +175,18 @@ object TechnicalAnalysis {
         nvdrNetVolume: Double? = null,
         nvdrNetValue: Double? = null,
         isNearXdDate: Boolean = false,
-        isWeeklyTrendBullish: Boolean? = null
+        isWeeklyTrendBullish: Boolean? = null,
+        userBuyFees: Double? = null,
+        atsEnabled: Boolean = true
     ): TradeSignal {
+        fun positionProfitPercent(cost: Double, price: Double): Double =
+            if (userQuantity != null && userQuantity > 0 && userBuyFees != null)
+                calculatePositionNetProfitPercent(cost, price, userQuantity, userBuyFees, atsEnabled)
+            else calculateNetProfitPercent(cost, price)
+        fun positionProfitBaht(cost: Double, price: Double, quantity: Int): Double =
+            if (userBuyFees != null)
+                calculatePositionNetProfitBaht(cost, price, quantity, userBuyFees, atsEnabled)
+            else calculateNetProfitBaht(cost, price, quantity)
         if (rsi == null || macdHist == null) return TradeSignal(IndicatorSignal.NEUTRAL, "Waiting for data", "We need more historical data to generate a signal.")
         
         val isRsiOversold = rsi < TradingConstants.RSI_OVERSOLD
@@ -189,11 +202,11 @@ object TechnicalAnalysis {
 
         // 1. SELL PRIORITY: Position Risk & Profit Management
         if (userCost != null && userCost > 0 && lastPrice != null) {
-            val netProfitPercent = calculateNetProfitPercent(userCost, lastPrice)
+            val netProfitPercent = positionProfitPercent(userCost, lastPrice)
             val quantity = userQuantity ?: 0
             val positionValue = userCost * quantity
             val netProfitBaht = if (quantity > 0) {
-                calculateNetProfitBaht(userCost, lastPrice, quantity)
+                positionProfitBaht(userCost, lastPrice, quantity)
             } else 0.0
             
             var applySwingLogic = true
@@ -307,9 +320,9 @@ object TechnicalAnalysis {
         // 2. SELL PRIORITY: Technical Overbought (only if already profitable)
         val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= TradingConstants.DIVIDEND_YIELD_PROTECTION
         val hasProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
-            val netProfitPercent = calculateNetProfitPercent(userCost, lastPrice)
+            val netProfitPercent = positionProfitPercent(userCost, lastPrice)
             val quantity = userQuantity ?: 0
-            val netProfitBaht = if (quantity > 0) calculateNetProfitBaht(userCost, lastPrice, quantity) else 0.0
+            val netProfitBaht = if (quantity > 0) positionProfitBaht(userCost, lastPrice, quantity) else 0.0
             netProfitPercent >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= TradingConstants.TAKE_PROFIT_MIN_BAHT
         } else {
             false
@@ -467,7 +480,7 @@ object TechnicalAnalysis {
         // A flat or slightly-profitable position gets a NEUTRAL warning instead of an exit signal.
         if (!isMacdBullish && !isPriceAboveSma50) {
             val holdingNetProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
-                calculateNetProfitPercent(userCost, lastPrice)
+                positionProfitPercent(userCost, lastPrice)
             } else null
             return if (!isNearXdDate && holdingNetProfit != null && holdingNetProfit < -2.0) {
                 TradeSignal(
@@ -531,6 +544,32 @@ object TechnicalAnalysis {
         val buyFee = calculateFees(totalCostRaw, false)
         val sellFee = calculateFees(sellValueRaw, true)
         return (sellValueRaw - sellFee) - (totalCostRaw + buyFee)
+    }
+
+    fun calculatePositionNetProfitBaht(
+        cost: Double,
+        currentPrice: Double,
+        quantity: Int,
+        actualBuyFees: Double,
+        atsEnabled: Boolean
+    ): Double {
+        if (quantity <= 0 || cost <= 0.0 || currentPrice <= 0.0) return 0.0
+        val saleValue = currentPrice * quantity
+        return saleValue - calculateFees(saleValue, true, atsEnabled) -
+            (cost * quantity + actualBuyFees)
+    }
+
+    fun calculatePositionNetProfitPercent(
+        cost: Double,
+        currentPrice: Double,
+        quantity: Int,
+        actualBuyFees: Double,
+        atsEnabled: Boolean
+    ): Double {
+        val invested = cost * quantity + actualBuyFees
+        if (invested <= 0.0) return 0.0
+        return calculatePositionNetProfitBaht(cost, currentPrice, quantity,
+            actualBuyFees, atsEnabled) / invested * 100.0
     }
 
     fun calculateSMA(prices: List<Double>, period: Int): Double? {
@@ -607,6 +646,30 @@ object TechnicalAnalysis {
         val stockReturn = (stockPrices.last() - stockPast) / stockPast * 100
         val indexReturn = (indexPrices.last() - indexPast) / indexPast * 100
         return stockReturn - indexReturn
+    }
+
+    /** Compare returns over the same SET sessions; missing endpoint bars leave RS unknown. */
+    fun calculateRelativeStrengthOnDates(
+        stockBars: List<Pair<String, Double>>,
+        indexBars: List<Pair<String, Double>>,
+        days: Int = 63
+    ): Double? {
+        if (days <= 0) return null
+        val benchmark = indexBars.mapNotNull { (date, price) ->
+            val parsed = runCatching { java.time.LocalDate.parse(date) }.getOrNull()
+            if (parsed == null || !price.isFinite() || price <= 0.0) null else parsed to price
+        }.sortedBy { it.first }
+        if (benchmark.size < days + 1) return null
+        val stocksByDate = stockBars.mapNotNull { (date, price) ->
+            val parsed = runCatching { java.time.LocalDate.parse(date) }.getOrNull()
+            if (parsed == null || !price.isFinite() || price <= 0.0) null else parsed to price
+        }.toMap()
+        val (latestDate, latestIndex) = benchmark.last()
+        val (pastDate, pastIndex) = benchmark[benchmark.size - 1 - days]
+        val latestStock = stocksByDate[latestDate] ?: return null
+        val pastStock = stocksByDate[pastDate] ?: return null
+        return ((latestStock - pastStock) / pastStock -
+            (latestIndex - pastIndex) / pastIndex) * 100.0
     }
 
     /**
@@ -988,6 +1051,27 @@ object TechnicalAnalysis {
         val weeklyEma = calculateEMA(weeklyCloses, weeklyPeriod).lastOrNull() ?: return null
         val currentPrice = dailyCloses.lastOrNull() ?: return null
         return currentPrice >= weeklyEma
+    }
+
+    /** Weekly EMA based on completed ISO calendar weeks, including holiday-shortened weeks. */
+    fun isWeeklyTrendBullishOnDate(
+        datedCloses: List<Pair<String, Double>>,
+        asOfDate: String,
+        currentPrice: Double,
+        weeklyPeriod: Int = TradingConstants.WEEKLY_EMA_PERIOD
+    ): Boolean? {
+        if (currentPrice <= 0.0 || weeklyPeriod <= 0) return null
+        val asOf = runCatching { java.time.LocalDate.parse(asOfDate) }.getOrNull() ?: return null
+        val weekStart = asOf.with(java.time.DayOfWeek.MONDAY)
+        val completed = datedCloses.mapNotNull { (date, close) ->
+            val day = runCatching { java.time.LocalDate.parse(date) }.getOrNull()
+            if (day == null || !day.isBefore(weekStart) || close <= 0.0) null else day to close
+        }.sortedBy { it.first }
+            .groupBy { it.first.with(java.time.DayOfWeek.MONDAY) }
+            .values.map { week -> week.last().second }
+        if (completed.size < weeklyPeriod) return null
+        val ema = calculateEMA(completed, weeklyPeriod).lastOrNull() ?: return null
+        return currentPrice >= ema
     }
 
     // ==========================================

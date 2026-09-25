@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -160,6 +161,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val stocks = repository.getAllStocksSync()
                 val cashBalanceVal = repository.getCashSync()?.balance ?: 0.0
+                val tradeHistory = repository.getAllTradesSync()
+                val adviceEvents = repository.getAllAdviceEventsSync()
+                val cashTransactions = repository.getAllCashTransactionsSync()
+                val dividendHistory = repository.getAllDividendsSync()
+                val portfolioSnapshots = repository.getAllSnapshotsSync()
                 
                 val watchlistSymbols = stocks.map { it.portfolio.symbol }
                 val portfolioItems = stocks
@@ -169,14 +175,30 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             symbol = it.portfolio.symbol,
                             cost = it.portfolio.cost,
                             quantity = it.portfolio.quantity,
-                            tradePurpose = it.portfolio.tradePurpose
+                            tradePurpose = it.portfolio.tradePurpose,
+                            buyFees = it.portfolio.buyFees,
+                            stopLoss = it.portfolio.stopLoss,
+                            targetPrice = it.portfolio.targetPrice,
+                            plannedEntryPrice = it.portfolio.plannedEntryPrice,
+                            planId = it.portfolio.planId,
+                            planVersion = it.portfolio.planVersion,
+                            planCreatedAtMillis = it.portfolio.planCreatedAtMillis,
+                            planSource = it.portfolio.planSource,
+                            exitPolicy = it.portfolio.exitPolicy,
+                            playbookNote = it.portfolio.playbookNote,
+                            peakPrice = it.portfolio.peakPrice
                         )
                     }
                 
                 val backup = TradingBackup(
                     watchlistSymbols = watchlistSymbols,
                     portfolioItems = portfolioItems,
-                    cashBalance = cashBalanceVal
+                    cashBalance = cashBalanceVal,
+                    tradeHistory = tradeHistory,
+                    adviceEvents = adviceEvents,
+                    cashTransactions = cashTransactions,
+                    dividendHistory = dividendHistory,
+                    portfolioSnapshots = portfolioSnapshots
                 )
                 
                 val jsonString = Json.encodeToString(TradingBackup.serializer(), backup)
@@ -238,15 +260,16 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     val searchResults: StateFlow<List<ScrapedStockInfo>> = _searchResults
 
     val watchlistInfo: StateFlow<List<StockWatchlistInfo>> = 
-        combine(repository.allStocks, repository.allFocusStocks) { stocks, focusStocks ->
+        combine(repository.allStocks, repository.allFocusStocks, isAtsEnabled) { stocks, focusStocks, atsEnabled ->
             stocks.map { stock ->
                 val focus = focusStocks.find { it.symbol == stock.symbol }
                 val info = stock.toScrapedStockInfo()
-                val netProfit = if (stock.cost > 0) {
-                    TechnicalAnalysis.calculateNetProfitPercent(stock.cost, stock.lastPrice)
+                val netProfit = if (stock.cost > 0 && stock.quantity > 0) {
+                    TechnicalAnalysis.calculatePositionNetProfitPercent(stock.cost, stock.lastPrice,
+                        stock.quantity, stock.buyFees, atsEnabled)
                 } else 0.0
 
-                val signal = if (stock.rsi != null && stock.macdHist != null && stock.lastPrice > 0) {
+                val rawSignal = if (stock.rsi != null && stock.macdHist != null && stock.lastPrice > 0) {
                     TechnicalAnalysis.getDetailedSignal(
                         rsi = stock.rsi,
                         macdHist = stock.macdHist,
@@ -277,7 +300,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         relativeStrength = stock.relativeStrength,
                         nvdrNetVolume = stock.nvdrNetVolume,
                         nvdrNetValue = stock.nvdrNetValue,
-                        isNearXdDate = TechnicalAnalysis.isNearExDividendDate(info.dividendDate ?: stock.dividendDate)
+                        isNearXdDate = TechnicalAnalysis.isNearExDividendDate(info.dividendDate ?: stock.dividendDate),
+                        isWeeklyTrendBullish = stock.weeklyTrendBullish,
+                        userBuyFees = stock.buyFees,
+                        atsEnabled = atsEnabled
                     )
                 } else if (stock.signalType != null) {
                     TradeSignal(
@@ -286,6 +312,21 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         description = stock.signalDescription ?: ""
                     )
                 } else null
+                val explicitStopHit = stock.quantity > 0 && stock.stopLoss > 0.0 &&
+                    stock.lastPrice > 0.0 && stock.lastPrice <= stock.stopLoss
+                val signal = if (explicitStopHit) {
+                    TradeSignal(IndicatorSignal.SELL, "STOP", "Saved stop reached at ฿${stock.stopLoss}")
+                } else if (stock.quantity > 0 && stock.portfolio.exitPolicy == "FIXED_TARGET") {
+                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
+                        stock.portfolio.toTradePlan(), stock.lastPrice,
+                        stock.macdHist, stock.sma50,
+                        TechnicalAnalysis.isNearExDividendDate(info.dividendDate ?: stock.dividendDate)
+                    )
+                    if (decision != null) TradeSignal(IndicatorSignal.SELL,
+                        decision.reason.name, decision.description)
+                    else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
+                        "No saved exit level or early invalidation trigger reached")
+                } else rawSignal
 
                 val focusMovement = if (focus != null && focus.startPrice != 0.0) {
                     ((stock.lastPrice - focus.startPrice) / focus.startPrice) * 100
@@ -361,7 +402,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             val isGapUp = StockDna::isGapUp
             val isLiquid = StockDna::preFilter // liquidity + 52-week-low trap gate
 
-            val dividendPlays = watchlist.filter { isLiquid(it) && isDiv(it) && isQual(it) }
+            val dividendPlays = watchlist.filter(StockDna::isDividendCandidate)
                 .sortedWith(
                     compareBy<StockWatchlistInfo> {
                         when (it.signal?.type) {
@@ -392,7 +433,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
 
-            val gapPlays = watchlist.filter { isLiquid(it) && isGapUp(it) }.sortedByDescending { it.info.percentChange }
+            val gapPlays = watchlist.filter {
+                isLiquid(it) && isGapUp(it) && StockDna.isSwingCandidate(it, isMarketBearish)
+            }.sortedByDescending { it.info.percentChange }
             // Speculative Watch: liquid but Quality-failing stocks with a live BUY/POTENTIAL
             // signal. Includes early/unconfirmed setups (MACD histogram not yet positive) —
             // these are sorted after MACD-confirmed ones since they carry extra risk.
@@ -434,14 +477,20 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 var applySwingLogic = true
 
                 if (tradePurpose == "DIVIDEND") {
-                    val yield = stock.info.dividendYield ?: 0.0
-                    val roe = stock.info.roe ?: 0.0
+                    if (stock.portfolio.stopLoss > 0.0 && stock.info.lastPrice > 0.0 &&
+                        stock.info.lastPrice <= stock.portfolio.stopLoss &&
+                        stock.portfolio.portfolio.exitPolicy != "FIXED_TARGET") {
+                        dividendSellAlerts.add(SellAlertData(stock,
+                            "Saved stop reached at ฿${stock.portfolio.stopLoss}"))
+                    }
+                    val yield = stock.info.dividendYield
+                    val roe = stock.info.roe
 
-                    if (roe < 15.0) {
+                    if (roe != null && roe < 15.0) {
                         dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
                     }
 
-                    if (yield >= TradingConstants.DIVIDEND_YIELD_PROTECTION) {
+                    if (yield == null || yield >= TradingConstants.DIVIDEND_YIELD_PROTECTION) {
                         applySwingLogic = false
                         // Fix #3: Deep drawdown guardrail even for protected dividend stocks
                         val drawdown = if (stock.portfolio.cost > 0)
@@ -456,12 +505,24 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                if (applySwingLogic) {
+                if (stock.portfolio.portfolio.exitPolicy == "FIXED_TARGET") {
+                        val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
+                            stock.portfolio.portfolio.toTradePlan(), stock.info.lastPrice,
+                            stock.portfolio.macdHist, stock.portfolio.sma50,
+                            TechnicalAnalysis.isNearExDividendDate(stock.info.dividendDate)
+                        )
+                        if (decision != null) {
+                            val alerts = if (tradePurpose == "DIVIDEND") dividendSellAlerts else swingSellAlerts
+                            alerts.add(SellAlertData(stock, decision.description))
+                        }
+                } else if (applySwingLogic) {
                     val netProfit = stock.netProfitPercent
-                    val netProfitBaht = TechnicalAnalysis.calculateNetProfitBaht(
+                    val netProfitBaht = TechnicalAnalysis.calculatePositionNetProfitBaht(
                         stock.portfolio.cost,
                         stock.info.lastPrice,
-                        stock.portfolio.quantity
+                        stock.portfolio.quantity,
+                        stock.portfolio.buyFees,
+                        isAtsEnabled.value
                     )
                     val rsi = stock.portfolio.rsi ?: 50.0
 
@@ -617,14 +678,18 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             _refreshError.value = null
             try {
                 val isMarketOpen = TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED
-                val lastSync = watchlistInfo.value.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull()
-                if (!isMarketOpen && lastSync != null && !isTechnicalCacheExpired(lastSync)) {
+                val cachedStocks = repository.getAllStocksSync()
+                if (!isMarketOpen && cachedStocks.isNotEmpty() && cachedStocks.all {
+                    !isCacheExpired(it.lastUpdated) && !isCacheExpired(it.cache?.fundamentalsUpdatedAt) &&
+                        !isTechnicalCacheExpired(it.signal?.lastUpdated)
+                }) {
                     android.util.Log.d("StockViewModel", "Market is closed and data is up-to-date. Skipping refresh.")
                     return@launch
                 }
 
-                val stocks = watchlistInfo.value.map { it.portfolio }
+                val stocks = cachedStocks
                 if (stocks.isEmpty()) return@launch
+                val failedSymbols = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
                 // 1. Ultra-Fast Batch Update (Prices, Changes, basic ratios)
                 withContext(Dispatchers.IO) {
@@ -641,8 +706,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         android.util.Log.e("StockViewModel", "Error fetching batch quotes", e)
                         emptyList()
                     }
+                    failedSymbols.addAll(stocks.map { it.symbol }.filter { symbol ->
+                        batchResults.none { it.symbol.equals(symbol, ignoreCase = true) }
+                    })
                     batchResults.forEach { updated ->
                         stocks.find { it.symbol == updated.symbol }?.let { original ->
+                            if (!updated.lastPrice.isFinite() || updated.lastPrice <= 0.0) {
+                                failedSymbols.add(original.symbol)
+                                return@let
+                            }
                             val cache = original.cache ?: apincer.mobile.tradings.data.StockCacheEntity(original.symbol)
                             repository.updateStockCache(cache.copy(
                                 name = updated.name ?: cache.name,
@@ -672,14 +744,17 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             semaphore.withPermit {
                                 try {
                                     val latestStock = repository.getStockBySymbol(stock.symbol) ?: stock
-                                    val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.lastUpdated)
-                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.lastUpdated)
+                                    val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.cache?.fundamentalsUpdatedAt)
+                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.signal?.lastUpdated)
 
                                     if (needsDeepFetch || needsIndicators) {
                                         val info = if (needsDeepFetch) {
                                             SetScraper.fetchStockInfo(stock.symbol)
                                         } else {
                                             latestStock.toScrapedStockInfo()
+                                        }
+                                        if (!info.lastPrice.isFinite() || info.lastPrice <= 0.0) {
+                                            throw IllegalStateException("No valid price returned")
                                         }
 
                                         val indicators = if (needsIndicators) {
@@ -695,6 +770,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 bollingerBands = null,
                                                 isVolumeSurge = false
                                             )
+                                        }
+                                        if (needsIndicators && (indicators.rsi == null || indicators.histogram == null)) {
+                                            throw IllegalStateException("No valid technical history returned")
                                         }
 
                                         val signal = if (needsIndicators) {
@@ -717,7 +795,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 isFundamentalGood = info.isFundamentalGood,
                                                 tradePurpose = stock.tradePurpose,
                                                 dividendYield = info.dividendYield,
-                                                roe = info.roe
+                                                roe = info.roe,
+                                                isWeeklyTrendBullish = indicators.weeklyTrendBullish,
+                                                userBuyFees = latestStock.buyFees,
+                                                atsEnabled = isAtsEnabled.value
                                             )
                                         } else {
                                             TradeSignal(
@@ -743,7 +824,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 eps = info.eps,
                                                 netProfit = info.netProfit,
                                                 netProfitMargin = info.netProfitMargin ?: cache.netProfitMargin,
-                                                profitGrowth3Y = info.profitGrowth3Y ?: cache.profitGrowth3Y,
+                                                profitGrowth3Y = if (needsDeepFetch) info.profitGrowth3Y else cache.profitGrowth3Y,
+                                                fundamentalsUpdatedAt = if (needsDeepFetch) info.lastUpdated else cache.fundamentalsUpdatedAt,
                                                 equity = info.equity,
                                                 debtToEquity = info.debtToEquity,
                                                 dividendYield = info.dividendYield ?: cache.dividendYield,
@@ -769,6 +851,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 isVolumeSurge = if (needsIndicators) indicators.isVolumeSurge else sig.isVolumeSurge,
                                                 obvRising = if (needsIndicators) indicators.obvRising else sig.obvRising,
                                                 week52Low = if (needsIndicators) indicators.week52Low else sig.week52Low,
+                                                weeklyTrendBullish = if (needsIndicators) indicators.weeklyTrendBullish else sig.weeklyTrendBullish,
+                                                observationDate = if (needsIndicators) indicators.observationDate else sig.observationDate,
+                                                benchmarkDate = if (needsIndicators) indicators.benchmarkDate else sig.benchmarkDate,
                                                 week52High = if (needsIndicators) indicators.week52High else sig.week52High,
                                                 relativeStrength = if (needsIndicators) indicators.relativeStrength else sig.relativeStrength,
                                                 atr = if (needsIndicators) indicators.atr else sig.atr,
@@ -781,7 +866,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 signalType = signal.type.name,
                                                 signalReason = signal.reason,
                                                 signalDescription = signal.description,
-                                                lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
+                                                lastUpdated = if (needsIndicators && indicators.rsi != null && indicators.histogram != null)
+                                                    info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated else sig.lastUpdated
                                             )
                                         )
 
@@ -792,11 +878,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                     }
                                 } catch (e: Exception) {
                                     android.util.Log.e("StockViewModel", "Error deep refreshing stock ${stock.symbol}", e)
+                                    failedSymbols.add(stock.symbol)
                                 }
                             }
                         }
                     }
                     jobs.awaitAll()
+                }
+                if (failedSymbols.isNotEmpty()) {
+                    _refreshError.value = "Some quotes or indicators could not be refreshed: ${failedSymbols.sorted().joinToString()}. Check the last-sync time."
                 }
             } catch (e: Exception) {
                 android.util.Log.e("StockViewModel", "Error refreshing watchlist info", e)
@@ -814,15 +904,14 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             _refreshError.value = null
             try {
                 val isMarketOpen = TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED
-                val lastSync = watchlistInfo.value.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull()
-                if (!isMarketOpen && lastSync != null && !isTechnicalCacheExpired(lastSync)) {
-                    return@launch
-                }
-
-                val portfolioStocks = watchlistInfo.value
+                val portfolioStocks = repository.getAllStocksSync()
                     .filter { it.portfolio.quantity > 0 }
-                    .map { it.portfolio }
                 if (portfolioStocks.isEmpty()) return@launch
+                if (!isMarketOpen && portfolioStocks.all {
+                    !isCacheExpired(it.lastUpdated) && !isCacheExpired(it.cache?.fundamentalsUpdatedAt) &&
+                        !isTechnicalCacheExpired(it.signal?.lastUpdated)
+                }) return@launch
+                val failedSymbols = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
                 withContext(Dispatchers.IO) {
                     val batchResults = try {
@@ -830,8 +919,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) {
                         emptyList()
                     }
+                    failedSymbols.addAll(portfolioStocks.map { it.symbol }.filter { symbol ->
+                        batchResults.none { it.symbol.equals(symbol, ignoreCase = true) }
+                    })
                     batchResults.forEach { updated ->
                         portfolioStocks.find { it.symbol == updated.symbol }?.let { original ->
+                            if (!updated.lastPrice.isFinite() || updated.lastPrice <= 0.0) {
+                                failedSymbols.add(original.symbol)
+                                return@let
+                            }
                             val cache = original.cache ?: apincer.mobile.tradings.data.StockCacheEntity(original.symbol)
                             repository.updateStockCache(cache.copy(
                                 name = updated.name ?: cache.name,
@@ -856,14 +952,17 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             semaphore.withPermit {
                                 try {
                                     val latestStock = repository.getStockBySymbol(stock.symbol) ?: stock
-                                    val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.lastUpdated)
-                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.lastUpdated)
+                                    val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.cache?.fundamentalsUpdatedAt)
+                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.signal?.lastUpdated)
 
                                     if (needsDeepFetch || needsIndicators) {
                                         val info = if (needsDeepFetch) {
                                             SetScraper.fetchStockInfo(stock.symbol)
                                         } else {
                                             latestStock.toScrapedStockInfo()
+                                        }
+                                        if (!info.lastPrice.isFinite() || info.lastPrice <= 0.0) {
+                                            throw IllegalStateException("No valid price returned")
                                         }
                                         val indicators = if (needsIndicators) {
                                             SetScraper.fetchTechnicalIndicators(stock.symbol)
@@ -873,6 +972,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 macd = null, signal = null, histogram = latestStock.macdHist,
                                                 bollingerBands = null, isVolumeSurge = false
                                             )
+                                        }
+                                        if (needsIndicators && (indicators.rsi == null || indicators.histogram == null)) {
+                                            throw IllegalStateException("No valid technical history returned")
                                         }
                                         val signal = if (needsIndicators) {
                                             TechnicalAnalysis.getDetailedSignal(
@@ -890,7 +992,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 userQuantity = if (stock.quantity > 0) stock.quantity else null,
                                                 isFundamentalGood = info.isFundamentalGood,
                                                 tradePurpose = stock.tradePurpose,
-                                                dividendYield = info.dividendYield, roe = info.roe
+                                                dividendYield = info.dividendYield, roe = info.roe,
+                                                isWeeklyTrendBullish = indicators.weeklyTrendBullish,
+                                                userBuyFees = latestStock.buyFees,
+                                                atsEnabled = isAtsEnabled.value
                                             )
                                         } else {
                                             TradeSignal(
@@ -907,7 +1012,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             pe = info.pe ?: cache.pe, pbv = info.pbv ?: cache.pbv,
                                             roe = info.roe, eps = info.eps, netProfit = info.netProfit,
                                             netProfitMargin = info.netProfitMargin ?: cache.netProfitMargin,
-                                            profitGrowth3Y = info.profitGrowth3Y ?: cache.profitGrowth3Y,
+                                            profitGrowth3Y = if (needsDeepFetch) info.profitGrowth3Y else cache.profitGrowth3Y,
+                                            fundamentalsUpdatedAt = if (needsDeepFetch) info.lastUpdated else cache.fundamentalsUpdatedAt,
                                             equity = info.equity, debtToEquity = info.debtToEquity,
                                             dividendYield = info.dividendYield ?: cache.dividendYield,
                                             dividendDate = info.dividendDate,
@@ -929,6 +1035,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             isVolumeSurge = if (needsIndicators) indicators.isVolumeSurge else sig.isVolumeSurge,
                                             obvRising = if (needsIndicators) indicators.obvRising else sig.obvRising,
                                             week52Low = if (needsIndicators) indicators.week52Low else sig.week52Low,
+                                            weeklyTrendBullish = if (needsIndicators) indicators.weeklyTrendBullish else sig.weeklyTrendBullish,
+                                            observationDate = if (needsIndicators) indicators.observationDate else sig.observationDate,
+                                            benchmarkDate = if (needsIndicators) indicators.benchmarkDate else sig.benchmarkDate,
                                             week52High = if (needsIndicators) indicators.week52High else sig.week52High,
                                             relativeStrength = if (needsIndicators) indicators.relativeStrength else sig.relativeStrength,
                                             atr = if (needsIndicators) indicators.atr else sig.atr,
@@ -940,16 +1049,21 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             nvdrNetValue = info.nvdrNetValue ?: sig.nvdrNetValue,
                                             signalType = signal.type.name, signalReason = signal.reason,
                                             signalDescription = signal.description,
-                                            lastUpdated = info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated
+                                            lastUpdated = if (needsIndicators && indicators.rsi != null && indicators.histogram != null)
+                                                info.lastUpdated.takeIf { it.isNotBlank() } ?: sig.lastUpdated else sig.lastUpdated
                                         ))
                                     }
                                 } catch (e: Exception) {
                                     android.util.Log.w("StockViewModel", "Deep refresh failed for ${stock.symbol}: ${e.message}")
+                                    failedSymbols.add(stock.symbol)
                                 }
                             }
                         }
                     }
                     jobs.awaitAll()
+                }
+                if (failedSymbols.isNotEmpty()) {
+                    _refreshError.value = "Some quotes or indicators could not be refreshed: ${failedSymbols.sorted().joinToString()}. Check the last-sync time."
                 }
             } catch (e: Exception) {
                 _refreshError.value = e.localizedMessage ?: "Failed to refresh portfolio"
@@ -975,7 +1089,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         tradePurpose: String = "SWING",
         stopLoss: Double = 0.0,
         playbookNote: String = "",
-        isEdit: Boolean = false
+        isEdit: Boolean = false,
+        targetPrice: Double = 0.0,
+        recordExecutedFill: Boolean = false,
+        onResult: ((Result<Unit>) -> Unit)? = null
     ) {
         viewModelScope.launch {
             val fees = if (quantity > 0 && !isEdit) {
@@ -985,43 +1102,64 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 if (isEdit) {
                     // Edit mode: update portfolio fields only, no cash movement
                     if (quantity == 0) {
+                        if ((repository.getStockBySymbol(symbol)?.portfolio?.quantity ?: 0) > 0)
+                            throw IllegalStateException("Record a sale before removing a holding")
                         repository.removeStock(symbol)
                     } else {
-                        repository.addStock(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+                        val recorded = repository.getStockBySymbol(symbol)?.portfolio
+                        if (recorded != null && quantity != recorded.quantity) {
+                            throw IllegalStateException("Use Buy or Sell to change the recorded share count")
+                        }
+                        repository.addStock(symbol, cost, quantity, tradePurpose, fees, stopLoss,
+                            playbookNote, targetPrice = targetPrice, revisePlanForEntry = true)
                     }
                 } else {
                     // New buy: deduct cash (guarded by balance check in executeBuy)
-                    repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss, playbookNote)
+                    val riskLimits = apincer.mobile.tradings.domain.TradeRiskLimits(
+                        preferenceRepository.maxRiskPerTrade.first(),
+                        preferenceRepository.maxPortfolioAllocation.first(),
+                        preferenceRepository.maxSectorAllocation.first(),
+                        TechnicalAnalysis.getRecommendedCashBufferPercent(_marketRegime.value),
+                        preferenceRepository.minRiskRewardRatio.first()
+                    )
+                    repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss,
+                        playbookNote, targetPrice, riskLimits, isAtsEnabled.value, recordExecutedFill)
                 }
                 apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
-            } catch (e: IllegalStateException) {
-                _refreshError.value = e.message
+                onResult?.invoke(Result.success(Unit))
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (onResult != null) onResult(Result.failure(e)) else _refreshError.value = e.message
+            }
+        }
+    }
+
+    fun recordAiRecommendations(
+        result: apincer.mobile.tradings.domain.AiAnalysisResult,
+        plans: Map<String, apincer.mobile.tradings.domain.AiCandidatePlan>
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            result.recommendations.forEach { rec ->
+                val plan = plans[rec.symbol] ?: return@forEach
+                repository.recordAdviceEvent(apincer.mobile.tradings.data.AdviceEventEntity(
+                    symbol = plan.symbol, planId = plan.snapshotId, planVersion = 1,
+                    kind = "AI_RANKED", timeMillis = System.currentTimeMillis(),
+                    entryPrice = plan.entryPrice, stopPrice = plan.stopPrice,
+                    targetPrice = plan.targetPrice, quantity = plan.shares,
+                    source = "GEMINI", note = rec.reasoning.take(1000)
+                ))
             }
         }
     }
 
     fun removeFromWatchlist(symbol: String) {
         viewModelScope.launch {
-            val item = watchlistInfo.value.find { it.info.symbol == symbol.uppercase() }
-            if (item != null && item.portfolio.quantity > 0) {
-                try {
-                    repository.executeSell(
-                        symbol = symbol,
-                        sellPrice = item.info.lastPrice,
-                        sellQuantity = item.portfolio.quantity,
-                        note = "Stock removed from watchlist"
-                    )
-                    // executeSell already deletes the portfolio row on full sell — don't call removeStock
-                } catch (e: Exception) {
-                    android.util.Log.e("StockViewModel", "Error selling ${symbol}: ${e.message}", e)
-                    // If sell failed, force-remove to avoid orphaned record
-                    repository.removeStock(symbol)
-                }
-            } else {
-                // Watchlist-only (no position): just remove the row
+            try {
                 repository.removeStock(symbol)
+                apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
+            } catch (e: IllegalStateException) {
+                _refreshError.value = e.message
             }
-            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 
@@ -1050,13 +1188,16 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val cachedInfo = local?.toScrapedStockInfo()
                     val isCacheFresh = cachedInfo?.lastUpdated?.let {
                         !isCacheExpired(it)
-                    } ?: false
+                    } == true && !isCacheExpired(local?.cache?.fundamentalsUpdatedAt)
 
                     // 2. Only call API if cache is stale
                     val info = if (isCacheFresh && cachedInfo != null) {
                         cachedInfo
                     } else {
                         SetScraper.fetchStockInfo(symbol)
+                    }
+                    if (!info.lastPrice.isFinite() || info.lastPrice <= 0.0) {
+                        throw IllegalStateException("No valid quote available for $symbol. Try again later.")
                     }
 
                     val updatedInfo = calculateManualPercent(info.copy(
@@ -1076,9 +1217,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val isVolumeSurge = TechnicalAnalysis.isVolumeSurge(volumes)
                     val obvRising = TechnicalAnalysis.isObvRising(prices, volumes)
                     val week52 = TechnicalAnalysis.calculate52WeekRange(prices)
-                    val relativeStrength = TechnicalAnalysis.calculateRelativeStrength(
-                        prices, SetScraper.fetchSetIndexHistory().map { it.close }
-                    )
+                    val relativeStrength = TechnicalAnalysis.calculateRelativeStrengthOnDates(
+                        history.map { it.date to it.close },
+                        SetScraper.fetchSetIndexHistory().map { it.date to it.close })
                     val highs = history.map { it.high }
                     val lows = history.map { it.low }
                     val atr = TechnicalAnalysis.calculateATR(highs, lows, prices)
@@ -1102,11 +1243,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val macd = TechnicalAnalysis.calculateMACD(prices)
 
                     val portfolio = local?.portfolio
-                    val netProfit = if (portfolio != null && portfolio.cost > 0) {
-                        TechnicalAnalysis.calculateNetProfitPercent(portfolio.cost, updatedInfo.lastPrice)
+                    val netProfit = if (portfolio != null && portfolio.cost > 0 && portfolio.quantity > 0) {
+                        TechnicalAnalysis.calculatePositionNetProfitPercent(
+                            portfolio.cost, updatedInfo.lastPrice, portfolio.quantity,
+                            portfolio.buyFees, isAtsEnabled.value)
                     } else null
 
-                    val signal = TechnicalAnalysis.getDetailedSignal(
+                    val rawSignal = TechnicalAnalysis.getDetailedSignal(
                         rsi = rsi, 
                         macdHist = macd.third, 
                         lastPrice = updatedInfo.lastPrice, 
@@ -1125,8 +1268,42 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         isFundamentalGood = updatedInfo.isFundamentalGood,
                         tradePurpose = portfolio?.tradePurpose ?: "SWING",
                         dividendYield = updatedInfo.dividendYield,
-                        roe = updatedInfo.roe
+                        roe = updatedInfo.roe,
+                        peakPrice = portfolio?.peakPrice?.takeIf { it > 0.0 },
+                        isSet50 = TradingConstants.SET50_SYMBOLS.contains(symbol.uppercase()),
+                        userStopLoss = portfolio?.let { held ->
+                            if (held.stopLoss > 0.0 && held.cost > 0.0 && held.stopLoss < held.cost)
+                                (held.stopLoss - held.cost) / held.cost * 100.0 else null
+                        },
+                        relativeStrength = relativeStrength,
+                        nvdrNetVolume = updatedInfo.nvdrNetVolume,
+                        nvdrNetValue = updatedInfo.nvdrNetValue,
+                        isNearXdDate = TechnicalAnalysis.isNearExDividendDate(updatedInfo.dividendDate),
+                        isWeeklyTrendBullish = TechnicalAnalysis.isWeeklyTrendBullishOnDate(
+                            history.map { it.date to it.close },
+                            java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString(),
+                            updatedInfo.lastPrice
+                        ),
+                        userBuyFees = portfolio?.buyFees,
+                        atsEnabled = isAtsEnabled.value
                     )
+                    val explicitStopHit = portfolio != null && portfolio.quantity > 0 &&
+                        portfolio.stopLoss > 0.0 && updatedInfo.lastPrice > 0.0 &&
+                        updatedInfo.lastPrice <= portfolio.stopLoss
+                    val signal = when {
+                        explicitStopHit -> TradeSignal(IndicatorSignal.SELL, "STOP",
+                            "Saved stop reached at ฿${portfolio!!.stopLoss}")
+                        portfolio != null && portfolio.quantity > 0 && portfolio.exitPolicy == "FIXED_TARGET" -> {
+                            val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
+                                portfolio.toTradePlan(), updatedInfo.lastPrice, macd.third, sma50,
+                                TechnicalAnalysis.isNearExDividendDate(updatedInfo.dividendDate))
+                            if (decision != null) TradeSignal(IndicatorSignal.SELL,
+                                decision.reason.name, decision.description)
+                            else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
+                                "No saved exit level or early invalidation trigger reached")
+                        }
+                        else -> rawSignal
+                    }
 
                     val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, sma200, bb)
 
@@ -1159,7 +1336,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                 updatedInfo.lastPrice * (updatedInfo.dividendYield / 100.0)
                             } else cache.dividendPerShare,
                             netProfitMargin = updatedInfo.netProfitMargin ?: cache.netProfitMargin,
-                            profitGrowth3Y = updatedInfo.profitGrowth3Y ?: cache.profitGrowth3Y,
+                            profitGrowth3Y = updatedInfo.profitGrowth3Y,
+                            fundamentalsUpdatedAt = if (!isCacheFresh) updatedInfo.lastUpdated else cache.fundamentalsUpdatedAt,
                             volume = updatedInfo.volume ?: cache.volume,
                             lastUpdated = updatedInfo.lastUpdated
                         ))
@@ -1175,6 +1353,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             isVolumeSurge = isVolumeSurge,
                             obvRising = obvRising,
                             week52Low = week52?.first,
+                            weeklyTrendBullish = TechnicalAnalysis.isWeeklyTrendBullishOnDate(
+                                history.map { it.date to it.close },
+                                java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString(),
+                                updatedInfo.lastPrice
+                            ),
+                            observationDate = history.lastOrNull()?.date,
+                            benchmarkDate = SetScraper.fetchSetIndexHistory().lastOrNull()?.date,
                             week52High = week52?.second,
                             relativeStrength = relativeStrength,
                             atr = atr,

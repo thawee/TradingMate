@@ -13,7 +13,7 @@ The bottom navigation bar provides instant access to the five main functional ar
     *   **Features:** A comprehensive list of saved stocks with technical signals, fundamental overview, search filter, and dynamic sorting.
 2.  **🧠 Advisor (AI Discovery Hub)**
     *   **Focus:** Actionable trade setups and Risk Management.
-    *   **Features:** Permanent top-level Sell Alerts, tabbed browsing for Swing Trades, Earnings Gaps, and Dividend plays. Generates AI Master Prompts directly to clipboard.
+    *   **Features:** Sell alerts, screened Swing, strong daily move, and Dividend candidates, plus prompts and in-app AI analysis. A strong daily move alone does not establish an opening or earnings gap.
 3.  **💼 Portfolio (Financial Hub)**
     *   **Focus:** Consolidated asset tracking & Risk Management.
     *   **Features:** Total Asset summary (Stock + Cash), inline cash management & ledger audit, Sector Breakdown with 30% concentration caps, Section 47 bis Dividend Tax Shield card, and 1-Click Anti-Ruin Position Sizing in trade entry dialogs.
@@ -36,7 +36,7 @@ TradingMate uses a **Success-State Drill-Down** pattern. Whenever a stock is sel
     *   **Business Info:** Sector, industry, and description.
     *   **Financials:** Detailed ROE, Net Profit, and Dividend Yield badges.
     *   **Technicals:** RSI, MACD, SMA 50/200, and Bollinger Band charts.
-    *   **Strategy:** Automated "Buy Below" and "Sell Above" price targets.
+    *   **Strategy:** Technical context, observed price levels, and any accepted plan's saved stop and target.
 *   **Exit:** Swipe right or tap the "Back" button to return to the previous navigation tab.
 
 ---
@@ -60,8 +60,10 @@ The Portfolio screen manages the full financial lifecycle of an investment:
 
 ### 1. The Buy/Update Flow
 *   **Path:** `Portfolio` -> `+ (Add Button)` or `Holdings` -> `Edit Icon`.
-*   **Process:** Opens a dialog to enter Symbol, Avg Cost, and Quantity.
-*   **Intelligent Assist:** Features an **Anti-Ruin Fixed Fractional Position Sizing Calculator** that suggests exact share count based on account risk budget ($1.0\%-2.0\%$), stop loss distance, 100-share SET board lots, and the 15% single-stock allocation cap.
+*   **Process:** Opens a dialog to enter symbol, cost, quantity, trade purpose, and any planned stop and target. An accepted swing plan is saved with its source and version.
+*   **Intelligent Assist:** The size calculator rounds to SET 100-share board lots. Proposed swing buys are checked for a supported target and the configured minimum net reward to risk (default 2:1) after estimated fees, stop risk, combined holding and sector caps, and cash reserve. A recorded broker fill can exceed proposal limits, so review its cash reconciliation notice.
+*   **Editing:** Adding shares retains the existing plan and accumulates purchase cost and fees. To reduce a holding to zero, record a sale; removing it from the watchlist does not create a sale.
+*   **Persistence feedback:** The purchase, edit, cash, dividend, and sale forms remain open until the database reports success. A failed write displays its error and retains the entered values.
 
 ### 2. The Cash Management Flow
 *   **Path:** `Portfolio` -> `Summary Card` -> `Edit Icon (next to Cash)`.
@@ -72,7 +74,7 @@ The Portfolio screen manages the full financial lifecycle of an investment:
 ### 3. The Sell/Exit Flow
 *   **Path:** `Portfolio` -> `Holdings` -> `Sell Icon`.
 *   **Process:** Enter sell price and quantity. 
-*   **Outcome:** The trade is moved to the **History** tab, and the cash balance is automatically updated with the net proceeds (minus Thai fees) with an atomic cash audit ledger entry.
+*   **Outcome:** The sale is recorded in **History** with a snapshot of its plan and fees, and cash is updated with net proceeds and an audit entry. A full-sale Undo restores the holding, plan, and fees; the same sale cannot be undone twice.
 
 ---
 
@@ -80,7 +82,7 @@ The Portfolio screen manages the full financial lifecycle of an investment:
 
 The app maintains a silent lifecycle to keep you informed without active usage:
 
-1.  **WorkManager Activation:** Scheduled every 1 hour (Market Hours Only).
+1.  **WorkManager Activation:** Scheduled every 30 minutes without restarting the schedule on each app launch; actual execution is approximate. Stock scanning runs during market hours.
 2.  **Analysis:** Scans all stocks in the **Watchlist**.
-3.  **Notification:** If technical criteria for a `BUY`, `SELL`, or `POTENTIAL` signal are met, a system-level notification is sent to the user.
+3.  **Notification:** Signal changes and qualifying exit alerts may generate notifications. Saved swing plans use their accepted stop and target; an alert is not an order or guaranteed fill.
 4.  **Re-Entry:** Tapping the notification launches the app directly into that stock's **Deep Dive** dashboard.

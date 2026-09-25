@@ -6,6 +6,7 @@ import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.data.StockCacheEntity
 import apincer.mobile.tradings.data.StockSignalEntity
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -28,7 +29,12 @@ class StockDnaTest {
         )
         val signal = StockSignalEntity(
             symbol = "TEST",
-            nvdrNetVolume = nvdrNetVolume
+            nvdrNetVolume = nvdrNetVolume,
+            relativeStrength = 2.0,
+            week52Low = 5.0,
+            weeklyTrendBullish = true,
+            observationDate = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString(),
+            benchmarkDate = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString()
         )
         val aggregate = StockAggregate(
             portfolio = portfolio,
@@ -54,10 +60,47 @@ class StockDnaTest {
     }
 
     @Test
-    fun testIsFlowNullTolerance() {
+    fun testMissingFlowDoesNotPass() {
         val stock = createStock(nvdrNetVolume = null)
-        assertTrue("Null NVDR volume should be tolerant and return true", StockDna.isFlow(stock))
+        assertFalse("Missing NVDR cannot confirm positive flow", StockDna.isFlow(stock))
         assertFalse("FLOW tag should not be added when NVDR is null", StockDna.tags(stock).contains("FLOW"))
+    }
+
+    @Test
+    fun testDailyMoverWithSellSignalIsNotActionable() {
+        val stock = createStock(nvdrNetVolume = 500_000.0).copy(
+            info = createStock(500_000.0).info.copy(volume = 1_000_000L),
+            signal = apincer.mobile.tradings.domain.TradeSignal(
+                apincer.mobile.tradings.domain.IndicatorSignal.SELL, "Exit", "Exit")
+        )
+        assertFalse(StockDna.isGapUp(stock))
+    }
+
+    @Test
+    fun testMissingLiquidityOr52WeekEvidenceBlocksEntry() {
+        val stock = createStock(500_000.0).copy(
+            info = createStock(500_000.0).info.copy(volume = null),
+            portfolio = createStock(500_000.0).portfolio.copy(
+                signal = createStock(500_000.0).portfolio.signal!!.copy(week52Low = null))
+        )
+        assertFalse(StockDna.preFilter(stock))
+    }
+
+    @Test
+    fun testOldOrMissingMarketObservationBlocksEntry() {
+        val stock = createStock(500_000.0)
+        val old = stock.copy(portfolio = stock.portfolio.copy(signal =
+            stock.portfolio.signal!!.copy(observationDate = "2026-01-01", benchmarkDate = "2026-01-01")))
+        assertFalse(StockDna.isFresh(old, java.time.LocalDate.of(2026, 9, 24)))
+        val missing = stock.copy(portfolio = stock.portfolio.copy(signal =
+            stock.portfolio.signal!!.copy(observationDate = null)))
+        assertFalse(StockDna.isFresh(missing, java.time.LocalDate.of(2026, 9, 24)))
+        org.junit.Assert.assertEquals("Price or SET benchmark history missing",
+            StockDna.preFilterReason(missing.copy(info = missing.info.copy(volume = 1_000_000L))))
+        val mismatched = stock.copy(portfolio = stock.portfolio.copy(signal =
+            stock.portfolio.signal!!.copy(
+                benchmarkDate = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).minusDays(1).toString())))
+        assertFalse(StockDna.isFresh(mismatched))
     }
 
     @Test
@@ -103,6 +146,41 @@ class StockDnaTest {
             )
         }
         assertFalse("Bearish regime filters out lagging stocks with no NVDR flow", StockDna.isSwingCandidate(laggingStock, isMarketBearish = true))
+    }
+
+    @Test fun sellSignalBlocksSwingEvenWhenMomentumIsPositive() {
+        val candidate = createStock(500_000.0).let { s ->
+            val cache = s.portfolio.cache!!.copy(roe = 18.0, debtToEquity = 1.0,
+                netProfitMargin = 15.0, profitGrowth3Y = 15.0, volume = 1_000_000L)
+            val signal = s.portfolio.signal!!.copy(macdHist = 0.5, rsi = 50.0,
+                signalType = "SELL", weeklyTrendBullish = true)
+            s.copy(info = s.info.copy(roe = 18.0, debtToEquity = 1.0,
+                netProfitMargin = 15.0, profitGrowth3Y = 15.0, volume = 1_000_000L),
+                portfolio = s.portfolio.copy(cache = cache, signal = signal),
+                signal = apincer.mobile.tradings.domain.TradeSignal(
+                    apincer.mobile.tradings.domain.IndicatorSignal.SELL, "SELL", "Invalidated"))
+        }
+        assertFalse(StockDna.isSwingCandidate(candidate))
+        assertEquals(CandidateStatus.BLOCKED, StockDna.assessSwing(candidate).status)
+    }
+
+    @Test fun missingOrBearishWeeklyTrendCannotBeReady() {
+        val candidate = createStock(500_000.0).let { s ->
+            val cache = s.portfolio.cache!!.copy(roe = 18.0, debtToEquity = 1.0,
+                netProfitMargin = 15.0, profitGrowth3Y = 15.0, volume = 1_000_000L)
+            val signal = s.portfolio.signal!!.copy(macdHist = 0.5, rsi = 50.0,
+                signalType = "BUY", weeklyTrendBullish = true)
+            s.copy(info = s.info.copy(roe = 18.0, debtToEquity = 1.0,
+                netProfitMargin = 15.0, profitGrowth3Y = 15.0, volume = 1_000_000L),
+                portfolio = s.portfolio.copy(cache = cache, signal = signal),
+                signal = apincer.mobile.tradings.domain.TradeSignal(
+                    apincer.mobile.tradings.domain.IndicatorSignal.BUY, "BUY", "Confirmed"))
+        }
+        assertEquals(CandidateStatus.READY, StockDna.assessSwing(candidate).status)
+        assertEquals(CandidateStatus.WATCH, StockDna.assessSwing(candidate.copy(portfolio =
+            candidate.portfolio.copy(signal = candidate.portfolio.signal!!.copy(weeklyTrendBullish = null)))).status)
+        assertEquals(CandidateStatus.BLOCKED, StockDna.assessSwing(candidate.copy(portfolio =
+            candidate.portfolio.copy(signal = candidate.portfolio.signal!!.copy(weeklyTrendBullish = false)))).status)
     }
 
     @Test
@@ -237,7 +315,8 @@ class StockDnaTest {
     @Test
     fun testIsMtfAlignedAndMtfTag() {
         val mtfStock = createStock(nvdrNetVolume = 100_000.0).let { s ->
-            val signal = s.portfolio.signal!!.copy(sma50 = 9.0, sma200 = 8.0, macdHist = 0.4)
+            val signal = s.portfolio.signal!!.copy(sma50 = 9.0, sma200 = 8.0,
+                macdHist = 0.4, weeklyTrendBullish = true)
             s.copy(
                 info = s.info.copy(lastPrice = 10.0),
                 portfolio = s.portfolio.copy(signal = signal)

@@ -48,7 +48,7 @@ OBV cumulatively adds volume on up days and subtracts it on down days, revealing
 - **Flat/Falling OBV during a rally:** The move lacks conviction and is likely to fail.
 
 ### 6. Relative Strength vs SET Index - The Race
-Classic O'Neil-style RS: the stock's 3-month (63 trading days) return minus the SET index return over the same window.
+Relative strength compares the stock's return with the SET index over aligned endpoints from a 63-session benchmark window. Missing or mismatched observation dates do not produce an actionable swing reading.
 
 - **RS > 0:** The stock is outperforming the market. Winners tend to keep winning.
 - **RS < 0:** A market laggard — even if it looks cheap, money is flowing elsewhere. The MOM DNA layer requires RS ≥ 0 (null-tolerant when index data is unavailable).
@@ -57,8 +57,8 @@ Classic O'Neil-style RS: the stock's 3-month (63 trading days) return minus the 
 ### 7. 52-Week Low Guard - The Trap Detector
 Structural decliners "look cheap" on RSI and P/E while continually making new lows.
 
-- **Rule:** Stocks trading within **5% of their 52-week low** are excluded by the Pre-Filter from all candidate lists (Swing, Dividend, Gap-Up, Speculative).
-- **Null-tolerant:** If 52-week data has not been computed yet, the stock passes (fail-open).
+- **Rule:** Stocks trading within **5% of their 52-week low** are blocked from actionable swing candidates. Risky signals may still be shown separately for review.
+- **Missing data:** A missing 52-week low prevents Ready swing status; it is not treated as evidence that the stock passed the guard.
 
 ### 8. ATR (Average True Range) - The Breathing Room
 Wilder-smoothed 14-day average of the daily true range (including gaps). Powers volatility-adjusted exits:
@@ -94,13 +94,12 @@ Measures the health of the broader Stock Exchange of Thailand index (`^SET.BK`).
   - **Bear / Correction:** SET Index < SMA 50. Activates defensive sizing (50%) and enforces strict NVDR Flow or positive Relative Strength for all Swing entries.
 
 ### 13. Pre-Trade Risk:Reward & Invalidation Engine
-Before entering any position, TradingMate calculates the exact mathematical trade parameters:
+For a proposed swing buy, TradingMate checks its planned levels and account limits:
 
 - **Suggested Stop Loss:** Volatility-adjusted stop ($2 \times \text{ATR}\%$, clamped $-3.5\%$ to $-8.0\%$) or fixed tier ($-4.5\%$ SET50 / $-6.5\%$ Mid/Small).
-- **Suggested Target Price:** Baseline $+10\%$ take-profit target.
-- **Risk:Reward Ratio (R:R):**
-  $$\text{R:R} = \frac{\text{Target Price} - \text{Entry Price}}{\text{Entry Price} - \text{Stop Loss Price}}$$
-  Displayed prominently on all watchlist and setup cards to enforce positive expectancy before trade execution.
+- **Target:** An observed or saved level is required. The app does not manufacture a $+10\%$ or 2R target to make a proposed plan pass.
+- **Net reward to risk:** Estimated profit at the target after buy and sell fees must meet the user's configured minimum (default 2:1) relative to estimated loss at the stop including those fees. A simple price-distance ratio on an advisor card is indicative only; the buy check uses share count and fees.
+- **Other checks:** Per-trade loss budget, combined ticker and sector exposure, cash reserve, and 100-share board lots. These limits screen proposals, not actual broker fills recorded after execution.
 
 ### 14. False Breakout Guard (Institutional Flow & Volume)
 Guards against "bull traps" where technical momentum appears positive but lacks institutional backing:
@@ -116,21 +115,22 @@ Rather than waiting for a full stop loss ($-4.5\%$ to $-8.0\%$), the engine acti
 
 ### 16. Multi-Timeframe (MTF) Macro Trend Alignment (Weekly 20-EMA)
 To avoid counter-trend "knife-catching" in larger macro downtrends:
-- **Resampling:** Daily price series are resampled into calendar-week closing candles (`TechnicalAnalysis.resampleToWeeklyCloses`).
+- **Resampling:** Dated daily history is grouped into completed calendar weeks. The current unfinished week is excluded from the weekly EMA.
 - **Weekly 20-EMA:** Computes the 20-period Exponential Moving Average on weekly closes.
-- **Macro Alignment Guard:** If the latest weekly close is below the Weekly 20-EMA (`isWeeklyMacroBullish == false`), daily momentum `BUY` signals are downgraded to `POTENTIAL` (*Macro Weekly Bearish*).
+- **Macro Alignment Guard:** When the current price is below the EMA of completed weekly closes, daily momentum `BUY` signals are downgraded to `POTENTIAL` (*Macro Weekly Bearish*). Missing weekly history leaves the guard unknown.
 - **Confluence Tag (`MTF`):** Stocks that are simultaneously bullish on the daily chart (Price $\ge$ SMA 50 $\ge$ SMA 200) AND weekly chart (Weekly Close $\ge$ Weekly 20-EMA) receive the `MTF` confluence tag.
 
 ### 17. 63-Day Rolling Covariance Portfolio Beta ($\beta$)
 Measures systemic volatility relative to the SET Index (`^SET.BK`) over 63 trading days (approx. 3 calendar months):
 $$\beta = \frac{\text{Cov}(R_{\text{stock}}, R_{\text{SET}})}{\text{Var}(R_{\text{SET}})}$$
-$$\text{Portfolio } \beta = \frac{\sum (w_i \times \beta_i)}{\sum w_i}$$
+$$\text{Portfolio } \beta = \frac{\sum (w_i \times \beta_i)}{\sum w_i} \times \frac{\text{Stock Value}}{\text{Total Assets}}$$
 - **Defensive Low-Vol ($\beta < 0.85$):** Insulates portfolio from broader market selloffs.
 - **Balanced Index Track ($0.85 \le \beta \le 1.15$):** Moves in tandem with the SET Index.
 - **Aggressive High-Beta ($\beta > 1.15$):** Outperforms in bull markets but requires strict risk buffers.
 
 ### 18. Historical Value-at-Risk ($\text{VaR}_{95\%}$) & Conditional VaR (CVaR)
 Quantitative downside tail-risk modeling on empirical daily returns:
+- Uses 63 daily returns from 64 shared dates across all current holdings. Missing or stale observations show the metric as unavailable; these are historical loss estimates, not future loss limits.
 - **1-Day 95% Historical VaR:** The 5th percentile worst daily loss:
   $$\text{VaR}_{95\%} = -\text{Percentile}_{5\%}(R_{\text{daily}}) \times \text{Total Assets}$$
 - **Conditional VaR (CVaR / Expected Shortfall):** The expected average loss given that the market drops beyond the 95% VaR threshold:
@@ -161,7 +161,7 @@ $$\text{Net Yield on Cost (YoC}_{\text{net}}\text{)} = \left(\frac{\text{Annual 
 ## 🧬 The 6-Layer Filter (Stock DNA)
 
 - **Pre-Filter:** Liquidity (daily turnover > ฿5M) **AND** not within 5% of the 52-week low.
-- **Layer 1 — QUAL:** ROE > 15%, NPM > 10%, D/E < 1.5, 3Y profit growth > 10%.
+- **Layer 1 — QUAL:** ROE > 15%, NPM > 10%, D/E < 1.5. Unverified 3Y growth is unavailable and is not used as a positive signal.
 - **Layer 2 — VAL:** P/E 0.1–15.0 and P/BV 0.1–1.0.
 - **Layer 3 — DIV:** Dividend yield ≥ 5%.
 - **Layer 4 — MOM:** MACD histogram > 0.1% of price, RSI 40–64.9, and Relative Strength vs SET ≥ 0.
@@ -178,8 +178,7 @@ Before looking at technical signals, TradingMate evaluates the "DNA" of a compan
    - **Why:** We want highly efficient companies that generate superior returns on shareholders' capital.
 2. **Net Profit Margin > 10%:**
    - **Why:** Ensures the company keeps a healthy portion of its revenue as profit after all expenses.
-3. **Profit Growth (3Y) > 10%:**
-   - **Why:** Confirms the company is growing its bottom line consistently over the medium term.
+3. **Profit Growth (3Y):** Unavailable until financial-data rows can be matched to verified three-year reporting periods. Adjacent-row growth is not a substitute.
 4. **D/E Ratio (Debt to Equity) < 1.5:**
    - **Why:** Prevents exposure to companies with excessive debt that could be risky during high-interest periods.
 
@@ -236,20 +235,20 @@ Stocks with no clear trend or extreme valuation.
 5. **15% Single-Stock Allocation Cap:** Hard-cap exposure to any single company at max 15% of total account equity.
 6. **30% Sector Allocation Cap:** Automatic warning alert if a single sector exceeds 30% concentration.
 7. **Dual-Confirmation Smart Money Flow:** Foreign NVDR net accumulation is only valid when paired with non-negative Relative Strength ($\text{RS} \ge -1.0$) to avoid buying into foreign short-covering rallies on fundamentally broken stocks.
-8. **Cyclical Sector Quality Shield:** Commodity and cyclical stocks (Energy, Petrochem, Agribusiness, Shipping, Steel) must prove 3Y profit growth $\ge 8\%$ and margins $\ge 10\%$ to avoid value traps at peak commodity cycles.
+8. **Cyclical Sector Quality Shield:** Commodity and cyclical stocks (Energy, Petrochem, Agribusiness, Shipping, Steel) do not pass the growth-dependent shield when verified 3Y growth is unavailable.
 9. **Multi-Timeframe Weekly 20-EMA Filter:** Do not buy daily breakouts if the stock is trending below its weekly 20-EMA.
-10. **The 10% Rule (Take Profit):** At +10% net profit, the app suggests locking in gains, especially if technicals are reaching the Selling Zone.
+10. **Saved Target Rule:** New fixed swing plans alert at their accepted target. Legacy holdings retain older profit rules until their plan is completed.
 
 ---
 
 ## 🔔 Automated Alerts & Notifications
 
-TradingMate actively monitors your saved stocks and delivers real-time intelligence via Android Push Notifications and in-app alerts.
+TradingMate monitors saved stocks with in-app alerts and periodic Android notifications. Notification timing depends on WorkManager and market data availability.
 
 ### 1. Push Notifications (Background Monitoring)
-The app runs a background worker (every hour) to monitor stocks currently in your **Watchlist**. 
-- **Market Hours Only:** Notifications are only processed during SET market hours.
-- **Trigger Conditions:** A push notification is sent whenever a stock's technical data triggers a `BUY`, `POTENTIAL`, or `SELL` signal.
+The app schedules a background worker every 30 minutes to monitor stocks in your **Watchlist**.
+- **Market Hours:** Stock scans run while the market is open; time-window reminders are checked separately.
+- **Trigger Conditions:** Signal changes and qualifying active exit conditions can produce a notification. Saved swing plans use their accepted stop and target.
 - **Price Alerts:** Visual indicators for stocks nearing target prices. The proximity threshold can be customized in **Settings**.
 
 ### 2. In-App Dividend Alerts (XD Dates)
@@ -270,4 +269,3 @@ TradingMate calculates **Net Profit** by accounting for the following fees (appr
 - **Minimum Fee:** 50 THB daily (waived when ATS + E-Statement enabled).
 
 > **Formula:** Net Profit = (Selling Price - Sell Fees) - (Buying Price + Buy Fees)
-

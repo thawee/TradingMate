@@ -86,6 +86,7 @@ fun PortfolioScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
     val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
+    val minRiskRewardRatio by settingsViewModel.minRiskRewardRatio.collectAsState()
     val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
     val maxSectorAllocation by settingsViewModel.maxSectorAllocation.collectAsState()
     val citTaxRate by settingsViewModel.citTaxRate.collectAsState()
@@ -97,6 +98,7 @@ fun PortfolioScreen(
     var showDividendDialog by remember { mutableStateOf(false) }
     var selectedStockForSell by remember { mutableStateOf<StockWatchlistInfo?>(null) }
     var selectedStockForEdit by remember { mutableStateOf<StockWatchlistInfo?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
     var selectedPlaybook by remember { mutableStateOf("SWING") }
 
     val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
@@ -474,15 +476,31 @@ fun PortfolioScreen(
             cashBalance = cashBalance,
             marketRegime = marketRegime,
             maxRiskPerTradePercent = maxRiskPerTrade,
+            minRiskRewardRatio = minRiskRewardRatio,
             maxStockAllocationPercent = maxPortfolioAllocation,
+            maxSectorAllocationPercent = maxSectorAllocation,
+            holdings = watchlist,
+            atsEnabled = isAtsEnabled,
+            isSaving = isSubmitting,
             onDismiss = {
-                showBuyDialog = false
-                selectedStockForEdit = null
+                if (!isSubmitting) {
+                    showBuyDialog = false
+                    selectedStockForEdit = null
+                }
             },
-            onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose ->
-                viewModel.addToWatchlist(symbol, cost, qty, purpose, stopLoss, note, isEdit = isEditing)
-                showBuyDialog = false
-                selectedStockForEdit = null
+            onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose, recordExecutedFill ->
+                if (!isSubmitting) {
+                    isSubmitting = true
+                    viewModel.addToWatchlist(symbol, cost, qty, purpose, stopLoss, note,
+                        isEdit = isEditing, targetPrice = target,
+                        recordExecutedFill = recordExecutedFill, onResult = { result ->
+                            isSubmitting = false
+                            result.onSuccess {
+                                showBuyDialog = false
+                                selectedStockForEdit = null
+                            }.onFailure { showSnackbar(it.message ?: "Could not save holding") }
+                        })
+                }
             }
         )
     }
@@ -490,30 +508,42 @@ fun PortfolioScreen(
     if (showCashDialog) {
         AdjustCashDialog(
             currentBalance = cashBalance,
-            onDismiss = { showCashDialog = false },
+            isSaving = isSubmitting,
+            onDismiss = { if (!isSubmitting) showCashDialog = false },
             onConfirm = { amount, isSet, reason ->
-                if (isSet) {
-                    val delta = amount - cashBalance
-                    val sign = if (delta >= 0) "+" else ""
-                    portfolioViewModel.updateCashBalance(amount, reason)
-                    showSnackbar("Cash set to ฿${String.format(Locale.ENGLISH, "%,.2f", amount)} ($sign฿${String.format(Locale.ENGLISH, "%,.2f", delta)}) · $reason")
-                } else {
-                    portfolioViewModel.adjustCash(amount, reason)
-                    showSnackbar("Cash +฿${String.format(Locale.ENGLISH, "%,.2f", amount)} · $reason")
+                if (!isSubmitting) {
+                    isSubmitting = true
+                    val onResult: (Result<Unit>) -> Unit = { result ->
+                        isSubmitting = false
+                        result.onSuccess {
+                            showCashDialog = false
+                            showSnackbar(if (isSet) "Cash set to ฿${String.format(Locale.ENGLISH, "%,.2f", amount)} · $reason"
+                                else "Cash ${if (amount >= 0) "+" else ""}฿${String.format(Locale.ENGLISH, "%,.2f", amount)} · $reason")
+                        }.onFailure { showSnackbar(it.message ?: "Could not update cash") }
+                    }
+                    if (isSet) portfolioViewModel.updateCashBalance(amount, reason, onResult)
+                    else portfolioViewModel.adjustCash(amount, reason, onResult)
                 }
-                showCashDialog = false
             }
         )
     }
 
     if (showDividendDialog) {
         LogDividendDialog(
-            onDismiss = { showDividendDialog = false },
+            isSaving = isSubmitting,
+            onDismiss = { if (!isSubmitting) showDividendDialog = false },
             onConfirm = { symbol, dateMillis, dps, shares, tax ->
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                portfolioViewModel.logDividend(symbol, dateMillis, dps, shares, tax)
-                showDividendDialog = false
-                showSnackbar("Logged dividend for $symbol")
+                if (!isSubmitting) {
+                    isSubmitting = true
+                    portfolioViewModel.logDividend(symbol, dateMillis, dps, shares, tax) { result ->
+                        isSubmitting = false
+                        result.onSuccess {
+                            showDividendDialog = false
+                            showSnackbar("Logged dividend for $symbol")
+                        }.onFailure { showSnackbar(it.message ?: "Could not log dividend") }
+                    }
+                }
             }
         )
     }
@@ -521,11 +551,20 @@ fun PortfolioScreen(
     selectedStockForSell?.let { stock ->
         SellStockDialog(
             stock = stock,
-            onDismiss = { selectedStockForSell = null },
+            isSaving = isSubmitting,
+            onDismiss = { if (!isSubmitting) selectedStockForSell = null },
             onConfirm = { symbol, price, qty, note ->
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                portfolioViewModel.recordSell(stock, price, qty, note)
-                selectedStockForSell = null
+                if (!isSubmitting) {
+                    isSubmitting = true
+                    portfolioViewModel.recordSell(stock, price, qty, note) { result ->
+                        isSubmitting = false
+                        result.onSuccess {
+                            selectedStockForSell = null
+                            showSnackbar("Recorded sale of $symbol")
+                        }.onFailure { showSnackbar(it.message ?: "Could not record sale") }
+                    }
+                }
             }
         )
     }
@@ -534,6 +573,7 @@ fun PortfolioScreen(
 @Composable
 fun LogDividendDialog(
     initialSymbol: String = "",
+    isSaving: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (String, Long, Double, Int, Double) -> Unit
 ) {
@@ -548,14 +588,16 @@ fun LogDividendDialog(
     
     val totalAmount = (dpsVal * sharesVal) - taxVal
 
-    val isValid = symbol.isNotBlank() && dpsVal > 0.0 && sharesVal > 0
+    val isValid = symbol.isNotBlank() && dpsVal.isFinite() && dpsVal > 0.0 && sharesVal > 0 &&
+        taxDeducted.toDoubleOrNull() != null && taxVal.isFinite() && taxVal >= 0.0 &&
+        totalAmount.isFinite() && totalAmount >= 0.0
 
     GlassDialog(
         onDismissRequest = onDismiss,
         title = "Log Dividend Payment",
         confirmButton = {
             Button(
-                enabled = isValid,
+                enabled = isValid && !isSaving,
                 onClick = { onConfirm(symbol, System.currentTimeMillis(), dpsVal, sharesVal, taxVal) },
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -618,6 +660,7 @@ fun LogDividendDialog(
 @Composable
 fun AdjustCashDialog(
     currentBalance: Double,
+    isSaving: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (Double, Boolean, String) -> Unit
 ) {
@@ -630,14 +673,15 @@ fun AdjustCashDialog(
     val presetReasons = listOf("Deposit", "Withdrawal", "Correction", "Fee")
     val effectiveReason = customReason.takeIf { it.isNotBlank() } ?: selectedReason
     val amountVal = amount.toDoubleOrNull() ?: 0.0
-    val isValid = if (isSetMode) amountVal >= 0.0 && effectiveReason.isNotBlank() else amountVal != 0.0 && effectiveReason.isNotBlank()
+    val isValid = amount.toDoubleOrNull() != null && amountVal.isFinite() && effectiveReason.isNotBlank() &&
+        (if (isSetMode) amountVal >= 0.0 else amountVal != 0.0 && currentBalance + amountVal >= 0.0)
 
     GlassDialog(
         onDismissRequest = onDismiss,
         title = "Cash Management",
         confirmButton = {
             Button(
-                enabled = isValid,
+                enabled = isValid && !isSaving,
                 onClick = { onConfirm(amountVal, isSetMode, effectiveReason) },
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -771,37 +815,49 @@ fun BuyStockDialog(
     cashBalance: Double = 0.0,
     marketRegime: TechnicalAnalysis.MarketRegime = TechnicalAnalysis.MarketRegime.NEUTRAL,
     maxRiskPerTradePercent: Double = 1.0,
+    minRiskRewardRatio: Double = 2.0,
     maxStockAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SINGLE_STOCK_ALLOCATION_PERCENT,
+    maxSectorAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SECTOR_ALLOCATION_PERCENT,
+    holdings: List<StockWatchlistInfo> = emptyList(),
+    atsEnabled: Boolean = true,
+    isSaving: Boolean = false,
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, Int, Double, Double, String, String) -> Unit
+    onConfirm: (String, Double, Int, Double, Double, String, String, Boolean) -> Unit
 ) {
     var symbol by remember { mutableStateOf(initialStock?.info?.symbol ?: "") }
     var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: "") }
     var qty by remember { mutableStateOf(initialStock?.portfolio?.quantity?.toString() ?: "") }
     
-    var targetPrice by remember { mutableStateOf(initialStock?.focusTargetPrice?.let { if (it > 0) it.toString() else "" } ?: "") }
+    var targetPrice by remember { mutableStateOf(initialStock?.portfolio?.portfolio?.targetPrice?.let { if (it > 0) it.toString() else "" } ?: "") }
     var stopLossPrice by remember { mutableStateOf(initialStock?.portfolio?.stopLoss?.let { if (it > 0) it.toString() else "" } ?: "") }
     var playbookNote by remember { mutableStateOf(initialStock?.portfolio?.playbookNote ?: "") }
     var tradePurpose by remember { mutableStateOf(initialStock?.portfolio?.tradePurpose ?: "SWING") }
-    var acceptLowRR by remember { mutableStateOf(false) }
+    var recordExecutedFill by remember { mutableStateOf(false) }
 
     val entry = entryPrice.toDoubleOrNull() ?: 0.0
     val amount = qty.toIntOrNull() ?: 0
     val target = targetPrice.toDoubleOrNull() ?: 0.0
     val stopLoss = stopLossPrice.toDoubleOrNull() ?: 0.0
-
-    val suggestion = if (entry > 0) {
-        Triple(1.10, 0.95, stringResource(R.string.label_suggested_strategy))
+    val existingHolding = if (initialStock == null) holdings.find {
+        it.info.symbol.equals(symbol, ignoreCase = true) && it.portfolio.portfolio.quantity > 0
     } else null
+    val planTarget = existingHolding?.portfolio?.portfolio?.targetPrice?.takeIf { it > 0.0 } ?: target
+    val planStop = existingHolding?.portfolio?.portfolio?.stopLoss?.takeIf { it > 0.0 } ?: stopLoss
+    val planPurpose = existingHolding?.portfolio?.portfolio?.tradePurpose ?: tradePurpose
 
-    val riskPerShare = entry - stopLoss
-    val rewardPerShare = target - entry
-    val rrRatio = if (riskPerShare > 0) rewardPerShare / riskPerShare else 0.0
-    val positionRecommendation = if (entry > 0 && stopLoss > 0 && accountEquity > 0) {
+    val riskPerShare = entry - planStop
+    val rewardPerShare = planTarget - entry
+    val buyFeeEstimate = TechnicalAnalysis.calculateFees(entry * amount, false, atsEnabled)
+    val targetSellFeeEstimate = TechnicalAnalysis.calculateFees(planTarget * amount, true, atsEnabled)
+    val stopSellFeeEstimate = TechnicalAnalysis.calculateFees(planStop * amount, true, atsEnabled)
+    val netReward = rewardPerShare * amount - buyFeeEstimate - targetSellFeeEstimate
+    val netRisk = riskPerShare * amount + buyFeeEstimate + stopSellFeeEstimate
+    val rrRatio = if (netRisk > 0.0) netReward / netRisk else 0.0
+    val positionRecommendation = if (entry > 0 && planStop > 0 && accountEquity > 0) {
         TechnicalAnalysis.calculateRecommendedPositionSize(
             totalAssets = accountEquity,
             entryPrice = entry,
-            stopLossPrice = stopLoss,
+            stopLossPrice = planStop,
             riskPercent = maxRiskPerTradePercent,
             maxStockAllocationPercent = maxStockAllocationPercent
         )
@@ -811,12 +867,34 @@ fun BuyStockDialog(
     } else 0
     val currentTradeRiskBaht = riskPerShare.coerceAtLeast(0.0) * amount
     val currentTradeRiskPercent = if (accountEquity > 0) currentTradeRiskBaht / accountEquity * 100.0 else 0.0
-    val isValidDividend = tradePurpose == "DIVIDEND" || playbookNote.lowercase().contains("dividend")
-    val isFormValid = if (initialStock != null && amount == 0) {
-        true
+    val isValidDividend = planPurpose == "DIVIDEND" || playbookNote.lowercase().contains("dividend")
+    val selectedSector = holdings.find { it.info.symbol.equals(symbol, ignoreCase = true) }?.info?.sector
+    val existingStockValue = holdings.filter { it.info.symbol.equals(symbol, ignoreCase = true) && it.portfolio.quantity > 0 }
+        .sumOf { it.info.lastPrice * it.portfolio.quantity }
+    val existingSectorValue = selectedSector?.let { sector ->
+        holdings.filter { it.info.sector == sector && it.portfolio.quantity > 0 }
+            .sumOf { it.info.lastPrice * it.portfolio.quantity }
+    }
+    val riskResult = apincer.mobile.tradings.domain.TradeRiskPolicy.evaluate(
+        apincer.mobile.tradings.domain.TradeRiskInput(
+            entry, planStop, amount, TechnicalAnalysis.calculateFees(entry * amount, false, atsEnabled),
+            accountEquity, cashBalance, existingStockValue, existingSectorValue, atsEnabled,
+            planTarget, planPurpose == "SWING"
+        ),
+        apincer.mobile.tradings.domain.TradeRiskLimits(
+            maxRiskPerTradePercent, maxStockAllocationPercent, maxSectorAllocationPercent,
+            TechnicalAnalysis.getRecommendedCashBufferPercent(marketRegime), minRiskRewardRatio
+        )
+    )
+    val isFormValid = if (initialStock != null) {
+        symbol.isNotBlank() && entry > 0.0 &&
+            amount == initialStock.portfolio.portfolio.quantity &&
+            (target <= 0.0 || (stopLoss > 0.0 && stopLoss < entry && target > entry))
     } else {
         symbol.isNotBlank() && entry > 0 && amount > 0 && 
-        (isValidDividend || (target > 0 && stopLoss > 0 && (rrRatio >= 2.0 || acceptLowRR)))
+        (recordExecutedFill || (isValidDividend && planStop > 0 && planStop < entry) ||
+            (planTarget > entry && planStop > 0 && planStop < entry && rrRatio >= minRiskRewardRatio)) &&
+        (recordExecutedFill || riskResult.allowed)
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -922,32 +1000,17 @@ fun BuyStockDialog(
                         Text(stringResource(R.string.label_rr_calculator), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                     
-                    suggestion?.let { sug ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp),
-                            onClick = {
-                                targetPrice = String.format(Locale.ENGLISH, "%.2f", entry * sug.first)
-                                stopLossPrice = String.format(Locale.ENGLISH, "%.2f", entry * sug.second)
-                            }
-                        ) {
-                            Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
-                                Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.action_set_suggested), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                            }
-                        }
-                    }
                 }
-                
-                suggestion?.let { sug ->
-                    Text(text = sug.third, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
-                }
+                Text(if (existingHolding != null) "This additional buy keeps the holding's saved stop and target. Net ratio uses those levels and estimated fees."
+                    else "Enter your own target and stop. Net ratio includes estimated broker fees at both exits.",
+                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = targetPrice,
+                        value = if (existingHolding != null) planTarget.takeIf { it > 0.0 }?.toString() ?: "" else targetPrice,
                         onValueChange = { targetPrice = it },
+                        enabled = existingHolding == null,
                         label = { Text(stringResource(R.string.label_target)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
@@ -956,8 +1019,9 @@ fun BuyStockDialog(
                         shape = RoundedCornerShape(14.dp)
                     )
                     OutlinedTextField(
-                        value = stopLossPrice,
+                        value = if (existingHolding != null) planStop.takeIf { it > 0.0 }?.toString() ?: "" else stopLossPrice,
                         onValueChange = { stopLossPrice = it },
+                        enabled = existingHolding == null,
                         label = { Text(stringResource(R.string.label_stop_loss)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
@@ -1122,6 +1186,7 @@ fun BuyStockDialog(
                             )
 
                             val statusMsg = when {
+                                recordExecutedFill && isInsufficientCash -> "The recorded fill will leave negative cash. Reconcile deposits or earlier trades in the ledger."
                                 isInsufficientCash -> "Insufficient cash: Trade cost (฿${String.format(Locale.ENGLISH, "%,.0f", incrementalCost)}) exceeds available cash (฿${String.format(Locale.ENGLISH, "%,.0f", cashBalance)})."
                                 isBufferDeficit -> "Buffer Breach: Post-trade cash (${String.format(Locale.ENGLISH, "%.1f", projectedBufferPercent)}%) falls below ${recommendedBufferPercent.toInt()}% regime target. Deficit: ฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve - projectedCashRemaining)}."
                                 else -> "Healthy liquidity: Preserves ${recommendedBufferPercent.toInt()}% cash buffer (฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}) required for ${marketRegime.name.lowercase().replaceFirstChar { it.uppercase() }} conditions."
@@ -1137,28 +1202,22 @@ fun BuyStockDialog(
                 }
             }
 
-            if (entry > 0 && amount > 0 && target > 0 && stopLoss > 0) {
+            if (entry > 0 && amount > 0 && planTarget > 0 && planStop > 0) {
                 item {
-                    val totalRisk = riskPerShare * amount
-                    val totalReward = rewardPerShare * amount
-                    
-                    val totalFees = TechnicalAnalysis.calculateFees(entry * amount, false) + TechnicalAnalysis.calculateFees(target * amount, true)
-                    val netReward = totalReward - totalFees
-
                     GlassCard(
-                        containerColor = (if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary).copy(alpha = 0.1f),
+                        containerColor = (if (rrRatio >= minRiskRewardRatio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary).copy(alpha = 0.1f),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(stringResource(R.string.label_rr_ratio), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Text("1 : ${String.format(Locale.ENGLISH, "%.2f", rrRatio)}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                                Text("1 : ${String.format(Locale.ENGLISH, "%.2f", rrRatio)}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = if (rrRatio >= minRiskRewardRatio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
                             }
                             LinearProgressIndicator(
                                 progress = { (rrRatio / 5f).toFloat().coerceIn(0.1f, 1f) },
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                color = if (rrRatio >= 2) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                                color = if (rrRatio >= minRiskRewardRatio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             Spacer(Modifier.height(8.dp))
@@ -1169,53 +1228,54 @@ fun BuyStockDialog(
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(stringResource(R.string.label_potential_risk), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("฿${String.format(Locale.ENGLISH, "%,.2f", totalRisk)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                    Text("฿${String.format(Locale.ENGLISH, "%,.2f", netRisk)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
                     }
                 }
 
-                if (tradePurpose == "SWING" && rrRatio < 2.0) {
-                    item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
-                            Checkbox(
-                                checked = acceptLowRR,
-                                onCheckedChange = { acceptLowRR = it }
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "Override: Accept low Risk/Reward ratio (< 2.0)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
+                if (tradePurpose == "SWING" && rrRatio < minRiskRewardRatio) item {
+                    Text("Net Reward:Risk is below ${String.format(Locale.ENGLISH, "%.1f", minRiskRewardRatio)}:1 for a proposed swing trade.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
                 }
             }
         }
             Spacer(Modifier.height(24.dp))
+            if (initialStock == null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = recordExecutedFill, onCheckedChange = { recordExecutedFill = it })
+                    Text("Record an already executed broker trade", style = MaterialTheme.typography.bodySmall)
+                }
+                if (!riskResult.allowed) {
+                    Text(riskResult.reasons.joinToString("; "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (initialStock != null && amount == 0) {
+                Text("Record a sale to remove held shares", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error)
+            }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
                 Spacer(Modifier.width(8.dp))
                 Button(
-                    enabled = isFormValid,
+                    enabled = isFormValid && !isSaving,
                     onClick = { 
                         if (isFormValid) {
-                            onConfirm(symbol, entry, amount, target, stopLoss, playbookNote, tradePurpose)
+                            val acceptedTarget = if (recordExecutedFill &&
+                                (planStop <= 0.0 || planStop >= entry || planTarget <= entry)) 0.0 else planTarget
+                            onConfirm(symbol, entry, amount, acceptedTarget, planStop, playbookNote,
+                                planPurpose, recordExecutedFill)
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (initialStock != null && amount == 0) MaterialTheme.colorScheme.error else ButtonDefaults.buttonColors().containerColor
-                    )
+                    colors = ButtonDefaults.buttonColors()
                 ) {
                     Text(
-                        if (initialStock != null && amount == 0) "Remove Stock"
-                        else if (initialStock == null) stringResource(R.string.action_add_to_portfolio)
+                        if (initialStock == null) stringResource(R.string.action_add_to_portfolio)
                         else stringResource(R.string.action_update)
                     )
                 }
@@ -1228,6 +1288,7 @@ fun BuyStockDialog(
 @Composable
 fun SellStockDialog(
     stock: StockWatchlistInfo,
+    isSaving: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, String) -> Unit
 ) {
@@ -1296,9 +1357,9 @@ fun SellStockDialog(
                 Spacer(Modifier.width(8.dp))
                 val sellQty = qty.toIntOrNull() ?: 0
                 val sellPrice = price.toDoubleOrNull() ?: 0.0
-                val isValid = sellQty > 0 && sellQty <= stock.portfolio.quantity && sellPrice > 0.0
+                val isValid = sellQty > 0 && sellQty <= stock.portfolio.quantity && sellPrice.isFinite() && sellPrice > 0.0
                 Button(
-                    enabled = isValid,
+                    enabled = isValid && !isSaving,
                     onClick = { 
                         if (isValid) {
                             onConfirm(stock.info.symbol, sellPrice, sellQty, note)

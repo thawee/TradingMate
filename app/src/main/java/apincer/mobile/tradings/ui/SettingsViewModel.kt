@@ -164,6 +164,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
 
     fun updateMinRiskRewardRatio(ratio: Double) {
+        if (!ratio.isFinite()) return
         viewModelScope.launch {
             preferenceRepository.setMinRiskRewardRatio(ratio.coerceIn(1.0, 10.0))
         }

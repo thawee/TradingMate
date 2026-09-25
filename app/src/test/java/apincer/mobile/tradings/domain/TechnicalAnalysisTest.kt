@@ -5,6 +5,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TechnicalAnalysisTest {
+    @Test
+    fun minimumCommissionsCanTurnGrossGainIntoNetLoss() {
+        val buyFees = TechnicalAnalysis.calculateFees(1_000.0, false, atsEnabled = false)
+        val net = TechnicalAnalysis.calculatePositionNetProfitPercent(
+            cost = 10.0, currentPrice = 10.5, quantity = 100,
+            actualBuyFees = buyFees, atsEnabled = false)
+        org.junit.Assert.assertTrue(net < 0.0)
+    }
+    @Test
+    fun completedCalendarWeeksExcludeCurrentWeek() {
+        val history = listOf(
+            "2026-01-02" to 100.0, "2026-01-09" to 100.0,
+            "2026-01-16" to 100.0, "2026-01-23" to 100.0,
+            "2026-01-26" to 50.0
+        )
+        org.junit.Assert.assertEquals(false,
+            TechnicalAnalysis.isWeeklyTrendBullishOnDate(history, "2026-01-26", 50.0, 3))
+    }
 
     @Test
     fun testSuggestedQuantitySizesRiskCorrectly() {
@@ -252,6 +270,17 @@ class TechnicalAnalysisTest {
 
         // Insufficient history -> null
         assertEquals(null, TechnicalAnalysis.calculateRelativeStrength(stock.take(10), index))
+    }
+
+    @Test fun datedRelativeStrengthNeedsMatchingSetSessions() {
+        val start = java.time.LocalDate.of(2026, 1, 1)
+        val index = List(64) { i -> start.plusDays(i.toLong()).toString() to (1000.0 + i) }
+        val stock = List(64) { i -> start.plusDays(i.toLong()).toString() to (100.0 + i) }
+        assertEquals(null, TechnicalAnalysis.calculateRelativeStrengthOnDates(
+            stock.dropLast(1), index))
+        assertEquals(null, TechnicalAnalysis.calculateRelativeStrengthOnDates(
+            stock.drop(1), index))
+        assertTrue(TechnicalAnalysis.calculateRelativeStrengthOnDates(stock, index)!! > 0.0)
     }
 
     @Test

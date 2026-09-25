@@ -17,7 +17,7 @@ data class BacktestTrade(
 /**
  * Aggregate result of replaying [TechnicalAnalysis.getDetailedSignal] day-by-day
  * over a stock's own price history — i.e. "what would have happened if a user
- * bought every time the app said BUY and sold every time it said SELL."
+ * acted on this historical technical signal alone. It does not replay the full advisor."
  */
 data class BacktestResult(
     val symbol: String,
@@ -42,23 +42,35 @@ data class BacktestResult(
         (winRatePercent / 100.0) * avgWinPercent + (1 - winRatePercent / 100.0) * avgLossPercent
 }
 
+/** Tracks peak-to-trough loss on every marked equity observation. */
+class DailyDrawdownTracker {
+    private var peak = 1.0
+    var maxDrawdownPercent: Double = 0.0
+        private set
+
+    fun observe(markedEquity: Double) {
+        if (!markedEquity.isFinite() || markedEquity < 0.0) return
+        peak = maxOf(peak, markedEquity)
+        maxDrawdownPercent = maxOf(maxDrawdownPercent, (peak - markedEquity) / peak * 100.0)
+    }
+}
+
 /**
  * Replays the app's actual BUY/SELL signal engine over historical daily prices.
  *
  * Methodology (kept deliberately simple/transparent, not a professional
  * portfolio-level backtester):
  * - Indicators at day `i` are computed ONLY from data[0..i] (no look-ahead).
- * - A BUY signal on day `i` fills at day `i+1`'s close (avoids same-bar fill bias).
- * - While a position is open, the same [TechnicalAnalysis.getDetailedSignal] used
- *   by the Watchlist/Portfolio screens (stop-loss, trailing stop, take-profit,
- *   overbought exits) decides when to sell — exactly what a user following the
- *   app's signals would have experienced.
+ * - A BUY or SELL signal on day `i` fills at day `i+1`'s close; this is a
+ *   next-close approximation because the historical feed has no reliable open.
+ * - While a position is open, the legacy technical signal determines exits.
+ *   Saved fixed-target plans and the complete advisor policy are not replayed.
  * - Fees are already netted in via [TechnicalAnalysis.calculateNetProfitPercent].
  * - One position at a time (no pyramiding/partial scale-outs), fully re-invested
- *   between trades (compounded), and does not model bid/ask spread or slippage
- *   beyond the liquidity pre-filter applied upstream by the caller.
- * - Only tests the core signal engine — the 5-Layer DNA filters (QUAL/VAL/DIV)
- *   are a separate candidate-selection layer, not replayed here.
+ *   between trades (compounded), and does not model bid/ask spread or slippage.
+ * - Technical signal replay only. Historical fundamentals, flow, AI selection,
+ *   accepted targets and portfolio constraints are unavailable and not replayed.
+ * - Drawdown marks open positions to each daily close, including exit costs.
  */
 object BacktestEngine {
     // Needs SMA200 (200) + a buffer so the very first evaluated day has stable indicators.
@@ -84,17 +96,44 @@ object BacktestEngine {
         val trades = mutableListOf<BacktestTrade>()
         var position: OpenPosition? = null
         var pendingEntryPrice: Double? = null
+        var pendingExitReason: String? = null
 
         var equity = 1.0
-        var peakEquity = 1.0
-        var maxDrawdown = 0.0
+        val drawdown = DailyDrawdownTracker()
+
+        fun markToMarket(price: Double) {
+            val markedEquity = position?.let {
+                equity * (1.0 + TechnicalAnalysis.calculateNetProfitPercent(it.entryPrice, price) / 100.0)
+            } ?: equity
+            drawdown.observe(markedEquity)
+        }
 
         for (i in WARMUP_DAYS until history.size) {
+            val exitReason = pendingExitReason
+            val exitingPosition = position
+            if (exitReason != null && exitingPosition != null) {
+                val netProfit = TechnicalAnalysis.calculateNetProfitPercent(exitingPosition.entryPrice, closes[i])
+                trades.add(BacktestTrade(
+                    entryDate = history[exitingPosition.entryIndex].date,
+                    entryPrice = exitingPosition.entryPrice,
+                    exitDate = history[i].date,
+                    exitPrice = closes[i],
+                    exitReason = exitReason,
+                    netProfitPercent = netProfit,
+                    holdingDays = i - exitingPosition.entryIndex
+                ))
+                equity *= 1.0 + netProfit / 100.0
+                position = null
+                pendingExitReason = null
+                markToMarket(closes[i])
+                continue
+            }
             // A BUY signal fired yesterday — fill today at close, skip evaluation
             // this bar (no same-day entry+exit).
             if (position == null && pendingEntryPrice != null) {
                 position = OpenPosition(entryIndex = i, entryPrice = closes[i], peakPrice = closes[i])
                 pendingEntryPrice = null
+                markToMarket(closes[i])
                 continue
             }
 
@@ -132,22 +171,7 @@ object BacktestEngine {
                     peakPrice = openPos.peakPrice, isSet50 = isSet50
                 )
                 if (signal.type == IndicatorSignal.SELL) {
-                    val netProfit = TechnicalAnalysis.calculateNetProfitPercent(openPos.entryPrice, lastPrice)
-                    trades.add(
-                        BacktestTrade(
-                            entryDate = history[openPos.entryIndex].date,
-                            entryPrice = openPos.entryPrice,
-                            exitDate = history[i].date,
-                            exitPrice = lastPrice,
-                            exitReason = signal.reason,
-                            netProfitPercent = netProfit,
-                            holdingDays = i - openPos.entryIndex
-                        )
-                    )
-                    equity *= (1 + netProfit / 100.0)
-                    peakEquity = maxOf(peakEquity, equity)
-                    maxDrawdown = maxOf(maxDrawdown, (peakEquity - equity) / peakEquity * 100.0)
-                    position = null
+                    if (i + 1 < history.size) pendingExitReason = signal.reason
                 }
             } else {
                 val signal = TechnicalAnalysis.getDetailedSignal(
@@ -165,6 +189,7 @@ object BacktestEngine {
                     pendingEntryPrice = lastPrice // fill next bar
                 }
             }
+            markToMarket(lastPrice)
         }
 
         val finalPosition = position
@@ -189,7 +214,7 @@ object BacktestEngine {
             closedTrades = trades,
             openTrade = openTrade,
             totalReturnPercent = (equity - 1.0) * 100.0,
-            maxDrawdownPercent = maxDrawdown
+            maxDrawdownPercent = drawdown.maxDrawdownPercent
         )
     }
 }

@@ -330,7 +330,6 @@ object SetScraper {
                 ?: overviewObj?.optDouble("debtToEquity", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
             var netProfit = overviewObj?.optDouble("netProfit", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
             var margin: Double? = null
-            var profitGrowth: Double? = null
             var eps = overviewObj?.optDouble("eps", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
             var equity = overviewObj?.optDouble("totalEquity", 0.0)?.takeIf { !it.isNaN() && it != 0.0 }
 
@@ -344,15 +343,6 @@ object SetScraper {
                 eps = recentHighlight.optDouble("eps", eps ?: 0.0).takeIf { !it.isNaN() } ?: eps
                 equity = recentHighlight.optDouble("equity", equity ?: 0.0).takeIf { !it.isNaN() } ?: equity
                 
-                // Calculate Profit Growth if we have multiple years
-                if (highlightRows.length() >= 2) {
-                    val prevHighlight = highlightRows.optJSONObject(highlightRows.length() - 2)
-                    val currentNP = recentHighlight.optDouble("netProfit", 0.0)
-                    val prevNP = prevHighlight.optDouble("netProfit", 0.0)
-                    if (prevNP != 0.0 && !prevNP.isNaN() && !currentNP.isNaN()) {
-                        profitGrowth = ((currentNP - prevNP) / Math.abs(prevNP)) * 100.0
-                    }
-                }
             }
 
             val xdDate = divArray?.optJSONObject(0)?.optString("xdate")?.substringBefore("T")
@@ -372,7 +362,9 @@ object SetScraper {
                 eps = eps,
                 netProfit = netProfit,
                 netProfitMargin = margin,
-                profitGrowth3Y = profitGrowth,
+                // Financial-data rows have no verified three-year period mapping here.
+                // Do not present adjacent-row growth as a three-year result.
+                profitGrowth3Y = null,
                 equity = equity,
                 debtToEquity = de,
                 dividendYield = yield,
@@ -568,7 +560,7 @@ object SetScraper {
                     val low = if (lows != null && !lows.isNull(i)) lows.getDouble(i) else close
                     
                     prices.add(ScrapedHistoricalPrice(
-                        date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(dateFormatter),
+                        date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate().format(dateFormatter),
                         close = close,
                         volume = volume,
                         high = high,
@@ -598,14 +590,20 @@ object SetScraper {
         val macd = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateMACD(prices)
         val obvRising = apincer.mobile.tradings.domain.TechnicalAnalysis.isObvRising(prices, volumes)
         val week52 = apincer.mobile.tradings.domain.TechnicalAnalysis.calculate52WeekRange(prices)
-        val indexPrices = fetchSetIndexHistory().map { it.close }
-        val relativeStrength = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRelativeStrength(prices, indexPrices)
+        val indexHistory = fetchSetIndexHistory()
+        val relativeStrength = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateRelativeStrengthOnDates(
+            history.map { it.date to it.close }, indexHistory.map { it.date to it.close })
         val highs = history.map { it.high }
         val lows = history.map { it.low }
         val atr = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateATR(highs, lows, prices)
         val adx = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateADX(highs, lows, prices)
         val stoch = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateStochastic(highs, lows, prices)
         val mfi = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateMFI(highs, lows, prices, volumes)
+        val weeklyTrendBullish = apincer.mobile.tradings.domain.TechnicalAnalysis.isWeeklyTrendBullishOnDate(
+            history.map { it.date to it.close },
+            java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString(),
+            prices.lastOrNull() ?: 0.0
+        )
 
         return apincer.mobile.tradings.domain.Indicators(
             sma50 = sma50,
@@ -624,7 +622,10 @@ object SetScraper {
             adx = adx,
             stochK = stoch?.first,
             stochD = stoch?.second,
-            mfi = mfi
+            mfi = mfi,
+            weeklyTrendBullish = weeklyTrendBullish,
+            observationDate = history.lastOrNull()?.date,
+            benchmarkDate = indexHistory.lastOrNull()?.date
         )
     }
 
@@ -669,7 +670,7 @@ object SetScraper {
                     if (closes.isNull(i)) continue
                     val ts = timestamps.getLong(i) * 1000
                     prices.add(ScrapedHistoricalPrice(
-                        date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(dateFormatter),
+                        date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate().format(dateFormatter),
                         close = closes.getDouble(i)
                     ))
                 }

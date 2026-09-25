@@ -92,7 +92,7 @@ fun StockScreen(
     val refreshError by viewModel.refreshError.collectAsState()
     LaunchedEffect(refreshError) {
         refreshError?.let { msg ->
-            snackbarHostState.showSnackbar("Refresh failed: $msg")
+            snackbarHostState.showSnackbar(msg)
             viewModel.clearRefreshError()
         }
     }
@@ -169,11 +169,10 @@ fun StockScreen(
                                 - Regime-Mandated Cash Buffer: $bufferPercentStr% (Target Reserve: $targetReserveFormatted)
                                 - Maximum Spendable Cash: $spendableCashFormatted ${if (spendableInfo.isDeficit) "⚠️ DEFICIT: Cash balance is below required buffer!" else ""}
                                 
-                                PLAYBOOK RULES & CONSTRAINTS:
-                                - Holding Period: 2-4 weeks (Swing) or Long-term (Dividend).
-                                - Technical Alignment: Focus on technical support and indicator confirmations.
-                                - RISK: Risk/Reward ratio MUST be >= 2.0. Strict Stop Loss required below technical support.
-                                - Max 15% total capital allocation in any single stock.
+                                ANALYSIS RULES:
+                                - Explain only supplied evidence and state when data is missing or stale.
+                                - Do not create entry, stop, target, allocation, or share-count recommendations. The app's saved plan and risk checks own those values.
+                                - Do not claim a news catalyst, earnings event, probability of success, or live macro view unless evidence is included here.
                                 
                                 GUARDRAILS & NEGATIVE CONSTRAINTS:
                                 - DO NOT recommend if liquidity is dangerously low.
@@ -181,10 +180,9 @@ fun StockScreen(
                                 - DO NOT provide direct financial advice; frame all recommendations as educational analysis.
                                 
                                 DELEGATED TASKS:
-                                1. [market-researcher]: Search for recent news (last 7 days), upcoming earnings events, and catalysts on $symbol. Evaluate business moat strength. Also check current SET index level and sector trends for macro context. (If live web search is unavailable in direct API mode, perform evaluation using the provided metrics, technical indicators, and known market knowledge).
-                                2. [regime-manager]: Assess whether $symbol is in a Bullish, Bearish, or Choppy market structure (based on Price vs SMA 50/200 and MACD trend). Adjust profit targets and risk posture according to the prevailing regime.
-                                3. [risk-manager]: Evaluate setup safety and downside scenarios. Determine an exact Buy Zone, Target Profit (min 2.0:1 R:R), and strict Stop Loss relative to the current price ($lastPrice THB).
-                                Also recommend an exact Position Size in THB and share count (rounded down to SET 100-share board lots) based on available spendable cash ($spendableCashFormatted) and the 15% single-stock allocation cap. If spendable cash is 0 THB or account is in cash deficit, explicitly recommend 0 THB / 0 shares and advise preserving the $bufferPercentStr% cash buffer.
+                                1. Assess the supplied technical and fundamental evidence, including uncertainty and missing inputs.
+                                2. Describe plausible upside and downside scenarios without assigning a success probability.
+                                3. Do not invent current news, catalysts, live market data, or executable prices.
                                 
                                 EXPLAIN INSTRUCTIONS:
                                 - Break down the final decision step-by-step using clear, accessible logic.
@@ -193,8 +191,8 @@ fun StockScreen(
                                 FORMAT REQUIREMENT:
                                 Output the final analysis as a clean Markdown report with the following structure:
                                 ### Executive Summary (Ticker, Moat, Market Regime, Action)
-                                ### Technical & Fundamental Setup (Markdown table of entry, target, and stop loss)
-                                ### Subagent Moat & Downside Analysis (Regime alignment, news, catalysts, and risk factors)
+                                ### Technical & Fundamental Setup (supplied indicators and limitations)
+                                ### Downside Scenarios (evidence and unknowns)
                                 ### Analogous Story (The real-world analogy)
                             """.trimIndent()
                             

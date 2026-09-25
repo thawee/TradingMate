@@ -7,7 +7,7 @@ TradingMate is a personal trading companion app designed to simplify stock marke
 The core philosophy of TradingMate is **Discipline over Emotion**. By converting standard technical indicators into visual "Zones," the app helps traders identify when a stock is in an accumulation phase (Buying Zone) or a distribution phase (Selling Zone). 
 
 It specifically addresses common beginner challenges:
-- **When to Buy/Sell:** Automates entry and exit price targets based on a strict RSI 35/65 strategy.
+- **When to Buy/Sell:** Shows technical signals and saved-plan exit alerts to support a recorded trading decision.
 - **Consolidated Tracking:** Merges your stock value and available cash into a single "Total Assets" view.
 - **Dividend Focus:** Tracks "Yield on Cost" (YoC) and alerts you to upcoming XD dates.
 - **Built with AI:** Architected and developed through a deep collaboration with Google's Gemini AI.
@@ -25,20 +25,22 @@ It specifically addresses common beginner challenges:
 - **Thai Dividend Tax Shield (Section 47 bis):** Calculates reclaimable Corporate Income Tax (CIT 20%) credits ($\text{Gross} \times \frac{20}{80}$) and Net Yield-on-Cost ($\text{YoC}_{\text{net}}$) after 10% Withholding Tax.
 - **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. Suggests high-yield "Dividend Stars" based on strict fundamental and solvency criteria.
 - **Market Pulse:** Real-time monitoring of your watchlist with automated multi-factor technical signals (BUY, SELL, POTENTIAL).
-- **AI Advisor:** Centralized AI discovery hub evaluating Swing, Gap, and Dividend opportunities. Integrates Google Gemini directly for structured recommendations with confidence scores.
+- **AI Advisor:** Centralized AI discovery hub that explains and ranks locally validated swing setups. Model assessments are qualitative and do not represent win probabilities.
+- **Saved Swing Plans:** Records an accepted entry, stop, target, and exit policy. Proposed buys are checked against net reward to risk, stop risk, concentration, cash reserve, and SET board lots. Broker fills can still be recorded when they differ from a proposal.
+- **Local Trade Record and Backup:** Saves plan history, trades, fees, cash transactions, dividends, daily portfolio snapshots, and advice events in JSON backups. Older backups import with their available fields.
 - **Consolidated Portfolio:** Professional financial dashboard grouping stock holdings, cash balance, net profit, fee tracking, and sector risk meters in one unified view.
-- **Automated Trading Zones:** Real-time calculation of "Buy Below" and "Sell Above" price ranges using RSI (35/65 targets).
+- **Trading Zones:** RSI and other indicators provide context; observed price levels and accepted plans provide stop and target alerts.
 - **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled.
 - **10/10 FinTech Design System:** Ambient radial gradient glows, adaptive glassmorphic contrast borders, OpenType `tnum` tabular numbers for zero decimal jitter, Catmull-Rom $C^1$ smooth spline charts, and live directional price tick pulses.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
 ## 🧅 The 6-Layer Filter & Quant Confluence Scoring (Stock DNA)
 
-TradingMate doesn't just look at price; it evaluates the "DNA" of a company using an institutional 6-Layer multi-factor filter combined with a **0–100 Composite Confluence Scoring Engine**.
+TradingMate evaluates a company using a six-factor screening heuristic and a **0–100 Composite Confluence Score**. These scores are descriptive filters, not calibrated probabilities or evidence of future returns.
 
 0. **Pre-Filter (Gate):** Every candidate must be liquid (daily turnover > ฿5M) and **not within 5% of its 52-week low** (avoids "cheap-looking" structural decliners).
 1. **Qual (Quality - Max 25 pts):** Evaluates management efficiency and profitability.
-   - *Metrics:* Tiered ROE (>15%, >10%), Net Profit Margin (>15%, >8%), D/E Ratio (≤1.0, ≤1.5), 3Y Profit Growth (>10%).
+   - *Metrics:* Tiered ROE (>15%, >10%), Net Profit Margin (>15%, >8%), D/E Ratio (≤1.0, ≤1.5). Three-year profit growth is shown as unavailable until the source periods can be verified.
 2. **Val (Value - Max 20 pts):** Identifies underpriced or fair-value stocks.
    - *Metrics:* P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.2).
 3. **Mom (Momentum & Trend - Max 25 pts):** Detects early trend shifts and positive price momentum.
@@ -47,7 +49,7 @@ TradingMate doesn't just look at price; it evaluates the "DNA" of a company usin
    - *Metrics:* NVDR net accumulation coupled with non-lagging Relative Strength ($\text{RS} \ge -1.0$) to eliminate false smart money signals caused by foreign short-covering in downtrends.
 5. **Div & Safety (Yield & Solvency - Max 15 pts):** High passive income and margin of safety.
    - *Metrics:* Dividend Yield ≥ 5.0% and 52-week low trap avoidance.
-6. **Cyclical Sector Quality Shield (`CYC`):** Detects commodity/cyclical names (Energy, Petrochem, Agribusiness, Shipping, Steel) and applies a quality dampener if 3Y profit growth is volatile ($<8\%$) or margins are weak ($<10\%$) to prevent buying at peak commodity cycles.
+6. **Cyclical Sector Quality Shield (`CYC`):** Detects commodity/cyclical names (Energy, Petrochem, Agribusiness, Shipping, Steel). Missing verified growth data is treated conservatively rather than inferred from adjacent rows.
 
 ### 🎯 Strategy Archetypes (One-Tap Presets)
 - **🚀 VCP Breakout (`VCP`):** Stage 2 Uptrend ($Price \ge SMA 50 \ge SMA 200$) with momentum & volume breakout.
@@ -80,7 +82,7 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 6. **Relative Strength vs SET - The Race**
    - 3-month return vs the SET index; positive RS stocks earn the "RS" DNA tag.
 7. **52-Week Low Guard - The Trap Detector**
-   - Excludes stocks within 5% of their 52-week low from all candidate lists.
+   - Blocks actionable swing candidates within 5% of their 52-week low; risky signals can still appear separately for review.
 8. **ATR (14) - The Breathing Room**
    - Volatility-adjusted stop loss (2× ATR, clamped -3.5% to -8%) and trailing stop (2.5× ATR).
 9. **ADX (14) - The Regime Detector**
@@ -92,7 +94,7 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 12. **Market Regime Gate & Dynamic Cash Buffer Enforcement**
    - Evaluates SET Index vs. SMA 50 and MACD. Enforces 50% defensive sizing in Bear markets and dynamic cash reserve buffers (**15% Bull, 30% Sideways, 50% Bear**). Integrates spendable cash limits into Gemini AI prompts and live liquidity breach warnings into the Buy Order dialog.
 13. **Pre-Trade Risk:Reward & Invalidation Display**
-   - Calculates exact suggested Stop Loss (฿/-%), Target (฿/+%), and R:R ratio on every card before entry.
+   - Shows an estimated stop. A target and reward/risk appear only when an observed price level or saved target exists; levels are alert prices, not guaranteed fills.
 14. **False Breakout Guard**
    - Downgrades Swing BUYs to POTENTIAL if foreign funds are dumping (NVDR selling > ฿5M) or on dry volume while lagging the SET index.
 15. **Ex-Dividend (XD) Grace Period**
@@ -104,26 +106,15 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **🟢 Buy - Early Recovery:** MACD turns positive near support with volume/MFI confirmation.
 - **🟢 Buy - Healthy Momentum:** Positive MACD, RSI < 55, price above SMA 50, filtered against false breakouts and NVDR selling.
 - **🔴 Sell - Early Breakdown:** Triggers early exit if a position drops $\le -1.5\%$ and loses SMA 50 with negative MACD (suppressed near XD date).
-- **🔴 Sell - Take Profit:** Triggers at >10% net profit or when RSI > 65 / MFI $\ge$ 80.
+- **🔴 Sell - Saved Target:** New fixed swing plans alert when the saved target is reached. Legacy holdings retain their earlier profit rules until a plan is completed.
 - **🔴 Sell - Stop Loss:** Volatility-adjusted (2× ATR) or -4.5% (SET50) / -6.5% (Mid/Small-Cap).
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance/Breakdown) ALWAYS override BUY momentum.
 
-## 🎯 Expected Performance
+## 📊 Measuring Performance
 
-TradingMate is a **mean-reversion + trend-quality hybrid**: it buys oversold dips (RSI/Stochastic) only in healthy trends (SMA 200, ADX guards) on quality names (5-Layer DNA), and exits with fee-aware take-profits and ATR-sized stops.
+The advisor has no established win rate or expected return. The in-app Backtest replays historical technical signals only. It excludes past fundamental/flow observations, AI rankings, saved plans, portfolio limits, spread and slippage, so its results do not measure the complete advisor workflow. Signals fill at the next daily close in the simulation; daily drawdown includes open positions, while reported total return covers closed trades. The local advice journal does not yet link every AI ranking to a later accepted plan. See [Evaluating advisor outcomes](docs/ADVISOR_EVALUATION.md) for a forward measurement protocol.
 
-| Signal Path | Guards Applied | Est. Win Rate* |
-|---|---|---|
-| Healthy Momentum BUY | MACD+, RSI 40–65, ADX ≥ 20, RS ≥ 0 | ~55–62% |
-| Oversold Accumulation | RSI < 35 + above SMA 200 + Stoch %K > %D + ADX < 40 knife guard | ~58–65% |
-| Early Recovery | Volume / MFI capitulation confirmation | ~50–58% |
-| Full 6-Layer DNA pass | QUAL + VAL + DIV + MOM + SUP + FLOW + pre-filters | ~65–72% (rare) |
-
-*Ranges based on published research for RSI mean-reversion with trend filters on equities. Unfiltered RSI dip-buying alone runs only ~45–52% — the ADX chop filter, 52-week-low trap guard, and Relative Strength gate are what push the odds above breakeven.
-
-**Expectancy math:** average win ≈ +4.6% net of fees vs. average loss ≈ -5.4% (ATR stop + fees) → breakeven win rate ≈ **54%**. At a realistic 55–63% win rate, expectancy is roughly **+0.3 to +0.7% per trade**. Letting the ATR trailing stop run winners beyond +5% is where the real profit comes from.
-
-> The ranges above are general research-backed estimates for the strategy family. For a **stock-specific, historical measurement**, use the in-app **Backtest** screen — it replays each stock's own price/indicator history against these exact DNA rules and reports actual win rate, average win/loss, and expectancy for that ticker.
+Market quotes and fundamentals have separate freshness checks. Failed refreshes retain usable cached values and identify affected symbols; check the last-sync time before acting. The Stats risk panel uses date-aligned history and shows VaR/CVaR or beta as unavailable when the necessary observations are missing or stale. The minimum net reward-to-risk threshold for proposed swing buys is configurable in Settings (default 2:1). Saved stops and targets are alert levels, not broker orders or guaranteed fill prices.
 
 ## 📋 Swing Playbook (Daily Discipline Tracker)
 
@@ -133,9 +124,9 @@ The Swing Playbook is a 3-step daily workflow to keep traders disciplined during
 
 | Step | Name | What It Does |
 |------|------|--------------|
-| 1 | 🚨 Check Exits | Review sell alerts — Take Profit (≥5%), Stop Loss (≤-5%), Overbought (RSI ≥65), Bearish / Exit signal |
-| 2 | 🔍 Scan Setups | Review swing/gap candidates with trade execution plans (Cut/Aim), Reward:Risk ratio, and Expected Price Boundaries |
-| 3 | 🤖 Ask AI | Copy an AI prompt to clipboard for external analysis (ChatGPT/Gemini/Claude), or tap "Analyze with AI" for an in-app Gemini call returning ranked picks with an AI Conviction Score (0–100%) |
+| 1 | 🚨 Check Exits | Review saved stop/target alerts, early breakdown warnings and legacy position alerts |
+| 2 | 🔍 Scan Setups | Review eligible swing and strong daily move candidates, with missing targets identified |
+| 3 | 🤖 Ask AI | Copy an analysis prompt or ask Gemini to explain and rank locally validated plans; its assessment is qualitative |
 
 - Each step has a checkbox. Tapping **"Next →"** scrolls to the next step.
 - When all 3 steps are checked, the bar shows **"✅ All 3 steps done! You're ready to trade."**

@@ -20,9 +20,9 @@ TradingMate is a high-performance personal trading companion specifically design
 ### 2.2 Five-Layer Filter System (Stock DNA)
 A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 
-0. **Pre-filter (Liquidity):** Daily turnover (last price × volume) > ฿5,000,000. Ensures stop-loss orders can execute at displayed prices.
+0. **Pre-filter (Liquidity):** Daily turnover (last price × volume) > ฿5,000,000. This screens for liquidity; it cannot ensure a stop alert can be filled at the displayed price.
 1. **Qual (Quality):** Evaluates management efficiency and profitability.
-   - Indicators: ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5, Profit Growth (3Y) > 10%.
+   - Indicators: ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5. Three-year growth remains unavailable until the source periods are verified.
 2. **Val (Value):** Identifies underpriced or fair-value stocks.
    - Indicators: P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.0).
 3. **Div (Dividend):** Highlights strong passive income generators.
@@ -33,18 +33,21 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
    - Indicators: BUY or POTENTIAL zone signals (which incorporate SMA 200 trend context checks, avoiding "falling knife" entries in structural downtrends).
 
 **Combination Rules:**
-- **Swing Plays:** Must pass `Liquidity AND Quality AND (Momentum OR Support)`. Quality is mandatory — cheap-but-bad stocks (Value-only) are excluded to protect win-rate.
+- **Swing Plays:** Require liquidity, quality, a supported setup, current data and a non-bearish signal. These checks do not establish a win rate.
 - **Dividend Stars:** Must pass `Liquidity AND Dividend AND Quality`.
-- **Gap Plays:** Must pass `Liquidity AND percentChange ≥ 4% AND basic profitability (ROE > 10% or NPM > 5%)`. Decoupled from strict historical Quality to capture turnaround earnings catalysts.
+- **Strong Daily Moves:** A daily change of at least 4% is a move, not evidence of an opening gap or earnings catalyst. Actionable candidates retain the swing safety checks.
 - **Speculative Plays:** Must pass `Liquidity AND (NOT Quality) AND Support`. Higher-risk BUY/POTENTIAL setups on stocks that pass the liquidity gate but fail the Quality layer; sorted with MACD-confirmed setups ranked above unconfirmed ones.
 - **Liquidity/Trap Risk:** Any not-yet-owned stock with a live BUY/POTENTIAL signal that fails the Pre-filter (illiquid turnover and/or within 5% of its 52-week low). Surfaced separately with a stronger warning rather than silently hidden, since it's the highest-risk bucket.
 
 ### 2.3 Portfolio Management & Institutional Risk Suite
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.
 - **Transaction Recording:** Allow users to record buy and sell transactions with entry price and quantity.
+- **Accepted Swing Plan:** Persist a versioned entry, stop, supported target, source, time, and exit policy with the holding. Explicitly clearing a target clears the fixed plan. Legacy holdings with no complete plan keep their existing exit behavior.
+- **Proposed Buy Check:** Require a supported target with the configured minimum estimated net reward to risk (default 2:1), stop loss within the configured risk budget, 100-share board lots, combined stock and sector limits, and the cash reserve. Apply the check in the dialog and repository. Permit recording actual broker fills that breach proposal limits while flagging cash reconciliation where needed.
 - **Fee Engine:** Automatically calculate trading fees using the InnovestX structure (Commission 0.15%, Market Fee, VAT). Applies a ฿50/day minimum commission unless ATS + E-Statement is enabled (waived). Financial Transaction Tax (FTT) is ฿0 — officially abolished.
 - **Profit/Loss Tracking:** Display Gross and Net Profit/Loss in both currency (THB) and percentage.
-- **Cash Management & Audit Ledger:** Maintain double-entry cash adjustments and cash audit log across buy/sell/undo operations.
+- **Cash Management & Audit Ledger:** Maintain cash balance adjustments and a cash audit log across buy/sell/undo operations.
+- **Holding Integrity:** Additional buys retain the accepted plan and accumulate cost and fees. Sales validate remaining quantity inside the transaction; full-sale undo restores the saved plan and fee state. Removing a watchlist item never invents a sale from a cached quote.
 - **Quantitative Risk Management Suite:**
   - **1-Day 95% Historical Value-at-Risk (VaR):** Real-time empirical quantile estimation of daily downside risk.
   - **Conditional VaR (CVaR / Expected Shortfall):** Average tail loss estimation during extreme market corrections.
@@ -62,15 +65,15 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 ### 2.5 Smart Advisor
 - **Playbook Modes:** Two modes — Swing Playbook and Dividend Playbook.
 - **3-Step Routine (SWING):**
-    1. **Ask AI** — Copy AI prompt to clipboard, or tap "Analyze with AI" for an in-app call (auto-marks step as done either way).
-    2. **Check Exits** — Display sell alerts based on technical conditions (Take Profit, Stop Loss, Overbought, Yield Drop).
-    3. **Scan Setups** — Display candidate stocks (Swing/Dividend, Speculative, and Liquidity/Trap Risk) filtered by Quality, Momentum, Value, and Gap criteria using the Five-Layer Filter System. This is the single screen for "what should I consider buying" — no BUY-signal stock is filtered out of the app entirely; it always lands in one of these three buckets.
-- **AI Prompt Generation:** Generate structured prompts for ChatGPT/Gemini with candidate data (including Speculative and Liquidity/Trap Risk categories), risk constraints, and playbook rules. Prompts request a Confidence Score (0–100%) per AI-ranked pick with justification.
-- **In-App AI Analysis:** "Analyze with AI" button calls Google Gemini directly (structured JSON output) using a user-supplied API key (Settings > AI Integration), returning an executive summary and ranked recommendations with a color-coded Confidence Score, without needing to copy/paste into an external tool. Unlike the copy/paste prompt, this direct call has no live web/news access — it only reasons over the data in the prompt.
+    1. **Check Exits** — Review saved-plan and legacy sell alerts. Completes automatically if no exit alert exists.
+    2. **Scan Setups** — Review screened swing and strong daily move candidates plus separate speculative and liquidity/trap risk groups. The afternoon reminder can add a badge to this step.
+    3. **Ask AI** — Copy a prompt or run in-app analysis to explain and rank locally validated swing plans. The AI card appears above the exit and setup sections on screen.
+- **AI Prompt Generation:** Send only locally validated actionable swing plans to Gemini for ranking and explanation. Include plan levels, size and observation identity. Model scores are qualitative assessments, not measured probabilities. Dividend AI remains informational until locally validated dividend plans exist.
+- **In-App AI Analysis:** "Analyze with AI" calls Gemini with a user-supplied API key. Actionable prices and allocations shown in the app come from the locally validated plan. The direct call has no live web/news access.
 - **Selectable Gemini Model:** Users can pick which free-tier Gemini model powers the in-app analysis (Settings > AI Integration), and refresh the list live from Gemini's ListModels API to pick up newly released or soon-to-be-retired models automatically.
-- **Push Notifications:** Morning exit alerts (10:00-11:00 AM) and afternoon entry reminders (15:30-16:30).
-- **Afternoon Badge:** Visual indicator on Step 2 when afternoon scan notification has fired.
-- **Auto-mark:** Step 1 auto-checks when no sell alerts exist. Step 3 auto-checks when AI prompt is copied.
+- **Push Notifications:** Morning exit alerts (10:00–11:00 AM) and afternoon entry reminders (15:30–16:15).
+- **Afternoon Badge:** Visual indicator on the Scan Setups step when the afternoon scan notification has fired.
+- **Auto-mark:** Check Exits completes when no sell alerts exist. Ask AI completes when its prompt is copied or in-app analysis finishes.
 - **Wizard Step Bar:** Bottom bar showing step progress, alert counts, and candidate counts.
 
 ### 2.6 Alert & Notification System
@@ -81,7 +84,7 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Afternoon Entry Window:** Push notification at 15:30–16:15 (capped before close) if market is open.
 - **Dividend Season Reminder:** Push notification in January and June for accumulation season (once per season, 09:00–17:00 only).
 - **Yield Opportunity Alert:** Year-round push notification (any month) when a DIVIDEND-purpose watchlist stock's yield rises ≥ 5% with ROE ≥ 15% — deduplicated per ISO week per stock.
-- **In-App Sell Alerts:** Reactive sell alerts displayed in Advisor screen (Take Profit ≥10%, Stop Loss ≤-5%, Overbought RSI ≥65, Yield Drop <3%).
+- **In-App Sell Alerts:** Planned swing positions use their saved target and explicit stop; overbought is review context. Legacy holdings retain compatibility alerts until their plan is completed.
 
 ### 2.7 Trading Academy
 - **Educational Content:** In-app trading education with structured learning paths.
@@ -95,7 +98,8 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 ### 2.9 Backtest Engine
 - **Per-Stock Historical Replay:** Replays a stock's historical price/indicator series against the Swing DNA entry/exit rules (BUY/POTENTIAL entries, Take Profit/Stop Loss/Overbought exits).
 - **Reported Metrics:** Total trades, win rate %, average win %, average loss %, and expectancy % per trade (derived from win rate and average win/loss).
-- **Purpose:** Replaces relying purely on published research-based estimated win-rate ranges with an actual, stock-specific historical measurement.
+- **Purpose:** A technical-only daily-close replay. It does not measure the complete advisor, AI selection, saved plans, historical fundamentals or flow, spread, or slippage.
+- **Timing and Accounting:** Fill entries and exits at the next available daily close; include open positions in daily drawdown and report closed-trade return separately from unrealized open-position results.
 
 ## 3. Screen & Page Flows
 
@@ -133,13 +137,14 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 ### 5.1 Performance & Technical
 - **Background Sync:** WorkManager runs every **30 minutes** on weekdays only. Skips stock scan when market is closed (including public holidays). Time-based alerts (afternoon window, dividend season) are checked first and guarded independently.
 - **Data Privacy:** All personal portfolio and watchlist data must be stored locally on the device (Local-First architecture).
-- **Backup & Restore:** Export/import watchlist symbols and portfolio essentials (cost, quantity, purpose) + cash balance as JSON. Caches and signals are regenerated on refresh.
+- **Backup & Restore:** Export/import watchlist symbols, portfolio holdings and accepted plans, trade history, advice events, cash transactions, dividend history, daily portfolio snapshots, and cash balance as JSON. Import merges historical records with content deduplication and fresh local IDs. Older backups import with the data they contain; omitted historical records cannot be recovered. Caches and signals are regenerated on refresh.
+- **Freshness:** Quote and fundamental fetch timestamps are independent. Preserve a usable cached quote on source failure and identify partial refresh failures. Risk history refreshes periodically while Stats is open; beta and 1-day VaR/CVaR are unavailable if their historical observations are incomplete or stale.
 - **Resilience:** Fallback mechanism for market data when primary SET sources are unavailable.
 
 ## 6. Technical Stack
 - **Language:** Kotlin
 - **UI Framework:** Jetpack Compose (Material 3)
-- **Local Database:** Room Persistence Library (version 20)
+- **Local Database:** Room Persistence Library (version 33)
 - **Networking:** OkHttp 4 & Kotlin Serialization
 - **Background Jobs:** WorkManager
 - **Async Pattern:** Kotlin Coroutines & Flow
