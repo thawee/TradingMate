@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-09-26
+
+### Fixed
+- **Market regime gating (NEUTRAL treated as Bullish):** `isMarketBearish` was derived from
+  `!marketRegime.isBullish`. Because `MarketRegime.NEUTRAL` has `isBullish = true`, a choppy
+  or consolidating market silently bypassed the bearish candidate gate (which requires positive
+  foreign flow or outperformance). Changed both call sites in `StockViewModel` and
+  `DividendAdvisorScreen` to `marketRegime == MarketRegime.BEARISH` so NEUTRAL markets correctly
+  enforce stricter candidate gating.
+- **`isMom()` hard early-return on null Relative Strength:** The expression
+  `(relativeStrength ?: return false)` caused every stock lacking 63-bar RS history to be
+  silently excluded from the momentum gate and consequently the swing candidate list. Changed to
+  a null-tolerant check — null RS means "data not yet available", not "lagging the market".
+  Only an actively negative RS now disqualifies a stock.
+- **Snapshot race condition — silent empty AI result:** If a background price refresh fired
+  between sending the Gemini request and receiving the response, plan snapshot IDs no longer
+  matched and all AI recommendations were discarded without any user-visible explanation. An
+  explicit snackbar ("Prices changed during analysis — refresh and try again") is now shown
+  whenever the validator discards picks due to stale snapshots.
+- **Concentration check used market value instead of cost basis:** `existingStock` and
+  `existingSector` values passed to `TradeRiskPolicy` were computed as `lastPrice × quantity`.
+  This underestimates exposure for positions bought below current price and overstates it for
+  positions in drawdown, making the 15%/30% allocation caps unreliable. Both now use
+  `portfolio.cost × quantity` (cost basis) consistently with the intent of the risk policy.
+- **Duplicate sell alerts for FIXED_TARGET dividend holdings:** A stock with an active
+  `FIXED_TARGET` exit policy could trigger both the `ExitPolicyEvaluator` path (dividend alerts)
+  and the swing logic path (swing alerts), appearing in both sell lists simultaneously. Applied
+  `.distinctBy { symbol }` to both `swingSellAlerts` and `dividendSellAlerts` before emitting
+  `AlertRoutineState`.
+- **AI "no live news" disclaimer invisible:** The single-line faded `labelSmall` disclaimer
+  ("No live web/news search…") below the AI button was reliably missed. Replaced with a
+  prominent `secondaryContainer` info card with an ℹ️ icon and bold text warning users not to
+  act on AI reasoning that cites catalysts, earnings, or news not present in the supplied data.
+- **No stale-data warning before AI analysis:** Users had no indication that prices and signals
+  sent to AI were stale (e.g., overnight or after a weekend). A red warning chip now appears in
+  `AiCopilotCard` whenever `lastSync` is more than 12 hours old, prompting a refresh before
+  running analysis.
+
 ## [3.3.0] - 2026-09-25
 
 ### Added

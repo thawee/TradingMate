@@ -1075,11 +1075,46 @@ fun AiCopilotCard(
                 lineHeight = 16.sp
             )
 
+            // Fix 7: Warn when data used by AI is stale (> 12 hours old)
+            val isDataStale = remember(lastSync) {
+                if (lastSync == "---") true
+                else runCatching {
+                    val fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    val dt = java.time.LocalDateTime.parse(lastSync, fmt)
+                    val ageMs = System.currentTimeMillis() -
+                        dt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    ageMs > 12L * 60L * 60L * 1000L
+                }.getOrDefault(true)
+            }
+            if (isDataStale) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("⚠️", fontSize = 13.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Data may be stale (last sync: $lastSync). Pull to refresh before running AI analysis.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             if (playbookMode == PlaybookMode.SWING) {
                 val swingPlaysFilter = watchlist.filter {
-                    it.info.lastPrice >= 1.0 && StockDna.isSwingCandidate(it, !marketRegime.isBullish)
+                    it.info.lastPrice >= 1.0 && StockDna.isSwingCandidate(it,
+                        marketRegime == apincer.mobile.tradings.domain.TechnicalAnalysis.MarketRegime.BEARISH)
                 }.sortedByDescending { it.portfolio.relativeStrength ?: -999.0 }
                 val gapUpPlaysFilter = swingPlaysFilter.filter { isGapUp(it) }
                 val speculativePromptPlays = emptyList<StockWatchlistInfo>()
@@ -1099,10 +1134,13 @@ fun AiCopilotCard(
                     val shares = minOf(sized, affordable)
                     if (shares <= 0) return@mapNotNull null
                     val buyFees = TechnicalAnalysis.calculateFees(entry * shares, false, atsEnabled)
+                    // Fix 4: Use cost basis (not market value) for concentration checks — market
+                    // value fluctuates and would silently allow exceeding allocation limits on
+                    // positions bought at lower prices, or falsely block entries after drawdowns.
                     val existingStock = portfolioItems.filter { it.info.symbol == stock.info.symbol }
-                        .sumOf { it.info.lastPrice * it.portfolio.quantity }
+                        .sumOf { it.portfolio.cost * it.portfolio.quantity }
                     val existingSector = portfolioItems.filter { it.info.sector == sector }
-                        .sumOf { it.info.lastPrice * it.portfolio.quantity }
+                        .sumOf { it.portfolio.cost * it.portfolio.quantity }
                     val riskResult = apincer.mobile.tradings.domain.TradeRiskPolicy.evaluate(
                         apincer.mobile.tradings.domain.TradeRiskInput(
                             entry, stop, shares, buyFees, totalAssets, cashBalance,
@@ -1422,6 +1460,12 @@ fun AiAnalysisButton(
                     result = validated
                     onValidatedResult(validated)
                     onDone()
+                    // Fix 3: Detect silent discard — AI returned picks but all were invalidated
+                    // because prices moved between request and response (snapshot race condition).
+                    if (validated.recommendations.isEmpty() && it.recommendations.isNotEmpty() &&
+                        requestedPlans.isNotEmpty()) {
+                        showSnackbar("Prices changed during analysis — plans were invalidated. Refresh and try again.")
+                    }
                 }.onFailure {
                     error = it.message ?: "AI analysis failed."
                 }
@@ -1445,12 +1489,30 @@ fun AiAnalysisButton(
         }
     }
 
-    Text(
-        text = "No live web/news search — reasons only over the data above. Requires a Gemini API key (Settings).",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        modifier = Modifier.padding(top = 4.dp)
-    )
+    // Fix 6: Warning must be visible — replace tiny labelSmall text with a prominent card.
+    // The AI reasons only over the data in the prompt; no live prices, news, or earnings.
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("ℹ️", fontSize = 13.sp)
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "AI has no live news or real-time prices. It reasons only over the snapshot data sent above. Do not follow reasoning that cites catalysts, earnings, or news not shown here.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 16.sp
+            )
+        }
+    }
 
     error?.let {
         Spacer(modifier = Modifier.height(8.dp))

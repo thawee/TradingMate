@@ -416,7 +416,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 )
 
-            val isMarketBearish = !marketRegime.isBullish
+            val isMarketBearish = marketRegime == TechnicalAnalysis.MarketRegime.BEARISH
 
             val swingPlays = watchlist.filter { isLiquid(it) && isQual(it) && StockDna.isSwingCandidate(it, isMarketBearish) }
                 .sortedWith(
@@ -558,10 +558,14 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
+
+            // Fix 5: Deduplicate sell alerts by symbol — a stock with FIXED_TARGET policy
+            // could fire both the ExitPolicyEvaluator path and the swing logic path, producing
+            // duplicate alerts for the same position. Keep only the first (highest-priority) entry.
             AlertRoutineState(
                 playbookMode = mode,
-                swingSellAlerts = swingSellAlerts,
-                dividendSellAlerts = dividendSellAlerts,
+                swingSellAlerts = swingSellAlerts.distinctBy { it.stock.info.symbol },
+                dividendSellAlerts = dividendSellAlerts.distinctBy { it.stock.info.symbol },
                 combinedSwingPlays = combinedSwingPlays,
                 speculativePlays = speculativePlays,
                 dividendPlays = dividendPlays,

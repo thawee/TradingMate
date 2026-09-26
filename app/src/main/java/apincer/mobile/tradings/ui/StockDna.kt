@@ -111,9 +111,12 @@ object StockDna {
     fun isMom(s: StockWatchlistInfo): Boolean {
         val hist = s.portfolio.macdHist ?: 0.0
         val price = s.info.lastPrice
+        // RS is null-tolerant: stocks lacking 63-bar history are not disqualified — only an
+        // actively negative RS (stock lagging the SET index) blocks the momentum gate.
+        val rsOk = s.portfolio.relativeStrength?.let { it >= 0.0 } ?: true
         return price > 0 && hist > price * 0.001 &&
                (s.portfolio.rsi ?: 50.0) in 40.0..TradingConstants.RSI_MOMENTUM_MAX &&
-               (s.portfolio.relativeStrength ?: return false) >= 0.0
+               rsOk
     }
 
     /** Layer 5 — Support/Setup: BUY/POTENTIAL signal only. */

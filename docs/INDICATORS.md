@@ -51,7 +51,8 @@ OBV cumulatively adds volume on up days and subtracts it on down days, revealing
 Relative strength compares the stock's return with the SET index over aligned endpoints from a 63-session benchmark window. Missing or mismatched observation dates do not produce an actionable swing reading.
 
 - **RS > 0:** The stock is outperforming the market. Winners tend to keep winning.
-- **RS < 0:** A market laggard — even if it looks cheap, money is flowing elsewhere. The MOM DNA layer requires RS ≥ 0 (null-tolerant when index data is unavailable).
+- **RS < 0:** A market laggard — even if it looks cheap, money is flowing elsewhere. An actively negative RS disqualifies a stock from the MOM DNA gate.
+- **RS = null (< 63 bars of history):** Treated as "data not yet available" — the stock is **not disqualified** from the MOM gate. Only a confirmed negative RS blocks momentum status.
 - Stocks with positive RS earn the **"RS"** DNA tag.
 
 ### 7. 52-Week Low Guard - The Trap Detector
@@ -89,9 +90,11 @@ A volume-weighted RSI computed on typical price ((H+L+C)/3 × volume).
 Measures the health of the broader Stock Exchange of Thailand index (`^SET.BK`).
 
 - **Calculation:** Compares SET Index price against its 50-day SMA and evaluates MACD histogram.
-  - **Bullish Trend:** SET Index $\ge$ SMA 50 AND MACD Histogram $\ge$ 0. (Full 100% position sizing).
-  - **Consolidation / Neutral:** SET Index $\ge$ SMA 50.
-  - **Bear / Correction:** SET Index < SMA 50. Activates defensive sizing (50%) and enforces strict NVDR Flow or positive Relative Strength for all Swing entries.
+  - **Bullish Trend:** SET Index $\ge$ SMA 50 AND MACD Histogram $\ge$ 0. Full position sizing; breakout and momentum setups proceed without extra flow/RS gate.
+  - **Consolidation / Neutral:** SET Index $\ge$ SMA 50 but MACD Histogram $<$ 0. **Also enforces the bearish candidate gate** — swing entries require positive foreign NVDR flow or outperformance vs SET, same as Bear mode.
+  - **Bear / Correction:** SET Index $<$ SMA 50. Activates defensive sizing (50%) and strictly requires NVDR Flow or positive Relative Strength for all Swing entries.
+
+> **Note:** The bearish candidate gate (`isMarketBearish`) applies to both NEUTRAL and BEARISH regimes. It does **not** apply in BULLISH only.
 
 ### 13. Pre-Trade Risk:Reward & Invalidation Engine
 For a proposed swing buy, TradingMate checks its planned levels and account limits:

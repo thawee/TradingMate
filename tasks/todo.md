@@ -49,3 +49,192 @@ Address all identified ambiguous, panic-inducing, or misleading UI labels and ba
   - Added clear helper text in `PortfolioScreen.kt` clarifying that Swing enforces trailing stops and take profit, while Dividend mode ignores trailing stops for long-term compounding.
 - **Verification:**
   - `./gradlew compileDebugKotlin` and `./gradlew testDebugUnitTest` passed with 0 errors.
+
+---
+
+# Advisor reliability repair
+
+Implementation plan: [plan.md](plan.md). The completed terminology work above is retained.
+The checklist below is an acceptance checklist. Items stay open until all parts of the item are verified, including device checks where needed.
+
+## Follow-up code review fixes, 2026-09-25
+
+- Removing a held symbol now requires a recorded sale; it no longer creates a sale at the cached quote or deletes shares after an error. The edit form also rejects zeroing held quantity.
+- Sales read and validate the latest quantity inside the database transaction. Sale history now retains the accepted plan, fees and position details so Undo can restore a fully sold holding.
+- Clearing a target explicitly clears the fixed plan and records the revision. Backup import preserves local rows when IDs collide, includes cash transactions, and round-trips position notes and peaks.
+- The stock detail screen applies the saved exit policy and quantity-aware net profit. Background notifications use the saved exit description. Dividend AI requests qualitative analysis until locally validated dividend plans exist.
+- Relative strength uses matching stock and SET dates; actionable entry freshness requires the same latest session.
+- JVM tests, debug build, lint and instrumentation-test compilation passed. The migration and repository integrity instrumentation tests still need a connected Android device to execute.
+
+## Implementation status, 2026-09-24
+
+- Implemented: versioned saved targets/stops with migration and backup defaults; fixed-target exit evaluator in foreground and worker; swing Ready/Watch/Blocked assessment and completed-week trend; fee-aware portfolio P/L and proposed-trade reward/risk; risk checks at preview and repository confirmation; separate recorded-fill intent; local AI plan validation; technical-only replay labels and next-close exits; advice event journal and export.
+- Verified: `./gradlew :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passed, followed by `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` after the final code changes. Lint reported 0 errors and 122 warnings. `git diff --check` passed.
+- Device check: a migration instrumentation test was added and compiled, but `adb devices` showed no connected device. Migration execution, app restart, notification behavior, and end-to-end user flow remain unverified.
+- Open product work: apply the Ready/Watch/Blocked assessment consistently to dividend and every archetype; full source/session freshness and market-holiday handling; identical screen/worker fixture tests; complete net reward/risk in both advisor cards; explicit AI plan-ID acceptance/link to a later fill; full advisor replay with recorded historical inputs or forward snapshots; spread/slippage, portfolio sizing and board-lot accounting in replay; old/new decision comparison. See [evaluation protocol](../docs/ADVISOR_EVALUATION.md).
+
+## Task 1: Persist a versioned trade plan
+
+- [ ] Add a typed plan and additive persistence for entry, stop, target, source, strategy, exit policy, timestamps and revision; preserve existing portfolio data.
+- [ ] Existing holdings migrate as incomplete legacy plans without fabricated targets. Repository reads/writes retain plans across updates.
+- [ ] Verify migration from current schema version 30 and plan serialization with focused persistence tests; assemble debug.
+
+**Dependencies:** None. **Scope:** Medium.
+**Likely files:** new `domain/TradePlan.kt`, `data/RoomModels.kt`, `data/StockRepository.kt`, new persistence/migration tests; test dependencies if required.
+
+## Task 2: Round-trip the user's plan through forms and backup
+
+- [ ] Pass the entered target through the view model and repository; editing/reopening/restarting displays the accepted plan, independently of focus targets.
+- [ ] Export/import plan fields with old-backup defaults. Plan revision, partial sale and additional same-symbol buy behavior is explicit and preserves recorded holdings/fees.
+- [ ] Verify save/reload and old/new backup round-trips; manually enter 100/95/110 and confirm the target survives restart and export/import.
+
+**Dependencies:** 1. **Scope:** Medium.
+**Likely files:** `ui/PortfolioScreen.kt`, `ui/StockViewModel.kt`, `data/RoomModels.kt`, `data/StockRepository.kt`, plan round-trip tests.
+
+## Checkpoint A: Plan survives the complete user flow
+
+- [ ] Migration and round-trip checks pass; `./gradlew :app:testDebugUnitTest :app:assembleDebug` passes.
+- [ ] Existing holdings, cash and completed trade history remain intact.
+
+## Task 3: Implement one exit policy
+
+- [ ] Add a pure structured exit evaluator using saved plans; price-stop checks work with missing indicators, stops never silently widen, and risk exits take precedence.
+- [ ] Define legacy/dividend behavior and early invalidation reasons. Planned trades do not use unrelated 3%/5% profit overrides; fees honor configured settings and actual buy fees when available.
+- [ ] Verify the 100/95/110 fixture, trailing behavior, missing indicators, XD context and dividend explicit stops using focused unit tests.
+
+**Dependencies:** 1. **Scope:** Medium.
+**Likely files:** new `domain/ExitPolicy.kt`, `domain/TechnicalAnalysis.kt`, `domain/TradePlan.kt`, new exit policy tests, `domain/TechnicalAnalysisTest.kt`.
+
+## Task 4: Connect every live exit consumer
+
+- [ ] Advisor, portfolio signals and worker consume the same exit result and plan revision; remove duplicated target/trailing conditions.
+- [ ] Alerts distinguish target reached, stop breached, technical invalidation and review-only warnings; all consumers use consistent XD/strategy context.
+- [ ] Verify identical decisions for identical input snapshots, plus a manual screen/notification check for stop and target events.
+
+**Dependencies:** 2–3. **Scope:** Medium.
+**Likely files:** `ui/StockViewModel.kt`, `util/StockAlertWorker.kt`, `ui/DividendAdvisorScreen.kt`, `domain/TechnicalAnalysis.kt`, consumer parity tests.
+
+## Checkpoint B: Exit advice agrees
+
+- [ ] Regression fixtures and consumer parity pass; unit tests and debug build pass.
+- [ ] Changing current price cannot change an accepted target or disable an explicit stop merely because indicators are missing.
+
+## Task 5: Centralize candidate eligibility
+
+- [ ] Introduce Ready/Watch/Blocked results with reasons. Apply common guards across swing, daily movers, speculative and dividend candidates; SELL states cannot qualify as actionable long entries.
+- [ ] Replace unsupported gap/earnings labels with Strong daily move; null required evidence does not count as a pass. Preserve strategy-specific predicates explicitly.
+- [ ] Verify bearish-market bypass, SELL plus +4% move, POTENTIAL status and missing-data examples with fixed inputs.
+
+**Dependencies:** 3. **Scope:** Medium.
+**Likely files:** new `domain/CandidatePolicy.kt`, `ui/StockDna.kt`, `ui/StockViewModel.kt`, new candidate policy tests, `ui/StockDnaTest.kt`.
+
+## Task 6: Supply weekly trend and freshness evidence
+
+- [ ] Carry per-symbol observation timestamps and completed-bar provenance; calculate completed-calendar-week trend from dates rather than five-row chunks and persist/pass it to the policy.
+- [ ] Foreground and worker use the same evidence rules, including stale/missing data states and last trading session handling.
+- [ ] Verify weekly bearish downgrades, incomplete-week exclusion, old quote with recent fetch time, weekend freshness and worker/foreground parity.
+
+**Dependencies:** 5. **Scope:** Medium; split data plumbing from consumer wiring if it grows beyond one session.
+**Likely files:** `data/SetScraper.kt`, `data/RoomModels.kt`, `ui/StockViewModel.kt`, `util/StockAlertWorker.kt`, evidence tests.
+
+## Checkpoint C: Entries use consistent evidence
+
+- [ ] All actionable lists honor common guards; unit tests and debug build pass.
+- [ ] Screen shows a concrete reason when a candidate is Watch or Blocked.
+
+## Task 7: Make target provenance and net reward/risk explicit
+
+- [ ] Replace automatic favorable 2R targets with a target source: user-entered, documented historical level, or hypothetical. Missing supported target cannot automatically qualify a setup.
+- [ ] Compute reward/risk after quantity-aware fees and disclosed fill assumptions; both stock-card implementations show the same plan and source.
+- [ ] Verify 2R is not manufactured by moving the target, net ratio can fall below gross ratio, and missing evidence produces Watch/Target unavailable.
+
+**Dependencies:** 2, 5–6. **Scope:** Medium.
+**Likely files:** new `domain/TradePlanBuilder.kt`, `domain/TechnicalAnalysis.kt`, `ui/DividendAdvisorScreen.kt`, `ui/StockComponents.kt`, plan builder tests.
+
+## Task 8: Implement proposal risk validation
+
+- [ ] Add one validator for post-fee cash reserve, per-trade risk, combined existing/new ticker exposure, sector exposure, valid prices and board lots; use current configured budgets.
+- [ ] Missing exposure/sector evidence returns an explicit unverified result. Separate proposal validation from recording an already executed fill.
+- [ ] Verify exact boundaries, one-lot excess, existing holdings, minimum-fee settings and stale/changed account inputs with unit tests.
+
+**Dependencies:** 1, 7. **Scope:** Medium.
+**Likely files:** new `domain/TradeRiskPolicy.kt`, `domain/TradePlan.kt`, `domain/TechnicalAnalysis.kt`, new risk policy tests.
+
+## Task 9: Enforce risk at confirmation while preserving the ledger
+
+- [ ] Proposal preview and confirmation share validation; revalidate current holdings/settings at the persistence boundary and show specific failure reasons.
+- [ ] Recording/importing a broker fill remains possible with truthful amounts and its rule breaches recorded; remove generic overrides that turn an invalid proposal into Ready.
+- [ ] Verify over-limit proposals are blocked, changed account state is rechecked, and actual-fill recording/reconciliation remains accurate.
+
+**Dependencies:** 2, 8. **Scope:** Medium.
+**Likely files:** `ui/PortfolioScreen.kt`, `ui/StockViewModel.kt`, `data/StockRepository.kt`, new proposal service if needed, confirmation tests.
+
+## Checkpoint D: Trade preparation is internally consistent
+
+- [ ] Saved plan, card levels, fees, accepted quantity and confirmation result agree; unit tests and debug build pass.
+- [ ] The app accurately records an executed trade even if it violates a proposed-trade rule.
+
+## Task 10: Constrain AI to validated plans
+
+- [ ] Send the shared eligible list and typed plan IDs/levels/evidence to Gemini; replace duplicate selection and free-form executable recommendations with validated plan references.
+- [ ] Reject unknown/stale plans and invalid numbers/allocations. Display qualitative model assessment and support No valid setup without inventing a pick.
+- [ ] Use stub responses to verify wrong symbol, bad stop, excessive size, stale revision, empty results and valid-plan rendering. No live model call is required for acceptance tests.
+
+**Dependencies:** 5–9. **Scope:** Medium.
+**Likely files:** `domain/GeminiClient.kt`, new `domain/AiRecommendationValidator.kt`, `ui/DividendAdvisorScreen.kt`, `domain/GeminiClientTest.kt`, validator tests.
+
+## Task 11: Repair backtest execution and accounting
+
+- [ ] Reuse plan/exit policy; apply the same disclosed next-bar fill timing for entry and signal exit, quantity-aware costs, and explicit stop/slippage assumptions.
+- [ ] Mark equity to market every bar including open positions; expose realized/unrealized results, daily drawdown and historical data coverage. Missing historical fundamentals/flow stays technical-only replay.
+- [ ] Verify open loss, recovered deep drawdown, next-bar fills, cost-induced loss and unavailable-history fixtures; verify summary labels match the computed measures.
+
+**Dependencies:** 3–9. **Scope:** Medium; split fill/accounting and UI coverage if needed.
+**Likely files:** `domain/BacktestEngine.kt`, `ui/BacktestScreen.kt`, `data/SetScraper.kt` (also defines historical bars), `domain/BacktestEngineTest.kt`.
+
+## Checkpoint E: AI and replay respect actual rules
+
+- [ ] AI cannot reintroduce rejected candidates; backtest fixture outcomes match hand-calculated accounting.
+- [ ] Unit tests and debug build pass; unsupported full-advisor performance claims are absent from result screens.
+
+## Task 12: Capture advice and subsequent outcomes
+
+- [ ] Persist a local versioned advice snapshot with input timestamps, eligibility reasons, accepted plan, and rule version; link actual fills, revisions and overrides without storing API credentials.
+- [ ] Provide exportable evidence for planned-versus-realized reward/risk, fees and exit reasons; replay complete recorded snapshots through the same policies.
+- [ ] Verify one complete advise → accept → fill → revise → exit chain survives restart/export, and missing historical advice remains explicitly unknown.
+
+**Dependencies:** 2, 4, 9–11. **Scope:** Medium; persistence and export wiring may be separate commits.
+**Likely files:** `data/RoomModels.kt`, new `data/AdviceJournalRepository.kt`, `ui/StockViewModel.kt`, `data/StockRepository.kt`, journal/replay tests.
+
+## Task 13: Correct claims and complete release review
+
+- [ ] Update README, indicator/alert docs and affected labels to match the final strategy, qualitative AI assessment, stop-alert behavior and replay limitations; remove unsupported win-rate/expectancy claims.
+- [ ] Review a deterministic old/new decision comparison and a forward paper-evaluation protocol with strategy version, sample size, period, costs, data coverage and a holdout selected before tuning.
+- [ ] Run final unit/build/lint gates, migration checks and device walkthrough. Record actual results and remaining limitations here before user release review.
+
+**Dependencies:** 1–12. **Scope:** Medium.
+**Likely files:** `README.md`, `docs/INDICATORS.md`, `docs/ALERT_FLOWS.md`, affected string resources, this checklist.
+
+## Checkpoint F: Ready for release review
+
+- [x] `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passes.
+- [ ] Migration/instrumentation checks pass on an available device; failures or environment blockers are documented.
+- [ ] User flow checks cover legacy holdings, saved target, exit notification, blocked proposal, executed-fill recording, AI empty/invalid result and backtest open loss.
+- [ ] The user reviews the completed behavior and evidence before release. Profitability is evaluated separately from software acceptance.
+
+---
+
+# Advisor Quality Fixes — "Why user still doesn't win" (2026-09-26)
+
+## Root Causes Identified & Fixes
+
+- [x] **Fix 1** NEUTRAL market gating: `isMarketBearish = !isBullish` lets NEUTRAL pass — change to explicit `== BEARISH`
+- [x] **Fix 2** `isMom()` hard `return false` for null RS silently blocks valid candidates — make null-tolerant
+- [x] **Fix 3** Snapshot race condition silently discards AI result — show snackbar when stale discard happens
+- [x] **Fix 4** `existingStock` uses market value not cost basis → concentration limits breached silently — use cost
+- [x] **Fix 5** Duplicate sell alerts: FIXED_TARGET DIVIDEND stocks appear in both lists — deduplicate by symbol
+- [x] **Fix 6** AI "no live news" warning is tiny `labelSmall` text — replace with amber warning card
+- [x] **Fix 7** No stale-data banner before AI analysis — show warning chip when lastSync > 12h
+
+## Verification
+- [x] `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passes
