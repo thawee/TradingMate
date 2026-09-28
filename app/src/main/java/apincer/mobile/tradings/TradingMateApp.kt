@@ -11,21 +11,28 @@ import apincer.mobile.tradings.data.StockRepository
  */
 class TradingMateApp : Application() {
 
-    val database by lazy { StockDatabase.getDatabase(this) }
+    private var _database: apincer.mobile.tradings.data.StockDatabase? = null
+    private var _repository: apincer.mobile.tradings.data.StockRepository? = null
 
-    val repository by lazy {
-        StockRepository(
-            database = database,
-            stockDao = database.stockDao(),
-            tradeDao = database.tradeDao(),
-            cashDao = database.cashDao(),
-            focusDao = database.focusDao(),
-            checklistDao = database.checklistDao(),
-            dividendDao = database.dividendDao(),
-            portfolioSnapshotDao = database.portfolioSnapshotDao(),
-            cashTransactionDao = database.cashTransactionDao()
-        )
-    }
+    val repository: apincer.mobile.tradings.data.StockRepository
+        get() {
+            val db = apincer.mobile.tradings.data.StockDatabase.getDatabase(this)
+            if (_database !== db) {
+                _database = db
+                _repository = apincer.mobile.tradings.data.StockRepository(
+                    database = db,
+                    stockDao = db.stockDao(),
+                    tradeDao = db.tradeDao(),
+                    cashDao = db.cashDao(),
+                    focusDao = db.focusDao(),
+                    checklistDao = db.checklistDao(),
+                    dividendDao = db.dividendDao(),
+                    portfolioSnapshotDao = db.portfolioSnapshotDao(),
+                    cashTransactionDao = db.cashTransactionDao()
+                )
+            }
+            return _repository!!
+        }
 }
 
 /** Convenience extension so ViewModels can access the shared repo via [application]. */

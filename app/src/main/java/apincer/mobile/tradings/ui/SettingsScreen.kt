@@ -1,5 +1,7 @@
 package apincer.mobile.tradings.ui
 
+import android.content.Intent
+import androidx.compose.material.icons.filled.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -234,6 +236,33 @@ fun SettingsScreen(
                 ) {
                     Text(stringResource(R.string.label_dividend_alert_end_year), style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = isEndYear, onCheckedChange = { settingsViewModel.toggleDividendAlertEndYear() })
+                }
+            }
+
+            SectionContent(title = "App Environment", icon = Icons.Default.Settings) {
+                val prefs = context.getSharedPreferences("app_sandbox", android.content.Context.MODE_PRIVATE)
+                var isSandbox by remember { mutableStateOf(prefs.getBoolean("is_sandbox_mode", false)) }
+
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Paper Trading Sandbox", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text("Simulate trades in an isolated database.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = isSandbox,
+                        onCheckedChange = { checked ->
+                            prefs.edit().putBoolean("is_sandbox_mode", checked).apply()
+                            isSandbox = checked
+                            showSnackbar("Environment changed. Restarting app...")
+                            
+                            val packageManager = context.packageManager
+                            val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+                            val componentName = intent?.component
+                            val mainIntent = Intent.makeRestartActivityTask(componentName)
+                            context.startActivity(mainIntent)
+                            Runtime.getRuntime().exit(0)
+                        }
+                    )
                 }
             }
 

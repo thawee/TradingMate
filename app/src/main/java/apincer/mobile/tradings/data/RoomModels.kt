@@ -892,22 +892,31 @@ abstract class StockDatabase : RoomDatabase() {
         }
 
         fun getDatabase(context: android.content.Context): StockDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    StockDatabase::class.java,
-                    "stock_database"
-                )
-                .addMigrations(
-                    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, 
-                    MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
-                    MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
-                    MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
-                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33
-                )
-                .build()
-                INSTANCE = instance
-                instance
+            val prefs = context.getSharedPreferences("app_sandbox", android.content.Context.MODE_PRIVATE)
+            val isSandbox = prefs.getBoolean("is_sandbox_mode", false)
+            val dbName = if (isSandbox) "stock_database_sandbox" else "stock_database"
+            
+            return INSTANCE?.takeIf { it.openHelper.databaseName == dbName } ?: synchronized(this) {
+                val currentInstance = INSTANCE
+                if (currentInstance != null && currentInstance.openHelper.databaseName == dbName) {
+                    currentInstance
+                } else {
+                    val instance = Room.databaseBuilder(
+                        context.applicationContext,
+                        StockDatabase::class.java,
+                        dbName
+                    )
+                    .addMigrations(
+                        MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, 
+                        MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, 
+                        MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
+                        MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
+                        MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33
+                    )
+                    .build()
+                    INSTANCE = instance
+                    instance
+                }
             }
         }
     }

@@ -114,7 +114,7 @@ data class StockFocusInfo(
 )
 
 class StockViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = application.appRepository
+    private val repository get() = getApplication<apincer.mobile.tradings.TradingMateApp>().repository
     private val preferenceRepository = apincer.mobile.tradings.data.PreferenceRepository(application)
     private val alertPrefs = application.getSharedPreferences("trading_mate_alerts", android.content.Context.MODE_PRIVATE)
 

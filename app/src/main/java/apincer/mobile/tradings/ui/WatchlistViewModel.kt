@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class WatchlistViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = application.appRepository
+    private val repository get() = getApplication<apincer.mobile.tradings.TradingMateApp>().repository
 
     private val _searchResults = MutableStateFlow<List<ScrapedStockInfo>>(emptyList())
     val searchResults: StateFlow<List<ScrapedStockInfo>> = _searchResults

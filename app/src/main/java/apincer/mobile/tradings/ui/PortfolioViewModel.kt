@@ -19,7 +19,7 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 
 class PortfolioViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = application.appRepository
+    private val repository get() = getApplication<apincer.mobile.tradings.TradingMateApp>().repository
     private val preferenceRepository = PreferenceRepository(application)
     private val isAtsEnabled: StateFlow<Boolean> = preferenceRepository.isAtsEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
