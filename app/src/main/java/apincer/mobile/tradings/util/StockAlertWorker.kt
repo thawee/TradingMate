@@ -419,11 +419,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
     }
 
     private fun shouldNotifyEntrySignal(quantity: Int, type: IndicatorSignal, s: apincer.mobile.tradings.ui.StockWatchlistInfo): Boolean {
-        val isEntrySignal = type == IndicatorSignal.BUY || type == IndicatorSignal.POTENTIAL
-        if (quantity > 0 || !isEntrySignal) return false
+        if (quantity > 0) return false
+        // STRICT ALERTS: Align perfectly with the Advisor Screen's logic
         
         // STRICT ALERTS: Only notify if it passes the Advisor Screen's VIP gates
-        return apincer.mobile.tradings.ui.StockDna.preFilter(s) && apincer.mobile.tradings.ui.StockDna.isQual(s)
+        return apincer.mobile.tradings.ui.StockDna.isQual(s) && apincer.mobile.tradings.ui.StockDna.isSwingCandidate(s, isMarketBearish = false)
     }
 
     private fun maybeSendSellReminder(
