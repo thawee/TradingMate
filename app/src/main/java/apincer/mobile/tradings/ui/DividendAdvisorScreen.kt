@@ -1129,7 +1129,7 @@ fun AiCopilotCard(
                     val sector = stock.info.sector ?: return@mapNotNull null
                     val stop = TechnicalAnalysis.calculateSuggestedStopLossPrice(
                         entry, stock.portfolio.atr,
-                        apincer.mobile.tradings.domain.TradingConstants.SET50_SYMBOLS.contains(stock.info.symbol.uppercase()))
+                        apincer.mobile.tradings.domain.TradingConstants.SET50_SYMBOLS.contains(stock.info.symbol.uppercase()), marketRegime = marketRegime)
                     val sized = TechnicalAnalysis.calculateRecommendedPositionSize(
                         totalAssets, entry, stop, maxRiskPerTrade, maxPortfolioAllocation).shares
                     val affordable = ((spendable / entry / 100).toInt() * 100).coerceAtLeast(0)
