@@ -20,23 +20,23 @@
 
 
 ## Phase 5: The "Discipline & AI" Overhaul (V2 Roadmap)
-- [ ] **Epic 1: Zero-Friction Trade Logging (Gemini Vision)**
+- [x] **Epic 1: Zero-Friction Trade Logging (Gemini Vision)**
   - Implement intent receiver for image sharing/screenshots.
   - Integrate Gemini Vision API to extract Ticker, Price, Qty, Fees from broker screenshots.
   - Auto-fill the `BuyStockDialog` with extracted data.
-- [ ] **Epic 2: "Closed-Loop" AI Journal**
+- [x] **Epic 2: "Closed-Loop" AI Journal**
   - Update Gemini prompt in `DividendAdvisorScreen` to enforce structured JSON output (Entry, Stop, Target).
   - Add "Accept AI Plan" button to auto-fill the Swing Plan.
   - Track `ai_assisted` flag in `TradeEntity` and build AI win-rate scorecard in `StatsScreen`.
-- [ ] **Epic 3: Post-Trade Autopsy (Psychological Journaling)**
+- [x] **Epic 3: Post-Trade Autopsy (Psychological Journaling)**
   - Detect when a trade is closed (hits stop/target).
   - Trigger Autopsy Dialog (Did you follow plan? Emotional state 1-10).
   - Save autopsy data to database and chart Discipline vs. PnL in `StatsScreen`.
-- [ ] **Epic 4: Dynamic Trailing Stops**
+- [x] **Epic 4: Dynamic Trailing Stops**
   - Monitor active positions against `MarketRegime`.
   - Trigger high-priority local notification if regime shifts to BEAR while holding long positions.
   - Suggest tightening trailing ATR stops automatically.
-- [ ] **Epic 5: Paper Trading (Sandbox Mode)**
+- [x] **Epic 5: Paper Trading (Sandbox Mode)**
   - Add `isPaperTrading` toggle in Settings.
   - Create a separate database table or flag for fake ฿1,000,000 portfolio.
   - Branch repository logic to read/write to the paper portfolio when enabled.
