@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
@@ -1035,7 +1036,8 @@ fun AiCopilotCard(
     geminiModelId: String = "gemini-3.6-flash",
     cashBalance: Double = 0.0,
     marketRegime: apincer.mobile.tradings.domain.TechnicalAnalysis.MarketRegime = apincer.mobile.tradings.domain.TechnicalAnalysis.MarketRegime.NEUTRAL,
-    showSnackbar: (String) -> Unit
+    showSnackbar: (String) -> Unit,
+    onAcceptAiPlan: (apincer.mobile.tradings.domain.AiRecommendation) -> Unit = {}
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
@@ -1396,7 +1398,8 @@ fun AiCopilotCard(
                     buildPrompt = buildDividendPrompt,
                     emptyMessage = "Dividend analysis is qualitative until a locally validated trade plan is available.",
                     onDone = onMarkAiDone,
-                    showSnackbar = showSnackbar
+                    showSnackbar = showSnackbar,
+                    onAcceptAiPlan = onAcceptAiPlan
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1430,7 +1433,8 @@ fun AiAnalysisButton(
     allowedPlans: Map<String, apincer.mobile.tradings.domain.AiCandidatePlan> = emptyMap(),
     onValidatedResult: (apincer.mobile.tradings.domain.AiAnalysisResult) -> Unit = {},
     onDone: () -> Unit,
-    showSnackbar: (String) -> Unit
+    showSnackbar: (String) -> Unit,
+    onAcceptAiPlan: (apincer.mobile.tradings.domain.AiRecommendation) -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
@@ -1538,7 +1542,7 @@ fun AiAnalysisButton(
             Text(emptyMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             r.recommendations.sortedByDescending { it.confidenceScore }.forEach { rec ->
-                AiRecommendationCard(rec)
+                AiRecommendationCard(rec, onAccept = { onAcceptAiPlan(rec) })
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -1546,7 +1550,7 @@ fun AiAnalysisButton(
 }
 
 @Composable
-fun AiRecommendationCard(rec: apincer.mobile.tradings.domain.AiRecommendation) {
+fun AiRecommendationCard(rec: apincer.mobile.tradings.domain.AiRecommendation, onAccept: () -> Unit) {
     val confidenceColor = when {
         rec.confidenceScore >= 70 -> MaterialTheme.colorScheme.tertiary
         rec.confidenceScore >= 40 -> MaterialTheme.colorScheme.secondary
@@ -1604,6 +1608,17 @@ fun AiRecommendationCard(rec: apincer.mobile.tradings.domain.AiRecommendation) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(rec.reasoning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onAccept,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Accept AI Plan", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
