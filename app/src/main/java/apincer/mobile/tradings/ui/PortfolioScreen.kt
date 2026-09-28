@@ -53,6 +53,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.BitmapFactory
+import java.io.ByteArrayOutputStream
+import android.util.Base64
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import apincer.mobile.tradings.domain.GeminiClient
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.filled.ImageSearch
+import androidx.compose.material3.CircularProgressIndicator
+import apincer.mobile.tradings.data.PreferenceRepository
+import kotlinx.coroutines.flow.first
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -834,6 +850,53 @@ fun BuyStockDialog(
     var tradePurpose by remember { mutableStateOf(initialStock?.portfolio?.tradePurpose ?: "SWING") }
     var recordExecutedFill by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isExtracting by remember { mutableStateOf(false) }
+    
+    val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            isExtracting = true
+            coroutineScope.launch {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    val outputStream = ByteArrayOutputStream()
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+                    val base64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+                    
+                    withContext(Dispatchers.IO) {
+                        val db = apincer.mobile.tradings.data.StockDatabase.getDatabase(context)
+                        val prefRepo = PreferenceRepository(context)
+                        val apiKey = prefRepo.geminiApiKey.first()
+                        val result = GeminiClient.extractTradeScreenshot(base64, apiKey)
+                        
+                        withContext(Dispatchers.Main) {
+                            if (result.isSuccess) {
+                                val data = result.getOrNull()
+                                if (data != null) {
+                                    symbol = data.symbol
+                                    if (data.price > 0) entryPrice = data.price.toString()
+                                    if (data.quantity > 0) qty = data.quantity.toString()
+                                    recordExecutedFill = true
+                                }
+                            } else {
+                                android.widget.Toast.makeText(context, "Vision failed: " + result.exceptionOrNull()?.message, android.widget.Toast.LENGTH_LONG).show()
+                            }
+                            isExtracting = false
+                        }
+                    }
+                } catch (e: Exception) {
+                    isExtracting = false
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "Error reading image", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+
     val entry = entryPrice.toDoubleOrNull() ?: 0.0
     val amount = qty.toIntOrNull() ?: 0
     val target = targetPrice.toDoubleOrNull() ?: 0.0
@@ -905,11 +968,22 @@ fun BuyStockDialog(
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
-            Text(
-                if (initialStock == null) stringResource(R.string.title_record_purchase) else stringResource(R.string.title_edit_holding),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black
-            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (initialStock == null) stringResource(R.string.title_record_purchase) else stringResource(R.string.title_edit_holding),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black
+                )
+                if (initialStock == null) {
+                    if (isExtracting) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                            Icon(Icons.Default.ImageSearch, contentDescription = "Import Screenshot", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.height(16.dp))
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp),
