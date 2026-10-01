@@ -509,6 +509,7 @@ fun PortfolioScreen(
             maxStockAllocationPercent = maxPortfolioAllocation,
             maxSectorAllocationPercent = maxSectorAllocation,
             holdings = watchlist,
+            targetCorePercent = targetCorePercent,
             atsEnabled = isAtsEnabled,
             isSaving = isSubmitting,
             onDismiss = {
@@ -848,6 +849,7 @@ fun BuyStockDialog(
     maxStockAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SINGLE_STOCK_ALLOCATION_PERCENT,
     maxSectorAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SECTOR_ALLOCATION_PERCENT,
     holdings: List<StockWatchlistInfo> = emptyList(),
+    targetCorePercent: Double = apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_TARGET_CORE_PERCENT,
     atsEnabled: Boolean = true,
     isSaving: Boolean = false,
     onDismiss: () -> Unit,
@@ -1039,7 +1041,7 @@ fun BuyStockDialog(
                     }
                     Text(
                         text = if (tradePurpose == "SWING") {
-                            "⚡ Swing: Active trade management. Enforces daily trailing stops, +5% take-profit alerts, and technical exits."
+                            "⚡ Swing: Active trade management. Enforces daily trailing stops, take-profit at 2× the stop distance, and technical exits."
                         } else {
                             "💰 Dividend: Long-term compounding. Bypasses daily trailing stops; alerts only on fundamental breaks (ROE < 15%) or deep drawdown (> 20%)."
                         },
@@ -1165,6 +1167,35 @@ fun BuyStockDialog(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            val satelliteBuyValue = (entry * amount -
+                (initialStock?.portfolio?.cost ?: 0.0) * (initialStock?.portfolio?.quantity ?: 0)).coerceAtLeast(0.0)
+            val currentHoldings = holdings.filter { it.portfolio.quantity > 0 }
+                .map { it.info.symbol to it.info.lastPrice * it.portfolio.quantity }
+            if (symbol.isNotBlank() && apincer.mobile.tradings.domain.CoreSatellite.breachesSatelliteCap(
+                    currentHoldings, symbol, satelliteBuyValue, targetCorePercent)) {
+                item {
+                    val after = apincer.mobile.tradings.domain.CoreSatellite.allocationAfterBuy(
+                        currentHoldings, symbol, satelliteBuyValue, targetCorePercent)
+                    Surface(
+                        color = Color(0xFFFFA726).copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            String.format(
+                                java.util.Locale.ENGLISH,
+                                "Satellite would be %.0f%% of invested value (cap %.0f%%). Consider funding the %s core first.",
+                                after.satellitePercent, 100.0 - targetCorePercent,
+                                apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+                            ),
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }

@@ -38,6 +38,15 @@ object CoreSatellite {
             targetCorePercent = targetCorePercent
         )
 
+    /** Allocation if [buyValue] of [symbol] were added to [holdings]. */
+    fun allocationAfterBuy(holdings: List<Pair<String, Double>>, symbol: String, buyValue: Double, targetCorePercent: Double): Allocation =
+        allocation(holdings + (symbol to maxOf(buyValue, 0.0)), targetCorePercent)
+
+    /** True when a non-core buy would push the satellite above its cap (100% − target core). */
+    fun breachesSatelliteCap(holdings: List<Pair<String, Double>>, symbol: String, buyValue: Double, targetCorePercent: Double): Boolean =
+        !isCore(symbol) && buyValue > 0.0 &&
+            allocationAfterBuy(holdings, symbol, buyValue, targetCorePercent).satellitePercent > 100.0 - targetCorePercent
+
     data class DcaSuggestion(val shares: Int, val estimatedCost: Double, val unusedBaht: Double)
 
     /** Largest whole 100-share board lot of [price] whose cost including buy fees fits [budget]. */

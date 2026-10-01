@@ -324,9 +324,12 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 - [x] Fixed (moved to `v7/finance/spark`, 20-symbol chunks): Yahoo `v7/finance/quote` (`SetScraper.fetchBatchQuotes`) returned HTTP 401; `StockViewModel` refreshes mark every symbol failed and fall back to the slower per-stock path. Replace with chart endpoint or SET API.
 
 ### Phase 3: Satellite scorecard
-- [ ] Stats: satellite money-weighted return vs "same cash flows into TDEX" (shadow portfolio from cash transactions + trades).
-- [ ] Rolling 12-month verdict card: "Satellite beat / trailed the core by X%"; if trailing 2 consecutive quarters, suggest reducing satellite %.
-- [ ] Satellite budget guard: Buy dialog warns when a satellite buy pushes satellite above its cap (reuse spendable-cash guard pattern).
+- [x] Stats: satellite money-weighted return vs "same cash flows into TDEX" (shadow portfolio from cash transactions + trades).
+- [x] Rolling 12-month verdict card: "Satellite beat / trailed the core by X%"; if trailing 2 consecutive quarters, suggest reducing satellite %.
+- [x] Satellite budget guard: Buy dialog warns when a satellite buy pushes satellite above its cap (reuse spendable-cash guard pattern).
+
+- Notes: ledger = BUY_FILL / SELL_FILL / UNDO_SELL journal (sell fee estimated, SELL_FILL stores buy+sell fees combined); symbols whose journal does not reconcile to the current holding are excluded and listed. Comparisons start 30 days after the first fill; trailing windows need full-window history. TDEX uses dividend-adjusted (gross) closes vs net satellite dividends: slight bias toward core.
+- Verified on emulator: exclusion state (HMPRO, MBK pre-journal holdings), Buy dialog cap warning. Populated windows covered by unit tests only.
 
 ### Phase 4: Evidence gate for signals
 - [ ] `docs/ADVISOR_EVALUATION.md`: any signal change must beat TDEX in BOTH sub-periods and stay positive after removing its top 3 symbols in `MarketBacktestReport`.

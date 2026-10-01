@@ -529,8 +529,11 @@ object SetScraper {
         }
     }
 
-    /** Daily history for the last [days] calendar days (default ~1 year for live indicators). */
-    fun fetchHistoricalPrices(symbol: String, days: Int = 365): List<ScrapedHistoricalPrice> {
+    /**
+     * Daily history for the last [days] calendar days (default ~1 year for live indicators).
+     * [dividendAdjusted] scales OHLC by Yahoo's adjclose, giving a total-return series.
+     */
+    fun fetchHistoricalPrices(symbol: String, days: Int = 365, dividendAdjusted: Boolean = false): List<ScrapedHistoricalPrice> {
         return try {
             withRetry {
                 val symbolBK = "${symbol.uppercase()}.BK"
@@ -560,6 +563,8 @@ object SetScraper {
                 // high/low may be absent in degraded responses — fall back to close
                 val highs = indicators.optJSONArray("high")
                 val lows = indicators.optJSONArray("low")
+                val adjCloses = if (dividendAdjusted) result.getJSONObject("indicators")
+                    .optJSONArray("adjclose")?.optJSONObject(0)?.optJSONArray("adjclose") else null
                 
                 val prices = mutableListOf<ScrapedHistoricalPrice>()
                 val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
@@ -567,10 +572,12 @@ object SetScraper {
                 for (i in 0 until timestamps.length()) {
                     if (closes.isNull(i)) continue
                     val ts = timestamps.getLong(i) * 1000
-                    val close = closes.getDouble(i)
+                    val rawClose = closes.getDouble(i)
+                    val factor = if (adjCloses != null && !adjCloses.isNull(i) && rawClose > 0) adjCloses.getDouble(i) / rawClose else 1.0
+                    val close = rawClose * factor
                     val volume = if (!volumes.isNull(i)) volumes.getLong(i) else 0L
-                    val high = if (highs != null && !highs.isNull(i)) highs.getDouble(i) else close
-                    val low = if (lows != null && !lows.isNull(i)) lows.getDouble(i) else close
+                    val high = (if (highs != null && !highs.isNull(i)) highs.getDouble(i) else rawClose) * factor
+                    val low = (if (lows != null && !lows.isNull(i)) lows.getDouble(i) else rawClose) * factor
                     
                     prices.add(ScrapedHistoricalPrice(
                         date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate().format(dateFormatter),

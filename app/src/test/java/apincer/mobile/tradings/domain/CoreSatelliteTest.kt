@@ -38,6 +38,14 @@ class CoreSatelliteTest {
     }
 
     @Test
+    fun satelliteCapCheckOnBuy() {
+        val holdings = listOf("TDEX" to 80_000.0, "PTT" to 20_000.0)
+        assertTrue(CoreSatellite.breachesSatelliteCap(holdings, "KBANK", 1_000.0, 80.0))
+        assertTrue(!CoreSatellite.breachesSatelliteCap(holdings, "TDEX", 50_000.0, 80.0))
+        assertTrue(!CoreSatellite.breachesSatelliteCap(listOf("TDEX" to 90_000.0, "PTT" to 5_000.0), "KBANK", 5_000.0, 80.0))
+    }
+
+    @Test
     fun dcaRoundsDownToBoardLotsIncludingFees() {
         // 10,000 / (8.00 × 100) = 12.5 lots -> 12 lots; 1,200 sh = ฿9,600 + fees fits.
         val s = CoreSatellite.dcaSuggestion(10_000.0, 8.0)

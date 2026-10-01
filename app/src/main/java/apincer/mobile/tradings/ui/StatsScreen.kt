@@ -82,6 +82,7 @@ fun StatsScreen(
     val snapshots by portfolioViewModel.allSnapshots.collectAsState()
     val portfolioHistoricalCloses by portfolioViewModel.portfolioHistoricalCloses.collectAsState()
     val indexHistory by portfolioViewModel.indexHistory.collectAsState()
+    val satelliteScorecard by portfolioViewModel.satelliteScorecard.collectAsState()
     val chronologicalSnapshots = remember(snapshots) { navSnapshotsInDateOrder(snapshots) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     val watchlist by viewModel.watchlistInfo.collectAsState()
@@ -95,6 +96,9 @@ fun StatsScreen(
                 kotlinx.coroutines.delay(60L * 60L * 1000L)
             }
         }
+    }
+    LaunchedEffect(openSymbols, history.size) {
+        portfolioViewModel.loadSatelliteScorecard(watchlist.filter { it.portfolio.quantity > 0 })
     }
     LaunchedEffect(watchlist, cashBalance) {
         val openPositions = watchlist.filter { it.portfolio.quantity > 0 }
@@ -270,6 +274,10 @@ fun StatsScreen(
                         }
                     }
                 }
+            }
+
+            item {
+                SatelliteScorecardCard(satelliteScorecard)
             }
 
             // profit graph for 12 month period
@@ -859,6 +867,89 @@ fun InstitutionalRiskCard(
                     Text("-${String.format(Locale.ENGLISH, "%.2f", mddResult.maxDrawdownPercent)}%", fontSize = 15.sp, fontWeight = FontWeight.Black, color = if (mddResult.maxDrawdownPercent > 15.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                     Text(if (snapshots.size >= 2) "MTM Daily NAV" else "Current: -${String.format(Locale.ENGLISH, "%.1f", mddResult.currentDrawdownPercent)}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SatelliteScorecardCard(report: apincer.mobile.tradings.domain.SatelliteScorecard.Report?) {
+    val core = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+    fun pct(v: Double?) = v?.let { String.format(Locale.ENGLISH, "%+.1f%%", it) } ?: "n/a"
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Satellite vs $core", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Same cash flows replayed into $core. Annual money-weighted return.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
+            val windows = listOfNotNull(
+                report?.sinceStart?.let { "Since first fill" to it },
+                report?.trailing12m?.let { "Last 12 months" to it },
+                report?.trailing12mPriorQuarter?.let { "12 months to last quarter" to it }
+            )
+            when {
+                report == null -> Text("Loading...", style = MaterialTheme.typography.bodySmall)
+                windows.isEmpty() -> Text(
+                    when {
+                        report.firstFillMillis != null -> "First comparison on " +
+                            java.time.Instant.ofEpochMilli(report.firstFillMillis)
+                                .plus(java.time.Duration.ofDays(apincer.mobile.tradings.domain.SatelliteScorecard.MIN_HISTORY_DAYS.toLong()))
+                                .atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate() +
+                            ", ${apincer.mobile.tradings.domain.SatelliteScorecard.MIN_HISTORY_DAYS} days after your first journaled satellite fill."
+                        report.coverage.excluded.isEmpty() -> "No journaled satellite trades yet. Buys and sells recorded in the app build this scorecard."
+                        else -> "Current holdings were added without full fill records, so they cannot be compared yet. New buys and sells recorded in the app build this scorecard."
+                    },
+                    style = MaterialTheme.typography.bodySmall
+                )
+                else -> windows.forEach { (label, c) ->
+                    val ahead = c.excessBaht >= 0
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Satellite ${pct(c.satelliteXirrPercent)} · $core ${pct(c.shadowXirrPercent)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            String.format(Locale.ENGLISH, "%s฿%,.0f", if (ahead) "+" else "-", kotlin.math.abs(c.excessBaht)),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = if (ahead) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+            if (report?.suggestReducingSatellite == true) {
+                Spacer(Modifier.height(8.dp))
+                Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(10.dp)) {
+                    Text(
+                        "Your satellite trailed $core in both of the last two 12-month windows. Consider lowering the satellite share in Settings > Core Portfolio.",
+                        modifier = Modifier.padding(10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+            val excluded = report?.coverage?.excluded.orEmpty()
+            if (excluded.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Excluded (fills not fully journaled): ${excluded.sorted().joinToString()}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
