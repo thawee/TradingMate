@@ -384,12 +384,12 @@ object TechnicalAnalysis {
                 )
             }
             val stochConfirm = if (stochK != null && stochD != null && stochK > stochD) {
-                " Stochastic has turned up — reversal confirmed."
+                " Stochastic has turned up."
             } else ""
             return TradeSignal(
                 IndicatorSignal.BUY,
                 "${qualityPrefix}Oversold Accumulation",
-                "RSI is oversold (${String.format(Locale.ENGLISH,"%.1f", rsi)}) while the long-term uptrend (SMA 200) is still intact. High probability value dip.$stochConfirm"
+                "RSI is oversold (${String.format(Locale.ENGLISH,"%.1f", rsi)}) while the long-term uptrend (SMA 200) is still intact. A dip within an uptrend; not a tested edge.$stochConfirm"
             )
         }
 
@@ -406,7 +406,7 @@ object TechnicalAnalysis {
                 TradeSignal(
                     IndicatorSignal.BUY,
                     "${qualityPrefix}Early Recovery (Volume Confirmed)",
-                    "Momentum (MACD) has turned positive at a major support level, confirmed by $volumeEvidence — strong sign of institutional buying."
+                    "Momentum (MACD) has turned positive at a major support level, confirmed by $volumeEvidence. Buying interest is returning; not a tested edge."
                 )
             } else {
                 TradeSignal(

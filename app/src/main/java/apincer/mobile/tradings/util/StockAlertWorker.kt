@@ -34,6 +34,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val prefRepo = apincer.mobile.tradings.data.PreferenceRepository(applicationContext)
         val trailingStopPercent = prefRepo.trailingStopPercent.firstOrNull() ?: 5.0
         val atsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
+        val entryAlertsEnabled = prefRepo.isEntryAlertsEnabled.firstOrNull() ?: false
         val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
 
         var hasActiveSwingSellAlert = false
@@ -46,7 +47,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             // 2. Afternoon Entry Window: 15:30–16:15 Thai time
             //    Cap at 16:15 (not 16:30) so user has ~15 min to act before market closes.
             //    Also guard against public holidays by checking market is not CLOSED.
-            if (currentTime in 1530..1615 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
+            if (entryAlertsEnabled && currentTime in 1530..1615 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
                 val key = "afternoon_alert_$todayStr"
                 if (!alertPrefs.getBoolean(key, false)) {
                     NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = false)
@@ -181,7 +182,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     signal = signal
                 )
 
-                if (isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type, dummyInfo)) {
+                if (entryAlertsEnabled && isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type, dummyInfo)) {
                     NotificationHelper.showSignalNotification(
                         context = applicationContext,
                         symbol = entity.symbol,

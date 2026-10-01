@@ -21,6 +21,7 @@ class PreferenceRepository(private val context: Context) {
     private val IS_DIVIDEND_ALERT_END_YEAR = booleanPreferencesKey("is_dividend_alert_end_year")
     private val IS_PRIVACY_MODE = booleanPreferencesKey("is_privacy_mode")
     private val IS_ATS_ENABLED = booleanPreferencesKey("is_ats_enabled")
+    private val IS_ENTRY_ALERTS_ENABLED = booleanPreferencesKey("is_entry_alerts_enabled")
     private val TRAILING_STOP_PERCENT = doublePreferencesKey("trailing_stop_percent")
 
     private val MAX_RISK_PER_TRADE = doublePreferencesKey("max_risk_per_trade")
@@ -84,6 +85,19 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setAtsEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[IS_ATS_ENABLED] = enabled
+        }
+    }
+
+    // Entry (BUY / POTENTIAL) signal notifications. Off by default: the market-wide backtest
+    // (tools/backtest/report.md) shows no edge for entry signals. Risk exits are always on.
+    val isEntryAlertsEnabled: Flow<Boolean> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[IS_ENTRY_ALERTS_ENABLED] ?: false
+        }
+
+    suspend fun setEntryAlertsEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[IS_ENTRY_ALERTS_ENABLED] = enabled
         }
     }
 

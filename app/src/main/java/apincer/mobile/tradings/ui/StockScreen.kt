@@ -1099,9 +1099,9 @@ fun SignalCard(signal: TradeSignal, zone: TradingZone) {
                 
                 Text(
                     text = when (signal.type) {
-                        IndicatorSignal.BUY -> "Bullish Setup"
-                        IndicatorSignal.POTENTIAL -> "Potential Setup"
-                        IndicatorSignal.SELL -> "Bearish / Exit"
+                        IndicatorSignal.BUY -> "Technical Setup"
+                        IndicatorSignal.POTENTIAL -> "On Watch"
+                        IndicatorSignal.SELL -> "Exit Rule"
                         IndicatorSignal.NEUTRAL -> "Neutral"
                     },
                     fontWeight = FontWeight.Black,
@@ -1142,6 +1142,10 @@ fun SignalCard(signal: TradeSignal, zone: TradingZone) {
                 lineHeight = 18.sp,
                 fontWeight = FontWeight.Medium
             )
+            if (signal.type == IndicatorSignal.BUY || signal.type == IndicatorSignal.POTENTIAL) {
+                Spacer(modifier = Modifier.height(12.dp))
+                UntestedEdgeNotice()
+            }
         }
     }
 }

@@ -91,6 +91,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    val isEntryAlertsEnabled: StateFlow<Boolean> =
+        preferenceRepository.isEntryAlertsEnabled.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun toggleEntryAlertsEnabled() {
+        viewModelScope.launch {
+            preferenceRepository.setEntryAlertsEnabled(!isEntryAlertsEnabled.value)
+        }
+    }
+
     val maxRiskPerTrade: StateFlow<Double> = 
         preferenceRepository.maxRiskPerTrade.stateIn(
             scope = viewModelScope,

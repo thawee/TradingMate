@@ -237,6 +237,23 @@ fun SettingsScreen(
                     Text(stringResource(R.string.label_dividend_alert_end_year), style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = isEndYear, onCheckedChange = { settingsViewModel.toggleDividendAlertEndYear() })
                 }
+
+                val isEntryAlertsEnabled by settingsViewModel.isEntryAlertsEnabled.collectAsState()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Entry signal alerts", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Technical entry signals trailed TDEX buy-and-hold in a 2015-2025 backtest. Stop and exit alerts stay on.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = isEntryAlertsEnabled, onCheckedChange = { settingsViewModel.toggleEntryAlertsEnabled() })
+                }
             }
 
             SectionContent(title = "App Environment", icon = Icons.Default.Settings) {

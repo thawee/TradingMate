@@ -308,10 +308,11 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 ## Todo Checklist
 
 ### Phase 1: Honest signal labelling (small, ship first)
-- [ ] `StockScreen.kt:1102` signal card: "Bullish Setup" / "Bearish / Exit" -> "Technical context: Oversold / Momentum / Weak trend"; add "Untested edge" chip linking to backtest summary.
-- [ ] Entry (BUY) notifications from `StockAlertWorker.kt:185` default OFF (Settings toggle); risk exits (stop, trailing, saved-plan stop) stay ON.
-- [ ] Advisor tab header card: results summary vs TDEX (surface card per lessons.md #5, not small text); "Accept AI Plan" demoted to secondary (outlined) action.
-- [ ] Academy/About copy: remove claims implying signals produce profit.
+- [x] Signal card: "Technical Setup" / "On Watch" / "Exit Rule"; `UntestedEdgeNotice` card under BUY/POTENTIAL (static, no link).
+- [x] Entry (BUY) notifications from `StockAlertWorker.kt:185` default OFF (Settings toggle; also gates the 15:30 entry-window prompt); risk exits (stop, trailing, saved-plan stop) stay ON.
+- [x] Advisor tab header card (Swing playbook only): results summary vs TDEX (surface card per lessons.md #5, not small text); "Accept AI Plan" demoted to secondary (outlined) action.
+- [x] Signal copy: removed "High probability value dip", "strong sign of institutional buying", "reversal confirmed".
+- [ ] Follow-up: watchlist row badges still say BUY / POTENTIAL; "On Watch" can sit next to a "Selling Zone" chip (zone is RSI-only), pre-existing inconsistency.
 
 ### Phase 2: Core holdings and DCA
 - [ ] Domain: `isCore(symbol) = symbol == "TDEX"`; all other holdings are SATELLITE. No schema change.

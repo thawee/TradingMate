@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Honest signal labelling:** signal card reads "Technical Setup" / "On Watch" / "Exit Rule" with a "Context, not a buy call" notice citing the backtest; same notice on the Swing playbook. "Accept AI Plan" is now a secondary "Save as Satellite Plan" action. Signal descriptions no longer claim "high probability" or "institutional buying".
+- **Entry signal alerts off by default:** new Settings toggle gates BUY notifications and the 15:30 entry-window prompt. Stop and exit alerts are unchanged.
 - **R-multiple exits for holdings without a saved plan:** Take-profit moved from a flat +5% / ฿500 to 2R (2 × stop distance), so winners can exceed the loss the stop accepts. The trailing stop now arms once the peak reaches +1R and also exits if price falls back to cost.
 
 ### Added
