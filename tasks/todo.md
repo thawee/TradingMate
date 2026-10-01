@@ -287,7 +287,7 @@ Offline JVM harness reusing the real `TechnicalAnalysis` / `BacktestEngine` code
 - Diagnostic (not shipped): disabling Early Breakdown exit gives -7.9% CAGR; entries themselves show no edge.
 
 ## Follow-ups
-- [ ] **Live bug**: `SetScraper.fetchHistoricalPrices` index path (`^SET.BK`) returns no timestamps, so market regime, beta and regime cash buffer have no index data. Switch to TDEX proxy or SET API.
+- [x] **Live bug** (TDEX fallback added): `SetScraper.fetchSetIndexHistory` index path (`^SET.BK`) returns no timestamps, so market regime, beta and regime cash buffer have no index data. Switch to TDEX proxy or SET API.
 - [ ] Rethink entries: test simple rules (e.g. trend-following 52w-high breakout, or index DCA core) in the harness before adding guards.
 - [ ] Rank simultaneous BUYs instead of symbol order.
 - [ ] Add point-in-time SET50/SET100 membership to reduce survivorship bias.

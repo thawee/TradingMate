@@ -631,16 +631,35 @@ object SetScraper {
 
     // SET index history cache — shared across all stocks in a refresh cycle
     private const val SET_INDEX_SYMBOL_RAW = "%5ESET.BK" // URL-encoded ^SET.BK
+    // Yahoo returns no daily history for ^SET.BK (only the latest quote). TDEX, the SET50 ETF,
+    // tracks the broad market closely enough for return-based uses: regime (SMA/MACD),
+    // relative strength and beta. Do not display its price as the SET index level.
+    private const val SET_INDEX_PROXY_SYMBOL = "TDEX"
     private const val INDEX_CACHE_TTL_MS = 60 * 60 * 1000L // 1 hour
     @Volatile private var cachedIndexHistory: List<ScrapedHistoricalPrice> = emptyList()
     @Volatile private var cachedIndexTimestamp: Long = 0L
 
-    /** Fetches ~1 year of SET index daily closes (cached 1h) for Relative Strength calculation. */
+    /**
+     * Fetches ~1 year of SET index daily closes (cached 1h) for regime, Relative Strength and beta.
+     * Falls back to [SET_INDEX_PROXY_SYMBOL] when Yahoo serves no index history.
+     */
     fun fetchSetIndexHistory(): List<ScrapedHistoricalPrice> {
         val now = System.currentTimeMillis()
         if (cachedIndexHistory.isNotEmpty() && now - cachedIndexTimestamp < INDEX_CACHE_TTL_MS) {
             return cachedIndexHistory
         }
+        val history = fetchSetIndexHistoryDirect().ifEmpty {
+            Log.w(TAG, "No ^SET.BK history; using $SET_INDEX_PROXY_SYMBOL as index proxy")
+            fetchHistoricalPrices(SET_INDEX_PROXY_SYMBOL)
+        }
+        if (history.isEmpty()) return cachedIndexHistory // stale cache is better than nothing
+        cachedIndexHistory = history
+        cachedIndexTimestamp = now
+        return history
+    }
+
+    private fun fetchSetIndexHistoryDirect(): List<ScrapedHistoricalPrice> {
+        val now = System.currentTimeMillis()
         return try {
             withRetry {
                 val endDate = now / 1000
@@ -674,13 +693,11 @@ object SetScraper {
                         close = closes.getDouble(i)
                     ))
                 }
-                cachedIndexHistory = prices
-                cachedIndexTimestamp = now
                 prices
             }
         } catch (e: Exception) {
             Log.e(TAG, "SET Index History Fetch Error after retries", e)
-            cachedIndexHistory // stale cache is better than nothing
+            emptyList()
         }
     }
 

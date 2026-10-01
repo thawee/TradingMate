@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Market-wide portfolio backtest** (`PortfolioBacktest`): shared-capital replay of the signal engine across a universe with fixed-fractional sizing, 15% stock cap, board lots, fees and slippage, plus a buy-and-hold benchmark. `tools/backtest/fetch_history.py` downloads dividend-adjusted history; `BACKTEST=1 ./gradlew testDebugUnitTest --tests '*MarketBacktestReport*'` writes `tools/backtest/report.md`.
 
 ### Fixed
+- **SET index history empty:** Yahoo serves no daily history for `^SET.BK`, so market regime, relative strength, beta and the regime cash buffer had no index data. `fetchSetIndexHistory` now falls back to TDEX (SET50 ETF) as a return-based proxy.
 - **In-app backtest window:** the Backtest screen fetched 1 year of history, leaving only ~35 bars after the 210-bar warm-up. It now fetches 3 years.
 - **Overbought exit churn on large positions:** Overbought, MFI distribution and upper-band SELLs triggered once profit exceeded a flat ฿500, selling large positions at a fraction of a percent gain. They now require at least +1R.
 - **Duplicated take-profit rules:** `StockViewModel` and `StockAlertWorker` re-derived their own flat take-profit and RSI ≥ 65 alerts with different thresholds; both now use the signal engine's SELL reasons.
