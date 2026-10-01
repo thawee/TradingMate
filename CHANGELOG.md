@@ -27,7 +27,8 @@ Repositioned from a signal advisor to an index core with a disciplined, measured
 
 ### Fixed
 - **Batch quotes failing (HTTP 401):** Yahoo's `v7/finance/quote` now requires a crumb, so every refresh marked all symbols failed and fell back to per-stock fetches. `fetchBatchQuotes` now uses `v7/finance/spark` in 20-symbol chunks. It no longer overwrites cached dividend yield with 0 (spark has no fundamentals, so they stay cached).
-- **SET index history empty:** Yahoo serves no daily history for `^SET.BK`, so market regime, relative strength, beta and the regime cash buffer had no index data. `fetchSetIndexHistory` now falls back to TDEX (SET50 ETF) as a return-based proxy.
+- **SET index history unusable:** Yahoo returns only today's bar for `^SET.BK`, so the market regime was stuck on Neutral, relative strength and beta were missing, and every swing candidate was blocked ("Price or SET benchmark history missing"), leaving Scan Setups empty. `fetchSetIndexHistory` now falls back to TDEX (SET50 ETF) when fewer than 120 bars come back.
+- **Stale indicator cache:** indicators missing an observation or benchmark date are recomputed even inside the cache window.
 - **In-app backtest window:** the Backtest screen fetched 1 year of history, leaving only ~35 bars after the 210-bar warm-up. It now fetches 3 years.
 - **Overbought exit churn on large positions:** Overbought, MFI distribution and upper-band SELLs triggered once profit exceeded a flat ฿500, selling large positions at a fraction of a percent gain. They now require at least +1R.
 - **Duplicated take-profit rules:** `StockViewModel` and `StockAlertWorker` re-derived their own flat take-profit and RSI ≥ 65 alerts with different thresholds; both now use the signal engine's SELL reasons.

@@ -14,3 +14,6 @@ Using `lastPrice × qty` for concentration checks means limits can be silently b
 
 ## 5. Two-sentence disclaimers in `labelSmall` are invisible
 Critical UX warnings (e.g., "AI has no live news") placed as faded small text below a primary action button are reliably ignored. Use a distinct `Surface` card with a colored background and icon to ensure the message is noticed.
+
+## 6. Fallbacks must test sufficiency, not emptiness
+Yahoo's `^SET.BK` returned one bar (today) instead of none, so an `ifEmpty` fallback to TDEX never fired and every downstream consumer (regime, RS, beta, candidate freshness gate) silently degraded. Gate fallbacks on the minimum data the consumers need (e.g. `size >= 120`), and verify on the installed build: an emulator snapshot can silently run an older APK.
