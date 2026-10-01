@@ -19,6 +19,28 @@ data class PortfolioBacktestConfig(
     val lookback: Int = 260
 )
 
+/** Open position as seen by a [BacktestRule]. */
+data class HeldPosition(val entryFill: Double, val shares: Int, val peak: Double, val barsHeld: Int)
+
+/** Signal source for [PortfolioBacktest.run]. Decisions at bar `i` may use only bars[0..i]. */
+interface BacktestRule {
+    val name: String
+    /** BUY when flat, SELL when [held] should exit; anything else is ignored. */
+    fun signal(bars: List<ScrapedHistoricalPrice>, i: Int, held: HeldPosition?, isSet50: Boolean, lookback: Int): TradeSignal
+    /** Higher scores fill first when BUY signals exceed capacity. */
+    fun rank(bars: List<ScrapedHistoricalPrice>, i: Int): Double = 0.0
+}
+
+/** The app's live technical signal engine. */
+object AppSignalRule : BacktestRule {
+    override val name = "App signals"
+    override fun signal(bars: List<ScrapedHistoricalPrice>, i: Int, held: HeldPosition?, isSet50: Boolean, lookback: Int) =
+        BacktestEngine.signalAt(
+            bars, i, entryPrice = held?.entryFill, quantity = held?.shares, peakPrice = held?.peak,
+            isSet50 = isSet50, lookback = lookback
+        )
+}
+
 data class PortfolioTrade(
     val symbol: String,
     val entryDate: String,
@@ -77,14 +99,14 @@ data class PortfolioBacktestResult(
 }
 
 /**
- * Portfolio-level replay of the technical signal engine across a universe of stocks
- * with shared capital. Uses the same [BacktestEngine.signalAt] as the in-app backtest.
+ * Portfolio-level replay of a [BacktestRule] across a universe of stocks with shared
+ * capital. [AppSignalRule] uses the same [BacktestEngine.signalAt] as the in-app backtest.
  *
  * - Signals on day `d` fill at the next bar's close for that symbol, with slippage and fees.
  * - Size: fixed-fractional risk to the legacy stop (2×ATR, clamped) via
  *   [TechnicalAnalysis.calculateRecommendedPositionSize], 100-share lots, single-stock cap,
  *   further limited by available cash and [PortfolioBacktestConfig.maxPositions].
- * - Simultaneous BUYs are taken in symbol order (no ranking model is replayed).
+ * - Simultaneous BUYs fill in [BacktestRule.rank] order, ties by symbol.
  * - Not replayed: fundamentals, NVDR flow, relative strength, weekly trend, XD dates,
  *   market regime cash buffers, sector caps, saved plans and AI ranking.
  */
@@ -98,12 +120,14 @@ object PortfolioBacktest {
         val entryCashOut: Double,
         val riskBaht: Double,
         val entryDate: String,
+        val entryIndex: Int,
         var peak: Double
     )
 
     fun run(
         universe: Map<String, List<ScrapedHistoricalPrice>>,
         config: PortfolioBacktestConfig,
+        rule: BacktestRule = AppSignalRule,
         isSet50: (String) -> Boolean = { it.uppercase() in TradingConstants.SET50_SYMBOLS }
     ): PortfolioBacktestResult {
         val symbols = universe.keys.sorted()
@@ -116,7 +140,7 @@ object PortfolioBacktest {
         var cash = config.initialCapital
         val positions = linkedMapOf<String, Position>()
         val lastClose = mutableMapOf<String, Double>()
-        val pendingBuys = linkedSetOf<String>()
+        val pendingBuys = mutableMapOf<String, Double>() // symbol -> rank score
         val pendingSells = linkedMapOf<String, String>()
         val trades = mutableListOf<PortfolioTrade>()
         val curve = mutableListOf<Pair<String, Double>>()
@@ -145,7 +169,9 @@ object PortfolioBacktest {
             }
 
             // 2. Entries signalled yesterday.
-            for (s in pendingBuys.toList().filter { it in trading }) {
+            val buyOrder = pendingBuys.keys.filter { it in trading }
+                .sortedWith(compareByDescending<String> { pendingBuys.getValue(it) }.thenBy { it })
+            for (s in buyOrder) {
                 pendingBuys.remove(s)
                 if (positions.size >= config.maxPositions) { skipped++; continue }
                 val bars = universe.getValue(s)
@@ -164,7 +190,7 @@ object PortfolioBacktest {
                 while (shares >= 100 && cashOut(shares) > cash) shares -= 100
                 if (shares < 100) { skipped++; continue }
                 cash -= cashOut(shares)
-                positions[s] = Position(s, shares, fill, cashOut(shares), shares * (fill - stopPrice), date, fill)
+                positions[s] = Position(s, shares, fill, cashOut(shares), shares * (fill - stopPrice), date, i, fill)
             }
 
             // 3. Today's signals, filled on each symbol's next bar.
@@ -176,14 +202,12 @@ object PortfolioBacktest {
                 if (pos != null) {
                     pos.peak = maxOf(pos.peak, bars[i].close)
                     if (s in pendingSells) continue
-                    val signal = BacktestEngine.signalAt(
-                        bars, i, entryPrice = pos.entryFill, quantity = pos.shares, peakPrice = pos.peak,
-                        isSet50 = isSet50(s), lookback = config.lookback
-                    )
+                    val held = HeldPosition(pos.entryFill, pos.shares, pos.peak, i - pos.entryIndex)
+                    val signal = rule.signal(bars, i, held, isSet50(s), config.lookback)
                     if (signal.type == IndicatorSignal.SELL) pendingSells[s] = signal.reason
                 } else if (s !in pendingBuys) {
-                    val signal = BacktestEngine.signalAt(bars, i, isSet50 = isSet50(s), lookback = config.lookback)
-                    if (signal.type == IndicatorSignal.BUY) pendingBuys += s
+                    val signal = rule.signal(bars, i, null, isSet50(s), config.lookback)
+                    if (signal.type == IndicatorSignal.BUY) pendingBuys[s] = rule.rank(bars, i)
                 }
             }
 

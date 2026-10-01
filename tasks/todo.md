@@ -288,6 +288,9 @@ Offline JVM harness reusing the real `TechnicalAnalysis` / `BacktestEngine` code
 
 ## Follow-ups
 - [x] **Live bug** (TDEX fallback added): `SetScraper.fetchSetIndexHistory` index path (`^SET.BK`) returns no timestamps, so market regime, beta and regime cash buffer have no index data. Switch to TDEX proxy or SET API.
-- [ ] Rethink entries: test simple rules (e.g. trend-following 52w-high breakout, or index DCA core) in the harness before adding guards.
-- [ ] Rank simultaneous BUYs instead of symbol order.
+- [x] Rethink entries: tested in harness (pluggable `BacktestRule`).
+  - App entries + SMA50/stop exit: -12.8% CAGR (oversold entries sit below SMA50, so they exit almost at once: entry/exit rules contradict).
+  - 52w breakout + SMA50/stop exit: +11.1% CAGR full period, but +23.8% 2015-2020 vs -1.0% 2021-2025, and 99% of P/L from DELTA, KTC, JMART (survivorship). No robust edge.
+- [x] Rank simultaneous BUYs (`BacktestRule.rank`).
 - [ ] Add point-in-time SET50/SET100 membership to reduce survivorship bias.
+- [ ] Product decision: reposition signals as education/watchlist context; make index DCA core + risk/discipline tooling the primary flow.
