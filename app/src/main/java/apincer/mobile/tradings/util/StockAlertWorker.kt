@@ -84,9 +84,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     .coerceAtMost(now.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))
                 val dcaKey = "dca_reminder_$year-${month + 1}"
                 if (now.get(java.util.Calendar.DAY_OF_MONTH) >= dcaDay && !alertPrefs.getBoolean(dcaKey, false)) {
-                    // Chart endpoint: Yahoo's v7 batch quote endpoint now answers 401 without a crumb.
-                    val price = SetScraper.fetchHistoricalPrices(CoreSatellite.CORE_SYMBOL, days = 10)
-                        .lastOrNull()?.close ?: 0.0
+                    val price = SetScraper.fetchBatchQuotes(listOf(CoreSatellite.CORE_SYMBOL))
+                        .firstOrNull()?.lastPrice ?: 0.0
                     if (price > 0.0) {
                         NotificationHelper.showDcaReminderNotification(
                             context = applicationContext,
