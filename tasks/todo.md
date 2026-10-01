@@ -294,3 +294,44 @@ Offline JVM harness reusing the real `TechnicalAnalysis` / `BacktestEngine` code
 - [x] Rank simultaneous BUYs (`BacktestRule.rank`).
 - [ ] Add point-in-time SET50/SET100 membership to reduce survivorship bias.
 - [ ] Product decision: reposition signals as education/watchlist context; make index DCA core + risk/discipline tooling the primary flow.
+
+---
+
+# Plan: Reposition to Core-Satellite + Discipline
+
+## Why
+Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015-2025); no tested rule shows a robust edge. The app's defensible value is risk control, discipline, Thai fee/tax tooling and the journal.
+
+## Target experience
+"Build wealth with an index core; trade a small satellite with strict rules; see honestly whether the satellite beats the core."
+
+## Todo Checklist
+
+### Phase 1: Honest signal labelling (small, ship first)
+- [ ] `StockScreen.kt:1102` signal card: "Bullish Setup" / "Bearish / Exit" -> "Technical context: Oversold / Momentum / Weak trend"; add "Untested edge" chip linking to backtest summary.
+- [ ] Entry (BUY) notifications from `StockAlertWorker.kt:185` default OFF (Settings toggle); risk exits (stop, trailing, saved-plan stop) stay ON.
+- [ ] Advisor tab header card: results summary vs TDEX (surface card per lessons.md #5, not small text); "Accept AI Plan" demoted to secondary (outlined) action.
+- [ ] Academy/About copy: remove claims implying signals produce profit.
+
+### Phase 2: Core holdings and DCA
+- [ ] Domain: `isCore(symbol) = symbol == "TDEX"`; all other holdings are SATELLITE. No schema change.
+- [ ] Settings: target core % (default 80), monthly DCA amount, DCA day.
+- [ ] Monthly DCA reminder notification with suggested lots (100-share rounding, fees shown) to restore target core %.
+- [ ] Portfolio screen: Core vs Satellite allocation card with drift from target.
+
+### Phase 3: Satellite scorecard
+- [ ] Stats: satellite money-weighted return vs "same cash flows into TDEX" (shadow portfolio from cash transactions + trades).
+- [ ] Rolling 12-month verdict card: "Satellite beat / trailed the core by X%"; if trailing 2 consecutive quarters, suggest reducing satellite %.
+- [ ] Satellite budget guard: Buy dialog warns when a satellite buy pushes satellite above its cap (reuse spendable-cash guard pattern).
+
+### Phase 4: Evidence gate for signals
+- [ ] `docs/ADVISOR_EVALUATION.md`: any signal change must beat TDEX in BOTH sub-periods and stay positive after removing its top 3 symbols in `MarketBacktestReport`.
+- [ ] Add point-in-time index membership to the harness when data source is available (reduces survivorship bias).
+
+### Phase 5: Docs
+- [ ] README concept rewrite (core-satellite + discipline), CHANGELOG, version bump.
+
+## Decisions (2026-10-01)
+- Core instrument: TDEX only. CORE bucket is derived (symbol == TDEX), so no user tagging; Phase 2 `bucket` column not needed.
+- AI Advisor: demote to context. Show backtest result up front; "Accept AI Plan" becomes a secondary action.
+- Default split: 80 core / 20 satellite (configurable).
