@@ -238,3 +238,23 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Verification
 - [x] `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passes
+
+---
+
+# Plan: Profitability Fixes (Legacy Exit Path)
+
+## Overview
+Legacy (no saved plan) exits cap winners at +5% while stops reach -8%, giving reward:risk below 1:1. Also `hasProfit` in the overbought block uses a flat 500 baht threshold, so large positions are sold on RSI > 65 at ~0.1% gain.
+
+## Todo Checklist
+- [x] **1. Fix `hasProfit` threshold** in `TechnicalAnalysis.getDetailedSignal` section 2: overbought / MFI / upper-band exits only once position reaches 1R (profit >= |stop distance|), never on a flat 500 baht.
+- [x] **2. R-multiple take-profit**: replace flat +5% / 500 baht target with `TAKE_PROFIT_R_MULTIPLE (2.0) x |dynamicStopLoss|` so target >= 2x stop distance.
+- [x] **3. Trailing stop activation at +1R** instead of fixed +3%.
+- [x] **4. Tests**: add regression tests for large-position overbought churn and R-based target; update existing tests; run `./gradlew testDebugUnitTest`.
+- [x] **5. Rerun BacktestEngine tests** to confirm no regression.
+
+## Later (not in this change)
+- Universe-wide backtest vs SET TRI with slippage; walk-forward split.
+- Unify live/backtest signal inputs.
+- Score AI rankings against outcomes.
+- Core-satellite DCA mode.

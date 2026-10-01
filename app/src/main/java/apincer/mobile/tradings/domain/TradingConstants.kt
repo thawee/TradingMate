@@ -4,6 +4,7 @@ object TradingConstants {
     // Take Profit Targets
     const val TAKE_PROFIT_PERCENT = 5.0
     const val TAKE_PROFIT_MIN_BAHT = 500.0
+    const val TAKE_PROFIT_R_MULTIPLE = 2.0     // legacy target = 2 × stop distance (1R)
     
     // Stop Loss / Drawdown Limits
     const val STOP_LOSS_PERCENT = -5.0

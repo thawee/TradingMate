@@ -107,6 +107,7 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **🟢 Buy - Healthy Momentum:** Positive MACD, RSI < 55, price above SMA 50, filtered against false breakouts and NVDR selling.
 - **🔴 Sell - Early Breakdown:** Triggers early exit if a position drops $\le -1.5\%$ and loses SMA 50 with negative MACD (suppressed near XD date).
 - **🔴 Sell - Saved Target:** New fixed swing plans alert when the saved target is reached. Legacy holdings retain their earlier profit rules until a plan is completed.
+- **🔴 Sell - R-Multiple Target (legacy holdings):** Holdings without a saved plan take profit at 2R (twice the stop distance). Overbought, MFI and upper-band exits apply only after +1R, and the trailing stop arms at +1R and exits before the trade turns into a loss.
 - **🔴 Sell - Stop Loss:** Volatility-adjusted (2× ATR) or -4.5% (SET50) / -6.5% (Mid/Small-Cap).
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance/Breakdown) ALWAYS override BUY momentum.
 

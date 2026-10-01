@@ -322,11 +322,6 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 
                 if (entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
                     (isSwingHold || isDividendTransitionHold)) {
-                    val netProfit = TechnicalAnalysis.calculatePositionNetProfitPercent(
-                        entity.cost, scraped.lastPrice, entity.quantity, entity.buyFees, atsEnabled)
-                    val netProfitBaht = TechnicalAnalysis.calculatePositionNetProfitBaht(
-                        entity.cost, scraped.lastPrice, entity.quantity, entity.buyFees, atsEnabled)
-                    val rsi = indicators.rsi ?: 50.0
                     val isSell = signal.type == IndicatorSignal.SELL
                     
                     val currentPrice = scraped.lastPrice
@@ -338,22 +333,14 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     val trailingBreached = dropFromPeak <= -trailingStopPercent
                     val explicitStopBreached = explicitStopLoss > 0 && currentPrice <= explicitStopLoss
 
-                    // Fix #2: Scale absolute threshold with position size (at least 3% of position, min ₿500)
-                    val positionValue = cost * entity.quantity
-                    val minTakeProfitBaht = maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.03)
-
                     if (explicitStopBreached) {
                         sellReasonsList.add("Stop Loss hit at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} (current ฿${String.format(java.util.Locale.ENGLISH, "%.2f", currentPrice)})")
                     } 
                     if (trailingBreached) {
                         sellReasonsList.add("Trailing stop breached (${String.format(java.util.Locale.ENGLISH, "%.2f", dropFromPeak)}% from peak, limit ${String.format(java.util.Locale.ENGLISH, "%.2f", trailingStopPercent)}%)")
                     } 
-                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht) {
-                        // Fix #4: Send take-profit as a specific sell notification
-                        sellReasonsList.add("Take Profit: +${String.format(java.util.Locale.ENGLISH, "%.1f", netProfit)}% (฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netProfitBaht)})")
-                    }
-                    
-                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht || trailingBreached || explicitStopBreached || rsi >= TradingConstants.RSI_OVERBOUGHT || isSell) {
+                    // Take-profit (2R) and overbought (after +1R) exits arrive via the signal's SELL reason above.
+                    if (trailingBreached || explicitStopBreached || isSell) {
                         hasActiveSwingSellAlert = true
                     }
                 }

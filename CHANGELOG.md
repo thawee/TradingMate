@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **R-multiple exits for holdings without a saved plan:** Take-profit moved from a flat +5% / ฿500 to 2R (2 × stop distance), so winners can exceed the loss the stop accepts. The trailing stop now arms once the peak reaches +1R and also exits if price falls back to cost.
+
+### Fixed
+- **Overbought exit churn on large positions:** Overbought, MFI distribution and upper-band SELLs triggered once profit exceeded a flat ฿500, selling large positions at a fraction of a percent gain. They now require at least +1R.
+- **Duplicated take-profit rules:** `StockViewModel` and `StockAlertWorker` re-derived their own flat take-profit and RSI ≥ 65 alerts with different thresholds; both now use the signal engine's SELL reasons.
+
 ## [3.3.1] - 2026-09-26
 
 ### Fixed

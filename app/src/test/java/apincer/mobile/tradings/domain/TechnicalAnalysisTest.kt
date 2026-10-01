@@ -71,39 +71,71 @@ class TechnicalAnalysisTest {
     }
 
     @Test
-    fun testSellSignalWhenProfitAboveFivePercent() {
-        val signal = TechnicalAnalysis.getDetailedSignal(
-            rsi = 50.0,
-            macdHist = 0.5,
-            lastPrice = 110.0,
-            sma50 = 100.0,
-            sma200 = 95.0,
-            bb = null,
+    fun testTakeProfitAtTwoRNotFlatFivePercent() {
+        // Mid/small-cap default stop is -6.5% (1R), so the legacy target is +13% (2R).
+        fun signalAt(price: Double) = TechnicalAnalysis.getDetailedSignal(
+            rsi = 50.0, macdHist = 0.5, lastPrice = price,
+            sma50 = 100.0, sma200 = 95.0, bb = null,
             isVolumeSurge = false,
-            userCost = 100.0,
-            userQuantity = 100,
+            userCost = 100.0, userQuantity = 100,
             tradePurpose = "SWING"
         )
-        assertEquals(IndicatorSignal.SELL, signal.type)
-        assertTrue(signal.reason.contains("Scale Out") || signal.reason.contains("Exit Target"))
+        val belowTarget = signalAt(110.0)
+        assertTrue(!belowTarget.reason.contains("Scale Out") && !belowTarget.reason.contains("Exit Target"))
+
+        val atTarget = signalAt(115.0)
+        assertEquals(IndicatorSignal.SELL, atTarget.type)
+        assertTrue(atTarget.reason.contains("Scale Out") || atTarget.reason.contains("Exit Target"))
     }
 
     @Test
-    fun testSellSignalWhenProfitBahtAboveFiveHundred() {
+    fun testLargePositionNotSoldOnOverboughtAtTinyGain() {
+        // ฿10M position up ~0.3% clears ฿500 easily; RSI 70 must not trigger an Overbought SELL before +1R.
         val signal = TechnicalAnalysis.getDetailedSignal(
-            rsi = 50.0,
-            macdHist = 0.5,
-            lastPrice = 106.0,
-            sma50 = 100.0,
-            sma200 = 95.0,
-            bb = null,
+            rsi = 70.0, macdHist = 0.5, lastPrice = 100.75,
+            sma50 = 100.0, sma200 = 95.0, bb = null,
+            isVolumeSurge = false, mfi = 85.0,
+            userCost = 100.0, userQuantity = 100_000,
+            tradePurpose = "SWING"
+        )
+        assertTrue(signal.type != IndicatorSignal.SELL)
+    }
+
+    @Test
+    fun testOverboughtSellAfterOneR() {
+        val signal = TechnicalAnalysis.getDetailedSignal(
+            rsi = 70.0, macdHist = 0.5, lastPrice = 108.0,
+            sma50 = 100.0, sma200 = 95.0, bb = null,
             isVolumeSurge = false,
-            userCost = 100.0,
-            userQuantity = 1000,
+            userCost = 100.0, userQuantity = 100,
             tradePurpose = "SWING"
         )
         assertEquals(IndicatorSignal.SELL, signal.type)
-        assertTrue(signal.reason.contains("Scale Out") || signal.reason.contains("Exit Target"))
+        assertTrue(signal.reason.contains("Overbought"))
+    }
+
+    @Test
+    fun testTrailingStopProtectsTradeThatReachedOneR() {
+        // Peak +10% (>= 1R of 6.5%), price fell back below cost: exit rather than wait for -6.5%.
+        val signal = TechnicalAnalysis.getDetailedSignal(
+            rsi = 50.0, macdHist = 0.5, lastPrice = 99.5,
+            sma50 = 98.0, sma200 = 95.0, bb = null,
+            isVolumeSurge = false, atrPercent = 4.0,
+            userCost = 100.0, userQuantity = 100,
+            tradePurpose = "SWING", peakPrice = 110.0
+        )
+        assertEquals(IndicatorSignal.SELL, signal.type)
+        assertTrue(signal.reason.contains("Trailing Stop"))
+
+        // Peak only +3% (< 1R): trailing not armed, small pullback is not an exit.
+        val notArmed = TechnicalAnalysis.getDetailedSignal(
+            rsi = 50.0, macdHist = 0.5, lastPrice = 101.0,
+            sma50 = 98.0, sma200 = 95.0, bb = null,
+            isVolumeSurge = false, atrPercent = 4.0,
+            userCost = 100.0, userQuantity = 100,
+            tradePurpose = "SWING", peakPrice = 103.0
+        )
+        assertTrue(notArmed.type != IndicatorSignal.SELL)
     }
 
     @Test
