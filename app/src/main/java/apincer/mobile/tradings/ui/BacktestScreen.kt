@@ -54,6 +54,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+/** ~3 years, so ~500 bars remain after the 210-bar indicator warm-up (1 year left only ~35). */
+private const val BACKTEST_HISTORY_DAYS = 3 * 365
+
 /**
  * Replays the app's own BUY/SELL signal engine (getDetailedSignal) over each
  * stock's own daily price history to answer: "historically, would following
@@ -91,7 +94,7 @@ fun BacktestScreen(
         coroutineScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val history = SetScraper.fetchHistoricalPrices(symbol)
+                    val history = SetScraper.fetchHistoricalPrices(symbol, days = BACKTEST_HISTORY_DAYS)
                     BacktestEngine.run(
                         symbol = symbol,
                         history = history
@@ -116,7 +119,7 @@ fun BacktestScreen(
             val results = withContext(Dispatchers.IO) {
                 watchlist.mapNotNull { w ->
                     runCatching {
-                        val history = SetScraper.fetchHistoricalPrices(w.info.symbol)
+                        val history = SetScraper.fetchHistoricalPrices(w.info.symbol, days = BACKTEST_HISTORY_DAYS)
                         BacktestEngine.run(
                             symbol = w.info.symbol,
                             history = history

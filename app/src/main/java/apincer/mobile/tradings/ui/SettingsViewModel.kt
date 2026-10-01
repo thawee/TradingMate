@@ -91,6 +91,58 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    val targetCorePercent: StateFlow<Double> =
+        preferenceRepository.targetCorePercent.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_TARGET_CORE_PERCENT
+        )
+
+    fun updateTargetCorePercent(percent: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setTargetCorePercent(percent.coerceIn(0.0, 100.0))
+        }
+    }
+
+    val monthlyDcaAmount: StateFlow<Double> =
+        preferenceRepository.monthlyDcaAmount.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0.0
+        )
+
+    fun updateMonthlyDcaAmount(amount: Double) {
+        viewModelScope.launch {
+            preferenceRepository.setMonthlyDcaAmount(amount.coerceAtLeast(0.0))
+        }
+    }
+
+    val dcaDayOfMonth: StateFlow<Int> =
+        preferenceRepository.dcaDayOfMonth.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_DCA_DAY
+        )
+
+    fun updateDcaDayOfMonth(day: Int) {
+        viewModelScope.launch {
+            preferenceRepository.setDcaDayOfMonth(day.coerceIn(1, 31))
+        }
+    }
+
+    val isEntryAlertsEnabled: StateFlow<Boolean> =
+        preferenceRepository.isEntryAlertsEnabled.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun toggleEntryAlertsEnabled() {
+        viewModelScope.launch {
+            preferenceRepository.setEntryAlertsEnabled(!isEntryAlertsEnabled.value)
+        }
+    }
+
     val maxRiskPerTrade: StateFlow<Double> = 
         preferenceRepository.maxRiskPerTrade.stateIn(
             scope = viewModelScope,

@@ -516,16 +516,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             alerts.add(SellAlertData(stock, decision.description))
                         }
                 } else if (applySwingLogic) {
-                    val netProfit = stock.netProfitPercent
-                    val netProfitBaht = TechnicalAnalysis.calculatePositionNetProfitBaht(
-                        stock.portfolio.cost,
-                        stock.info.lastPrice,
-                        stock.portfolio.quantity,
-                        stock.portfolio.buyFees,
-                        isAtsEnabled.value
-                    )
-                    val rsi = stock.portfolio.rsi ?: 50.0
-
                     val targetAlerts = swingSellAlerts
                     
                     val currentPrice = stock.info.lastPrice
@@ -535,23 +525,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val maxPeak = maxOf(cost, peakPrice)
                     val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
 
-                    // Fix #2: Scale absolute threshold with position size (at least 3% of position, min ₿500)
-                    val positionValue = cost * stock.portfolio.quantity
-                    val minTakeProfitBaht = maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.03)
-                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht) {
-                        val reason = if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT) {
-                            "Take Profit (Gain >= ${TradingConstants.TAKE_PROFIT_PERCENT}%)"
-                        } else {
-                            "Take Profit (P/L > ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", minTakeProfitBaht)})"
-                        }
-                        targetAlerts.add(SellAlertData(stock, reason))
-                    } else if (dropFromPeak <= -tsPercent) {
+                    // Take-profit and overbought exits come from the R-based signal (target = 2R,
+                    // overbought exits only after +1R), so they are not re-derived here.
+                    if (dropFromPeak <= -tsPercent) {
                         val stopLabel = if (peakPrice > cost) "Trailing Stop Loss (Drop <= -$tsPercent% from peak)" else "Stop Loss (Drop <= -$tsPercent%)"
                         targetAlerts.add(SellAlertData(stock, stopLabel))
                     } else if (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) {
                         targetAlerts.add(SellAlertData(stock, "Stop Loss (Price <= $explicitStopLoss)"))
-                    } else if (netProfit > 0.0 && rsi >= 65.0) {
-                        targetAlerts.add(SellAlertData(stock, "Overbought (RSI >= 65)"))
                     } else if (stock.signal?.type == IndicatorSignal.SELL) {
                         targetAlerts.add(SellAlertData(stock, stock.signal.reason))
                     }
@@ -1369,7 +1349,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         else -> rawSignal
                     }
 
-                    val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, sma200, bb)
+                    val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, bb)
 
                     val buyPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 35.0)
                     val sellPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 65.0)

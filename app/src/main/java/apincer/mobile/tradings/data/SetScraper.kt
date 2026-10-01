@@ -72,7 +72,8 @@ object SetScraper {
     private const val SET_BASE_URL = "https://www.set.or.th"
     private const val YAHOO_FINANCE_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
     private const val YAHOO_SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
-    private const val YAHOO_QUOTE_URL = "https://query1.finance.yahoo.com/v7/finance/quote"
+    private const val YAHOO_SPARK_URL = "https://query1.finance.yahoo.com/v7/finance/spark"
+    private const val SPARK_MAX_SYMBOLS = 20
     private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/Consumer-Agent"
     private const val SEC_CH_UA = "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\""
 
@@ -417,40 +418,52 @@ object SetScraper {
         }
     }
 
-    fun fetchBatchQuotes(symbols: List<String>): List<ScrapedStockInfo> {
-        return try {
-            withRetry {
-                val yahooSymbols = symbols.joinToString(",") { "${it.uppercase()}.BK" }
-                val url = "$YAHOO_QUOTE_URL?symbols=$yahooSymbols"
-                Log.v(TAG, "Fetching Batch Quotes: $url")
-                val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute()
-                if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
-                
-                val json = JSONObject(response.body())
-                val results = json.getJSONObject("quoteResponse").getJSONArray("result")
-                
-                val infoList = mutableListOf<ScrapedStockInfo>()
-                for (i in 0 until results.length()) {
-                    val quote = results.getJSONObject(i)
-                    val symbol = quote.getString("symbol").replace(".BK", "")
-                    infoList.add(ScrapedStockInfo(
-                        symbol = symbol,
-                        name = quote.optString("longName", quote.optString("shortName", null)),
-                        lastPrice = quote.optDouble("regularMarketPrice", 0.0),
-                        change = quote.optDouble("regularMarketChange", 0.0),
-                        percentChange = quote.optDouble("regularMarketChangePercent", 0.0),
-                        pe = quote.optDouble("trailingPE", 0.0).takeIf { it > 0 },
-                        pbv = quote.optDouble("priceToBook", 0.0).takeIf { it > 0 },
-                        dividendYield = quote.optDouble("trailingAnnualDividendYield", 0.0) * 100, // Yahoo returns decimal
-                        lastUpdated = getCurrentTimestamp()
-                    ))
+    /**
+     * Latest price, change and name for [symbols] via Yahoo's spark endpoint, in chunks of
+     * [SPARK_MAX_SYMBOLS]. The v7 quote endpoint now returns 401 without a crumb. Spark has
+     * no P/E, P/BV or yield, so those stay null and callers keep their cached values.
+     */
+    fun fetchBatchQuotes(symbols: List<String>): List<ScrapedStockInfo> =
+        symbols.distinct().chunked(SPARK_MAX_SYMBOLS).flatMap { chunk ->
+            try {
+                withRetry {
+                    val yahooSymbols = chunk.joinToString(",") { "${it.uppercase()}.BK" }
+                    val url = "$YAHOO_SPARK_URL?symbols=$yahooSymbols&range=1d&interval=1d"
+                    Log.v(TAG, "Fetching Batch Quotes: $url")
+                    val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute()
+                    if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
+                    parseSparkQuotes(JSONObject(response.body()), getCurrentTimestamp())
                 }
-                infoList
+            } catch (e: Exception) {
+                Log.e(TAG, "Batch Quote Error after retries for ${chunk.size} symbols", e)
+                emptyList()
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Batch Quote Error after retries", e)
-            emptyList()
         }
+
+    internal fun parseSparkQuotes(json: JSONObject, timestamp: String): List<ScrapedStockInfo> {
+        val results = json.getJSONObject("spark").optJSONArray("result") ?: return emptyList()
+        val infoList = mutableListOf<ScrapedStockInfo>()
+        for (i in 0 until results.length()) {
+            val meta = results.getJSONObject(i).optJSONArray("response")
+                ?.optJSONObject(0)?.optJSONObject("meta") ?: continue
+            val price = meta.optDouble("regularMarketPrice", 0.0)
+            if (!price.isFinite() || price <= 0.0) continue
+            val previousClose = meta.optDouble("chartPreviousClose", Double.NaN)
+            val change = meta.optDouble("fulldayChange", Double.NaN).takeIf { it.isFinite() }
+                ?: if (previousClose > 0) price - previousClose else 0.0
+            val percentChange = meta.optDouble("regularMarketChangePercent", Double.NaN).takeIf { it.isFinite() }
+                ?: if (previousClose > 0) change / previousClose * 100.0 else 0.0
+            infoList.add(ScrapedStockInfo(
+                symbol = meta.getString("symbol").removeSuffix(".BK"),
+                name = meta.optString("longName").ifBlank { meta.optString("shortName") }.ifBlank { null },
+                lastPrice = price,
+                change = change,
+                percentChange = percentChange,
+                volume = meta.optLong("regularMarketVolume", -1L).takeIf { it >= 0 },
+                lastUpdated = timestamp
+            ))
+        }
+        return infoList
     }
 
     fun searchYahoo(query: String): List<ScrapedStockInfo> {
@@ -516,13 +529,16 @@ object SetScraper {
         }
     }
 
-    fun fetchHistoricalPrices(symbol: String): List<ScrapedHistoricalPrice> {
+    /**
+     * Daily history for the last [days] calendar days (default ~1 year for live indicators).
+     * [dividendAdjusted] scales OHLC by Yahoo's adjclose, giving a total-return series.
+     */
+    fun fetchHistoricalPrices(symbol: String, days: Int = 365, dividendAdjusted: Boolean = false): List<ScrapedHistoricalPrice> {
         return try {
             withRetry {
                 val symbolBK = "${symbol.uppercase()}.BK"
                 val endDate = System.currentTimeMillis() / 1000
-                // Fetch roughly 1 year of daily data (31536000 seconds)
-                val startDate = endDate - 31536000
+                val startDate = endDate - days * 86_400L
                 
                 val url = "$YAHOO_FINANCE_URL/$symbolBK?period1=$startDate&period2=$endDate&interval=1d&events=history"
                 Log.d(TAG, "Fetching Historical Prices: $url")
@@ -547,6 +563,8 @@ object SetScraper {
                 // high/low may be absent in degraded responses — fall back to close
                 val highs = indicators.optJSONArray("high")
                 val lows = indicators.optJSONArray("low")
+                val adjCloses = if (dividendAdjusted) result.getJSONObject("indicators")
+                    .optJSONArray("adjclose")?.optJSONObject(0)?.optJSONArray("adjclose") else null
                 
                 val prices = mutableListOf<ScrapedHistoricalPrice>()
                 val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
@@ -554,10 +572,12 @@ object SetScraper {
                 for (i in 0 until timestamps.length()) {
                     if (closes.isNull(i)) continue
                     val ts = timestamps.getLong(i) * 1000
-                    val close = closes.getDouble(i)
+                    val rawClose = closes.getDouble(i)
+                    val factor = if (adjCloses != null && !adjCloses.isNull(i) && rawClose > 0) adjCloses.getDouble(i) / rawClose else 1.0
+                    val close = rawClose * factor
                     val volume = if (!volumes.isNull(i)) volumes.getLong(i) else 0L
-                    val high = if (highs != null && !highs.isNull(i)) highs.getDouble(i) else close
-                    val low = if (lows != null && !lows.isNull(i)) lows.getDouble(i) else close
+                    val high = (if (highs != null && !highs.isNull(i)) highs.getDouble(i) else rawClose) * factor
+                    val low = (if (lows != null && !lows.isNull(i)) lows.getDouble(i) else rawClose) * factor
                     
                     prices.add(ScrapedHistoricalPrice(
                         date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate().format(dateFormatter),
@@ -631,16 +651,35 @@ object SetScraper {
 
     // SET index history cache — shared across all stocks in a refresh cycle
     private const val SET_INDEX_SYMBOL_RAW = "%5ESET.BK" // URL-encoded ^SET.BK
+    // Yahoo returns no daily history for ^SET.BK (only the latest quote). TDEX, the SET50 ETF,
+    // tracks the broad market closely enough for return-based uses: regime (SMA/MACD),
+    // relative strength and beta. Do not display its price as the SET index level.
+    private const val SET_INDEX_PROXY_SYMBOL = "TDEX"
     private const val INDEX_CACHE_TTL_MS = 60 * 60 * 1000L // 1 hour
     @Volatile private var cachedIndexHistory: List<ScrapedHistoricalPrice> = emptyList()
     @Volatile private var cachedIndexTimestamp: Long = 0L
 
-    /** Fetches ~1 year of SET index daily closes (cached 1h) for Relative Strength calculation. */
+    /**
+     * Fetches ~1 year of SET index daily closes (cached 1h) for regime, Relative Strength and beta.
+     * Falls back to [SET_INDEX_PROXY_SYMBOL] when Yahoo serves no index history.
+     */
     fun fetchSetIndexHistory(): List<ScrapedHistoricalPrice> {
         val now = System.currentTimeMillis()
         if (cachedIndexHistory.isNotEmpty() && now - cachedIndexTimestamp < INDEX_CACHE_TTL_MS) {
             return cachedIndexHistory
         }
+        val history = fetchSetIndexHistoryDirect().ifEmpty {
+            Log.w(TAG, "No ^SET.BK history; using $SET_INDEX_PROXY_SYMBOL as index proxy")
+            fetchHistoricalPrices(SET_INDEX_PROXY_SYMBOL)
+        }
+        if (history.isEmpty()) return cachedIndexHistory // stale cache is better than nothing
+        cachedIndexHistory = history
+        cachedIndexTimestamp = now
+        return history
+    }
+
+    private fun fetchSetIndexHistoryDirect(): List<ScrapedHistoricalPrice> {
+        val now = System.currentTimeMillis()
         return try {
             withRetry {
                 val endDate = now / 1000
@@ -674,13 +713,11 @@ object SetScraper {
                         close = closes.getDouble(i)
                     ))
                 }
-                cachedIndexHistory = prices
-                cachedIndexTimestamp = now
                 prices
             }
         } catch (e: Exception) {
             Log.e(TAG, "SET Index History Fetch Error after retries", e)
-            cachedIndexHistory // stale cache is better than nothing
+            emptyList()
         }
     }
 

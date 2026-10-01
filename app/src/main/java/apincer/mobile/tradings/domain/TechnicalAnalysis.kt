@@ -37,8 +37,12 @@ data class BollingerBands(
     val lower: Double
 )
 
-enum class IndicatorSignal {
-    BUY, POTENTIAL, SELL, NEUTRAL
+/** Entry names are persisted (signalType column); change [badgeLabel], not the names. */
+enum class IndicatorSignal(
+    /** Short UI label. Entry signals read as context because no entry rule has passed the evidence gate. */
+    val badgeLabel: String
+) {
+    BUY("SETUP"), POTENTIAL("WATCH"), SELL("EXIT"), NEUTRAL("NEUTRAL")
 }
 
 data class TradeSignal(
@@ -53,11 +57,13 @@ enum class MarketStatus(val label: String, val color: Color) {
     CLOSED("MARKET CLOSED", Color(0xFF717478))
 }
 
+/** Descriptive trend state shown beside the signal; it describes price, it does not recommend. */
 enum class TradingZone(val label: String, val color: Color) {
-    BUYING_ZONE("Buying Zone", Color(0xFF00C853)),
-    POTENTIAL_ZONE("Potential Zone", Color(0xFFC66900)),
-    SELLING_ZONE("Selling Zone", Color.Red),
-    NEUTRAL("Neutral Zone", Color(0xFF717478))
+    OVEREXTENDED("Overextended", Color(0xFFFFA726)),
+    DOWNTREND("Downtrend", Color(0xFFEF5350)),
+    UPTREND("Uptrend", Color(0xFF00C853)),
+    NEAR_SUPPORT("Near Support", Color(0xFF60A5FA)),
+    NEUTRAL("Range", Color(0xFF717478))
 }
 
 object TechnicalAnalysis {
@@ -95,37 +101,25 @@ object TechnicalAnalysis {
         macdHist: Double?, 
         lastPrice: Double?, 
         sma50: Double?,
-        sma200: Double?,
         bb: BollingerBands?
     ): TradingZone {
         if (rsi == null || macdHist == null || lastPrice == null) return TradingZone.NEUTRAL
         
-        val isRsiOversold = rsi < TradingConstants.RSI_OVERSOLD
         val isRsiPotential = rsi < TradingConstants.RSI_POTENTIAL
         val isRsiOverbought = rsi > TradingConstants.RSI_OVERBOUGHT
         val isMacdBullish = macdHist > 0.0
-        val isPriceAboveSma50 = if (sma50 != null) lastPrice > sma50 else false
-        val isPriceAboveSma200 = if (sma200 != null) lastPrice > sma200 else true
         val isNearLowerBB = if (bb != null) lastPrice <= bb.lower * 1.05 else false
         val isNearUpperBB = if (bb != null) lastPrice >= bb.upper * 0.95 else false
-        
-        // Selling Zone: Overbought OR Near Upper Resistance OR Momentum collapse below SMA50
-        if (isRsiOverbought || isNearUpperBB || (!isMacdBullish && !isPriceAboveSma50)) {
-            return TradingZone.SELLING_ZONE
-        }
 
-        // Buying Zone: Oversold AND Long-term Uptrend (Aligned with getDetailedSignal high-conviction buy)
-        // OR (Positive Momentum near support/above SMA50)
-        if ((isRsiOversold && isPriceAboveSma200) || (isMacdBullish && (isNearLowerBB || isPriceAboveSma50))) {
-            return TradingZone.BUYING_ZONE
+        // Each state is a distinct description, so it cannot contradict the signal headline
+        // (the old "Selling Zone" merged overextended highs with breakdowns at support).
+        return when {
+            isRsiOverbought || isNearUpperBB -> TradingZone.OVEREXTENDED
+            sma50 != null && lastPrice < sma50 && !isMacdBullish -> TradingZone.DOWNTREND
+            sma50 != null && lastPrice > sma50 && isMacdBullish -> TradingZone.UPTREND
+            isRsiPotential || isNearLowerBB -> TradingZone.NEAR_SUPPORT
+            else -> TradingZone.NEUTRAL
         }
-
-        // Potential Zone: Nearing Buy thresholds or Contrarian Watch (Oversold below SMA200)
-        if (isRsiPotential || isNearLowerBB || isRsiOversold) {
-            return TradingZone.POTENTIAL_ZONE
-        }
-        
-        return TradingZone.NEUTRAL
     }
 
     fun getMarketStatus(): MarketStatus {
@@ -146,6 +140,23 @@ object TechnicalAnalysis {
             currentTime in 1431..1630 -> MarketStatus.OPEN      // Afternoon session: 14:31–16:30
             else                      -> MarketStatus.CLOSED
         }
+    }
+
+    /** 2×ATR% stop as a negative percent, clamped to [-8%, -3.5%]; null without ATR. */
+    fun atrStopLossPercent(atrPercent: Double?): Double? = atrPercent?.takeIf { it > 0.0 }?.let {
+        -(TradingConstants.ATR_STOP_MULTIPLIER * it)
+            .coerceIn(TradingConstants.ATR_STOP_MIN_PERCENT, TradingConstants.ATR_STOP_MAX_PERCENT)
+    }
+
+    /**
+     * Legacy (no saved plan) stop loss as a negative percent vs cost.
+     * Priority: user override > ATR volatility-adjusted > Market-Cap tier.
+     */
+    fun legacyStopLossPercent(atrPercent: Double?, isSet50: Boolean, userStopLoss: Double? = null): Double = when {
+        userStopLoss != null && userStopLoss < 0.0 -> userStopLoss         // Explicit user percentage override (e.g. -6.0)
+        else -> atrStopLossPercent(atrPercent)                              // Volatility-adjusted (2× daily ATR)
+            ?: if (isSet50) TradingConstants.STOP_LOSS_SET50_PERCENT        // SET50 Large Cap (-4.5%)
+            else TradingConstants.STOP_LOSS_MID_SMALL_PERCENT               // Mid/Small-Cap SET (-6.5%)
     }
 
     fun getDetailedSignal(
@@ -200,11 +211,18 @@ object TechnicalAnalysis {
 
         val qualityPrefix = if (isFundamentalGood) "⭐ Quality: " else ""
 
+        // Legacy exit risk unit (1R): user override > ATR volatility-adjusted (2×ATR%, clamped) > Market-Cap tier.
+        // Targets and profit-taking exits are expressed in multiples of this distance so a
+        // winner is always allowed to grow larger than the loss the stop accepts.
+        val atrStop = atrStopLossPercent(atrPercent)
+        val dynamicStopLoss = legacyStopLossPercent(atrPercent, isSet50, userStopLoss)
+        val oneRPercent = -dynamicStopLoss
+        val takeProfitPercent = TradingConstants.TAKE_PROFIT_R_MULTIPLE * oneRPercent
+
         // 1. SELL PRIORITY: Position Risk & Profit Management
         if (userCost != null && userCost > 0 && lastPrice != null) {
             val netProfitPercent = positionProfitPercent(userCost, lastPrice)
             val quantity = userQuantity ?: 0
-            val positionValue = userCost * quantity
             val netProfitBaht = if (quantity > 0) {
                 positionProfitBaht(userCost, lastPrice, quantity)
             } else 0.0
@@ -233,19 +251,7 @@ object TechnicalAnalysis {
             }
             
             if (applySwingLogic) {
-                // CUT LOSS PRIORITY: Dynamic stop loss.
-                // Priority: user override > ATR volatility-adjusted (2×ATR%, clamped) > Market-Cap tier
-                val atrStop = atrPercent?.takeIf { it > 0.0 }?.let {
-                    -(TradingConstants.ATR_STOP_MULTIPLIER * it)
-                        .coerceIn(TradingConstants.ATR_STOP_MIN_PERCENT, TradingConstants.ATR_STOP_MAX_PERCENT)
-                }
-                val dynamicStopLoss = when {
-                    userStopLoss != null && userStopLoss < 0.0 -> userStopLoss // Explicit user percentage override (e.g. -6.0)
-                    atrStop != null -> atrStop                                  // Volatility-adjusted (2× daily ATR)
-                    isSet50 -> TradingConstants.STOP_LOSS_SET50_PERCENT         // SET50 Large Cap (-4.5%)
-                    else -> TradingConstants.STOP_LOSS_MID_SMALL_PERCENT       // Mid/Small-Cap SET (-6.5%)
-                }
-
+                // CUT LOSS PRIORITY: Dynamic stop loss (1R, computed above).
                 if (netProfitPercent < dynamicStopLoss) {
                     val tierLabel = when {
                         userStopLoss != null && userStopLoss < 0.0 -> "Custom"
@@ -275,28 +281,28 @@ object TechnicalAnalysis {
                     )
                 }
 
-            // DYNAMIC TRAILING STOP: Protect profits if price pulled back significantly from peak.
-            // Threshold adapts to volatility: 2.5×ATR% (clamped 4–10%), falling back to 5% fixed.
+            // DYNAMIC TRAILING STOP: Armed once the peak has run +1R. Fires on a pullback of
+            // 2.5×ATR% (clamped 4–10%, 5% fallback) or when the gain is fully given back,
+            // so a trade that reached +1R never turns into a loss.
             val highestPeak = maxOf(userCost, peakPrice ?: userCost)
-            if (highestPeak > userCost && netProfitPercent > 3.0) {
+            val peakGainPercent = (highestPeak - userCost) / userCost * 100
+            if (peakGainPercent >= oneRPercent) {
                 val trailingThreshold = atrPercent?.takeIf { it > 0.0 }?.let {
                     (TradingConstants.ATR_TRAILING_MULTIPLIER * it)
                         .coerceIn(TradingConstants.ATR_TRAILING_MIN_PERCENT, TradingConstants.ATR_TRAILING_MAX_PERCENT)
                 } ?: 5.0
                 val dropFromPeakPercent = ((highestPeak - lastPrice) / highestPeak) * 100
-                if (dropFromPeakPercent >= trailingThreshold) {
+                if (dropFromPeakPercent >= trailingThreshold || netProfitPercent <= 0.0) {
                     return TradeSignal(
                         IndicatorSignal.SELL,
                         "${qualityPrefix}Trailing Stop Triggered",
-                        "Price dropped ${String.format(Locale.ENGLISH,"%.2f", dropFromPeakPercent)}% from high of ฿${String.format(Locale.ENGLISH,"%.2f", highestPeak)}. Protect gains while profit remains."
+                        "Price dropped ${String.format(Locale.ENGLISH,"%.2f", dropFromPeakPercent)}% from high of ฿${String.format(Locale.ENGLISH,"%.2f", highestPeak)}. Exit before the trade that reached +1R turns into a loss."
                     )
                 }
             }
 
-            // SWING PLAYBOOK: Take Profit / Scale Out
-            // Scale threshold relative to position size (minimum 5% or 5% of total position value)
-            val minBahtThreshold = if (positionValue > 0) maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.05) else TradingConstants.TAKE_PROFIT_MIN_BAHT
-            val meetsProfitTarget = netProfitPercent > TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minBahtThreshold
+            // SWING PLAYBOOK: Take Profit / Scale Out at TAKE_PROFIT_R_MULTIPLE × 1R
+            val meetsProfitTarget = netProfitPercent >= takeProfitPercent
 
             if (meetsProfitTarget) {
                 // If trend is still strongly bullish (MACD positive and RSI < 70), recommend scaling out / partial profit taking
@@ -319,11 +325,10 @@ object TechnicalAnalysis {
 
         // 2. SELL PRIORITY: Technical Overbought (only if already profitable)
         val isProtectedDividend = tradePurpose == "DIVIDEND" && (dividendYield ?: 0.0) >= TradingConstants.DIVIDEND_YIELD_PROTECTION
+        // Overbought-style exits only once the position has earned at least 1R; a flat baht
+        // threshold would sell large positions on RSI > 65 at a fraction of a percent gain.
         val hasProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
-            val netProfitPercent = positionProfitPercent(userCost, lastPrice)
-            val quantity = userQuantity ?: 0
-            val netProfitBaht = if (quantity > 0) positionProfitBaht(userCost, lastPrice, quantity) else 0.0
-            netProfitPercent >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= TradingConstants.TAKE_PROFIT_MIN_BAHT
+            positionProfitPercent(userCost, lastPrice) >= oneRPercent
         } else {
             false
         }
@@ -373,12 +378,12 @@ object TechnicalAnalysis {
                 )
             }
             val stochConfirm = if (stochK != null && stochD != null && stochK > stochD) {
-                " Stochastic has turned up — reversal confirmed."
+                " Stochastic has turned up."
             } else ""
             return TradeSignal(
                 IndicatorSignal.BUY,
                 "${qualityPrefix}Oversold Accumulation",
-                "RSI is oversold (${String.format(Locale.ENGLISH,"%.1f", rsi)}) while the long-term uptrend (SMA 200) is still intact. High probability value dip.$stochConfirm"
+                "RSI is oversold (${String.format(Locale.ENGLISH,"%.1f", rsi)}) while the long-term uptrend (SMA 200) is still intact. A dip within an uptrend; not a tested edge.$stochConfirm"
             )
         }
 
@@ -395,7 +400,7 @@ object TechnicalAnalysis {
                 TradeSignal(
                     IndicatorSignal.BUY,
                     "${qualityPrefix}Early Recovery (Volume Confirmed)",
-                    "Momentum (MACD) has turned positive at a major support level, confirmed by $volumeEvidence — strong sign of institutional buying."
+                    "Momentum (MACD) has turned positive at a major support level, confirmed by $volumeEvidence. Buying interest is returning; not a tested edge."
                 )
             } else {
                 TradeSignal(

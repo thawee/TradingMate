@@ -238,3 +238,107 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Verification
 - [x] `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passes
+
+---
+
+# Plan: Profitability Fixes (Legacy Exit Path)
+
+## Overview
+Legacy (no saved plan) exits cap winners at +5% while stops reach -8%, giving reward:risk below 1:1. Also `hasProfit` in the overbought block uses a flat 500 baht threshold, so large positions are sold on RSI > 65 at ~0.1% gain.
+
+## Todo Checklist
+- [x] **1. Fix `hasProfit` threshold** in `TechnicalAnalysis.getDetailedSignal` section 2: overbought / MFI / upper-band exits only once position reaches 1R (profit >= |stop distance|), never on a flat 500 baht.
+- [x] **2. R-multiple take-profit**: replace flat +5% / 500 baht target with `TAKE_PROFIT_R_MULTIPLE (2.0) x |dynamicStopLoss|` so target >= 2x stop distance.
+- [x] **3. Trailing stop activation at +1R** instead of fixed +3%.
+- [x] **4. Tests**: add regression tests for large-position overbought churn and R-based target; update existing tests; run `./gradlew testDebugUnitTest`.
+- [x] **5. Rerun BacktestEngine tests** to confirm no regression.
+
+## Later (not in this change)
+- Universe-wide backtest vs SET TRI with slippage; walk-forward split.
+- Unify live/backtest signal inputs.
+- Score AI rankings against outcomes.
+- Core-satellite DCA mode.
+
+---
+
+# Plan: Market-Wide Backtest vs SET Index
+
+## Finding
+`SetScraper.fetchHistoricalPrices` fetches 1 year; `BacktestEngine` warms up 210 days, so the in-app backtest evaluates only ~35 trading days per stock.
+
+## Approach
+Offline JVM harness reusing the real `TechnicalAnalysis` / `BacktestEngine` code (no Android needed), fed by cached daily CSVs. Not shipped in the APK.
+
+## Todo Checklist
+- [x] **1. Data fetch script** (`tools/backtest/fetch_history.py`): download 2014-2025 daily OHLCV from Yahoo for SET100 constituents + TDEX (Yahoo serves no daily history for `^SET.BK`); cache CSVs under `tools/backtest/data/` (gitignored). Record which symbols lack full history.
+- [x] **2. Portfolio simulator** (`domain/PortfolioBacktest.kt`, pure Kotlin): shared capital, fixed-fraction sizing (1% risk), 15% single-stock cap, 100-share lots, max N positions, next-close fills, fees via existing fee engine, configurable slippage (default 0.15%/side).
+- [x] **3. Benchmark**: buy-and-hold SET index over the same window (price index; note dividends excluded, so add ~3%/yr estimate as TRI caveat).
+- [x] **4. Walk-forward report**: in-sample 2015-2020, out-of-sample 2021-2025. Metrics: CAGR, max drawdown, expectancy in R, win rate, trades/yr, exposure %, CAGR gap vs benchmark.
+- [x] **5. Harness entry**: JUnit test tagged/ignored by default (`-Pbacktest`) that reads CSVs and prints the report to `tools/backtest/report.md`.
+- [x] **6. Fix in-app window**: fetch 3 years in `fetchHistoricalPrices` for the Backtest screen (separate call so live refresh stays light).
+
+## Known limits
+- Survivorship bias: Yahoo lacks most delisted SET tickers; results will be optimistic. Stated in the report.
+- NVDR flow, relative strength, weekly trend and XD dates are not in the replay (live/backtest mismatch remains until unified).
+
+## Results (tools/backtest/report.md)
+- Current rules, 2015-2025: CAGR -10.1% vs TDEX +2.5%; MDD 72.5%; expectancy -0.09R; ~190 trades/yr.
+- Pre-change rules (157b217): CAGR -16.4%; ~272 trades/yr. The R-multiple exit change helped but did not create an edge.
+- Diagnostic (not shipped): disabling Early Breakdown exit gives -7.9% CAGR; entries themselves show no edge.
+
+## Follow-ups
+- [x] **Live bug** (TDEX fallback added): `SetScraper.fetchSetIndexHistory` index path (`^SET.BK`) returns no timestamps, so market regime, beta and regime cash buffer have no index data. Switch to TDEX proxy or SET API.
+- [x] Rethink entries: tested in harness (pluggable `BacktestRule`).
+  - App entries + SMA50/stop exit: -12.8% CAGR (oversold entries sit below SMA50, so they exit almost at once: entry/exit rules contradict).
+  - 52w breakout + SMA50/stop exit: +11.1% CAGR full period, but +23.8% 2015-2020 vs -1.0% 2021-2025, and 99% of P/L from DELTA, KTC, JMART (survivorship). No robust edge.
+- [x] Rank simultaneous BUYs (`BacktestRule.rank`).
+- [ ] Add point-in-time SET50/SET100 membership to reduce survivorship bias.
+- [ ] Product decision: reposition signals as education/watchlist context; make index DCA core + risk/discipline tooling the primary flow.
+
+---
+
+# Plan: Reposition to Core-Satellite + Discipline
+
+## Why
+Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015-2025); no tested rule shows a robust edge. The app's defensible value is risk control, discipline, Thai fee/tax tooling and the journal.
+
+## Target experience
+"Build wealth with an index core; trade a small satellite with strict rules; see honestly whether the satellite beats the core."
+
+## Todo Checklist
+
+### Phase 1: Honest signal labelling (small, ship first)
+- [x] Signal card: "Technical Setup" / "On Watch" / "Exit Rule"; `UntestedEdgeNotice` card under BUY/POTENTIAL (static, no link).
+- [x] Entry (BUY) notifications from `StockAlertWorker.kt:185` default OFF (Settings toggle; also gates the 15:30 entry-window prompt); risk exits (stop, trailing, saved-plan stop) stay ON.
+- [x] Advisor tab header card (Swing playbook only): results summary vs TDEX (surface card per lessons.md #5, not small text); "Accept AI Plan" demoted to secondary (outlined) action.
+- [x] Signal copy: removed "High probability value dip", "strong sign of institutional buying", "reversal confirmed".
+- [x] Watchlist/advisor badges, sort bubble and entry notification title now use `IndicatorSignal.badgeLabel` (SETUP / WATCH / EXIT). Zone chip fixed: descriptive trend states (Uptrend / Downtrend / Overextended / Near Support / Range) replace Buying/Selling/Potential Zone.
+
+### Phase 2: Core holdings and DCA
+- [x] Domain: `isCore(symbol) = symbol == "TDEX"`; all other holdings are SATELLITE. No schema change.
+- [x] Settings: target core % (default 80), monthly DCA amount, DCA day.
+- [x] Monthly DCA reminder notification with suggested lots (100-share rounding, fees shown) to restore target core %.
+- [x] Portfolio screen: Core vs Satellite allocation card with drift from target.
+
+- [x] Verified on emulator: card (no-core state), Settings section, forced worker run produced "Buy 900 TDEX at about ฿10.35 (~฿9,331 incl. fees)".
+- [x] Fixed (moved to `v7/finance/spark`, 20-symbol chunks): Yahoo `v7/finance/quote` (`SetScraper.fetchBatchQuotes`) returned HTTP 401; `StockViewModel` refreshes mark every symbol failed and fall back to the slower per-stock path. Replace with chart endpoint or SET API.
+
+### Phase 3: Satellite scorecard
+- [x] Stats: satellite money-weighted return vs "same cash flows into TDEX" (shadow portfolio from cash transactions + trades).
+- [x] Rolling 12-month verdict card: "Satellite beat / trailed the core by X%"; if trailing 2 consecutive quarters, suggest reducing satellite %.
+- [x] Satellite budget guard: Buy dialog warns when a satellite buy pushes satellite above its cap (reuse spendable-cash guard pattern).
+
+- Notes: ledger = BUY_FILL / SELL_FILL / UNDO_SELL journal (sell fee estimated, SELL_FILL stores buy+sell fees combined); symbols whose journal does not reconcile to the current holding are excluded and listed. Comparisons start 30 days after the first fill; trailing windows need full-window history. TDEX uses dividend-adjusted (gross) closes vs net satellite dividends: slight bias toward core.
+- Verified on emulator: exclusion state (HMPRO, MBK pre-journal holdings), Buy dialog cap warning. Populated windows covered by unit tests only.
+
+### Phase 4: Evidence gate for signals
+- [x] `docs/ADVISOR_EVALUATION.md`: any signal change must beat TDEX in BOTH sub-periods and stay positive after removing its top 3 symbols in `MarketBacktestReport`. Implemented as `EvidenceGate` (also: >= 50% of P/L without top 3, >= 100 trades, positive expectancy); report prints PASS/FAIL per rule. All current rules FAIL.
+- [ ] Blocked (no verified data source): add point-in-time index membership to the harness when data source is available (reduces survivorship bias).
+
+### Phase 5: Docs
+- [x] README concept rewrite (core-satellite + discipline), CHANGELOG, version bump to 4.0.0 (29).
+
+## Decisions (2026-10-01)
+- Core instrument: TDEX only. CORE bucket is derived (symbol == TDEX), so no user tagging; Phase 2 `bucket` column not needed.
+- AI Advisor: demote to context. Show backtest result up front; "Accept AI Plan" becomes a secondary action.
+- Default split: 80 core / 20 satellite (configurable).

@@ -266,7 +266,7 @@ fun WatchlistScreen(
                 when (sortOrder) {
                     WatchlistSortOrder.SYMBOL -> item.info.symbol.take(1).uppercase()
                     WatchlistSortOrder.CHANGE -> "${if (item.info.percentChange >= 0) "+" else ""}${item.info.percentChange.toInt()}%"
-                    WatchlistSortOrder.SIGNAL -> item.signal?.type?.name ?: "MONITOR"
+                    WatchlistSortOrder.SIGNAL -> item.signal?.type?.badgeLabel ?: "MONITOR"
                 }
             }
         }

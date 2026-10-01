@@ -9,6 +9,7 @@ import apincer.mobile.tradings.data.SetScraper
 import apincer.mobile.tradings.data.StockDatabase
 import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.data.StockRepository
+import apincer.mobile.tradings.domain.CoreSatellite
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import kotlinx.coroutines.flow.firstOrNull
@@ -34,6 +35,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val prefRepo = apincer.mobile.tradings.data.PreferenceRepository(applicationContext)
         val trailingStopPercent = prefRepo.trailingStopPercent.firstOrNull() ?: 5.0
         val atsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
+        val entryAlertsEnabled = prefRepo.isEntryAlertsEnabled.firstOrNull() ?: false
         val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
 
         var hasActiveSwingSellAlert = false
@@ -46,7 +48,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             // 2. Afternoon Entry Window: 15:30–16:15 Thai time
             //    Cap at 16:15 (not 16:30) so user has ~15 min to act before market closes.
             //    Also guard against public holidays by checking market is not CLOSED.
-            if (currentTime in 1530..1615 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
+            if (entryAlertsEnabled && currentTime in 1530..1615 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
                 val key = "afternoon_alert_$todayStr"
                 if (!alertPrefs.getBoolean(key, false)) {
                     NotificationHelper.showPrimeTimeNotification(applicationContext, isMorning = false)
@@ -72,6 +74,27 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         isFirstSeason = month == java.util.Calendar.JANUARY
                     )
                     alertPrefs.edit().putBoolean(seasonKey, true).apply()
+                }
+            }
+
+            // 3b. Monthly core DCA reminder: first trading session on/after the DCA day, once per month.
+            val dcaAmount = prefRepo.monthlyDcaAmount.firstOrNull() ?: 0.0
+            if (dcaAmount > 0.0 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
+                val dcaDay = (prefRepo.dcaDayOfMonth.firstOrNull() ?: CoreSatellite.DEFAULT_DCA_DAY)
+                    .coerceAtMost(now.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))
+                val dcaKey = "dca_reminder_$year-${month + 1}"
+                if (now.get(java.util.Calendar.DAY_OF_MONTH) >= dcaDay && !alertPrefs.getBoolean(dcaKey, false)) {
+                    val price = SetScraper.fetchBatchQuotes(listOf(CoreSatellite.CORE_SYMBOL))
+                        .firstOrNull()?.lastPrice ?: 0.0
+                    if (price > 0.0) {
+                        NotificationHelper.showDcaReminderNotification(
+                            context = applicationContext,
+                            amount = dcaAmount,
+                            price = price,
+                            suggestion = CoreSatellite.dcaSuggestion(dcaAmount, price, atsEnabled)
+                        )
+                        alertPrefs.edit().putBoolean(dcaKey, true).apply()
+                    }
                 }
             }
         }
@@ -181,11 +204,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     signal = signal
                 )
 
-                if (isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type, dummyInfo)) {
+                if (entryAlertsEnabled && isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type, dummyInfo)) {
                     NotificationHelper.showSignalNotification(
                         context = applicationContext,
                         symbol = entity.symbol,
-                        signal = signal.type.name,
+                        signal = signal.type.badgeLabel,
                         reason = signal.reason
                     )
                 }
@@ -322,11 +345,6 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 
                 if (entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
                     (isSwingHold || isDividendTransitionHold)) {
-                    val netProfit = TechnicalAnalysis.calculatePositionNetProfitPercent(
-                        entity.cost, scraped.lastPrice, entity.quantity, entity.buyFees, atsEnabled)
-                    val netProfitBaht = TechnicalAnalysis.calculatePositionNetProfitBaht(
-                        entity.cost, scraped.lastPrice, entity.quantity, entity.buyFees, atsEnabled)
-                    val rsi = indicators.rsi ?: 50.0
                     val isSell = signal.type == IndicatorSignal.SELL
                     
                     val currentPrice = scraped.lastPrice
@@ -338,22 +356,14 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     val trailingBreached = dropFromPeak <= -trailingStopPercent
                     val explicitStopBreached = explicitStopLoss > 0 && currentPrice <= explicitStopLoss
 
-                    // Fix #2: Scale absolute threshold with position size (at least 3% of position, min ₿500)
-                    val positionValue = cost * entity.quantity
-                    val minTakeProfitBaht = maxOf(TradingConstants.TAKE_PROFIT_MIN_BAHT, positionValue * 0.03)
-
                     if (explicitStopBreached) {
                         sellReasonsList.add("Stop Loss hit at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} (current ฿${String.format(java.util.Locale.ENGLISH, "%.2f", currentPrice)})")
                     } 
                     if (trailingBreached) {
                         sellReasonsList.add("Trailing stop breached (${String.format(java.util.Locale.ENGLISH, "%.2f", dropFromPeak)}% from peak, limit ${String.format(java.util.Locale.ENGLISH, "%.2f", trailingStopPercent)}%)")
                     } 
-                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht) {
-                        // Fix #4: Send take-profit as a specific sell notification
-                        sellReasonsList.add("Take Profit: +${String.format(java.util.Locale.ENGLISH, "%.1f", netProfit)}% (฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netProfitBaht)})")
-                    }
-                    
-                    if (netProfit >= TradingConstants.TAKE_PROFIT_PERCENT || netProfitBaht >= minTakeProfitBaht || trailingBreached || explicitStopBreached || rsi >= TradingConstants.RSI_OVERBOUGHT || isSell) {
+                    // Take-profit (2R) and overbought (after +1R) exits arrive via the signal's SELL reason above.
+                    if (trailingBreached || explicitStopBreached || isSell) {
                         hasActiveSwingSellAlert = true
                     }
                 }

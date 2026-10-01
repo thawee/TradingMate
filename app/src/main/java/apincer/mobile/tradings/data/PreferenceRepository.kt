@@ -21,6 +21,10 @@ class PreferenceRepository(private val context: Context) {
     private val IS_DIVIDEND_ALERT_END_YEAR = booleanPreferencesKey("is_dividend_alert_end_year")
     private val IS_PRIVACY_MODE = booleanPreferencesKey("is_privacy_mode")
     private val IS_ATS_ENABLED = booleanPreferencesKey("is_ats_enabled")
+    private val IS_ENTRY_ALERTS_ENABLED = booleanPreferencesKey("is_entry_alerts_enabled")
+    private val TARGET_CORE_PERCENT = doublePreferencesKey("target_core_percent")
+    private val MONTHLY_DCA_AMOUNT = doublePreferencesKey("monthly_dca_amount")
+    private val DCA_DAY_OF_MONTH = intPreferencesKey("dca_day_of_month")
     private val TRAILING_STOP_PERCENT = doublePreferencesKey("trailing_stop_percent")
 
     private val MAX_RISK_PER_TRADE = doublePreferencesKey("max_risk_per_trade")
@@ -84,6 +88,54 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setAtsEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[IS_ATS_ENABLED] = enabled
+        }
+    }
+
+    // Entry (BUY / POTENTIAL) signal notifications. Off by default: the market-wide backtest
+    // (tools/backtest/report.md) shows no edge for entry signals. Risk exits are always on.
+    val isEntryAlertsEnabled: Flow<Boolean> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[IS_ENTRY_ALERTS_ENABLED] ?: false
+        }
+
+    suspend fun setEntryAlertsEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[IS_ENTRY_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    // Core-satellite: TDEX core target (% of invested value) and monthly DCA reminder.
+    val targetCorePercent: Flow<Double> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[TARGET_CORE_PERCENT] ?: apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_TARGET_CORE_PERCENT
+        }
+
+    suspend fun setTargetCorePercent(percent: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[TARGET_CORE_PERCENT] = percent
+        }
+    }
+
+    /** 0 disables the monthly DCA reminder. */
+    val monthlyDcaAmount: Flow<Double> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[MONTHLY_DCA_AMOUNT] ?: 0.0
+        }
+
+    suspend fun setMonthlyDcaAmount(amount: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[MONTHLY_DCA_AMOUNT] = amount
+        }
+    }
+
+    val dcaDayOfMonth: Flow<Int> = context.settingsDataStore.data
+        .map { preferences ->
+            preferences[DCA_DAY_OF_MONTH] ?: apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_DCA_DAY
+        }
+
+    suspend fun setDcaDayOfMonth(day: Int) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[DCA_DAY_OF_MONTH] = day
         }
     }
 

@@ -1,5 +1,37 @@
 # Changelog
 
+All notable changes to the TradingMate project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [4.0.0] - 2026-10-01
+
+Repositioned from a signal advisor to an index core with a disciplined, measured satellite, after a market-wide backtest showed the technical signals trailing TDEX buy-and-hold (see `tools/backtest/report.md`).
+
+### Changed
+- **Honest signal labelling:** signal card reads "Technical Setup" / "On Watch" / "Exit Rule" with a "Context, not a buy call" notice citing the backtest; same notice on the Swing playbook. "Accept AI Plan" is now a secondary "Save as Satellite Plan" action. Signal descriptions no longer claim "high probability" or "institutional buying".
+- **Core-satellite (TDEX core):** Settings for target core % (default 80), monthly DCA amount and day. A monthly reminder on the first trading session on/after the DCA day suggests whole TDEX board lots with fees. Portfolio shows a Core vs Satellite card with the core shortfall to reach target.
+- **Satellite scorecard:** Stats compares the satellite with the same cash flows replayed into TDEX (dividend-adjusted) since the first journaled fill and over two trailing 12-month windows, with money-weighted annual returns. Suggests lowering the satellite share when it trails in both windows. Holdings whose fills are not fully journaled are excluded and listed.
+- **Satellite cap warning:** the Buy dialog warns when a non-TDEX purchase would push the satellite above its cap. Swing caption updated to the 2R take-profit.
+- **Trend state chip:** "Buying / Potential / Selling Zone" replaced by descriptive states (Uptrend, Downtrend, Overextended, Near Support, Range). The old "Selling Zone" merged overextended highs with breakdowns at support, so it could contradict an "On Watch: Support Testing" signal.
+- **Signal badges:** watchlist and advisor badges, the signal sort bubble and entry notification titles read SETUP / WATCH / EXIT instead of BUY / POTENTIAL / SELL. Stored signal names are unchanged.
+- **Entry signal alerts off by default:** new Settings toggle gates BUY notifications and the 15:30 entry-window prompt. Stop and exit alerts are unchanged.
+- **R-multiple exits for holdings without a saved plan:** Take-profit moved from a flat +5% / ฿500 to 2R (2 × stop distance), so winners can exceed the loss the stop accepts. The trailing stop now arms once the peak reaches +1R and also exits if price falls back to cost.
+
+### Added
+- **Evidence gate for signal rules:** `EvidenceGate` requires beating TDEX in both sub-periods, at least 50% of P/L surviving removal of the top 3 symbols, 100+ trades and positive expectancy. The backtest report prints PASS/FAIL per rule (all current rules fail). Criteria documented in `docs/ADVISOR_EVALUATION.md`.
+- **Market-wide portfolio backtest** (`PortfolioBacktest`): shared-capital replay of the signal engine across a universe with fixed-fractional sizing, 15% stock cap, board lots, fees and slippage, plus a buy-and-hold benchmark. `tools/backtest/fetch_history.py` downloads dividend-adjusted history; `BACKTEST=1 ./gradlew testDebugUnitTest --tests '*MarketBacktestReport*'` writes `tools/backtest/report.md`.
+
+### Fixed
+- **Batch quotes failing (HTTP 401):** Yahoo's `v7/finance/quote` now requires a crumb, so every refresh marked all symbols failed and fell back to per-stock fetches. `fetchBatchQuotes` now uses `v7/finance/spark` in 20-symbol chunks. It no longer overwrites cached dividend yield with 0 (spark has no fundamentals, so they stay cached).
+- **SET index history empty:** Yahoo serves no daily history for `^SET.BK`, so market regime, relative strength, beta and the regime cash buffer had no index data. `fetchSetIndexHistory` now falls back to TDEX (SET50 ETF) as a return-based proxy.
+- **In-app backtest window:** the Backtest screen fetched 1 year of history, leaving only ~35 bars after the 210-bar warm-up. It now fetches 3 years.
+- **Overbought exit churn on large positions:** Overbought, MFI distribution and upper-band SELLs triggered once profit exceeded a flat ฿500, selling large positions at a fraction of a percent gain. They now require at least +1R.
+- **Duplicated take-profit rules:** `StockViewModel` and `StockAlertWorker` re-derived their own flat take-profit and RSI ≥ 65 alerts with different thresholds; both now use the signal engine's SELL reasons.
+
 ## [3.4.0] - 2026-09-28
 ### Added (V2 Roadmap - The "Discipline & AI" Overhaul)
 - **Epic 1: Zero-Friction Trade Logging (Gemini Vision)**: Added image picker in Buy Dialog that uses Gemini Vision API to parse broker screenshots and auto-fill Ticker, Price, and Quantity.
@@ -7,13 +39,6 @@
 - **Epic 3: Post-Trade Autopsy**: Rebuilt the Sell Dialog to enforce exit categorization (Target Hit, Stop Hit, Mistake, etc.) and mandate a 10-character psychological lesson on losing or mistake trades.
 - **Epic 4: Dynamic Trailing Stops**: Integrated Market Regime analysis into the ATR trailing stop calculation (tighter 1.5x in Bearish, looser 3.0x in Bullish).
 - **Epic 5: Paper Trading (Sandbox Mode)**: Implemented isolated `stock_database_sandbox` using dynamic Room Database instantiation and a Settings toggle.
-
-All notable changes to the TradingMate project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
 
 ## [3.3.1] - 2026-09-26
 

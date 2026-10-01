@@ -88,6 +88,53 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    private val _satelliteScorecard = MutableStateFlow<apincer.mobile.tradings.domain.SatelliteScorecard.Report?>(null)
+    val satelliteScorecard: StateFlow<apincer.mobile.tradings.domain.SatelliteScorecard.Report?> = _satelliteScorecard.asStateFlow()
+
+    /**
+     * Satellite vs shadow-TDEX scorecard from the fill journal. Satellite symbols use raw
+     * closes (their dividends are counted from the dividend log, net of withholding tax);
+     * TDEX uses dividend-adjusted closes (gross), a small bias in the core's favour.
+     */
+    fun loadSatelliteScorecard(holdings: List<StockWatchlistInfo>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val scorecard = apincer.mobile.tradings.domain.SatelliteScorecard
+            val fills = scorecard.fillsFromEvents(repository.getAllAdviceEventsSync(), isAtsEnabled.value)
+            val now = System.currentTimeMillis()
+            val currentQuantities = holdings.associate { it.info.symbol.uppercase() to it.portfolio.quantity }
+            if (fills.isEmpty()) {
+                _satelliteScorecard.value = scorecard.report(emptyList(), emptyList(), currentQuantities, now, { _, _ -> null }, { null })
+                return@launch
+            }
+            val dayMillis = 86_400_000L
+            val windowDays = 470 // trailing 12 months ending a quarter ago, plus margin
+            val coreDays = maxOf(windowDays, ((now - fills.first().timeMillis) / dayMillis).toInt() + 10)
+            val coreHistory = apincer.mobile.tradings.data.SetScraper.fetchHistoricalPrices(
+                apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL, days = coreDays, dividendAdjusted = true)
+            val included = scorecard.coverage(fills, currentQuantities).included
+            val histories = included.associateWith {
+                apincer.mobile.tradings.data.SetScraper.fetchHistoricalPrices(it, days = windowDays)
+            }
+            val currentPrices = holdings.associate { it.info.symbol.uppercase() to it.info.lastPrice }
+            val bangkok = java.time.ZoneId.of("Asia/Bangkok")
+            fun closeOnOrBefore(history: List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>, t: Long): Double? {
+                val date = java.time.Instant.ofEpochMilli(t).atZone(bangkok).toLocalDate().toString()
+                return history.lastOrNull { it.date <= date }?.close
+            }
+            val dividends = repository.getAllDividendsSync().map {
+                apincer.mobile.tradings.domain.SatelliteScorecard.Dividend(it.symbol.uppercase(), it.dateMillis, it.totalReceived)
+            }
+            _satelliteScorecard.value = scorecard.report(
+                fills, dividends, currentQuantities, now,
+                priceAt = { symbol, t ->
+                    if (now - t < dayMillis) currentPrices[symbol]?.takeIf { it > 0.0 } ?: closeOnOrBefore(histories[symbol].orEmpty(), t)
+                    else closeOnOrBefore(histories[symbol].orEmpty(), t)
+                },
+                corePriceAt = { t -> closeOnOrBefore(coreHistory, t) }
+            )
+        }
+    }
+
     fun takeSnapshot(holdings: List<StockWatchlistInfo>) {
         viewModelScope.launch(Dispatchers.IO) {
             val openHoldings = holdings.filter { it.portfolio.quantity > 0 }

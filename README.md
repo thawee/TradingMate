@@ -1,19 +1,25 @@
 # TradingMate
 
-TradingMate is a personal trading companion app designed to simplify stock market analysis for retail investors, specifically tailored for the Thai stock market (SET). It bridges the gap between complex technical indicators and actionable trading decisions with a focus on discipline, dividend tracking, and human-AI collaboration.
+TradingMate is a personal investing companion for the Thai stock market (SET). It helps retail investors build wealth with a low-cost index core, keep any stock picking small and disciplined, and see honestly whether that stock picking is worth it.
 
 ## 🚀 Concept & Idea
 
-The core philosophy of TradingMate is **Discipline over Emotion**. By converting standard technical indicators into visual "Zones," the app helps traders identify when a stock is in an accumulation phase (Buying Zone) or a distribution phase (Selling Zone). 
+The core philosophy is **evidence over excitement**. A 2015-2025 market-wide backtest found that the app's technical entry signals trailed simply holding TDEX (the SET50 ETF), and no tested signal rule passed the [evidence gate](docs/ADVISOR_EVALUATION.md). TradingMate is therefore built around three ideas:
 
-It specifically addresses common beginner challenges:
-- **When to Buy/Sell:** Shows technical signals and saved-plan exit alerts to support a recorded trading decision.
+- **Index core:** Most of your invested money sits in TDEX. A monthly DCA reminder tells you how many board lots your budget buys, fees included. Default split: 80% core, 20% satellite.
+- **Disciplined satellite:** Individual stocks are a capped satellite. Position sizing, stops, concentration caps, saved plans and post-trade journaling keep each trade small and recorded. Technical signals are shown as context, not buy calls.
+- **Honest scorecard:** The satellite is compared with the same cash flows replayed into TDEX. If it trails over two consecutive 12-month windows, the app suggests shrinking it.
+
+It also covers the practical side of Thai investing:
 - **Consolidated Tracking:** Merges your stock value and available cash into a single "Total Assets" view.
-- **Dividend Focus:** Tracks "Yield on Cost" (YoC) and alerts you to upcoming XD dates.
+- **Dividend Focus:** Tracks "Yield on Cost" (YoC), the Section 47 bis tax credit, and upcoming XD dates.
 - **Built with AI:** Architected and developed through a deep collaboration with Google's Gemini AI.
 
 ## ✨ Key Features
 
+- **Core-Satellite Allocation:** TDEX is the core; everything else is satellite. Portfolio shows core % against your target with the TDEX amount needed to close the gap, and the Buy dialog warns when a stock purchase would push the satellite over its cap.
+- **Monthly DCA Reminder:** On your chosen day (or the next trading session), a notification suggests whole TDEX board lots for your monthly amount, fees included.
+- **Satellite Scorecard:** Stats compares the satellite with a shadow TDEX position fed the same journaled buys, sells and dividends: end-value gap and money-weighted annual return since the first fill and over two trailing 12-month windows. Holdings without complete fill records are excluded and listed.
 - **Institutional Risk Management & CRO Suite:**
   - **63-Day Rolling Time-Series VaR (95%) & Conditional VaR (CVaR)**: Constructs a true weighted daily return time series across 63 trading days ($R_{p,t} = \sum_i w_i R_{i,t} / \sum_i w_i$) to evaluate empirical downside tail risk and expected shortfall in ฿ and %.
   - **Dynamic Regime-Aware Cash Buffers & Spendable Cash Engine**: Mathematically mandates cash buffer reserves (**15% in Bull, 30% in Sideways, 50% in Bear**). Enforces real-time cash guards in `BuyStockDialog` and injects exact spendable capital limits into Gemini AI prompts.
@@ -24,12 +30,12 @@ It specifically addresses common beginner challenges:
 - **Multi-Timeframe (MTF) Macro Trend Alignment:** Daily candle resampling to compute **Weekly 20-EMA** macro trends. Prevents counter-trend daily whipsaw buys with the **Macro Weekly Bearish Guard** and awards the `MTF` confluence tag.
 - **Thai Dividend Tax Shield (Section 47 bis):** Calculates reclaimable Corporate Income Tax (CIT 20%) credits ($\text{Gross} \times \frac{20}{80}$) and Net Yield-on-Cost ($\text{YoC}_{\text{net}}$) after 10% Withholding Tax.
 - **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. Suggests high-yield "Dividend Stars" based on strict fundamental and solvency criteria.
-- **Market Pulse:** Real-time monitoring of your watchlist with automated multi-factor technical signals (BUY, SELL, POTENTIAL).
-- **AI Advisor:** Centralized AI discovery hub that explains and ranks locally validated swing setups. Model assessments are qualitative and do not represent win probabilities.
+- **Market Pulse:** Watchlist monitoring with multi-factor technical context (Technical Setup, On Watch, Exit Rule). Entry signals carry a "Context, not a buy call" notice; entry alerts are off by default.
+- **AI Advisor:** Explains and ranks locally validated swing setups as context. The backtest result is shown first, and saving a plan is a secondary action ("Save as Satellite Plan"). Model assessments are qualitative and do not represent win probabilities.
 - **Saved Swing Plans:** Records an accepted entry, stop, target, and exit policy. Proposed buys are checked against net reward to risk, stop risk, concentration, cash reserve, and SET board lots. Broker fills can still be recorded when they differ from a proposal.
 - **Local Trade Record and Backup:** Saves plan history, trades, fees, cash transactions, dividends, daily portfolio snapshots, and advice events in JSON backups. Older backups import with their available fields.
 - **Consolidated Portfolio:** Professional financial dashboard grouping stock holdings, cash balance, net profit, fee tracking, and sector risk meters in one unified view.
-- **Trading Zones:** RSI and other indicators provide context; observed price levels and accepted plans provide stop and target alerts.
+- **Trend State Chip:** Each stock shows a descriptive state (Uptrend, Downtrend, Overextended, Near Support, Range) from RSI, MACD, SMA 50 and Bollinger Bands. It describes price and never recommends; observed price levels and accepted plans provide stop and target alerts.
 - **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled.
 - **10/10 FinTech Design System:** Ambient radial gradient glows, adaptive glassmorphic contrast borders, OpenType `tnum` tabular numbers for zero decimal jitter, Catmull-Rom $C^1$ smooth spline charts, and live directional price tick pulses.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
@@ -102,17 +108,31 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 
 ## 🧠 The Trading Strategy (Standardized)
 
+> These rules drive the satellite's technical context and exit alerts. They have **not** passed the evidence gate: in the portfolio backtest they returned -10.1% a year (2015-2025) against +2.5% for TDEX. Exit rules (stops, trailing stops, saved targets) are risk controls and stay on; entry signals are context only.
+
 - **🟢 Buy - Oversold Accumulation:** RSI < 35 while above the long-term SMA 200 (Stoch %K > %D confirmed).
 - **🟢 Buy - Early Recovery:** MACD turns positive near support with volume/MFI confirmation.
 - **🟢 Buy - Healthy Momentum:** Positive MACD, RSI < 55, price above SMA 50, filtered against false breakouts and NVDR selling.
 - **🔴 Sell - Early Breakdown:** Triggers early exit if a position drops $\le -1.5\%$ and loses SMA 50 with negative MACD (suppressed near XD date).
 - **🔴 Sell - Saved Target:** New fixed swing plans alert when the saved target is reached. Legacy holdings retain their earlier profit rules until a plan is completed.
+- **🔴 Sell - R-Multiple Target (legacy holdings):** Holdings without a saved plan take profit at 2R (twice the stop distance). Overbought, MFI and upper-band exits apply only after +1R, and the trailing stop arms at +1R and exits before the trade turns into a loss.
 - **🔴 Sell - Stop Loss:** Volatility-adjusted (2× ATR) or -4.5% (SET50) / -6.5% (Mid/Small-Cap).
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance/Breakdown) ALWAYS override BUY momentum.
 
 ## 📊 Measuring Performance
 
-The advisor has no established win rate or expected return. The in-app Backtest replays historical technical signals only. It excludes past fundamental/flow observations, AI rankings, saved plans, portfolio limits, spread and slippage, so its results do not measure the complete advisor workflow. Signals fill at the next daily close in the simulation; daily drawdown includes open positions, while reported total return covers closed trades. The local advice journal does not yet link every AI ranking to a later accepted plan. See [Evaluating advisor outcomes](docs/ADVISOR_EVALUATION.md) for a forward measurement protocol.
+The advisor has no established win rate or expected return. The in-app Backtest replays historical technical signals only. It excludes past fundamental/flow observations, AI rankings, saved plans, portfolio limits, spread and slippage, so its results do not measure the complete advisor workflow. Signals fill at the next daily close in the simulation; daily drawdown includes open positions, while reported total return covers closed trades. The local advice journal does not yet link every AI ranking to a later accepted plan. See [Evaluating advisor outcomes](docs/ADVISOR_EVALUATION.md) for a forward measurement protocol and the evidence gate.
+
+A market-wide portfolio replay ([tools/backtest/report.md](tools/backtest/report.md)) runs each rule across 48 current SET50 stocks with shared capital, 1% risk per trade, the 15% stock cap, board lots, fees and 0.15% slippage per side:
+
+| Rule (2015-2025) | CAGR | 2015-2020 | 2021-2025 | Max drawdown | Evidence gate |
+|---|---|---|---|---|---|
+| App signals | -10.1% | -5.1% | -15.5% | 72.5% | Fail |
+| App entries + trend exit | -12.8% | -8.9% | -17.8% | 78.4% | Fail |
+| 52-week breakout + trend exit | +11.1% | +23.8% | -1.0% | 38.0% | Fail (99% of P/L from 3 stocks) |
+| TDEX buy-and-hold (benchmark) | +2.5% | +1.8% | +3.2% | 36.5% | - |
+
+The universe is today's SET50, so results are flattered by survivorship bias. Reproduce with `python3 tools/backtest/fetch_history.py` then `BACKTEST=1 ./gradlew testDebugUnitTest --tests '*MarketBacktestReport*'`. The in-app Backtest screen replays a single stock over 3 years of history.
 
 Market quotes and fundamentals have separate freshness checks. Failed refreshes retain usable cached values and identify affected symbols; check the last-sync time before acting. The Stats risk panel uses date-aligned history and shows VaR/CVaR or beta as unavailable when the necessary observations are missing or stale. The minimum net reward-to-risk threshold for proposed swing buys is configurable in Settings (default 2:1). Saved stops and targets are alert levels, not broker orders or guaranteed fill prices.
 
@@ -152,11 +172,13 @@ TradingMate sends push notifications during specific time windows on weekdays (A
 | Time / Trigger | Alert | Dedup | Description |
 |---|---|---|---|
 | **10:00–11:00 AM** | 🌅 Morning Swing Exit | Once/day | Check active swing positions for Sell / Stop Loss |
-| **15:30–16:15 PM** | 🏙️ Afternoon Swing Entry | Once/day | Scan Advisor for new Swing & Gap candidates before close |
+| **15:30–16:15 PM** | 🏙️ Afternoon Swing Entry | Once/day | Scan Advisor for new Swing & Gap candidates before close. **Off by default** (Settings > Entry signal alerts) |
+| **DCA day or next trading session** | 📈 Monthly Core Buy | Once/month | TDEX board lots for your monthly DCA amount, fees included (when an amount is set) |
 | **Within 7 days of XD** | 💰 Ex-Dividend Alert | Once/XD date | Per-stock alert when an ex-dividend date is approaching |
 | **Jan & Jun, 09:00–17:00** | 📅 Dividend Season | Once/season | Start accumulating for upcoming payout season |
 | **Any month** | 💰 Yield Opportunity | Once/week/stock | DIVIDEND stock yield ≥ 5% + ROE ≥ 15% — good accumulation price |
-| **Any time (market open)** | 🚨 Signal Change / Sell Reminder | Per stock | BUY→SELL or active SELL signal detected |
+| **Any time (market open)** | 🚨 Sell Reminder | Per stock | Stop, trailing stop, saved-plan exit or SELL signal on a holding |
+| **Any time (market open)** | 🔔 Entry Signal | Per stock | New BUY/POTENTIAL on a non-held quality candidate. **Off by default** |
 
 > **Deduplication rules:**
 > - Morning / Afternoon alerts: once per trading day

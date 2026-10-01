@@ -16,8 +16,8 @@ android {
         minSdk = 26
         //noinspection OldTargetApi
         targetSdk = 36
-        versionCode = 28
-        versionName = "3.4.0"
+        versionCode = 29
+        versionName = "4.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.androidx.glance.material3)
 
     testImplementation(libs.junit)
+    testImplementation(libs.org.json) // real org.json for JVM tests (Android stubs throw)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

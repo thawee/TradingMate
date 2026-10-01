@@ -89,9 +89,6 @@ object BacktestEngine {
         if (history.size < WARMUP_DAYS + 2) return null
 
         val closes = history.map { it.close }
-        val highs = history.map { it.high }
-        val lows = history.map { it.low }
-        val volumes = history.map { it.volume }
 
         val trades = mutableListOf<BacktestTrade>()
         var position: OpenPosition? = null
@@ -137,53 +134,21 @@ object BacktestEngine {
                 continue
             }
 
-            val pricesToDate = closes.subList(0, i + 1)
-            val highsToDate = highs.subList(0, i + 1)
-            val lowsToDate = lows.subList(0, i + 1)
-            val volumesToDate = volumes.subList(0, i + 1)
             val lastPrice = closes[i]
-
-            val sma50 = TechnicalAnalysis.calculateSMA(pricesToDate, 50)
-            val sma200 = TechnicalAnalysis.calculateSMA(pricesToDate, 200)
-            val bb = TechnicalAnalysis.calculateBollingerBands(pricesToDate)
-            val rsi = TechnicalAnalysis.calculateRSI(pricesToDate)
-            val macd = TechnicalAnalysis.calculateMACD(pricesToDate)
-            val isVolSurge = TechnicalAnalysis.isVolumeSurge(volumesToDate)
-            val obvRising = TechnicalAnalysis.isObvRising(pricesToDate, volumesToDate)
-            val atr = TechnicalAnalysis.calculateATR(highsToDate, lowsToDate, pricesToDate)
-            val adx = TechnicalAnalysis.calculateADX(highsToDate, lowsToDate, pricesToDate)
-            val stoch = TechnicalAnalysis.calculateStochastic(highsToDate, lowsToDate, pricesToDate)
-            val mfi = TechnicalAnalysis.calculateMFI(highsToDate, lowsToDate, pricesToDate, volumesToDate)
-            val atrPercent = atr?.takeIf { lastPrice > 0 }?.let { it / lastPrice * 100.0 }
-
             val openPos = position
             if (openPos != null) {
                 openPos.peakPrice = maxOf(openPos.peakPrice, lastPrice)
-                val signal = TechnicalAnalysis.getDetailedSignal(
-                    rsi = rsi, macdHist = macd.third, lastPrice = lastPrice,
-                    sma50 = sma50, sma200 = sma200, bb = bb,
-                    isVolumeSurge = isVolSurge, obvRising = obvRising,
-                    atrPercent = atrPercent, adx = adx,
-                    stochK = stoch?.first, stochD = stoch?.second, mfi = mfi,
-                    userCost = openPos.entryPrice, userQuantity = 1,
-                    isFundamentalGood = isFundamentalGood, tradePurpose = "SWING",
-                    dividendYield = dividendYield, roe = roe,
-                    peakPrice = openPos.peakPrice, isSet50 = isSet50
+                val signal = signalAt(
+                    history, i, entryPrice = openPos.entryPrice, quantity = 1, peakPrice = openPos.peakPrice,
+                    isSet50 = isSet50, isFundamentalGood = isFundamentalGood, dividendYield = dividendYield, roe = roe
                 )
                 if (signal.type == IndicatorSignal.SELL) {
                     if (i + 1 < history.size) pendingExitReason = signal.reason
                 }
             } else {
-                val signal = TechnicalAnalysis.getDetailedSignal(
-                    rsi = rsi, macdHist = macd.third, lastPrice = lastPrice,
-                    sma50 = sma50, sma200 = sma200, bb = bb,
-                    isVolumeSurge = isVolSurge, obvRising = obvRising,
-                    atrPercent = atrPercent, adx = adx,
-                    stochK = stoch?.first, stochD = stoch?.second, mfi = mfi,
-                    userCost = null, userQuantity = null,
-                    isFundamentalGood = isFundamentalGood, tradePurpose = "SWING",
-                    dividendYield = dividendYield, roe = roe,
-                    peakPrice = null, isSet50 = isSet50
+                val signal = signalAt(
+                    history, i, isSet50 = isSet50, isFundamentalGood = isFundamentalGood,
+                    dividendYield = dividendYield, roe = roe
                 )
                 if (signal.type == IndicatorSignal.BUY && i + 1 < history.size) {
                     pendingEntryPrice = lastPrice // fill next bar
@@ -215,6 +180,51 @@ object BacktestEngine {
             openTrade = openTrade,
             totalReturnPercent = (equity - 1.0) * 100.0,
             maxDrawdownPercent = drawdown.maxDrawdownPercent
+        )
+    }
+
+    /**
+     * Technical signal for bar [i] using only bars up to and including [i] (no look-ahead).
+     * [lookback] limits the input to the most recent N bars, matching the live app's
+     * ~1-year history window and keeping portfolio-scale replays linear in time.
+     */
+    fun signalAt(
+        history: List<ScrapedHistoricalPrice>,
+        i: Int,
+        entryPrice: Double? = null,
+        quantity: Int? = null,
+        peakPrice: Double? = null,
+        isSet50: Boolean = false,
+        isFundamentalGood: Boolean = false,
+        dividendYield: Double? = null,
+        roe: Double? = null,
+        lookback: Int? = null
+    ): TradeSignal {
+        val from = lookback?.let { maxOf(0, i + 1 - it) } ?: 0
+        val window = history.subList(from, i + 1)
+        val prices = window.map { it.close }
+        val highs = window.map { it.high }
+        val lows = window.map { it.low }
+        val volumes = window.map { it.volume }
+        val lastPrice = prices.last()
+        val macd = TechnicalAnalysis.calculateMACD(prices)
+        val stoch = TechnicalAnalysis.calculateStochastic(highs, lows, prices)
+        val atr = TechnicalAnalysis.calculateATR(highs, lows, prices)
+        return TechnicalAnalysis.getDetailedSignal(
+            rsi = TechnicalAnalysis.calculateRSI(prices), macdHist = macd.third, lastPrice = lastPrice,
+            sma50 = TechnicalAnalysis.calculateSMA(prices, 50),
+            sma200 = TechnicalAnalysis.calculateSMA(prices, 200),
+            bb = TechnicalAnalysis.calculateBollingerBands(prices),
+            isVolumeSurge = TechnicalAnalysis.isVolumeSurge(volumes),
+            obvRising = TechnicalAnalysis.isObvRising(prices, volumes),
+            atrPercent = atr?.takeIf { lastPrice > 0 }?.let { it / lastPrice * 100.0 },
+            adx = TechnicalAnalysis.calculateADX(highs, lows, prices),
+            stochK = stoch?.first, stochD = stoch?.second,
+            mfi = TechnicalAnalysis.calculateMFI(highs, lows, prices, volumes),
+            userCost = entryPrice, userQuantity = quantity,
+            isFundamentalGood = isFundamentalGood, tradePurpose = "SWING",
+            dividendYield = dividendYield, roe = roe,
+            peakPrice = peakPrice, isSet50 = isSet50
         )
     }
 }

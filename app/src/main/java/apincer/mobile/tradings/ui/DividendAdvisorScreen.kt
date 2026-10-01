@@ -222,6 +222,9 @@ fun DividendAdvisorScreen(
                         .padding(bottom = 80.dp), // Space for floating bar
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    if (playbookMode == PlaybookMode.SWING) {
+                        UntestedEdgeNotice(modifier = Modifier.padding(top = 4.dp))
+                    }
                     Text(
                         text = "For educational purposes only. Not financial advice. Trade at your own risk.",
                         style = MaterialTheme.typography.labelSmall,
@@ -699,7 +702,7 @@ fun AdvisorStockCard(
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
-                                        text = stock.signal.type.name,
+                                        text = stock.signal.type.badgeLabel,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Black,
@@ -1609,15 +1612,15 @@ fun AiRecommendationCard(rec: apincer.mobile.tradings.domain.AiRecommendation, o
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(rec.reasoning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
-            Button(
+            // Secondary action: AI rankings are context, not a validated edge.
+            OutlinedButton(
                 onClick = onAccept,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Accept AI Plan", fontWeight = FontWeight.Bold)
+                Text("Save as Satellite Plan")
             }
         }
     }

@@ -237,6 +237,23 @@ fun SettingsScreen(
                     Text(stringResource(R.string.label_dividend_alert_end_year), style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = isEndYear, onCheckedChange = { settingsViewModel.toggleDividendAlertEndYear() })
                 }
+
+                val isEntryAlertsEnabled by settingsViewModel.isEntryAlertsEnabled.collectAsState()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Entry signal alerts", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Technical entry signals trailed TDEX buy-and-hold in a 2015-2025 backtest. Stop and exit alerts stay on.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = isEntryAlertsEnabled, onCheckedChange = { settingsViewModel.toggleEntryAlertsEnabled() })
+                }
             }
 
             SectionContent(title = "App Environment", icon = Icons.Default.Settings) {
@@ -264,6 +281,69 @@ fun SettingsScreen(
                         }
                     )
                 }
+            }
+
+            SectionContent(title = "Core Portfolio (TDEX)", icon = Icons.Default.Savings) {
+                val targetCore by settingsViewModel.targetCorePercent.collectAsState()
+                val dcaAmount by settingsViewModel.monthlyDcaAmount.collectAsState()
+                val dcaDay by settingsViewModel.dcaDayOfMonth.collectAsState()
+                var editingCore by remember(targetCore) { mutableStateOf(targetCore.toInt().toString()) }
+                var editingDca by remember(dcaAmount) { mutableStateOf(if (dcaAmount > 0) dcaAmount.toLong().toString() else "") }
+                var editingDay by remember(dcaDay) { mutableStateOf(dcaDay.toString()) }
+
+                OutlinedTextField(
+                    value = editingCore,
+                    onValueChange = {
+                        editingCore = it
+                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateTargetCorePercent(percent) }
+                    },
+                    label = { Text("Target Core Allocation") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = "Share of invested value held in TDEX (SET50 ETF). The rest is your satellite for individual stocks. Default 80%.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = editingDca,
+                    onValueChange = {
+                        editingDca = it
+                        settingsViewModel.updateMonthlyDcaAmount(it.toDoubleOrNull() ?: 0.0)
+                    },
+                    label = { Text("Monthly DCA Amount") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    prefix = { Text("฿") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = editingDay,
+                    onValueChange = {
+                        editingDay = it
+                        it.toIntOrNull()?.let { day -> settingsViewModel.updateDcaDayOfMonth(day) }
+                    },
+                    label = { Text("DCA Day of Month") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = "On this day (or the next trading day) you get a reminder with the TDEX board lots your amount buys, fees included. Leave the amount empty to turn the reminder off.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
             }
 
             SectionContent(title = "Risk Management", icon = Icons.Default.Warning) {

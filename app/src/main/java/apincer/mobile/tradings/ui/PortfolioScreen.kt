@@ -111,6 +111,7 @@ fun PortfolioScreen(
     val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
     val maxSectorAllocation by settingsViewModel.maxSectorAllocation.collectAsState()
     val citTaxRate by settingsViewModel.citTaxRate.collectAsState()
+    val targetCorePercent by settingsViewModel.targetCorePercent.collectAsState()
     val marketRegime by viewModel.marketRegime.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
@@ -420,6 +421,13 @@ fun PortfolioScreen(
                 }
 
                 item {
+                    CoreSatelliteCard(
+                        portfolioItems = allPortfolioItems,
+                        targetCorePercent = targetCorePercent
+                    )
+                }
+
+                item {
                     SectorBreakdownCard(
                         portfolioItems = allPortfolioItems,
                         cashBalance = cashBalance,
@@ -501,6 +509,7 @@ fun PortfolioScreen(
             maxStockAllocationPercent = maxPortfolioAllocation,
             maxSectorAllocationPercent = maxSectorAllocation,
             holdings = watchlist,
+            targetCorePercent = targetCorePercent,
             atsEnabled = isAtsEnabled,
             isSaving = isSubmitting,
             onDismiss = {
@@ -840,6 +849,7 @@ fun BuyStockDialog(
     maxStockAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SINGLE_STOCK_ALLOCATION_PERCENT,
     maxSectorAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SECTOR_ALLOCATION_PERCENT,
     holdings: List<StockWatchlistInfo> = emptyList(),
+    targetCorePercent: Double = apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_TARGET_CORE_PERCENT,
     atsEnabled: Boolean = true,
     isSaving: Boolean = false,
     onDismiss: () -> Unit,
@@ -1031,7 +1041,7 @@ fun BuyStockDialog(
                     }
                     Text(
                         text = if (tradePurpose == "SWING") {
-                            "⚡ Swing: Active trade management. Enforces daily trailing stops, +5% take-profit alerts, and technical exits."
+                            "⚡ Swing: Active trade management. Enforces daily trailing stops, take-profit at 2× the stop distance, and technical exits."
                         } else {
                             "💰 Dividend: Long-term compounding. Bypasses daily trailing stops; alerts only on fundamental breaks (ROE < 15%) or deep drawdown (> 20%)."
                         },
@@ -1157,6 +1167,35 @@ fun BuyStockDialog(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            val satelliteBuyValue = (entry * amount -
+                (initialStock?.portfolio?.cost ?: 0.0) * (initialStock?.portfolio?.quantity ?: 0)).coerceAtLeast(0.0)
+            val currentHoldings = holdings.filter { it.portfolio.quantity > 0 }
+                .map { it.info.symbol to it.info.lastPrice * it.portfolio.quantity }
+            if (symbol.isNotBlank() && apincer.mobile.tradings.domain.CoreSatellite.breachesSatelliteCap(
+                    currentHoldings, symbol, satelliteBuyValue, targetCorePercent)) {
+                item {
+                    val after = apincer.mobile.tradings.domain.CoreSatellite.allocationAfterBuy(
+                        currentHoldings, symbol, satelliteBuyValue, targetCorePercent)
+                    Surface(
+                        color = Color(0xFFFFA726).copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            String.format(
+                                java.util.Locale.ENGLISH,
+                                "Satellite would be %.0f%% of invested value (cap %.0f%%). Consider funding the %s core first.",
+                                after.satellitePercent, 100.0 - targetCorePercent,
+                                apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+                            ),
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -1485,6 +1524,71 @@ fun SellStockDialog(
                 ) {
                     Text(if (isLessonSufficient) stringResource(R.string.action_confirm_sell) else "Write Lesson First", color = Color.White)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun CoreSatelliteCard(
+    portfolioItems: List<StockWatchlistInfo>,
+    targetCorePercent: Double
+) {
+    if (portfolioItems.isEmpty()) return
+    val allocation = apincer.mobile.tradings.domain.CoreSatellite.allocation(
+        portfolioItems.map { it.info.symbol to it.info.lastPrice * it.portfolio.quantity },
+        targetCorePercent
+    )
+    if (allocation.investedValue <= 0.0) return
+    val coreSymbol = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+    val isBelowTarget = allocation.driftPercent < -5.0
+    val barColor = if (isBelowTarget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    fun pct(v: Double) = String.format(java.util.Locale.ENGLISH, "%.0f%%", v)
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Core vs Satellite",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Core $coreSymbol ${pct(allocation.corePercent)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = barColor)
+                Text("Target ${pct(targetCorePercent)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            LinearProgressIndicator(
+                progress = { (allocation.corePercent / 100.0).toFloat().coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(8.dp).padding(top = 4.dp),
+                color = barColor,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Satellite (individual stocks) ${pct(allocation.satellitePercent)} · cap ${pct(100.0 - targetCorePercent)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (allocation.coreValue <= 0.0 || isBelowTarget) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = if (allocation.coreValue <= 0.0) {
+                        "No index core yet. Set a monthly DCA amount in Settings to start building your $coreSymbol core."
+                    } else {
+                        String.format(
+                            java.util.Locale.ENGLISH,
+                            "About ฿%,.0f more %s reaches your target without selling. Direct new money to the core first.",
+                            allocation.coreShortfallBaht, coreSymbol
+                        )
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }
