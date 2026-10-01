@@ -29,3 +29,6 @@ coverage/
 .cache/
 .gradle/*
 tmp/
+
+# Backtest data cache and generated report
+tools/backtest/data/

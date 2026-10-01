@@ -516,13 +516,13 @@ object SetScraper {
         }
     }
 
-    fun fetchHistoricalPrices(symbol: String): List<ScrapedHistoricalPrice> {
+    /** Daily history for the last [days] calendar days (default ~1 year for live indicators). */
+    fun fetchHistoricalPrices(symbol: String, days: Int = 365): List<ScrapedHistoricalPrice> {
         return try {
             withRetry {
                 val symbolBK = "${symbol.uppercase()}.BK"
                 val endDate = System.currentTimeMillis() / 1000
-                // Fetch roughly 1 year of daily data (31536000 seconds)
-                val startDate = endDate - 31536000
+                val startDate = endDate - days * 86_400L
                 
                 val url = "$YAHOO_FINANCE_URL/$symbolBK?period1=$startDate&period2=$endDate&interval=1d&events=history"
                 Log.d(TAG, "Fetching Historical Prices: $url")

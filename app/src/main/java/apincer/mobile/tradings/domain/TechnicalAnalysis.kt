@@ -148,6 +148,23 @@ object TechnicalAnalysis {
         }
     }
 
+    /** 2×ATR% stop as a negative percent, clamped to [-8%, -3.5%]; null without ATR. */
+    fun atrStopLossPercent(atrPercent: Double?): Double? = atrPercent?.takeIf { it > 0.0 }?.let {
+        -(TradingConstants.ATR_STOP_MULTIPLIER * it)
+            .coerceIn(TradingConstants.ATR_STOP_MIN_PERCENT, TradingConstants.ATR_STOP_MAX_PERCENT)
+    }
+
+    /**
+     * Legacy (no saved plan) stop loss as a negative percent vs cost.
+     * Priority: user override > ATR volatility-adjusted > Market-Cap tier.
+     */
+    fun legacyStopLossPercent(atrPercent: Double?, isSet50: Boolean, userStopLoss: Double? = null): Double = when {
+        userStopLoss != null && userStopLoss < 0.0 -> userStopLoss         // Explicit user percentage override (e.g. -6.0)
+        else -> atrStopLossPercent(atrPercent)                              // Volatility-adjusted (2× daily ATR)
+            ?: if (isSet50) TradingConstants.STOP_LOSS_SET50_PERCENT        // SET50 Large Cap (-4.5%)
+            else TradingConstants.STOP_LOSS_MID_SMALL_PERCENT               // Mid/Small-Cap SET (-6.5%)
+    }
+
     fun getDetailedSignal(
         rsi: Double?, 
         macdHist: Double?, 
@@ -203,16 +220,8 @@ object TechnicalAnalysis {
         // Legacy exit risk unit (1R): user override > ATR volatility-adjusted (2×ATR%, clamped) > Market-Cap tier.
         // Targets and profit-taking exits are expressed in multiples of this distance so a
         // winner is always allowed to grow larger than the loss the stop accepts.
-        val atrStop = atrPercent?.takeIf { it > 0.0 }?.let {
-            -(TradingConstants.ATR_STOP_MULTIPLIER * it)
-                .coerceIn(TradingConstants.ATR_STOP_MIN_PERCENT, TradingConstants.ATR_STOP_MAX_PERCENT)
-        }
-        val dynamicStopLoss = when {
-            userStopLoss != null && userStopLoss < 0.0 -> userStopLoss // Explicit user percentage override (e.g. -6.0)
-            atrStop != null -> atrStop                                  // Volatility-adjusted (2× daily ATR)
-            isSet50 -> TradingConstants.STOP_LOSS_SET50_PERCENT         // SET50 Large Cap (-4.5%)
-            else -> TradingConstants.STOP_LOSS_MID_SMALL_PERCENT       // Mid/Small-Cap SET (-6.5%)
-        }
+        val atrStop = atrStopLossPercent(atrPercent)
+        val dynamicStopLoss = legacyStopLossPercent(atrPercent, isSet50, userStopLoss)
         val oneRPercent = -dynamicStopLoss
         val takeProfitPercent = TradingConstants.TAKE_PROFIT_R_MULTIPLE * oneRPercent
 

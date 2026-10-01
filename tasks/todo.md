@@ -258,3 +258,36 @@ Legacy (no saved plan) exits cap winners at +5% while stops reach -8%, giving re
 - Unify live/backtest signal inputs.
 - Score AI rankings against outcomes.
 - Core-satellite DCA mode.
+
+---
+
+# Plan: Market-Wide Backtest vs SET Index
+
+## Finding
+`SetScraper.fetchHistoricalPrices` fetches 1 year; `BacktestEngine` warms up 210 days, so the in-app backtest evaluates only ~35 trading days per stock.
+
+## Approach
+Offline JVM harness reusing the real `TechnicalAnalysis` / `BacktestEngine` code (no Android needed), fed by cached daily CSVs. Not shipped in the APK.
+
+## Todo Checklist
+- [x] **1. Data fetch script** (`tools/backtest/fetch_history.py`): download 2014-2025 daily OHLCV from Yahoo for SET100 constituents + TDEX (Yahoo serves no daily history for `^SET.BK`); cache CSVs under `tools/backtest/data/` (gitignored). Record which symbols lack full history.
+- [x] **2. Portfolio simulator** (`domain/PortfolioBacktest.kt`, pure Kotlin): shared capital, fixed-fraction sizing (1% risk), 15% single-stock cap, 100-share lots, max N positions, next-close fills, fees via existing fee engine, configurable slippage (default 0.15%/side).
+- [x] **3. Benchmark**: buy-and-hold SET index over the same window (price index; note dividends excluded, so add ~3%/yr estimate as TRI caveat).
+- [x] **4. Walk-forward report**: in-sample 2015-2020, out-of-sample 2021-2025. Metrics: CAGR, max drawdown, expectancy in R, win rate, trades/yr, exposure %, CAGR gap vs benchmark.
+- [x] **5. Harness entry**: JUnit test tagged/ignored by default (`-Pbacktest`) that reads CSVs and prints the report to `tools/backtest/report.md`.
+- [x] **6. Fix in-app window**: fetch 3 years in `fetchHistoricalPrices` for the Backtest screen (separate call so live refresh stays light).
+
+## Known limits
+- Survivorship bias: Yahoo lacks most delisted SET tickers; results will be optimistic. Stated in the report.
+- NVDR flow, relative strength, weekly trend and XD dates are not in the replay (live/backtest mismatch remains until unified).
+
+## Results (tools/backtest/report.md)
+- Current rules, 2015-2025: CAGR -10.1% vs TDEX +2.5%; MDD 72.5%; expectancy -0.09R; ~190 trades/yr.
+- Pre-change rules (157b217): CAGR -16.4%; ~272 trades/yr. The R-multiple exit change helped but did not create an edge.
+- Diagnostic (not shipped): disabling Early Breakdown exit gives -7.9% CAGR; entries themselves show no edge.
+
+## Follow-ups
+- [ ] **Live bug**: `SetScraper.fetchHistoricalPrices` index path (`^SET.BK`) returns no timestamps, so market regime, beta and regime cash buffer have no index data. Switch to TDEX proxy or SET API.
+- [ ] Rethink entries: test simple rules (e.g. trend-following 52w-high breakout, or index DCA core) in the harness before adding guards.
+- [ ] Rank simultaneous BUYs instead of symbol order.
+- [ ] Add point-in-time SET50/SET100 membership to reduce survivorship bias.
