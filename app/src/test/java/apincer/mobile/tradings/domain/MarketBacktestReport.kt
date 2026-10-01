@@ -88,11 +88,15 @@ class MarketBacktestReport {
         val rules = listOf(AppSignalRule, AppEntryTrendExitRule, BreakoutRule)
         val reasons = mutableMapOf<String, MutableMap<String, MutableList<Double>>>()
         val bySymbol = mutableMapOf<String, Map<String, Double>>()
+        val gatePeriods = mutableMapOf<String, MutableList<EvidenceGate.PeriodResult>>()
+        val gateFull = mutableMapOf<String, PortfolioBacktestResult>()
         for (rule in rules) for ((name, range) in periods) {
             val config = PortfolioBacktestConfig(startDate = range.first, endDate = range.second)
             val r = PortfolioBacktest.run(universe, config, rule)
             val b = PortfolioBacktest.buyAndHold(benchmark, config)
             sb.appendLine("| ${rule.name} | $name | ${f(r.stats.cagrPercent)} | ${f(b.cagrPercent)} | ${f(r.stats.cagrPercent - b.cagrPercent)} | ${f(r.stats.maxDrawdownPercent)} | ${f(b.maxDrawdownPercent)} | ${r.trades.size} | ${f(r.tradesPerYear)} | ${f(r.winRatePercent)} | ${f(r.expectancyR)} | ${f(r.exposurePercent)} | ${r.skippedSignals} |")
+            if (name.startsWith("Full")) gateFull[rule.name] = r
+            else gatePeriods.getOrPut(rule.name) { mutableListOf() } += EvidenceGate.PeriodResult(name, r.stats.cagrPercent, b.cagrPercent)
             if (name.startsWith("Full")) bySymbol[rule.name] = r.trades.groupBy { it.symbol }
                 .mapValues { (_, ts) -> ts.sumOf { it.pnlBaht } }
             if (name.startsWith("Full")) r.trades.forEach { t ->
@@ -116,6 +120,16 @@ class MarketBacktestReport {
             val total = pnl.values.sum()
             val topSum = top.sumOf { it.value }
             sb.appendLine("| $ruleName | ${f0(total)} | ${f0(topSum)} | ${f0(total - topSum)} | ${top.joinToString { "${it.key} ${f0(it.value)}" }} |")
+        }
+        sb.appendLine("\n## Evidence gate (docs/ADVISOR_EVALUATION.md)\n")
+        sb.appendLine("| Rule | Verdict | Reasons |")
+        sb.appendLine("|---|---|---|")
+        for (rule in rules) {
+            val full = gateFull.getValue(rule.name)
+            val v = EvidenceGate.evaluate(
+                gatePeriods[rule.name].orEmpty(), bySymbol[rule.name].orEmpty(), full.trades.size, full.expectancyR
+            )
+            sb.appendLine("| ${rule.name} | ${if (v.passed) "PASS" else "FAIL"} | ${v.reasons.joinToString("; ").ifEmpty { "-" }} |")
         }
         sb.appendLine("\n## Caveats\n")
         sb.appendLine("- Survivorship bias: universe is today's SET50; delisted and demoted stocks are missing, so results are optimistic.")

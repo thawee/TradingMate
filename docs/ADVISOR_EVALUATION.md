@@ -13,3 +13,35 @@ The software checks whether a saved plan is applied consistently. It does not es
 The current local journal records plan acceptance, AI ranking, fills, and undo events. It does not yet connect an AI ranking to a later accepted plan or retain complete market snapshots for full advisor replay. Until those links exist, the journal supports auditing individual events but not a reliable AI hit rate. The in-app backtest is a separate technical-only daily-close replay.
 
 Data quality is part of evaluation: keep quote, fundamental, stock-bar, benchmark-bar, and model observation dates distinct. Discard or mark missing any setup whose required evidence is unavailable or stale. The in-app 63-observation risk estimates and qualitative AI assessments are neither calibrated win probabilities nor guarantees of future profit.
+
+## Evidence gate for signal rules
+
+A signal rule may drive BUY/SELL wording, entry notifications or a default-on alert only after it passes this gate. Until then it is shown as context ("Technical Setup", "On Watch") with the backtest notice, and entry alerts stay off by default.
+
+The gate is implemented in `domain/EvidenceGate.kt` and evaluated for every rule in `tools/backtest/report.md`:
+
+```
+python3 tools/backtest/fetch_history.py
+BACKTEST=1 ./gradlew testDebugUnitTest --tests '*MarketBacktestReport*'
+```
+
+A rule passes only if all of these hold in the portfolio replay (shared capital, 1% risk per trade, 15% single-stock cap, board lots, InnovestX fees, 0.15% slippage per side, next-close fills):
+
+1. **Beats the benchmark in every sub-period.** CAGR above TDEX buy-and-hold (dividend-adjusted) in both 2015-2020 and 2021-2025. Beating the full period on the strength of one sub-period is not enough.
+2. **Not carried by a few names.** After removing the three most profitable symbols, closed-trade P/L stays positive and is at least 50% of the total.
+3. **Enough trades.** At least 100 closed trades over the full period.
+4. **Positive expectancy.** Average R per closed trade above zero after costs.
+
+Rules for changing a rule:
+
+- Write the rule and its parameters down before the first run. Report every variant tried, not only the one that passed.
+- Do not tune parameters on the backtest and then cite the same backtest as evidence. Confirm with a later holdout or the forward paper record above.
+- The gate thresholds themselves were set on 2026-10-01. The 50% concentration share was chosen after seeing that the 52-week breakout kept only 0.7% of its P/L without DELTA, KTC and JMART; treat it as a policy choice, not a calibrated number.
+
+Status on 2026-10-01: no rule passes. App signals, app entries with trend exits, and the 52-week breakout all fail (see the report).
+
+### Known limits of the replay
+
+- **Survivorship bias.** The universe is today's SET50; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.
+- **Inputs not replayed.** NVDR flow, relative strength, weekly trend, XD grace, market-regime cash buffer, sector caps, fundamentals and AI ranking. A rule that depends on them cannot pass the gate until they are replayed.
+- **Daily closes only.** No intraday fills, gaps are filled at the next close.

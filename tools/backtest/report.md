@@ -50,6 +50,14 @@ Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 
 | App entries + trend exit | -785,019 | 218,276 | -1,003,295 | KTC 141,505, CBG 41,152, BH 35,619 |
 | 52w breakout + trend exit | 1,907,466 | 1,893,735 | 13,731 | DELTA 970,673, KTC 468,737, JMART 454,326 |
 
+## Evidence gate (docs/ADVISOR_EVALUATION.md)
+
+| Rule | Verdict | Reasons |
+|---|---|---|
+| App signals | FAIL | Trails benchmark in 2015-2020 (-5.10% vs 1.75%); Trails benchmark in 2021-2025 (-15.51% vs 3.19%); Without its top 3 symbols, P/L is ฿-799,074 of ฿-689,578 (need positive and ≥ 50%); Expectancy -0.09R is not positive |
+| App entries + trend exit | FAIL | Trails benchmark in 2015-2020 (-8.92% vs 1.75%); Trails benchmark in 2021-2025 (-17.80% vs 3.19%); Without its top 3 symbols, P/L is ฿-1,003,295 of ฿-785,019 (need positive and ≥ 50%); Expectancy -0.09R is not positive |
+| 52w breakout + trend exit | FAIL | Trails benchmark in 2021-2025 (-1.03% vs 3.19%); Without its top 3 symbols, P/L is ฿13,731 of ฿1,907,466 (need positive and ≥ 50%) |
+
 ## Caveats
 
 - Survivorship bias: universe is today's SET50; delisted and demoted stocks are missing, so results are optimistic.

@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **R-multiple exits for holdings without a saved plan:** Take-profit moved from a flat +5% / ฿500 to 2R (2 × stop distance), so winners can exceed the loss the stop accepts. The trailing stop now arms once the peak reaches +1R and also exits if price falls back to cost.
 
 ### Added
+- **Evidence gate for signal rules:** `EvidenceGate` requires beating TDEX in both sub-periods, at least 50% of P/L surviving removal of the top 3 symbols, 100+ trades and positive expectancy. The backtest report prints PASS/FAIL per rule (all current rules fail). Criteria documented in `docs/ADVISOR_EVALUATION.md`.
 - **Market-wide portfolio backtest** (`PortfolioBacktest`): shared-capital replay of the signal engine across a universe with fixed-fractional sizing, 15% stock cap, board lots, fees and slippage, plus a buy-and-hold benchmark. `tools/backtest/fetch_history.py` downloads dividend-adjusted history; `BACKTEST=1 ./gradlew testDebugUnitTest --tests '*MarketBacktestReport*'` writes `tools/backtest/report.md`.
 
 ### Fixed

@@ -332,8 +332,8 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 - Verified on emulator: exclusion state (HMPRO, MBK pre-journal holdings), Buy dialog cap warning. Populated windows covered by unit tests only.
 
 ### Phase 4: Evidence gate for signals
-- [ ] `docs/ADVISOR_EVALUATION.md`: any signal change must beat TDEX in BOTH sub-periods and stay positive after removing its top 3 symbols in `MarketBacktestReport`.
-- [ ] Add point-in-time index membership to the harness when data source is available (reduces survivorship bias).
+- [x] `docs/ADVISOR_EVALUATION.md`: any signal change must beat TDEX in BOTH sub-periods and stay positive after removing its top 3 symbols in `MarketBacktestReport`. Implemented as `EvidenceGate` (also: >= 50% of P/L without top 3, >= 100 trades, positive expectancy); report prints PASS/FAIL per rule. All current rules FAIL.
+- [ ] Blocked (no verified data source): add point-in-time index membership to the harness when data source is available (reduces survivorship bias).
 
 ### Phase 5: Docs
 - [ ] README concept rewrite (core-satellite + discipline), CHANGELOG, version bump.
