@@ -312,7 +312,7 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 - [x] Entry (BUY) notifications from `StockAlertWorker.kt:185` default OFF (Settings toggle; also gates the 15:30 entry-window prompt); risk exits (stop, trailing, saved-plan stop) stay ON.
 - [x] Advisor tab header card (Swing playbook only): results summary vs TDEX (surface card per lessons.md #5, not small text); "Accept AI Plan" demoted to secondary (outlined) action.
 - [x] Signal copy: removed "High probability value dip", "strong sign of institutional buying", "reversal confirmed".
-- [x] Watchlist/advisor badges, sort bubble and entry notification title now use `IndicatorSignal.badgeLabel` (SETUP / WATCH / EXIT). Still open: "On Watch" can sit next to a "Selling Zone" chip (zone is RSI-only), pre-existing inconsistency.
+- [x] Watchlist/advisor badges, sort bubble and entry notification title now use `IndicatorSignal.badgeLabel` (SETUP / WATCH / EXIT). Zone chip fixed: descriptive trend states (Uptrend / Downtrend / Overextended / Near Support / Range) replace Buying/Selling/Potential Zone.
 
 ### Phase 2: Core holdings and DCA
 - [x] Domain: `isCore(symbol) = symbol == "TDEX"`; all other holdings are SATELLITE. No schema change.

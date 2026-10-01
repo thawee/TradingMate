@@ -823,4 +823,18 @@ class TechnicalAnalysisTest {
         // CVaR is expected shortfall in the worst 5% tail, which must be >= VaR
         assertTrue("CVaR should be at least as severe as VaR", cvar95 >= var95)
     }
+
+    @Test
+    fun tradingZoneDescribesTrendWithoutContradictingSupportSignal() {
+        val bb = BollingerBands(upper = 110.0, middle = 100.0, lower = 90.0)
+        // Testing the lower band below SMA50 with negative MACD: a downtrend at support, not a "Selling Zone".
+        assertEquals(TradingZone.DOWNTREND, TechnicalAnalysis.getTradingZone(40.0, -0.2, 91.0, 100.0, bb))
+        assertEquals(TradingZone.OVEREXTENDED, TechnicalAnalysis.getTradingZone(70.0, 0.5, 105.0, 100.0, bb))
+        assertEquals(TradingZone.OVEREXTENDED, TechnicalAnalysis.getTradingZone(55.0, 0.5, 106.0, 100.0, bb))
+        assertEquals(TradingZone.UPTREND, TechnicalAnalysis.getTradingZone(55.0, 0.5, 102.0, 100.0, bb))
+        // Positive MACD but still below SMA50, near the lower band: near support.
+        assertEquals(TradingZone.NEAR_SUPPORT, TechnicalAnalysis.getTradingZone(38.0, 0.1, 93.0, 100.0, bb))
+        assertEquals(TradingZone.NEUTRAL, TechnicalAnalysis.getTradingZone(50.0, 0.1, 99.0, 100.0, bb))
+        assertEquals(TradingZone.NEUTRAL, TechnicalAnalysis.getTradingZone(null, 0.1, 99.0, 100.0, bb))
+    }
 }

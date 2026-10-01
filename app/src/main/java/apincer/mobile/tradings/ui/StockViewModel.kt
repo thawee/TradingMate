@@ -1349,7 +1349,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         else -> rawSignal
                     }
 
-                    val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, sma200, bb)
+                    val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, bb)
 
                     val buyPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 35.0)
                     val sellPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 65.0)

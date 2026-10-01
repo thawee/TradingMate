@@ -57,11 +57,13 @@ enum class MarketStatus(val label: String, val color: Color) {
     CLOSED("MARKET CLOSED", Color(0xFF717478))
 }
 
+/** Descriptive trend state shown beside the signal; it describes price, it does not recommend. */
 enum class TradingZone(val label: String, val color: Color) {
-    BUYING_ZONE("Buying Zone", Color(0xFF00C853)),
-    POTENTIAL_ZONE("Potential Zone", Color(0xFFC66900)),
-    SELLING_ZONE("Selling Zone", Color.Red),
-    NEUTRAL("Neutral Zone", Color(0xFF717478))
+    OVEREXTENDED("Overextended", Color(0xFFFFA726)),
+    DOWNTREND("Downtrend", Color(0xFFEF5350)),
+    UPTREND("Uptrend", Color(0xFF00C853)),
+    NEAR_SUPPORT("Near Support", Color(0xFF60A5FA)),
+    NEUTRAL("Range", Color(0xFF717478))
 }
 
 object TechnicalAnalysis {
@@ -99,37 +101,25 @@ object TechnicalAnalysis {
         macdHist: Double?, 
         lastPrice: Double?, 
         sma50: Double?,
-        sma200: Double?,
         bb: BollingerBands?
     ): TradingZone {
         if (rsi == null || macdHist == null || lastPrice == null) return TradingZone.NEUTRAL
         
-        val isRsiOversold = rsi < TradingConstants.RSI_OVERSOLD
         val isRsiPotential = rsi < TradingConstants.RSI_POTENTIAL
         val isRsiOverbought = rsi > TradingConstants.RSI_OVERBOUGHT
         val isMacdBullish = macdHist > 0.0
-        val isPriceAboveSma50 = if (sma50 != null) lastPrice > sma50 else false
-        val isPriceAboveSma200 = if (sma200 != null) lastPrice > sma200 else true
         val isNearLowerBB = if (bb != null) lastPrice <= bb.lower * 1.05 else false
         val isNearUpperBB = if (bb != null) lastPrice >= bb.upper * 0.95 else false
-        
-        // Selling Zone: Overbought OR Near Upper Resistance OR Momentum collapse below SMA50
-        if (isRsiOverbought || isNearUpperBB || (!isMacdBullish && !isPriceAboveSma50)) {
-            return TradingZone.SELLING_ZONE
-        }
 
-        // Buying Zone: Oversold AND Long-term Uptrend (Aligned with getDetailedSignal high-conviction buy)
-        // OR (Positive Momentum near support/above SMA50)
-        if ((isRsiOversold && isPriceAboveSma200) || (isMacdBullish && (isNearLowerBB || isPriceAboveSma50))) {
-            return TradingZone.BUYING_ZONE
+        // Each state is a distinct description, so it cannot contradict the signal headline
+        // (the old "Selling Zone" merged overextended highs with breakdowns at support).
+        return when {
+            isRsiOverbought || isNearUpperBB -> TradingZone.OVEREXTENDED
+            sma50 != null && lastPrice < sma50 && !isMacdBullish -> TradingZone.DOWNTREND
+            sma50 != null && lastPrice > sma50 && isMacdBullish -> TradingZone.UPTREND
+            isRsiPotential || isNearLowerBB -> TradingZone.NEAR_SUPPORT
+            else -> TradingZone.NEUTRAL
         }
-
-        // Potential Zone: Nearing Buy thresholds or Contrarian Watch (Oversold below SMA200)
-        if (isRsiPotential || isNearLowerBB || isRsiOversold) {
-            return TradingZone.POTENTIAL_ZONE
-        }
-        
-        return TradingZone.NEUTRAL
     }
 
     fun getMarketStatus(): MarketStatus {
