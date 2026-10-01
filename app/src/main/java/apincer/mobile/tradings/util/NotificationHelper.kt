@@ -103,6 +103,44 @@ object NotificationHelper {
         notificationManager.notify(symbol.hashCode() + 1000, builder.build())
     }
 
+    fun showDcaReminderNotification(
+        context: Context,
+        amount: Double,
+        price: Double,
+        suggestion: apincer.mobile.tradings.domain.CoreSatellite.DcaSuggestion
+    ) {
+        val symbol = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("START_SCREEN", "PORTFOLIO")
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, "dca".hashCode(), intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val text = if (suggestion.shares > 0) {
+            String.format(java.util.Locale.ENGLISH,
+                "Buy %,d %s at about ฿%.2f (~฿%,.0f incl. fees) from your ฿%,.0f monthly amount.",
+                suggestion.shares, symbol, price, suggestion.estimatedCost, amount)
+        } else {
+            String.format(java.util.Locale.ENGLISH,
+                "Your ฿%,.0f monthly amount is below one %s board lot (~฿%,.0f). Let it accumulate.",
+                amount, symbol, price * 100)
+        }
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Monthly core buy: $symbol")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify("dca".hashCode(), builder.build())
+    }
+
     fun showSellReminderNotification(context: Context, symbol: String, reason: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

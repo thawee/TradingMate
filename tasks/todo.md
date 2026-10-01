@@ -315,10 +315,13 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 - [ ] Follow-up: watchlist row badges still say BUY / POTENTIAL; "On Watch" can sit next to a "Selling Zone" chip (zone is RSI-only), pre-existing inconsistency.
 
 ### Phase 2: Core holdings and DCA
-- [ ] Domain: `isCore(symbol) = symbol == "TDEX"`; all other holdings are SATELLITE. No schema change.
-- [ ] Settings: target core % (default 80), monthly DCA amount, DCA day.
-- [ ] Monthly DCA reminder notification with suggested lots (100-share rounding, fees shown) to restore target core %.
-- [ ] Portfolio screen: Core vs Satellite allocation card with drift from target.
+- [x] Domain: `isCore(symbol) = symbol == "TDEX"`; all other holdings are SATELLITE. No schema change.
+- [x] Settings: target core % (default 80), monthly DCA amount, DCA day.
+- [x] Monthly DCA reminder notification with suggested lots (100-share rounding, fees shown) to restore target core %.
+- [x] Portfolio screen: Core vs Satellite allocation card with drift from target.
+
+- [x] Verified on emulator: card (no-core state), Settings section, forced worker run produced "Buy 900 TDEX at about ฿10.35 (~฿9,331 incl. fees)".
+- [ ] Follow-up: Yahoo `v7/finance/quote` (`SetScraper.fetchBatchQuotes`) returns HTTP 401; `StockViewModel` refreshes mark every symbol failed and fall back to the slower per-stock path. Replace with chart endpoint or SET API.
 
 ### Phase 3: Satellite scorecard
 - [ ] Stats: satellite money-weighted return vs "same cash flows into TDEX" (shadow portfolio from cash transactions + trades).

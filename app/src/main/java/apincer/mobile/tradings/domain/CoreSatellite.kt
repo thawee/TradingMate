@@ -1,0 +1,53 @@
+package apincer.mobile.tradings.domain
+
+/**
+ * Core-satellite allocation. The core is TDEX (SET50 ETF), the benchmark the market-wide
+ * backtest could not beat; every other holding is satellite. Percentages are of invested
+ * market value, so the regime cash buffer does not distort the split.
+ */
+object CoreSatellite {
+    const val CORE_SYMBOL = "TDEX"
+    const val DEFAULT_TARGET_CORE_PERCENT = 80.0
+    const val DEFAULT_DCA_DAY = 1
+
+    fun isCore(symbol: String): Boolean = symbol.equals(CORE_SYMBOL, ignoreCase = true)
+
+    data class Allocation(
+        val coreValue: Double,
+        val satelliteValue: Double,
+        val targetCorePercent: Double
+    ) {
+        val investedValue: Double get() = coreValue + satelliteValue
+        val corePercent: Double get() = if (investedValue > 0) coreValue / investedValue * 100.0 else 0.0
+        val satellitePercent: Double get() = if (investedValue > 0) 100.0 - corePercent else 0.0
+        /** Positive when core is above target, negative when below. */
+        val driftPercent: Double get() = corePercent - targetCorePercent
+        /** Core purchase needed to reach target without selling satellite. */
+        val coreShortfallBaht: Double get() {
+            val target = targetCorePercent / 100.0
+            if (target >= 1.0) return 0.0
+            return maxOf(0.0, (target * satelliteValue / (1.0 - target)) - coreValue)
+        }
+    }
+
+    /** [holdings] are (symbol, market value) pairs. */
+    fun allocation(holdings: List<Pair<String, Double>>, targetCorePercent: Double): Allocation =
+        Allocation(
+            coreValue = holdings.filter { isCore(it.first) }.sumOf { it.second },
+            satelliteValue = holdings.filterNot { isCore(it.first) }.sumOf { it.second },
+            targetCorePercent = targetCorePercent
+        )
+
+    data class DcaSuggestion(val shares: Int, val estimatedCost: Double, val unusedBaht: Double)
+
+    /** Largest whole 100-share board lot of [price] whose cost including buy fees fits [budget]. */
+    fun dcaSuggestion(budget: Double, price: Double, atsEnabled: Boolean = true): DcaSuggestion {
+        if (budget <= 0.0 || price <= 0.0) return DcaSuggestion(0, 0.0, maxOf(budget, 0.0))
+        fun cost(shares: Int) = shares * price + TechnicalAnalysis.calculateFees(shares * price, isSelling = false, atsEnabled = atsEnabled)
+        var lots = (budget / (price * 100)).toInt()
+        while (lots > 0 && cost(lots * 100) > budget) lots--
+        val shares = lots * 100
+        val spent = if (shares > 0) cost(shares) else 0.0
+        return DcaSuggestion(shares, spent, budget - spent)
+    }
+}

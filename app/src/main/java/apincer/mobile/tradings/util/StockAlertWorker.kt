@@ -9,6 +9,7 @@ import apincer.mobile.tradings.data.SetScraper
 import apincer.mobile.tradings.data.StockDatabase
 import apincer.mobile.tradings.data.StockAggregate
 import apincer.mobile.tradings.data.StockRepository
+import apincer.mobile.tradings.domain.CoreSatellite
 import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import kotlinx.coroutines.flow.firstOrNull
@@ -73,6 +74,28 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         isFirstSeason = month == java.util.Calendar.JANUARY
                     )
                     alertPrefs.edit().putBoolean(seasonKey, true).apply()
+                }
+            }
+
+            // 3b. Monthly core DCA reminder: first trading session on/after the DCA day, once per month.
+            val dcaAmount = prefRepo.monthlyDcaAmount.firstOrNull() ?: 0.0
+            if (dcaAmount > 0.0 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {
+                val dcaDay = (prefRepo.dcaDayOfMonth.firstOrNull() ?: CoreSatellite.DEFAULT_DCA_DAY)
+                    .coerceAtMost(now.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))
+                val dcaKey = "dca_reminder_$year-${month + 1}"
+                if (now.get(java.util.Calendar.DAY_OF_MONTH) >= dcaDay && !alertPrefs.getBoolean(dcaKey, false)) {
+                    // Chart endpoint: Yahoo's v7 batch quote endpoint now answers 401 without a crumb.
+                    val price = SetScraper.fetchHistoricalPrices(CoreSatellite.CORE_SYMBOL, days = 10)
+                        .lastOrNull()?.close ?: 0.0
+                    if (price > 0.0) {
+                        NotificationHelper.showDcaReminderNotification(
+                            context = applicationContext,
+                            amount = dcaAmount,
+                            price = price,
+                            suggestion = CoreSatellite.dcaSuggestion(dcaAmount, price, atsEnabled)
+                        )
+                        alertPrefs.edit().putBoolean(dcaKey, true).apply()
+                    }
                 }
             }
         }
