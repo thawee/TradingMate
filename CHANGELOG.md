@@ -1,19 +1,15 @@
 # Changelog
 
-## [3.4.0] - 2026-09-28
-### Added (V2 Roadmap - The "Discipline & AI" Overhaul)
-- **Epic 1: Zero-Friction Trade Logging (Gemini Vision)**: Added image picker in Buy Dialog that uses Gemini Vision API to parse broker screenshots and auto-fill Ticker, Price, and Quantity.
-- **Epic 2: "Closed-Loop" AI Journal**: Added an "Accept AI Plan" button to the AI Recommendation Card to instantly save generated plans. Safely handles active holdings without overwriting quantity.
-- **Epic 3: Post-Trade Autopsy**: Rebuilt the Sell Dialog to enforce exit categorization (Target Hit, Stop Hit, Mistake, etc.) and mandate a 10-character psychological lesson on losing or mistake trades.
-- **Epic 4: Dynamic Trailing Stops**: Integrated Market Regime analysis into the ATR trailing stop calculation (tighter 1.5x in Bearish, looser 3.0x in Bullish).
-- **Epic 5: Paper Trading (Sandbox Mode)**: Implemented isolated `stock_database_sandbox` using dynamic Room Database instantiation and a Settings toggle.
-
 All notable changes to the TradingMate project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.0.0] - 2026-10-01
+
+Repositioned from a signal advisor to an index core with a disciplined, measured satellite, after a market-wide backtest showed the technical signals trailing TDEX buy-and-hold (see `tools/backtest/report.md`).
 
 ### Changed
 - **Honest signal labelling:** signal card reads "Technical Setup" / "On Watch" / "Exit Rule" with a "Context, not a buy call" notice citing the backtest; same notice on the Swing playbook. "Accept AI Plan" is now a secondary "Save as Satellite Plan" action. Signal descriptions no longer claim "high probability" or "institutional buying".
@@ -33,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **In-app backtest window:** the Backtest screen fetched 1 year of history, leaving only ~35 bars after the 210-bar warm-up. It now fetches 3 years.
 - **Overbought exit churn on large positions:** Overbought, MFI distribution and upper-band SELLs triggered once profit exceeded a flat ฿500, selling large positions at a fraction of a percent gain. They now require at least +1R.
 - **Duplicated take-profit rules:** `StockViewModel` and `StockAlertWorker` re-derived their own flat take-profit and RSI ≥ 65 alerts with different thresholds; both now use the signal engine's SELL reasons.
+
+## [3.4.0] - 2026-09-28
+### Added (V2 Roadmap - The "Discipline & AI" Overhaul)
+- **Epic 1: Zero-Friction Trade Logging (Gemini Vision)**: Added image picker in Buy Dialog that uses Gemini Vision API to parse broker screenshots and auto-fill Ticker, Price, and Quantity.
+- **Epic 2: "Closed-Loop" AI Journal**: Added an "Accept AI Plan" button to the AI Recommendation Card to instantly save generated plans. Safely handles active holdings without overwriting quantity.
+- **Epic 3: Post-Trade Autopsy**: Rebuilt the Sell Dialog to enforce exit categorization (Target Hit, Stop Hit, Mistake, etc.) and mandate a 10-character psychological lesson on losing or mistake trades.
+- **Epic 4: Dynamic Trailing Stops**: Integrated Market Regime analysis into the ATR trailing stop calculation (tighter 1.5x in Bearish, looser 3.0x in Bullish).
+- **Epic 5: Paper Trading (Sandbox Mode)**: Implemented isolated `stock_database_sandbox` using dynamic Room Database instantiation and a Settings toggle.
 
 ## [3.3.1] - 2026-09-26
 

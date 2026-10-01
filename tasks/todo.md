@@ -336,7 +336,7 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 - [ ] Blocked (no verified data source): add point-in-time index membership to the harness when data source is available (reduces survivorship bias).
 
 ### Phase 5: Docs
-- [ ] README concept rewrite (core-satellite + discipline), CHANGELOG, version bump.
+- [x] README concept rewrite (core-satellite + discipline), CHANGELOG, version bump to 4.0.0 (29).
 
 ## Decisions (2026-10-01)
 - Core instrument: TDEX only. CORE bucket is derived (symbol == TDEX), so no user tagging; Phase 2 `bucket` column not needed.
