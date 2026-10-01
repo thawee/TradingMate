@@ -208,7 +208,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     NotificationHelper.showSignalNotification(
                         context = applicationContext,
                         symbol = entity.symbol,
-                        signal = signal.type.name,
+                        signal = signal.type.badgeLabel,
                         reason = signal.reason
                     )
                 }

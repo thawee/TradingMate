@@ -653,7 +653,7 @@ fun StockItemCard(
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
-                                        text = item.signal.type.name,
+                                        text = item.signal.type.badgeLabel,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Black,
@@ -963,7 +963,7 @@ fun StockItemCard(
                     isPortfolioItem && isSellSignal && !isSoftSell -> "ACTION: SELL"
                     isPortfolioItem && isSellSignal && isSoftSell -> "WARNING"
                     isPortfolioItem && !isSellSignal -> "ACTION: HOLD"
-                    else -> item.signal?.type?.name ?: "MONITOR"
+                    else -> item.signal?.type?.badgeLabel ?: "MONITOR"
                 }
                 
                 val reasonText = when {

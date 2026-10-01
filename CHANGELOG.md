@@ -16,6 +16,7 @@ Repositioned from a signal advisor to an index core with a disciplined, measured
 - **Core-satellite (TDEX core):** Settings for target core % (default 80), monthly DCA amount and day. A monthly reminder on the first trading session on/after the DCA day suggests whole TDEX board lots with fees. Portfolio shows a Core vs Satellite card with the core shortfall to reach target.
 - **Satellite scorecard:** Stats compares the satellite with the same cash flows replayed into TDEX (dividend-adjusted) since the first journaled fill and over two trailing 12-month windows, with money-weighted annual returns. Suggests lowering the satellite share when it trails in both windows. Holdings whose fills are not fully journaled are excluded and listed.
 - **Satellite cap warning:** the Buy dialog warns when a non-TDEX purchase would push the satellite above its cap. Swing caption updated to the 2R take-profit.
+- **Signal badges:** watchlist and advisor badges, the signal sort bubble and entry notification titles read SETUP / WATCH / EXIT instead of BUY / POTENTIAL / SELL. Stored signal names are unchanged.
 - **Entry signal alerts off by default:** new Settings toggle gates BUY notifications and the 15:30 entry-window prompt. Stop and exit alerts are unchanged.
 - **R-multiple exits for holdings without a saved plan:** Take-profit moved from a flat +5% / ฿500 to 2R (2 × stop distance), so winners can exceed the loss the stop accepts. The trailing stop now arms once the peak reaches +1R and also exits if price falls back to cost.
 

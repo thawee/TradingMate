@@ -37,8 +37,12 @@ data class BollingerBands(
     val lower: Double
 )
 
-enum class IndicatorSignal {
-    BUY, POTENTIAL, SELL, NEUTRAL
+/** Entry names are persisted (signalType column); change [badgeLabel], not the names. */
+enum class IndicatorSignal(
+    /** Short UI label. Entry signals read as context because no entry rule has passed the evidence gate. */
+    val badgeLabel: String
+) {
+    BUY("SETUP"), POTENTIAL("WATCH"), SELL("EXIT"), NEUTRAL("NEUTRAL")
 }
 
 data class TradeSignal(
