@@ -326,6 +326,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         decision.reason.name, decision.description)
                     else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
                         "No saved exit level or early invalidation trigger reached")
+                } else if (apincer.mobile.tradings.domain.CoreSatellite.isCore(stock.symbol)) {
+                    apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL
                 } else rawSignal
 
                 val focusMovement = if (focus != null && focus.startPrice != 0.0) {
@@ -1346,6 +1348,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
                                 "No saved exit level or early invalidation trigger reached")
                         }
+                        apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol) ->
+                            apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL
                         else -> rawSignal
                     }
 

@@ -191,7 +191,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     ) else apincer.mobile.tradings.domain.TradeSignal(
                         IndicatorSignal.NEUTRAL, "Saved plan active", "No saved exit trigger reached"
                     )
-                } else rawSignal
+                } else if (CoreSatellite.isCore(entity.symbol)) CoreSatellite.CORE_SIGNAL else rawSignal
 
                 // 4. Check for state shift (entry opportunities only)
                 val oldSignalType = entity.signalType
