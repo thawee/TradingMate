@@ -50,6 +50,10 @@ Fix on 2026-10-02: "near the lower/upper Bollinger band" was measured as within 
 
 None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow the 2021-2025 loss (P1 -0.77% vs P0 -1.19% per trade), but every variant is negative in 2021-2025 and none beats TDEX in both sub-periods. Dropping the BUY signal (P3) changes little, consistent with the signal adding no edge. The advisor remains context, not a short-term buy list.
 
+### 1-4 week momentum rules
+
+`tools/backtest/momentum_report.md` tests three rules fixed on 2026-10-02 before the first run: buy a new 20-session closing high above SMA50, sell on a new 10- or 20-session low, a 2x ATR stop, or a 20- or 40-session time limit, with and without a TDEX-above-SMA50 market filter. None passes the gate. All three trail TDEX in 2021-2025, and every variant's profit depends on its top three symbols (DELTA, KTC and others). The best, M2 (20-day low exit, 40-day limit), returned 6.26% a year over 2015-2025 against TDEX's 2.52% but -2.62% in 2021-2025. Across variants, exits on the short-term low lost money on average while time-limit exits made it: selling on the first dip cuts the winners.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.

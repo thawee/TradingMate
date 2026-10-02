@@ -395,3 +395,12 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 - [x] ThaiESG/RMF tracker with December reminders.
 - [x] Rebalance nudge (monthly, core more than 5 points under target).
 - [x] Single stop model: volatility-based (user decision, 2026-10-02); fixed-% trailing setting removed.
+
+# 1-4 week momentum rules, 2026-10-02 (fixed before the first run)
+
+Common: SET50 frozen universe, 2015-2025, portfolio replay (1% risk, 15% stock cap, 10 positions, board lots, InnovestX fees, 0.15% slippage per side, next-close fills); evidence gate as in docs/ADVISOR_EVALUATION.md.
+- M1: Buy when close is the highest close of the last 20 sessions, close > SMA50 and TDEX close > TDEX SMA50. Sell on close at the lowest close of the last 10 sessions, at a 2x ATR stop from entry, or after 20 sessions.
+- M2: As M1, but sell on the 20-session low and after 40 sessions.
+- M3: As M1 without the TDEX market condition.
+Rank simultaneous buys by 126-day momentum. Report every variant.
+- [x] Result: none passes (all trail TDEX in 2021-2025 and depend on their top three symbols). See tools/backtest/momentum_report.md.
