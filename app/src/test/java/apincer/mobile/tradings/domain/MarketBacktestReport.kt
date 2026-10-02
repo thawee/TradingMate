@@ -57,6 +57,9 @@ object AppEntryTrendExitRule : BacktestRule {
 class MarketBacktestReport {
     private val root = File(System.getProperty("user.dir")).let { if (File(it, "tools").exists()) it else it.parentFile }
     private val dataDir = File(root, "tools/backtest/data")
+    /** Frozen membership for the SET50 stop tier, independent of live TradingConstants.SET50_SYMBOLS. */
+    private val frozenSet50 = File(root, "tools/backtest/universe.txt").readLines()
+        .map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.toSet()
 
     private fun load(file: File): List<ScrapedHistoricalPrice> = file.readLines().drop(1).mapNotNull { line ->
         val c = line.split(",")
@@ -81,7 +84,7 @@ class MarketBacktestReport {
         fun f0(v: Double) = String.format(Locale.ENGLISH, "%,.0f", v)
         val sb = StringBuilder()
         sb.appendLine("# Market-Wide Backtest Report\n")
-        sb.appendLine("Universe: ${universe.size} current SET50 stocks (Yahoo, dividend-adjusted). Benchmark: TDEX (SET50 ETF) buy-and-hold, dividend-adjusted.")
+        sb.appendLine("Universe: ${universe.size} SET50 stocks as of H1 2025, frozen in tools/backtest/universe.txt (Yahoo, dividend-adjusted). Benchmark: TDEX (SET50 ETF) buy-and-hold, dividend-adjusted.")
         sb.appendLine("Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 0.15% slippage per side, InnovestX fees (ATS), next-close fills, 260-bar indicator window.\n")
         sb.appendLine("| Rule | Period | CAGR % | TDEX CAGR % | Gap % | MDD % | TDEX MDD % | Trades | Trades/yr | Win % | Expectancy R | Exposure % | Skipped |")
         sb.appendLine("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
@@ -92,7 +95,7 @@ class MarketBacktestReport {
         val gateFull = mutableMapOf<String, PortfolioBacktestResult>()
         for (rule in rules) for ((name, range) in periods) {
             val config = PortfolioBacktestConfig(startDate = range.first, endDate = range.second)
-            val r = PortfolioBacktest.run(universe, config, rule)
+            val r = PortfolioBacktest.run(universe, config, rule) { it.uppercase() in frozenSet50 }
             val b = PortfolioBacktest.buyAndHold(benchmark, config)
             sb.appendLine("| ${rule.name} | $name | ${f(r.stats.cagrPercent)} | ${f(b.cagrPercent)} | ${f(r.stats.cagrPercent - b.cagrPercent)} | ${f(r.stats.maxDrawdownPercent)} | ${f(b.maxDrawdownPercent)} | ${r.trades.size} | ${f(r.tradesPerYear)} | ${f(r.winRatePercent)} | ${f(r.expectancyR)} | ${f(r.exposurePercent)} | ${r.skippedSignals} |")
             if (name.startsWith("Full")) gateFull[rule.name] = r
@@ -132,7 +135,7 @@ class MarketBacktestReport {
             sb.appendLine("| ${rule.name} | ${if (v.passed) "PASS" else "FAIL"} | ${v.reasons.joinToString("; ").ifEmpty { "-" }} |")
         }
         sb.appendLine("\n## Caveats\n")
-        sb.appendLine("- Survivorship bias: universe is today's SET50; delisted and demoted stocks are missing, so results are optimistic.")
+        sb.appendLine("- Survivorship bias: universe is the H1 2025 SET50 applied to 2015-2025; delisted and demoted stocks are missing, so results are optimistic.")
         sb.appendLine("- Not replayed: NVDR flow, relative strength, weekly trend, XD grace, market regime cash buffer, sector caps, fundamentals, saved plans, AI ranking.")
         sb.appendLine("- App thresholds were designed with knowledge of this period; neither sub-period is a true out-of-sample test. Alternative rules use textbook parameters fixed before their first run.\n- Simultaneous BUYs: app rules fill in symbol order; the breakout rule fills by 126-day momentum.")
         File(root, "tools/backtest/report.md").writeText(sb.toString())

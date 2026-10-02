@@ -2,7 +2,7 @@
 """Download daily OHLCV from Yahoo Finance into tools/backtest/data/<SYMBOL>.csv.
 
 Usage: python3 tools/backtest/fetch_history.py [SYMBOL ...]
-With no arguments, fetches SET50_SYMBOLS (parsed from TradingConstants.kt) plus TDEX
+With no arguments, fetches the frozen universe in universe.txt plus TDEX
 (SET50 ETF, the benchmark; Yahoo serves no daily history for ^SET.BK).
 Output columns: date,open,high,low,close,volume, dividend-adjusted (total return); rows with missing close are skipped.
 """
@@ -10,15 +10,13 @@ import csv, datetime, json, os, re, sys, time, urllib.parse, urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
-CONSTANTS = os.path.join(ROOT, "../../app/src/main/java/apincer/mobile/tradings/domain/TradingConstants.kt")
+UNIVERSE = os.path.join(ROOT, "universe.txt")
 START = int(datetime.datetime(2014, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
 END = int(datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
 
 
 def set50_symbols():
-    src = open(CONSTANTS).read()
-    block = re.search(r"SET50_SYMBOLS = setOf\((.*?)\)", src, re.S).group(1)
-    return re.findall(r'"([A-Z0-9]+)"', block)
+    return [l.strip() for l in open(UNIVERSE) if l.strip() and not l.startswith("#")]
 
 
 def fetch(yahoo_symbol):

@@ -1,6 +1,6 @@
 # Market-Wide Backtest Report
 
-Universe: 48 current SET50 stocks (Yahoo, dividend-adjusted). Benchmark: TDEX (SET50 ETF) buy-and-hold, dividend-adjusted.
+Universe: 48 SET50 stocks as of H1 2025, frozen in tools/backtest/universe.txt (Yahoo, dividend-adjusted). Benchmark: TDEX (SET50 ETF) buy-and-hold, dividend-adjusted.
 Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 0.15% slippage per side, InnovestX fees (ATS), next-close fills, 260-bar indicator window.
 
 | Rule | Period | CAGR % | TDEX CAGR % | Gap % | MDD % | TDEX MDD % | Trades | Trades/yr | Win % | Expectancy R | Exposure % | Skipped |
@@ -59,7 +59,7 @@ Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 
 
 ## Caveats
 
-- Survivorship bias: universe is today's SET50; delisted and demoted stocks are missing, so results are optimistic.
+- Survivorship bias: universe is the H1 2025 SET50 applied to 2015-2025; delisted and demoted stocks are missing, so results are optimistic.
 - Not replayed: NVDR flow, relative strength, weekly trend, XD grace, market regime cash buffer, sector caps, fundamentals, saved plans, AI ranking.
 - App thresholds were designed with knowledge of this period; neither sub-period is a true out-of-sample test. Alternative rules use textbook parameters fixed before their first run.
 - Simultaneous BUYs: app rules fill in symbol order; the breakout rule fills by 126-day momentum.

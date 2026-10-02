@@ -18,6 +18,8 @@ import java.util.Locale
 class AdvisorEventStudy {
     private val root = File(System.getProperty("user.dir")).let { if (File(it, "tools").exists()) it else it.parentFile }
     private val dataDir = File(root, "tools/backtest/data")
+    private val frozenSet50 = File(root, "tools/backtest/universe.txt").readLines()
+        .map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.toSet()
     private val roundTripCost = 2 * (TechnicalAnalysis.THAI_FEE_RATE + 0.0015)
 
     private fun load(file: File) = file.readLines().drop(1).mapNotNull { line ->
@@ -59,7 +61,7 @@ class AdvisorEventStudy {
             "Advisor replay + R:R >= 2 (shown plans)" to mutableListOf()
         )
         for ((symbol, bars) in all - "TDEX") {
-            val isSet50 = TradingConstants.SET50_SYMBOLS.contains(symbol)
+            val isSet50 = symbol in frozenSet50
             val dated = bars.map { it.date to it.close }
             for (i in 260 until bars.size - 21) {
                 val entryBar = bars[i + 1]
@@ -103,7 +105,7 @@ class AdvisorEventStudy {
         )
         val tdexDates = all.getValue("TDEX").map { it.date }
         for ((symbol, bars) in all - "TDEX") {
-            val isSet50 = TradingConstants.SET50_SYMBOLS.contains(symbol)
+            val isSet50 = symbol in frozenSet50
             val closeByDate = bars.associate { it.date to it.close }
             // Completed weekly closes, as isWeeklyTrendBullishOnDate builds them (last close of each Monday-week).
             val weeks = bars.groupBy { java.time.LocalDate.parse(it.date).with(java.time.DayOfWeek.MONDAY) }
@@ -172,7 +174,7 @@ class AdvisorEventStudy {
                 "${String.format(Locale.ENGLISH, "%.1f%%", r.count { it.net > 0 } * 100.0 / r.size)} | ${share("target")} | ${share("stop")} | ${share("time")} | " +
                 "${String.format(Locale.ENGLISH, "%.1f", r.map { it.days.toDouble() }.average())} | ${pct(r.map { it.excess }.filter { !it.isNaN() }.average())} |")
         }
-        val header = "# Advisor Event Study (1-4 weeks)\n\nUniverse: current SET50 (survivorship-biased), 2015-2025. Entry at next close; returns net of " +
+        val header = "# Advisor Event Study (1-4 weeks)\n\nUniverse: SET50 as of H1 2025, frozen in tools/backtest/universe.txt (survivorship-biased), 2015-2025. Entry at next close; returns net of " +
             "InnovestX fees and 0.15% slippage per side. Target = 52-week high, stop = suggested ATR stop; first touch within " +
             "20 sessions, stop assumed first when one bar spans both. Not replayed: fundamentals, NVDR flow, AI ranking.\n\n"
         File(root, "tools/backtest/advisor_event_study.md").writeText(header + sb)

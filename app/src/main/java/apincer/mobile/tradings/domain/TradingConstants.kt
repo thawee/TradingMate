@@ -61,13 +61,14 @@ object TradingConstants {
     const val THAI_DIVIDEND_WHT_RATE = 10.0              // Standard Thai dividend withholding tax rate (10%)
 
     // SET50 Benchmark Components for Market Cap Tiering
-    // Official SET50 constituents, H1 2025 review (SET50_100_H1_2025.pdf).
-    // NOTE: SET revises this list twice a year (Jan/Jul) — refresh periodically.
+    // SET50 constituents for July 1 - December 31, 2026: SET's H1 2026 list (SET50_100_H1_2026.pdf,
+    // updated 2025-12-15) with the 2H 2026 review applied (out: BTS, CBG, CENTEL, SAWAD; in: BCP,
+    // MRDIYT, TFG, THAI). Refresh each June and December. Backtests use tools/backtest/universe.txt.
     val SET50_SYMBOLS = setOf(
-        "ADVANC", "AOT", "AWC", "BBL", "BCP", "BDMS", "BEM", "BH", "BJC", "CBG",
-        "CENTEL", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EGCO", "GPSC", "GULF",
-        "HMPRO", "INTUCH", "IVL", "JMART", "KBANK", "KCE", "KKP", "KTB", "KTC", "LH",
-        "MAKRO", "MEGA", "MINT", "OR", "PTT", "PTTEP", "PTTGC", "RATCH", "SAWAD", "SCB",
-        "SCC", "SCGP", "SPRC", "TISCO", "TTB", "TRUE", "TU", "VGI", "WHA", "BGRIM"
+        "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BCP", "BDMS", "BEM", "BH", "BJC",
+        "CCET", "COM7", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EGCO", "GPSC", "GULF",
+        "HMPRO", "IVL", "KBANK", "KKP", "KTB", "KTC", "LH", "MINT", "MRDIYT", "MTC",
+        "OR", "OSP", "PTT", "PTTEP", "PTTGC", "RATCH", "SCB", "SCC", "SCGP", "TCAP",
+        "TFG", "THAI", "TIDLOR", "TISCO", "TLI", "TOP", "TRUE", "TTB", "TU", "WHA"
     )
 }

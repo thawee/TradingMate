@@ -1,6 +1,6 @@
 # Advisor Event Study (1-4 weeks)
 
-Universe: current SET50 (survivorship-biased), 2015-2025. Entry at next close; returns net of InnovestX fees and 0.15% slippage per side. Target = 52-week high, stop = suggested ATR stop; first touch within 20 sessions, stop assumed first when one bar spans both. Not replayed: fundamentals, NVDR flow, AI ranking.
+Universe: SET50 as of H1 2025, frozen in tools/backtest/universe.txt (survivorship-biased), 2015-2025. Entry at next close; returns net of InnovestX fees and 0.15% slippage per side. Target = 52-week high, stop = suggested ATR stop; first touch within 20 sessions, stop assumed first when one bar spans both. Not replayed: fundamentals, NVDR flow, AI ranking.
 
 | Variant | Period | Events | Mean 1w | Mean 2w | Mean 4w | Median 4w | Win 4w | Mean 4w vs TDEX | Target hit | Stop hit | Plan exit mean | Median target dist | Median R:R |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|

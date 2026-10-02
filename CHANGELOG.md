@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (SET50 list)
+- **SET50 list updated to 2H 2026:** SET's official H1 2026 constituents with the 2H 2026 review applied (out: BTS, CBG, CENTEL, SAWAD; in: BCP, MRDIYT, TFG, THAI). The old list still had MAKRO and INTUCH and missed BANPU, CCET, MTC, OSP, TCAP, TIDLOR, TLI and TOP. It sets the SET50 stop tier used when ATR is unavailable.
+- **Backtest universe frozen:** backtests and the event study now read `tools/backtest/universe.txt` (the H1 2025 list the history was fetched with), so updating live membership no longer changes backtest results. Regenerated reports are numerically identical.
+
 ### Fixed (dividend tax)
 - **Sec. 47 bis card shows the real trade-off:** the old card added a "reclaimable" credit on every dividend. It now covers the current tax year only, excludes fund payouts (TDEX carries no credit), and, once you set your top income-tax bracket in Settings, shows the net gain or cost of claiming versus keeping the 10% withholding final (break-even 28% at a 20% CIT rate). It notes that the choice covers all dividends in the year and that BOI tax-exempt payouts carry no credit.
 

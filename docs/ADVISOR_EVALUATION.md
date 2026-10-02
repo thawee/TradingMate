@@ -50,6 +50,6 @@ None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow t
 
 ### Known limits of the replay
 
-- **Survivorship bias.** The universe is today's SET50; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.
+- **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.
 - **Inputs not replayed.** NVDR flow, relative strength, weekly trend, XD grace, market-regime cash buffer, sector caps, fundamentals and AI ranking. A rule that depends on them cannot pass the gate until they are replayed.
 - **Daily closes only.** No intraday fills, gaps are filled at the next close.
