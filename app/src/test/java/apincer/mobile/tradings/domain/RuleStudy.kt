@@ -12,8 +12,8 @@ internal object RuleStudy {
         File(root, "tools/backtest/universe.txt").readLines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.toSet()
     }
 
-    fun loadAll(): Map<String, List<ScrapedHistoricalPrice>> =
-        dataDir.listFiles { f -> f.extension == "csv" }!!.associate { f ->
+    fun loadAll(dir: File = dataDir): Map<String, List<ScrapedHistoricalPrice>> =
+        dir.listFiles { f -> f.extension == "csv" }!!.associate { f ->
             f.nameWithoutExtension to f.readLines().drop(1).mapNotNull { line ->
                 val c = line.split(",")
                 if (c.size < 6) null else ScrapedHistoricalPrice(
@@ -78,6 +78,7 @@ internal object RuleStudy {
      */
     fun rankedPortfolio(universe: Map<String, List<ScrapedHistoricalPrice>>, tdex: List<ScrapedHistoricalPrice>,
                         from: String, to: String, topN: Int = 10, slip: Double = 0.0015,
+                        rebalanceMonths: Set<Int>? = null,
                         score: (String, List<ScrapedHistoricalPrice>, Int) -> Double?): Ranked {
         val dates = tdex.map { it.date }.filter { it in from..to }
         val idx = universe.mapValues { (_, bars) -> bars.withIndex().associate { it.value.date to it.index } }
@@ -118,7 +119,8 @@ internal object RuleStudy {
                 }
                 pending = null
             }
-            if (di in monthEnds && di + 1 < dates.size) {
+            if (di in monthEnds && di + 1 < dates.size &&
+                (rebalanceMonths == null || d.substring(5, 7).toInt() in rebalanceMonths)) {
                 val scores = universe.keys.mapNotNull { s ->
                     val i = idx.getValue(s)[d] ?: return@mapNotNull null
                     score(s, universe.getValue(s), i)?.let { s to it }

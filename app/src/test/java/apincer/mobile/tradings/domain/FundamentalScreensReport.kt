@@ -7,25 +7,17 @@ import java.io.File
 import java.time.LocalDate
 import java.util.Locale
 
-/**
- * Quality and dividend screens on 2015-2025 history using thaifin quarterly fundamentals, fixed
- * before the first run (tasks/todo.md, 2026-10-02). Skipped unless FUNDAMENTALS=1.
- *
- *   .venv/bin/python tools/backtest/fetch_fundamentals.py
- *   FUNDAMENTALS=1 ./gradlew testDebugUnitTest --tests '*FundamentalScreensReport*'
- *
- * Writes tools/backtest/fundamental_screens_report.md.
- */
-class FundamentalScreensReport {
+/** Point-in-time quarterly fundamentals from tools/backtest/fundamentals (see fetch_fundamentals.py). */
+internal object Fundamentals {
+    val dir = File(RuleStudy.root, "tools/backtest/fundamentals")
+
     data class Quarter(val end: LocalDate, val available: LocalDate, val netProfit: Double?, val revenue: Double?,
                        val equity: Double?, val de: Double?, val yield: Double?)
 
     /** Point-in-time view: figures known on [date], or null when four usable quarters are not yet published. */
     data class Snapshot(val roe: Double, val margin: Double, val de: Double?, val yield: Double?, val financial: Boolean)
 
-    private val fundDir = File(RuleStudy.root, "tools/backtest/fundamentals")
-
-    private fun load(file: File): Pair<List<Quarter>, Boolean> {
+    fun load(file: File, lagQ13: Long = 50, lagQ4: Long = 90): Pair<List<Quarter>, Boolean> {
         val lines = file.readLines()
         val financial = lines.drop(1).firstOrNull()?.substringAfterLast(",")?.startsWith("Financials") == true
         val qs = lines.drop(1).mapNotNull { line ->
@@ -34,12 +26,12 @@ class FundamentalScreensReport {
             val year = m.groupValues[1].toInt(); val q = m.groupValues[2].toInt()
             val end = LocalDate.of(year, q * 3, 1).plusMonths(1).minusDays(1)
             fun d(k: Int) = c.getOrNull(k)?.toDoubleOrNull()
-            Quarter(end, end.plusDays(if (q == 4) 90 else 50), d(1), d(2), d(3), d(6), d(7))
+            Quarter(end, end.plusDays(if (q == 4) lagQ4 else lagQ13), d(1), d(2), d(3), d(6), d(7))
         }.sortedBy { it.end }
         return qs to financial
     }
 
-    private fun snapshot(qs: List<Quarter>, financial: Boolean, date: LocalDate): Snapshot? {
+    fun snapshot(qs: List<Quarter>, financial: Boolean, date: LocalDate): Snapshot? {
         val known = qs.filter { !it.available.isAfter(date) && it.netProfit != null }
         if (known.size < 4) return null
         val last4 = known.takeLast(4)
@@ -50,19 +42,30 @@ class FundamentalScreensReport {
         if (equity <= 0.0 || rev <= 0.0) return null
         return Snapshot(np / equity * 100, np / rev * 100, latest.de, latest.yield, financial)
     }
+}
 
+/**
+ * Quality and dividend screens on 2015-2025 history using thaifin quarterly fundamentals, fixed
+ * before the first run (tasks/todo.md, 2026-10-02). Skipped unless FUNDAMENTALS=1.
+ *
+ *   .venv/bin/python tools/backtest/fetch_fundamentals.py
+ *   FUNDAMENTALS=1 ./gradlew testDebugUnitTest --tests '*FundamentalScreensReport*'
+ *
+ * Writes tools/backtest/fundamental_screens_report.md.
+ */
+class FundamentalScreensReport {
     @Test
     fun generateReport() {
-        assumeTrue(System.getenv("FUNDAMENTALS") == "1" && fundDir.isDirectory && RuleStudy.dataDir.isDirectory)
+        assumeTrue(System.getenv("FUNDAMENTALS") == "1" && Fundamentals.dir.isDirectory && RuleStudy.dataDir.isDirectory)
         val all = RuleStudy.loadAll()
         val tdex = all.getValue("TDEX")
-        val fund = fundDir.listFiles { f -> f.extension == "csv" }!!.associate { it.nameWithoutExtension to load(it) }
+        val fund = Fundamentals.dir.listFiles { f -> f.extension == "csv" }!!.associate { it.nameWithoutExtension to Fundamentals.load(it) }
         val universe = (all - "TDEX").filterKeys { it in fund }
         val tdexIdx = tdex.withIndex().associate { it.value.date to it.index }
-        fun snap(s: String, bars: List<ScrapedHistoricalPrice>, i: Int): Snapshot? =
-            fund[s]?.let { (qs, fin) -> snapshot(qs, fin, LocalDate.parse(bars[i].date)) }
-        fun qualityOld(x: Snapshot) = x.roe > 15 && x.margin > 10 && (x.de?.let { it < 1.5 } ?: true)
-        fun qualitySet(x: Snapshot) = x.roe > 10 && x.margin > 10 && (x.financial || (x.de?.let { it < 1.5 } ?: true))
+        fun snap(s: String, bars: List<ScrapedHistoricalPrice>, i: Int): Fundamentals.Snapshot? =
+            fund[s]?.let { (qs, fin) -> Fundamentals.snapshot(qs, fin, LocalDate.parse(bars[i].date)) }
+        fun qualityOld(x: Fundamentals.Snapshot) = x.roe > 15 && x.margin > 10 && (x.de?.let { it < 1.5 } ?: true)
+        fun qualitySet(x: Fundamentals.Snapshot) = x.roe > 10 && x.margin > 10 && (x.financial || (x.de?.let { it < 1.5 } ?: true))
         fun beta(bars: List<ScrapedHistoricalPrice>, i: Int): Double? {
             if (i <= 252) return null
             val pairs = (i - 251..i).mapNotNull { k ->

@@ -70,6 +70,14 @@ None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow t
 
 `tools/backtest/lowvol_trend_report.md` tests five rules fixed on 2026-10-02 before the first run. Low-volatility portfolios (top 10 by lowest 63- or 252-day volatility) did not beat TDEX. Lowest beta to TDEX came closest of any stock rule: 5.22% a year over 2015-2025 against 2.52%, 7.39% against 1.75% in 2015-2020, and 2.81% against 3.19% in 2021-2025, but it still fails on 2021-2025 and on concentration (DELTA, TISCO, COM7). Index trend timing on TDEX does not raise returns: the month-end 10-month rule returned 1.68% a year against 2.52% (0% on cash) but cut the worst drop from 36.5% to 23.5% with 10 round trips in 11 years; the daily 200-day rule whipsawed (-0.62% a year, 38 round trips).
 
+### Fundamental screens and high dividend yield
+
+`tools/backtest/fundamental_screens_report.md` uses point-in-time quarterly fundamentals from thaifin (Finnomena; 50-day lag after Q1-Q3, 90 days after Q4). Quality screens (old ROE > 15 rule and the SET-calibrated one), Dividend Stars (yield >= 5% plus quality) and quality ranked by low beta all fail the gate. The only rule in all studies to pass is F5: each month hold the 10 stocks with the highest known dividend yield (7.80% a year over 2015-2025 against TDEX's 2.52%, ahead in both sub-periods, 58% of profit outside the top three names).
+
+Because F5 was the one pass among about 19 rules, it was checked further (`tools/backtest/dividend_yield_robustness.md`, fixed before running): top 5, top 15, quarterly rebalancing and a 120-day lag all beat TDEX in both sub-periods, and a 2011-2014 holdout returned 24.95% a year against 9.68%.
+
+These numbers are inflated by survivorship: the universe is today's SET50, so high-yield companies whose yield signalled distress before they fell out of the index are missing. A real, investable comparison has none of that bias: the 1DIV ETF (SET High Dividend 30) returned 3.86% a year over 2015-2025 against TDEX's 2.55% (Yahoo adjusted closes), but 0.48% against 1.80% in 2015-2020, 8.05% against 3.25% in 2021-2025 and 5.65% against 13.74% in 2012-2014. A high-dividend tilt has helped over the whole decade and strongly since 2021, but not in every period, and by far less than the backtest suggests.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.

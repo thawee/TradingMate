@@ -33,3 +33,4 @@ tmp/
 # Backtest data cache and generated report
 tools/backtest/data/
 tools/backtest/fundamentals/
+tools/backtest/data_holdout/

@@ -9,9 +9,10 @@ Output columns: date,open,high,low,close,volume, dividend-adjusted (total return
 import csv, datetime, json, os, re, sys, time, urllib.parse, urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(ROOT, "data")
+# BACKTEST_OUT / BACKTEST_START override the folder and first year (the holdout uses data_holdout from 2008).
+DATA = os.path.join(ROOT, os.environ.get("BACKTEST_OUT", "data"))
 UNIVERSE = os.path.join(ROOT, "universe.txt")
-START = int(datetime.datetime(2014, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
+START = int(datetime.datetime(int(os.environ.get("BACKTEST_START", "2014")), 1, 1, tzinfo=datetime.timezone.utc).timestamp())
 END = int(datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
 
 
