@@ -57,15 +57,16 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
     private val historyRefreshIntervalMillis = 60L * 60L * 1000L
     private val _portfolioHistoricalCloses = MutableStateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>>(emptyMap())
     val portfolioHistoricalCloses: StateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>> = _portfolioHistoricalCloses.asStateFlow()
-    private val _corePrice = MutableStateFlow<Double?>(null)
-    /** Latest TDEX price for the core setup card and one-tap DCA; null until fetched or if offline. */
-    val corePrice: StateFlow<Double?> = _corePrice.asStateFlow()
+    private val _corePrices = MutableStateFlow<Map<String, Double>>(emptyMap())
+    /** Latest prices of the core funds for the core card and one-tap DCA; empty until fetched or if offline. */
+    val corePrices: StateFlow<Map<String, Double>> = _corePrices.asStateFlow()
 
     fun refreshCorePrice() {
         viewModelScope.launch(Dispatchers.IO) {
-            _corePrice.value = apincer.mobile.tradings.data.SetScraper.fetchBatchQuotes(
-                listOf(apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL)
-            ).firstOrNull()?.lastPrice?.takeIf { it > 0.0 } ?: _corePrice.value
+            val quotes = apincer.mobile.tradings.data.SetScraper.fetchBatchQuotes(
+                apincer.mobile.tradings.domain.CoreSatellite.funds.map { it.first }
+            ).filter { it.lastPrice > 0.0 }.associate { it.symbol.uppercase() to it.lastPrice }
+            if (quotes.isNotEmpty()) _corePrices.value = _corePrices.value + quotes
         }
     }
 

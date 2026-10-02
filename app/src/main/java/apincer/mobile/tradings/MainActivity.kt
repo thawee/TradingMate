@@ -40,7 +40,8 @@ class MainActivity : ComponentActivity() {
     private fun readDcaRequest(intent: Intent?): Triple<String, Double, Int>? {
         val price = intent?.getDoubleExtra("DCA_PRICE", 0.0) ?: 0.0
         if (price <= 0.0) return null
-        return Triple(apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL, price, intent?.getIntExtra("DCA_SHARES", 0) ?: 0)
+        val symbol = intent?.getStringExtra("DCA_SYMBOL") ?: apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+        return Triple(symbol, price, intent?.getIntExtra("DCA_SHARES", 0) ?: 0)
     }
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(

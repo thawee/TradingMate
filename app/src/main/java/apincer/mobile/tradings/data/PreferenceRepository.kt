@@ -35,6 +35,8 @@ class PreferenceRepository(private val context: Context) {
     private val PERSONAL_TAX_RATE = doublePreferencesKey("personal_tax_rate")
     private val MIN_RISK_REWARD_RATIO = doublePreferencesKey("min_risk_reward_ratio")
     private val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
+    private val SECOND_CORE_SYMBOL = stringPreferencesKey("second_core_symbol")
+    private val SECOND_CORE_PERCENT = doublePreferencesKey("second_core_percent")
     private val ASSESSABLE_INCOME = doublePreferencesKey("assessable_income")
     private val OTHER_RETIREMENT = doublePreferencesKey("other_retirement_contributions")
     private val TAX_FUND_PURCHASES = stringPreferencesKey("tax_fund_purchases")
@@ -195,6 +197,17 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setCitTaxRate(rate: Double) {
         context.settingsDataStore.edit { preferences ->
             preferences[CIT_TAX_RATE] = rate
+        }
+    }
+
+    /** Optional second core ETF and its share of the core in percent (TDEX holds the rest). */
+    val coreMix: Flow<Pair<String?, Double>> = context.settingsDataStore.data
+        .map { (it[SECOND_CORE_SYMBOL]?.takeIf { s -> s.isNotBlank() }) to (it[SECOND_CORE_PERCENT] ?: 50.0) }
+
+    suspend fun setCoreMix(symbol: String?, percent: Double) {
+        context.settingsDataStore.edit {
+            if (symbol.isNullOrBlank()) it.remove(SECOND_CORE_SYMBOL) else it[SECOND_CORE_SYMBOL] = symbol.trim().uppercase()
+            it[SECOND_CORE_PERCENT] = percent.coerceIn(0.0, 100.0)
         }
     }
 

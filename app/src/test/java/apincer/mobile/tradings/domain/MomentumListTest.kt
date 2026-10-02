@@ -24,4 +24,9 @@ class MomentumListTest {
         assertEquals("2026-10-02" to entries, MomentumList.fromJson(MomentumList.toJson("2026-10-02", entries)))
         assertEquals(null, MomentumList.fromJson("bad"))
     }
+
+    @Test fun highYieldRanksByYieldAndSkipsMissing() {
+        val ranked = HighYieldList.rank(mapOf("A" to 3.0, "B" to 7.5, "C" to null, "D" to 0.0, "E" to 5.2), topN = 2)
+        assertEquals(listOf("B", "E"), ranked.map { it.symbol })
+    }
 }

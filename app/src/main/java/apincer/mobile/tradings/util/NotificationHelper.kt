@@ -106,30 +106,29 @@ object NotificationHelper {
     fun showDcaReminderNotification(
         context: Context,
         amount: Double,
-        price: Double,
-        suggestion: apincer.mobile.tradings.domain.CoreSatellite.DcaSuggestion
+        plan: List<Pair<String, apincer.mobile.tradings.domain.CoreSatellite.DcaSuggestion>>,
+        prices: Map<String, Double>
     ) {
-        val symbol = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+        val symbol = apincer.mobile.tradings.domain.CoreSatellite.label()
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("START_SCREEN", "PORTFOLIO")
-            // Tapping opens the Buy dialog prefilled with the suggested core purchase.
-            putExtra("DCA_PRICE", price)
-            putExtra("DCA_SHARES", suggestion.shares)
+            // With one core fund, tapping opens the Buy dialog prefilled; with two, the core card has a button per fund.
+            if (plan.size == 1) {
+                putExtra("DCA_SYMBOL", plan[0].first)
+                putExtra("DCA_PRICE", prices.getValue(plan[0].first))
+                putExtra("DCA_SHARES", plan[0].second.shares)
+            }
         }
         val pendingIntent = PendingIntent.getActivity(
             context, "dca".hashCode(), intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val text = if (suggestion.shares > 0) {
-            String.format(java.util.Locale.ENGLISH,
-                "Buy %,d %s at about ฿%.2f (~฿%,.0f incl. fees) from your ฿%,.0f monthly amount.",
-                suggestion.shares, symbol, price, suggestion.estimatedCost, amount)
-        } else {
-            String.format(java.util.Locale.ENGLISH,
-                "Your ฿%,.0f monthly amount is below one %s board lot (~฿%,.0f). Let it accumulate.",
-                amount, symbol, price * 100)
+        val parts = plan.map { (s, sug) ->
+            if (sug.shares > 0) String.format(java.util.Locale.ENGLISH, "%,d %s at about ฿%.2f (~฿%,.0f with fees)", sug.shares, s, prices.getValue(s), sug.estimatedCost)
+            else String.format(java.util.Locale.ENGLISH, "%s: below one board lot (~฿%,.0f), let it accumulate", s, prices.getValue(s) * 100)
         }
+        val text = String.format(java.util.Locale.ENGLISH, "From your ฿%,.0f monthly amount: ", amount) + parts.joinToString("; ") + "."
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)

@@ -469,3 +469,9 @@ F5 passed after 19 tested rules, so it must survive these before it can go in th
 - H: holdout 2011-04-01 to 2014-12-31 (prices fetched from 2008 into tools/backtest/data_holdout/, git-ignored; thaifin starts 2010Q1). Pass = CAGR above TDEX buy-and-hold over the holdout.
 F5 counts as confirmed only if D1-D4 each beat TDEX in both sub-periods and H beats TDEX. Report every result.
 - [x] Result: all checks pass (holdout 24.95% vs 9.68%). Real-world check with the 1DIV ETF (no survivorship): 3.86% vs TDEX 2.55% over 2015-2025, ahead in 2021-2025, behind in 2015-2020 and 2012-2014. Backtest magnitude is inflated by survivorship. See tools/backtest/dividend_yield_robustness.md and docs/ADVISOR_EVALUATION.md.
+
+# High-dividend list and core mix, 2026-10-02
+
+- [x] Advisor (Dividend tab, untested lists): top 10 current SET50 by dividend yield, ranked once a day from SET quotes, with the backtest and 1DIV real-world results beside it.
+- [x] Core as a mix: TDEX plus an optional second SET-listed ETF (e.g. 1DIV) with a split %. isCore covers both; the core card, DCA preview and reminder split the monthly amount by weight; buy buttons per fund. TDEX stays the scorecard benchmark.
+- [ ] Tests, build, device check, changelog, commit.

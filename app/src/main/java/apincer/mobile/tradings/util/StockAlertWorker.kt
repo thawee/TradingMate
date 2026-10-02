@@ -36,6 +36,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val atsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
         val entryAlertsEnabled = prefRepo.isEntryAlertsEnabled.firstOrNull() ?: false
         val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
+        prefRepo.coreMix.firstOrNull()?.let { (symbol, pct) -> CoreSatellite.configure(symbol, pct) }
         // Holiday checks below depend on the current calendar.
         MarketListsSync.loadCached(applicationContext)
         MarketListsSync.refreshIfStale(applicationContext)
@@ -110,15 +111,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     .coerceAtMost(now.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))
                 val dcaKey = "dca_reminder_$year-${month + 1}"
                 if (now.get(java.util.Calendar.DAY_OF_MONTH) >= dcaDay && !alertPrefs.getBoolean(dcaKey, false)) {
-                    val price = SetScraper.fetchBatchQuotes(listOf(CoreSatellite.CORE_SYMBOL))
-                        .firstOrNull()?.lastPrice ?: 0.0
-                    if (price > 0.0) {
-                        NotificationHelper.showDcaReminderNotification(
-                            context = applicationContext,
-                            amount = dcaAmount,
-                            price = price,
-                            suggestion = CoreSatellite.dcaSuggestion(dcaAmount, price, atsEnabled)
-                        )
+                    val prices = SetScraper.fetchBatchQuotes(CoreSatellite.funds.map { it.first })
+                        .filter { it.lastPrice > 0.0 }.associate { it.symbol.uppercase() to it.lastPrice }
+                    val plan = CoreSatellite.dcaPlan(dcaAmount, prices, atsEnabled)
+                    if (plan.size == CoreSatellite.funds.size) {
+                        NotificationHelper.showDcaReminderNotification(applicationContext, dcaAmount, plan, prices)
                         alertPrefs.edit().putBoolean(dcaKey, true).apply()
                     }
                 }

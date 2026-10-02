@@ -131,7 +131,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // The index core is the app's main plan, so it comes first.
-            SectionContent(title = "Core Portfolio (TDEX)", icon = Icons.Default.Savings) {
+            SectionContent(title = "Core Portfolio", icon = Icons.Default.Savings) {
                 val targetCore by settingsViewModel.targetCorePercent.collectAsState()
                 val dcaAmount by settingsViewModel.monthlyDcaAmount.collectAsState()
                 val dcaDay by settingsViewModel.dcaDayOfMonth.collectAsState()
@@ -187,7 +187,46 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(14.dp)
                 )
                 Text(
-                    text = "On this day (or the next trading day) you get a reminder with the TDEX board lots your amount buys, fees included. Leave the amount empty to turn the reminder off.",
+                    text = "On this day (or the next trading day) you get a reminder with the board lots your amount buys for each core fund, fees included. Leave the amount empty to turn the reminder off.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
+
+                // Optional second core ETF, e.g. 1DIV (SET High Dividend 30): the core becomes a mix with TDEX.
+                val coreMix by settingsViewModel.coreMix.collectAsState()
+                var editingSecond by remember(coreMix) { mutableStateOf(coreMix.first ?: "") }
+                var editingSecondPct by remember(coreMix) { mutableStateOf(coreMix.second.toInt().toString()) }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editingSecond,
+                        onValueChange = {
+                            editingSecond = it.uppercase()
+                            settingsViewModel.updateCoreMix(editingSecond.ifBlank { null }, editingSecondPct.toDoubleOrNull() ?: 50.0)
+                        },
+                        label = { Text("Second core ETF (optional)") },
+                        placeholder = { Text("e.g. 1DIV") },
+                        singleLine = true,
+                        modifier = Modifier.weight(2f),
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                    OutlinedTextField(
+                        value = editingSecondPct,
+                        onValueChange = {
+                            editingSecondPct = it
+                            it.toDoubleOrNull()?.let { pct -> settingsViewModel.updateCoreMix(editingSecond.ifBlank { null }, pct) }
+                        },
+                        label = { Text("Share") },
+                        suffix = { Text("%") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                }
+                Text(
+                    text = "TDEX holds the rest of the core. 1DIV (SET High Dividend 30 ETF) returned 3.86% a year vs TDEX 2.55% over 2015-2025, ahead in 2021-2025 but behind in 2015-2020 and 2012-2014. Leave blank for TDEX only.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp)

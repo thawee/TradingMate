@@ -81,4 +81,23 @@ class CoreSatelliteTest {
         // No core at all is the strongest case.
         assertNotNull(CoreSatellite.rebalanceMessage(CoreSatellite.allocation(listOf("PTT" to 37_400.0), 80.0)))
     }
+
+    @Test fun secondCoreFundCountsAsCoreAndSplitsDca() {
+        try {
+            CoreSatellite.configure("1div", 40.0)
+            assertTrue(CoreSatellite.isCore("1DIV") && CoreSatellite.isCore("TDEX"))
+            val alloc = CoreSatellite.allocation(listOf("TDEX" to 30_000.0, "1DIV" to 20_000.0, "PTT" to 50_000.0), 80.0)
+            assertEquals(50.0, alloc.corePercent, 1e-9)
+            val plan = CoreSatellite.dcaPlan(10_000.0, mapOf("TDEX" to 10.0, "1DIV" to 10.0))
+            assertEquals(listOf("TDEX", "1DIV"), plan.map { it.first })
+            assertEquals(500, plan[0].second.shares) // ฿6,000 buys 5 lots at ฿10 with fees
+            assertEquals(300, plan[1].second.shares) // ฿4,000 buys 3 lots
+            assertEquals("TDEX + 1DIV", CoreSatellite.label())
+            // Same symbol as TDEX, blank or 0% falls back to TDEX alone.
+            CoreSatellite.configure("TDEX", 50.0); assertEquals(listOf("TDEX" to 100.0), CoreSatellite.funds)
+            CoreSatellite.configure("1DIV", 0.0); assertEquals(listOf("TDEX" to 100.0), CoreSatellite.funds)
+        } finally {
+            CoreSatellite.configure(null, 0.0)
+        }
+    }
 }

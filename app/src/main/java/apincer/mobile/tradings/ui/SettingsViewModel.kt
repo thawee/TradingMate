@@ -189,6 +189,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             initialValue = 20.0
         )
 
+    val coreMix: StateFlow<Pair<String?, Double>> =
+        preferenceRepository.coreMix.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null to 50.0)
+
+    fun updateCoreMix(symbol: String?, percent: Double) {
+        viewModelScope.launch { preferenceRepository.setCoreMix(symbol, percent) }
+    }
+
     val assessableIncome: StateFlow<Double?> =
         preferenceRepository.assessableIncome.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val otherRetirementContributions: StateFlow<Double> =

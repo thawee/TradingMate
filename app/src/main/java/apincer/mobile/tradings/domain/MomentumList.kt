@@ -13,6 +13,7 @@ object MomentumList {
     const val LOOKBACK_SESSIONS = 126
     const val TOP_N = 10
 
+    /** A ranked symbol and its score in percent (6-month return here; dividend yield in [HighYieldList]). */
     data class Entry(val symbol: String, val returnPercent: Double)
 
     /** [closes] per symbol, oldest first and dividend-adjusted. Symbols without enough history are skipped. */

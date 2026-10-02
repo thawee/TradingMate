@@ -1149,6 +1149,32 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _highYieldList = MutableStateFlow(apincer.mobile.tradings.domain.MomentumList.fromJson(alertPrefs.getString(HIGH_YIELD_LIST_KEY, null)))
+    /** (ranking date, top 10 by dividend yield) for the high dividend yield list; ranked at most once a day. */
+    val highYieldList: StateFlow<Pair<String, List<apincer.mobile.tradings.domain.MomentumList.Entry>>?> = _highYieldList
+    private val _highYieldLoading = MutableStateFlow(false)
+    val highYieldLoading: StateFlow<Boolean> = _highYieldLoading
+
+    fun refreshHighYieldList(force: Boolean = false) {
+        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString()
+        if (_highYieldLoading.value || (!force && _highYieldList.value?.first == today)) return
+        _highYieldLoading.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val yields = apincer.mobile.tradings.domain.MarketLists.set50().associateWith { symbol ->
+                    runCatching { SetScraper.fetchStockInfo(symbol).dividendYield }.getOrNull()
+                }
+                val ranked = apincer.mobile.tradings.domain.HighYieldList.rank(yields)
+                if (ranked.isNotEmpty()) {
+                    alertPrefs.edit().putString(HIGH_YIELD_LIST_KEY, apincer.mobile.tradings.domain.MomentumList.toJson(today, ranked)).apply()
+                    _highYieldList.value = today to ranked
+                }
+            } finally {
+                _highYieldLoading.value = false
+            }
+        }
+    }
+
     private val _stopAcks = MutableStateFlow(readStopAcks())
     /** Stop levels the user chose to hold past, by symbol; sell reminders stay quiet until the stop changes. */
     val stopAcks: StateFlow<Map<String, Double>> = _stopAcks
@@ -1588,3 +1614,4 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 const val STOP_ACK_PREFIX = "stop_ack_"
 
 private const val MOMENTUM_LIST_KEY = "momentum_list_cache"
+private const val HIGH_YIELD_LIST_KEY = "high_yield_list_cache"

@@ -10,7 +10,28 @@ object CoreSatellite {
     const val DEFAULT_TARGET_CORE_PERCENT = 80.0
     const val DEFAULT_DCA_DAY = 1
 
-    fun isCore(symbol: String): Boolean = symbol.equals(CORE_SYMBOL, ignoreCase = true)
+    /** Core funds and their share of the core in percent; TDEX alone unless the user adds a second ETF. */
+    @Volatile var funds: List<Pair<String, Double>> = listOf(CORE_SYMBOL to 100.0)
+        private set
+
+    /** Sets the core to TDEX plus an optional second SET-listed ETF holding [secondPercent] of the core. */
+    fun configure(second: String?, secondPercent: Double) {
+        val s = second?.trim()?.uppercase()?.takeIf { it.isNotEmpty() && it != CORE_SYMBOL }
+        val pct = secondPercent.coerceIn(0.0, 100.0)
+        funds = if (s == null || pct <= 0.0) listOf(CORE_SYMBOL to 100.0)
+            else listOf(CORE_SYMBOL to 100.0 - pct, s to pct).filter { it.second > 0.0 }
+    }
+
+    fun isCore(symbol: String): Boolean = funds.any { it.first.equals(symbol, ignoreCase = true) }
+
+    /** "TDEX" or "TDEX + 1DIV", for text. */
+    fun label(): String = funds.joinToString(" + ") { it.first }
+
+    /** Splits a monthly [budget] across the core funds by weight; each part buys whole lots at its price. */
+    fun dcaPlan(budget: Double, prices: Map<String, Double>, atsEnabled: Boolean = true): List<Pair<String, DcaSuggestion>> =
+        funds.mapNotNull { (symbol, pct) ->
+            prices[symbol]?.takeIf { it > 0.0 }?.let { symbol to dcaSuggestion(budget * pct / 100.0, it, atsEnabled) }
+        }
 
     /** Shown instead of technical signals on the core, which the backtested signals trail. */
     val CORE_SIGNAL = TradeSignal(IndicatorSignal.NEUTRAL, "Core holding",
@@ -62,8 +83,8 @@ object CoreSatellite {
         if (allocation.satelliteValue <= 0.0 || allocation.driftPercent >= -REBALANCE_DRIFT_PERCENT) return null
         return String.format(
             java.util.Locale.ENGLISH,
-            "Core %s is %.0f%% of invested money vs your %.0f%% target. About ฿%,.0f more %s gets you back on target; put new money into the core before buying more stocks.",
-            CORE_SYMBOL, allocation.corePercent, allocation.targetCorePercent, allocation.coreShortfallBaht, CORE_SYMBOL
+            "Core %s is %.0f%% of invested money vs your %.0f%% target. About ฿%,.0f more in the core gets you back on target; put new money there before buying more stocks.",
+            label(), allocation.corePercent, allocation.targetCorePercent, allocation.coreShortfallBaht
         )
     }
 

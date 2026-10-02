@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (dividend tilt and core mix)
+- **High dividend yield list (Advisor, Dividend tab):** the top 10 current SET50 members by dividend yield from SET quotes, ranked at most once a day, with held stocks marked. The card shows the backtest (+7.80% a year over 2015-2025, ahead in both halves and a 2011-2014 holdout, inflated by survivorship) next to the real 1DIV ETF (+3.86% vs TDEX +2.55% over 2015-2025; behind in 2015-2020 and 2012-2014), warns that very high yields can signal an expected cut, and suggests 1DIV for the same tilt without stock picking. Shown only with untested lists on. Shares its layout with the momentum list.
+- **Core as a mix:** Settings > Core Portfolio takes an optional second SET-listed ETF (e.g. 1DIV) and its share of the core; TDEX holds the rest. Both count as core everywhere (no stops or satellite caps, core signal, no sell reminders); the core card and DCA preview split the monthly amount by weight and offer a "Record … buy" button per fund; the monthly reminder lists lots for each fund (with one fund it still opens the prefilled Buy dialog). TDEX stays the scorecard benchmark.
+
 ### Added (6-month momentum list)
 - **"6-month momentum list" on the Advisor (Swing):** the top 10 current SET50 members by 126-session dividend-adjusted return, ranked from Yahoo daily closes at most once a day (cached; "Re-rank now" forces it), with held stocks marked. The card states the rule (hold about 10% each inside the satellite, review at month end, sell names that drop out) and its tested result: +12.45% a year over 2015-2025 vs TDEX +2.52%, but -2.80% a year in 2021-2025, a 46% worst drop, and profit mostly from DELTA, JMART and TRUE, so it failed the evidence gate. It appears only with "Show untested buy lists" on.
 

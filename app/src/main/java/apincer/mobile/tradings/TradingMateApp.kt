@@ -1,6 +1,7 @@
 package apincer.mobile.tradings
 
 import android.app.Application
+import kotlinx.coroutines.launch
 import apincer.mobile.tradings.data.StockDatabase
 import apincer.mobile.tradings.data.StockRepository
 
@@ -16,6 +17,12 @@ class TradingMateApp : Application() {
         // Newest SET holiday / SET50 lists: cached copy now, refreshed in the background.
         apincer.mobile.tradings.util.MarketListsSync.loadCached(this)
         Thread { apincer.mobile.tradings.util.MarketListsSync.refreshIfStale(this) }.start()
+        // Keep the core-fund list (TDEX plus an optional second ETF) in step with Settings.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+            apincer.mobile.tradings.data.PreferenceRepository(this@TradingMateApp).coreMix.collect { (symbol, pct) ->
+                apincer.mobile.tradings.domain.CoreSatellite.configure(symbol, pct)
+            }
+        }
     }
 
     private var _database: apincer.mobile.tradings.data.StockDatabase? = null

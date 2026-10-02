@@ -439,10 +439,10 @@ fun DividendAdvisorScreen(
             Spacer(Modifier.height(8.dp))
 
             if (showUntestedLists) {
-                if (playbookMode == PlaybookMode.SWING) {
-                    MomentumListCard(viewModel, portfolioItems.map { it.info.symbol.uppercase() }.toSet())
-                    Spacer(Modifier.height(16.dp))
-                }
+                val heldSymbols = portfolioItems.map { it.info.symbol.uppercase() }.toSet()
+                if (playbookMode == PlaybookMode.SWING) MomentumListCard(viewModel, heldSymbols)
+                else HighYieldListCard(viewModel, heldSymbols)
+                Spacer(Modifier.height(16.dp))
                 // Step 2: Candidates
                 Box(modifier = Modifier.onGloballyPositioned { coordinates ->
                     candidatesOffset = coordinates.positionInWindow().y.toInt() - 150
@@ -1884,54 +1884,76 @@ fun UntestedListsHiddenCard(onShow: () -> Unit) {
     }
 }
 
-/**
- * Top 10 SET50 stocks by 6-month return (MOM3 in tools/backtest/momentum_portfolio_report.md),
- * with the test result beside it. Reviewed at month end; it failed the evidence gate.
- */
+/** Top 10 SET50 stocks by 6-month return (MOM3 in tools/backtest/momentum_portfolio_report.md). */
 @Composable
 fun MomentumListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
     val list by viewModel.momentumList.collectAsState()
     val loading by viewModel.momentumLoading.collectAsState()
     LaunchedEffect(Unit) { viewModel.refreshMomentumList() }
+    RankedListCard(
+        title = "6-month momentum list",
+        rule = "Top 10 SET50 stocks by 6-month gain. Rule: at each month end, hold these at about 10% each inside your satellite, and sell names that drop out.",
+        result = "Tested 2015-2025: +12.45% a year vs TDEX +2.52%, but -2.80% a year in 2021-2025 vs TDEX +3.19%, " +
+            "worst drop 46%, and almost all profit came from DELTA, JMART and TRUE. It failed the evidence gate: keep it small.",
+        loadingText = "Ranking SET50 from 6 months of prices…",
+        rankedNote = "from dividend-adjusted closes. The list is meant to be acted on once a month, not daily.",
+        list = list, loading = loading, heldSymbols = heldSymbols,
+        onRefresh = { viewModel.refreshMomentumList(force = true) }
+    )
+}
+
+/** Top 10 SET50 stocks by dividend yield (F5 in tools/backtest/fundamental_screens_report.md). */
+@Composable
+fun HighYieldListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
+    val list by viewModel.highYieldList.collectAsState()
+    val loading by viewModel.highYieldLoading.collectAsState()
+    LaunchedEffect(Unit) { viewModel.refreshHighYieldList() }
+    RankedListCard(
+        title = "High dividend yield list",
+        rule = "Top 10 SET50 stocks by current dividend yield. Rule: review monthly or quarterly, hold about 10% each, and replace names that drop out.",
+        result = "Backtest 2015-2025: +7.80% a year vs TDEX +2.52%, ahead in both halves and in a 2011-2014 holdout, but inflated by survivorship. " +
+            "The real 1DIV high-dividend ETF: +3.86% a year vs TDEX +2.55% over 2015-2025, ahead in 2021-2025, behind in 2015-2020 and 2012-2014. " +
+            "Buying 1DIV gets the same tilt without picking stocks.",
+        loadingText = "Fetching dividend yields for SET50…",
+        rankedNote = "from SET quotes. A very high yield can mean the price fell because a dividend cut is expected.",
+        list = list, loading = loading, heldSymbols = heldSymbols,
+        onRefresh = { viewModel.refreshHighYieldList(force = true) },
+        signed = false
+    )
+}
+
+@Composable
+private fun RankedListCard(
+    title: String, rule: String, result: String, loadingText: String, rankedNote: String,
+    list: Pair<String, List<apincer.mobile.tradings.domain.MomentumList.Entry>>?, loading: Boolean,
+    heldSymbols: Set<String>, onRefresh: () -> Unit, signed: Boolean = true
+) {
     GlassCard(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("6-month momentum list", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "Top 10 SET50 stocks by 6-month gain. Rule: at each month end, hold these at about 10% each inside your satellite, and sell names that drop out.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(rule, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Surface(color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f), shape = RoundedCornerShape(10.dp)) {
-                Text(
-                    "Tested 2015-2025: +12.45% a year vs TDEX +2.52%, but -2.80% a year in 2021-2025 vs TDEX +3.19%, " +
-                        "worst drop 46%, and almost all profit came from DELTA, JMART and TRUE. It failed the evidence gate: keep it small.",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(10.dp)
-                )
+                Text(result, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(10.dp))
             }
-            val l = list
             when {
-                l == null && loading -> Text("Ranking SET50 from 6 months of prices…", style = MaterialTheme.typography.bodySmall)
-                l == null -> Text("Could not load prices. Try again when online.", style = MaterialTheme.typography.bodySmall)
+                list == null && loading -> Text(loadingText, style = MaterialTheme.typography.bodySmall)
+                list == null -> Text("Could not load data. Try again when online.", style = MaterialTheme.typography.bodySmall)
                 else -> {
-                    l.second.forEachIndexed { i, e ->
+                    list.second.forEachIndexed { i, e ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("${i + 1}. ${e.symbol}" + if (e.symbol in heldSymbols) "  · held" else "",
                                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            Text(String.format(Locale.ENGLISH, "%+.1f%%", e.returnPercent), style = MaterialTheme.typography.bodyMedium,
+                            Text(String.format(Locale.ENGLISH, if (signed) "%+.1f%%" else "%.1f%%", e.returnPercent), style = MaterialTheme.typography.bodyMedium,
                                 color = if (e.returnPercent >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
                         }
                     }
-                    Text("Ranked ${l.first} from dividend-adjusted closes. The list is meant to be acted on once a month, not daily.",
-                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Ranked ${list.first} $rankedNote", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            TextButton(onClick = { viewModel.refreshMomentumList(force = true) }, enabled = !loading) {
-                Text(if (loading) "Ranking…" else "Re-rank now")
-            }
+            TextButton(onClick = onRefresh, enabled = !loading) { Text(if (loading) "Ranking…" else "Re-rank now") }
         }
     }
 }

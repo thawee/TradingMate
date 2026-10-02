@@ -121,11 +121,16 @@ fun PortfolioScreen(
 
     var showBuyDialog by remember { mutableStateOf(false) }
     var buyPrefill by remember { mutableStateOf<Triple<String, Double, Int>?>(null) }
-    val corePrice by portfolioViewModel.corePrice.collectAsState()
+    val corePrices by portfolioViewModel.corePrices.collectAsState()
     val stopAcks by viewModel.stopAcks.collectAsState()
     val monthlyDcaAmount by settingsViewModel.monthlyDcaAmount.collectAsState()
     val dcaDay by settingsViewModel.dcaDayOfMonth.collectAsState()
-    LaunchedEffect(Unit) { portfolioViewModel.refreshCorePrice() }
+    val coreMix by settingsViewModel.coreMix.collectAsState()
+    LaunchedEffect(coreMix) {
+        // Apply here too so the card never renders with a stale fund list, then price every core fund.
+        apincer.mobile.tradings.domain.CoreSatellite.configure(coreMix.first, coreMix.second)
+        portfolioViewModel.refreshCorePrice()
+    }
     var showCashDialog by remember { mutableStateOf(false) }
     var showDividendDialog by remember { mutableStateOf(false) }
     var pendingToRecord by remember { mutableStateOf<apincer.mobile.tradings.domain.PendingDividends.Pending?>(null) }
@@ -456,16 +461,16 @@ fun PortfolioScreen(
                         targetCorePercent = targetCorePercent,
                         monthlyDcaAmount = monthlyDcaAmount,
                         dcaDay = dcaDay,
-                        corePrice = corePrice,
+                        corePrices = corePrices,
                         atsEnabled = isAtsEnabled,
                         onSetupCore = { amount, day ->
                             settingsViewModel.updateMonthlyDcaAmount(amount)
                             settingsViewModel.updateDcaDayOfMonth(day)
                             showSnackbar("Monthly core DCA set: ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", amount)} on day $day")
                         },
-                        onBuyCore = { price, shares ->
+                        onBuyCore = { symbol, price, shares ->
                             selectedStockForEdit = null
-                            buyPrefill = Triple(apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL, price, shares)
+                            buyPrefill = Triple(symbol, price, shares)
                             showBuyDialog = true
                         }
                     )
@@ -1154,7 +1159,7 @@ fun BuyStockDialog(
             }
 
             if (!showTradePlan) item {
-                Text("${apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL} is your core: bought and held, so no stop, target or position caps apply. Only available cash is checked.",
+                Text("${symbol.uppercase()} is part of your core: bought and held, so no stop, target or position caps apply. Only available cash is checked.",
                     fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp))
             }
@@ -1275,7 +1280,7 @@ fun BuyStockDialog(
                                 java.util.Locale.ENGLISH,
                                 "Satellite would be %.0f%% of invested value (cap %.0f%%). Consider funding the %s core first.",
                                 after.satellitePercent, 100.0 - targetCorePercent,
-                                apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+                                apincer.mobile.tradings.domain.CoreSatellite.label()
                             ),
                             modifier = Modifier.padding(12.dp),
                             style = MaterialTheme.typography.bodySmall,
@@ -1661,25 +1666,31 @@ fun CoreSatelliteCard(
     targetCorePercent: Double,
     monthlyDcaAmount: Double = 0.0,
     dcaDay: Int = apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_DCA_DAY,
-    corePrice: Double? = null,
+    corePrices: Map<String, Double> = emptyMap(),
     atsEnabled: Boolean = true,
     onSetupCore: (amount: Double, day: Int) -> Unit = { _, _ -> },
-    onBuyCore: (price: Double, shares: Int) -> Unit = { _, _ -> }
+    onBuyCore: (symbol: String, price: Double, shares: Int) -> Unit = { _, _, _ -> }
 ) {
     val allocation = apincer.mobile.tradings.domain.CoreSatellite.allocation(
         portfolioItems.map { it.info.symbol to it.info.lastPrice * it.portfolio.quantity },
         targetCorePercent
     )
-    val coreSymbol = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+    val coreSymbol = apincer.mobile.tradings.domain.CoreSatellite.label()
+    val funds = apincer.mobile.tradings.domain.CoreSatellite.funds
     val isBelowTarget = allocation.investedValue > 0.0 && allocation.driftPercent < -5.0
     val barColor = if (isBelowTarget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     fun pct(v: Double) = String.format(java.util.Locale.ENGLISH, "%.0f%%", v)
     fun baht(v: Double) = String.format(java.util.Locale.ENGLISH, "฿%,.0f", v)
-    fun lotsText(budget: Double): String? = corePrice?.let { price ->
-        val s = apincer.mobile.tradings.domain.CoreSatellite.dcaSuggestion(budget, price, atsEnabled)
-        if (s.shares > 0) "buys ${String.format(java.util.Locale.ENGLISH, "%,d", s.shares)} $coreSymbol at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", price)} " +
-            "(${baht(s.estimatedCost)} with fees, ${baht(s.unusedBaht)} left)"
-        else "is less than one 100-share lot at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", price)}"
+    /** One line per core fund: the lots its share of [budget] buys, or null while prices load. */
+    fun lotsText(budget: Double): String? {
+        val plan = apincer.mobile.tradings.domain.CoreSatellite.dcaPlan(budget, corePrices, atsEnabled)
+        if (plan.size < funds.size) return null
+        return plan.joinToString("; ") { (sym, sug) ->
+            val price = corePrices.getValue(sym)
+            if (sug.shares > 0) "${String.format(java.util.Locale.ENGLISH, "%,d", sug.shares)} $sym at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", price)} " +
+                "(${baht(sug.estimatedCost)} with fees, ${baht(sug.unusedBaht)} left)"
+            else "$sym: less than one 100-share lot at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", price)}"
+        }.let { "buys $it" }
     }
 
     GlassCard(
@@ -1730,7 +1741,7 @@ fun CoreSatelliteCard(
                 val amount = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }
                 val day = dayText.toIntOrNull()?.takeIf { it in 1..28 }
                 Text(
-                    "Start your index core: put a fixed amount into $coreSymbol (SET50 ETF) every month.",
+                    "Start your index core: put a fixed amount into $coreSymbol every month.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -1765,14 +1776,20 @@ fun CoreSatelliteCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                val suggestion = corePrice?.let { apincer.mobile.tradings.domain.CoreSatellite.dcaSuggestion(monthlyDcaAmount, it, atsEnabled) }
+                val plan = apincer.mobile.tradings.domain.CoreSatellite.dcaPlan(monthlyDcaAmount, corePrices, atsEnabled)
                 Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = { if (corePrice != null && suggestion != null) onBuyCore(corePrice, suggestion.shares) },
-                    enabled = corePrice != null && (suggestion?.shares ?: 0) > 0,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text(if (corePrice == null) "Loading $coreSymbol price…" else "Record $coreSymbol buy") }
+                if (plan.size < funds.size) {
+                    Text("Loading $coreSymbol prices…", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    plan.forEach { (sym, sug) ->
+                        Button(
+                            onClick = { onBuyCore(sym, corePrices.getValue(sym), sug.shares) },
+                            enabled = sug.shares > 0,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("Record $sym buy") }
+                    }
+                }
             }
         }
     }
