@@ -914,8 +914,11 @@ fun BuyStockDialog(
 
     val entry = entryPrice.toDoubleOrNull() ?: 0.0
     val amount = qty.toIntOrNull() ?: 0
-    val target = targetPrice.toDoubleOrNull() ?: 0.0
-    val stopLoss = stopLossPrice.toDoubleOrNull() ?: 0.0
+    // Orders only fill on SET price steps: stops snap up (no extra risk), targets snap down.
+    val enteredTarget = targetPrice.toDoubleOrNull() ?: 0.0
+    val enteredStop = stopLossPrice.toDoubleOrNull() ?: 0.0
+    val target = if (enteredTarget > 0.0) apincer.mobile.tradings.domain.SetTick.floor(enteredTarget) else 0.0
+    val stopLoss = if (enteredStop > 0.0) apincer.mobile.tradings.domain.SetTick.ceil(enteredStop) else 0.0
     val existingHolding = if (initialStock == null) holdings.find {
         it.info.symbol.equals(symbol, ignoreCase = true) && it.portfolio.portfolio.quantity > 0
     } else null
@@ -1114,6 +1117,9 @@ fun BuyStockDialog(
                         onValueChange = { targetPrice = it },
                         enabled = existingHolding == null,
                         label = { Text(stringResource(R.string.label_target)) },
+                        supportingText = if (existingHolding == null && target > 0.0 && target != enteredTarget) {
+                            { Text("SET price: ฿${String.format(Locale.ENGLISH, "%.2f", target)}") }
+                        } else null,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f),
@@ -1125,6 +1131,9 @@ fun BuyStockDialog(
                         onValueChange = { stopLossPrice = it },
                         enabled = existingHolding == null,
                         label = { Text(stringResource(R.string.label_stop_loss)) },
+                        supportingText = if (existingHolding == null && stopLoss > 0.0 && stopLoss != enteredStop) {
+                            { Text("SET price: ฿${String.format(Locale.ENGLISH, "%.2f", stopLoss)}") }
+                        } else null,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.weight(1f),

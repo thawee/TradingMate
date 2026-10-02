@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **SET tick sizes:** suggested stops round up and suggested targets round down to the SET price spread table (0.01 below ฿2 up to 2.00 at ฿400+), so watchlist "Plan: Cut", advisor plans and saved stops are prices an order can use. The Buy dialog snaps typed stop/target the same way and shows the valid "SET price" under the field.
+
 ### Fixed
 - **Core buys no longer blocked by satellite rules:** a proposed TDEX buy needs only a valid price, a 100-share lot and enough cash. The 15% single-stock cap (which contradicted the 80% core target), sector cap, stop/target and 2:1 Reward:Risk requirement, and the regime cash buffer apply to satellite buys only. The buffer was never backtested and blocked DCA in falling markets. Enforced in both the Buy dialog and `StockRepository.executeBuy`.
 - **No technical sell reminders on the core:** TDEX holdings no longer get SELL-signal or trailing-stop reminders; a stop the user saved on it still alerts.

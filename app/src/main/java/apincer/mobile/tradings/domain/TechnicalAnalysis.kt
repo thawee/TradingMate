@@ -959,7 +959,7 @@ object TechnicalAnalysis {
             ?: atrStop
             ?: regimeBaselinePercent
             
-        return lastPrice * (1.0 + stopPercent / 100.0)
+        return SetTick.ceil(lastPrice * (1.0 + stopPercent / 100.0))
     }
 
     fun calculateSuggestedTargetPrice(
@@ -972,9 +972,9 @@ object TechnicalAnalysis {
             val risk = lastPrice - stopLossPrice
             val minReward = lastPrice * (minTargetPercent / 100.0)
             val reward = maxOf(minReward, risk * 2.0)
-            return lastPrice + reward
+            return SetTick.floor(lastPrice + reward)
         }
-        return lastPrice * (1.0 + minTargetPercent / 100.0)
+        return SetTick.floor(lastPrice * (1.0 + minTargetPercent / 100.0))
     }
 
     fun calculateRiskRewardRatio(

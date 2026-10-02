@@ -515,6 +515,8 @@ class TechnicalAnalysisTest {
         val stop = TechnicalAnalysis.calculateSuggestedStopLossPrice(10.0, atr = 0.3, isSet50 = true)
         // 10.0 with 2*ATR stop (2*3%=6%, clamped 4.5-9%) -> 9.40 (6% loss)
         assertTrue(stop < 10.0 && stop > 9.0)
+        assertTrue(SetTick.isValid(stop))
+        assertEquals(45.75, TechnicalAnalysis.calculateSuggestedStopLossPrice(48.0, customStopLossPercent = -4.83), 1e-9)
 
         val target = TechnicalAnalysis.calculateSuggestedTargetPrice(10.0, stopLossPrice = 9.5, minTargetPercent = 10.0)
         assertEquals(11.0, target, 0.001)
