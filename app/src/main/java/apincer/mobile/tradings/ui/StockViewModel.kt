@@ -1122,6 +1122,33 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _momentumList = MutableStateFlow(apincer.mobile.tradings.domain.MomentumList.fromJson(alertPrefs.getString(MOMENTUM_LIST_KEY, null)))
+    /** (ranking date, top 10) for the 6-month momentum list; ranked at most once a day. */
+    val momentumList: StateFlow<Pair<String, List<apincer.mobile.tradings.domain.MomentumList.Entry>>?> = _momentumList
+    private val _momentumLoading = MutableStateFlow(false)
+    val momentumLoading: StateFlow<Boolean> = _momentumLoading
+
+    /** Ranks current SET50 members by 126-session return from dividend-adjusted daily closes. */
+    fun refreshMomentumList(force: Boolean = false) {
+        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString()
+        if (_momentumLoading.value || (!force && _momentumList.value?.first == today)) return
+        _momentumLoading.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val closes = apincer.mobile.tradings.domain.MarketLists.set50().associateWith { symbol ->
+                    SetScraper.fetchHistoricalPrices(symbol, days = 220, dividendAdjusted = true).map { it.close }
+                }
+                val ranked = apincer.mobile.tradings.domain.MomentumList.rank(closes)
+                if (ranked.isNotEmpty()) {
+                    alertPrefs.edit().putString(MOMENTUM_LIST_KEY, apincer.mobile.tradings.domain.MomentumList.toJson(today, ranked)).apply()
+                    _momentumList.value = today to ranked
+                }
+            } finally {
+                _momentumLoading.value = false
+            }
+        }
+    }
+
     private val _stopAcks = MutableStateFlow(readStopAcks())
     /** Stop levels the user chose to hold past, by symbol; sell reminders stay quiet until the stop changes. */
     val stopAcks: StateFlow<Map<String, Double>> = _stopAcks
@@ -1559,3 +1586,5 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
 /** SharedPreferences key prefix ("trading_mate_alerts") for a stop level the user chose to hold past. */
 const val STOP_ACK_PREFIX = "stop_ack_"
+
+private const val MOMENTUM_LIST_KEY = "momentum_list_cache"

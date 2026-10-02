@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (6-month momentum list)
+- **"6-month momentum list" on the Advisor (Swing):** the top 10 current SET50 members by 126-session dividend-adjusted return, ranked from Yahoo daily closes at most once a day (cached; "Re-rank now" forces it), with held stocks marked. The card states the rule (hold about 10% each inside the satellite, review at month end, sell names that drop out) and its tested result: +12.45% a year over 2015-2025 vs TDEX +2.52%, but -2.80% a year in 2021-2025, a 46% worst drop, and profit mostly from DELTA, JMART and TRUE, so it failed the evidence gate. It appears only with "Show untested buy lists" on.
+
 ### Changed (advisor on SET)
 - **Quality screen calibrated for SET:** ROE above 10% (was 15%) and no debt-to-equity test for banks, finance & securities and insurers, whose business runs on leverage. On the test watchlist this lets 33 of 101 stocks pass quality instead of 13. Dividend fundamental alerts keep the 15% ROE threshold. The screens remain untested and hidden by default.
 - **Why the advisor is empty:** with the lists shown, the blocked section now counts each watchlist stock under the first rule it fails (e.g. "Quality rules not met 57 · Completed weekly trend is bearish 15 · Within 5% of the 52-week low 9 …") and notes that, in 2016-2025, the price rules produced a shown setup on about 8% of trading days for SET50 stocks, in bull and bear markets alike. The hidden-lists card says the same.

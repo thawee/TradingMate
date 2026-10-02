@@ -15,7 +15,10 @@ object MarketLists {
     @Volatile private var set50: Set<String>? = null
     @Volatile private var holidays: Map<Int, Set<LocalDate>> = emptyMap()
 
-    fun isSet50(symbol: String): Boolean = (set50 ?: TradingConstants.SET50_SYMBOLS).contains(symbol.uppercase())
+    fun isSet50(symbol: String): Boolean = set50().contains(symbol.uppercase())
+
+    /** Current SET50 members (remote list when loaded, built-in otherwise). */
+    fun set50(): Set<String> = set50 ?: TradingConstants.SET50_SYMBOLS
 
     /** Remote holidays for [year] when published there; otherwise null so the built-in list applies. */
     fun holidaysFor(year: Int): Set<LocalDate>? = holidays[year]

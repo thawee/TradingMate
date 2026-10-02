@@ -40,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -438,6 +439,10 @@ fun DividendAdvisorScreen(
             Spacer(Modifier.height(8.dp))
 
             if (showUntestedLists) {
+                if (playbookMode == PlaybookMode.SWING) {
+                    MomentumListCard(viewModel, portfolioItems.map { it.info.symbol.uppercase() }.toSet())
+                    Spacer(Modifier.height(16.dp))
+                }
                 // Step 2: Candidates
                 Box(modifier = Modifier.onGloballyPositioned { coordinates ->
                     candidatesOffset = coordinates.positionInWindow().y.toInt() - 150
@@ -1875,6 +1880,58 @@ fun UntestedListsHiddenCard(onShow: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = onShow) { Text("Show them anyway") }
+        }
+    }
+}
+
+/**
+ * Top 10 SET50 stocks by 6-month return (MOM3 in tools/backtest/momentum_portfolio_report.md),
+ * with the test result beside it. Reviewed at month end; it failed the evidence gate.
+ */
+@Composable
+fun MomentumListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
+    val list by viewModel.momentumList.collectAsState()
+    val loading by viewModel.momentumLoading.collectAsState()
+    LaunchedEffect(Unit) { viewModel.refreshMomentumList() }
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("6-month momentum list", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Top 10 SET50 stocks by 6-month gain. Rule: at each month end, hold these at about 10% each inside your satellite, and sell names that drop out.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Surface(color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f), shape = RoundedCornerShape(10.dp)) {
+                Text(
+                    "Tested 2015-2025: +12.45% a year vs TDEX +2.52%, but -2.80% a year in 2021-2025 vs TDEX +3.19%, " +
+                        "worst drop 46%, and almost all profit came from DELTA, JMART and TRUE. It failed the evidence gate: keep it small.",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+            val l = list
+            when {
+                l == null && loading -> Text("Ranking SET50 from 6 months of prices…", style = MaterialTheme.typography.bodySmall)
+                l == null -> Text("Could not load prices. Try again when online.", style = MaterialTheme.typography.bodySmall)
+                else -> {
+                    l.second.forEachIndexed { i, e ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${i + 1}. ${e.symbol}" + if (e.symbol in heldSymbols) "  · held" else "",
+                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Text(String.format(Locale.ENGLISH, "%+.1f%%", e.returnPercent), style = MaterialTheme.typography.bodyMedium,
+                                color = if (e.returnPercent >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    Text("Ranked ${l.first} from dividend-adjusted closes. The list is meant to be acted on once a month, not daily.",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            TextButton(onClick = { viewModel.refreshMomentumList(force = true) }, enabled = !loading) {
+                Text(if (loading) "Ranking…" else "Re-rank now")
+            }
         }
     }
 }
