@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Thai market calendar)
+- **SET holiday calendar:** market status treats published 2026 SET closures as CLOSED (`domain/SetHolidays.kt`), so signal scans skip stale holiday prices and the monthly DCA reminder waits for the next trading session. Years SET has not yet published (2027) fall back to weekends only; add them when released.
+
 ### Research
 - **Short-swing plan variants:** the advisor event study now tests four pre-registered 1-4 week plans (52-week-high, 2R and 20-day swing-high targets with a 20-session time exit, and a no-BUY-signal variant). None is positive and ahead of TDEX in both 2015-2020 and 2021-2025, so the advisor stays labelled as context (`tools/backtest/advisor_event_study.md`, `docs/ADVISOR_EVALUATION.md`).
 

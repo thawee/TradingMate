@@ -122,17 +122,16 @@ object TechnicalAnalysis {
         }
     }
 
-    fun getMarketStatus(): MarketStatus {
-        val tz = java.util.TimeZone.getTimeZone("Asia/Bangkok")
-        val now = java.util.Calendar.getInstance(tz)
-        val dayOfWeek = now.get(java.util.Calendar.DAY_OF_WEEK)
-        val hour = now.get(java.util.Calendar.HOUR_OF_DAY)
-        val minute = now.get(java.util.Calendar.MINUTE)
-        val currentTime = hour * 100 + minute
-
-        if (dayOfWeek == java.util.Calendar.SATURDAY || dayOfWeek == java.util.Calendar.SUNDAY) {
+    /** SET session state in Bangkok time; weekends and [SetHolidays] closures are CLOSED. */
+    fun getMarketStatus(
+        now: java.time.ZonedDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Bangkok"))
+    ): MarketStatus {
+        val bkk = now.withZoneSameInstant(java.time.ZoneId.of("Asia/Bangkok"))
+        if (bkk.dayOfWeek == java.time.DayOfWeek.SATURDAY || bkk.dayOfWeek == java.time.DayOfWeek.SUNDAY ||
+            SetHolidays.isHoliday(bkk.toLocalDate())) {
             return MarketStatus.CLOSED
         }
+        val currentTime = bkk.hour * 100 + bkk.minute
 
         return when {
             currentTime in 1000..1229 -> MarketStatus.OPEN      // Morning session: 10:00–12:29
