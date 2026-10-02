@@ -113,6 +113,9 @@ object NotificationHelper {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("START_SCREEN", "PORTFOLIO")
+            // Tapping opens the Buy dialog prefilled with the suggested core purchase.
+            putExtra("DCA_PRICE", price)
+            putExtra("DCA_SHARES", suggestion.shares)
         }
         val pendingIntent = PendingIntent.getActivity(
             context, "dca".hashCode(), intent,

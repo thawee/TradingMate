@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (practical use)
+- **Core setup on Portfolio:** with no monthly DCA set, the Core vs Satellite card offers a monthly amount and day and previews the purchase in whole TDEX lots with fees (e.g. ฿5,000 buys 400 TDEX at ฿10.37, ฿845 left). Once set, it shows the plan and a "Record TDEX buy" button that opens the Buy dialog prefilled with TDEX, the live price and the suggested lots.
+- **One-tap DCA from the reminder:** tapping the monthly DCA notification opens that prefilled Buy dialog; it opens once and does not reappear when you return to Portfolio.
+- **Stop decision step:** when price is through the saved stop, the holding card asks for a decision beside Execute Sell: "Move stop" (new stop below today's price, rounded to a SET tick, reason required) or "Hold anyway" (reason required). Both are written to the holding's note and the advice journal (`STOP_MOVED`, `STOP_HOLD`). "Hold anyway" pauses sell reminders for that stop level until the stop changes.
+
 ### Fixed (device review, part 2)
 - **Adding a watchlist symbol works and is validated:** the "+" dialog went through the buy path, which rejects zero shares, so it showed "Added X" without adding. It now adds watch-only, checks the ticker against a live SET quote first (typos like BANPUU are refused), and shows errors inside the dialog.
 - **Net profit unit:** SET reports company net profit in thousand baht; the detail screen showed TRUE as ฿13,142,849 M and now shows ฿13,143 M.

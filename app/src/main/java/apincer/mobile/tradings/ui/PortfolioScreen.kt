@@ -98,7 +98,10 @@ fun PortfolioScreen(
     portfolioViewModel: PortfolioViewModel = viewModel(),
     onSelectStock: (String) -> Unit,
     showSnackbar: (String) -> Unit,
-    scrollSymbol: String? = null
+    scrollSymbol: String? = null,
+    /** From the monthly DCA notification: open the Buy dialog prefilled with the core purchase. */
+    dcaBuyRequest: Triple<String, Double, Int>? = null,
+    onDcaBuyRequestConsumed: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val watchlist by viewModel.watchlistInfo.collectAsState()
@@ -117,10 +120,24 @@ fun PortfolioScreen(
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
+    var buyPrefill by remember { mutableStateOf<Triple<String, Double, Int>?>(null) }
+    val corePrice by portfolioViewModel.corePrice.collectAsState()
+    val stopAcks by viewModel.stopAcks.collectAsState()
+    val monthlyDcaAmount by settingsViewModel.monthlyDcaAmount.collectAsState()
+    val dcaDay by settingsViewModel.dcaDayOfMonth.collectAsState()
+    LaunchedEffect(Unit) { portfolioViewModel.refreshCorePrice() }
     var showCashDialog by remember { mutableStateOf(false) }
     var showDividendDialog by remember { mutableStateOf(false) }
     var selectedStockForSell by remember { mutableStateOf<StockWatchlistInfo?>(null) }
     var selectedStockForEdit by remember { mutableStateOf<StockWatchlistInfo?>(null) }
+    LaunchedEffect(dcaBuyRequest) {
+        if (dcaBuyRequest != null) {
+            selectedStockForEdit = null
+            buyPrefill = dcaBuyRequest
+            showBuyDialog = true
+            onDcaBuyRequestConsumed() // so returning to Portfolio later does not reopen it
+        }
+    }
     var isSubmitting by remember { mutableStateOf(false) }
     var selectedPlaybook by remember { mutableStateOf("SWING") }
 
@@ -424,7 +441,21 @@ fun PortfolioScreen(
                 item {
                     CoreSatelliteCard(
                         portfolioItems = allPortfolioItems,
-                        targetCorePercent = targetCorePercent
+                        targetCorePercent = targetCorePercent,
+                        monthlyDcaAmount = monthlyDcaAmount,
+                        dcaDay = dcaDay,
+                        corePrice = corePrice,
+                        atsEnabled = isAtsEnabled,
+                        onSetupCore = { amount, day ->
+                            settingsViewModel.updateMonthlyDcaAmount(amount)
+                            settingsViewModel.updateDcaDayOfMonth(day)
+                            showSnackbar("Monthly core DCA set: ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", amount)} on day $day")
+                        },
+                        onBuyCore = { price, shares ->
+                            selectedStockForEdit = null
+                            buyPrefill = Triple(apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL, price, shares)
+                            showBuyDialog = true
+                        }
                     )
                 }
 
@@ -486,6 +517,13 @@ fun PortfolioScreen(
                         onEdit = { 
                             selectedStockForEdit = item
                             showBuyDialog = true
+                        },
+                        stopAckLevel = stopAcks[item.info.symbol.uppercase()],
+                        onStopDecision = { stock, move, newStop, reason ->
+                            viewModel.recordStopDecision(stock, move, newStop, reason) { result ->
+                                result.onSuccess { showSnackbar(it) }
+                                    .onFailure { showSnackbar(it.message ?: "Could not save the decision") }
+                            }
                         }
                     )
                 }
@@ -514,10 +552,12 @@ fun PortfolioScreen(
             targetCorePercent = targetCorePercent,
             atsEnabled = isAtsEnabled,
             isSaving = isSubmitting,
+            prefill = buyPrefill,
             onDismiss = {
                 if (!isSubmitting) {
                     showBuyDialog = false
                     selectedStockForEdit = null
+                    buyPrefill = null
                 }
             },
             onConfirm = { symbol, cost, qty, target, stopLoss, note, purpose, recordExecutedFill ->
@@ -530,6 +570,7 @@ fun PortfolioScreen(
                             result.onSuccess {
                                 showBuyDialog = false
                                 selectedStockForEdit = null
+                                buyPrefill = null
                             }.onFailure { showSnackbar(it.message ?: "Could not save holding") }
                         })
                 }
@@ -854,12 +895,14 @@ fun BuyStockDialog(
     targetCorePercent: Double = apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_TARGET_CORE_PERCENT,
     atsEnabled: Boolean = true,
     isSaving: Boolean = false,
+    /** New-buy prefill, e.g. a DCA purchase of the core: symbol, price, shares. */
+    prefill: Triple<String, Double, Int>? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, Double, Double, String, String, Boolean) -> Unit
 ) {
-    var symbol by remember { mutableStateOf(initialStock?.info?.symbol ?: "") }
-    var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: "") }
-    var qty by remember { mutableStateOf(initialStock?.portfolio?.quantity?.toString() ?: "") }
+    var symbol by remember { mutableStateOf(initialStock?.info?.symbol ?: prefill?.first ?: "") }
+    var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: prefill?.second?.toString() ?: "") }
+    var qty by remember { mutableStateOf(initialStock?.portfolio?.quantity?.toString() ?: prefill?.third?.takeIf { it > 0 }?.toString() ?: "") }
     
     var targetPrice by remember { mutableStateOf(initialStock?.portfolio?.portfolio?.targetPrice?.let { if (it > 0) it.toString() else "" } ?: "") }
     var stopLossPrice by remember { mutableStateOf(initialStock?.portfolio?.stopLoss?.let { if (it > 0) it.toString() else "" } ?: "") }
@@ -1561,18 +1604,29 @@ fun SellStockDialog(
 @Composable
 fun CoreSatelliteCard(
     portfolioItems: List<StockWatchlistInfo>,
-    targetCorePercent: Double
+    targetCorePercent: Double,
+    monthlyDcaAmount: Double = 0.0,
+    dcaDay: Int = apincer.mobile.tradings.domain.CoreSatellite.DEFAULT_DCA_DAY,
+    corePrice: Double? = null,
+    atsEnabled: Boolean = true,
+    onSetupCore: (amount: Double, day: Int) -> Unit = { _, _ -> },
+    onBuyCore: (price: Double, shares: Int) -> Unit = { _, _ -> }
 ) {
-    if (portfolioItems.isEmpty()) return
     val allocation = apincer.mobile.tradings.domain.CoreSatellite.allocation(
         portfolioItems.map { it.info.symbol to it.info.lastPrice * it.portfolio.quantity },
         targetCorePercent
     )
-    if (allocation.investedValue <= 0.0) return
     val coreSymbol = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
-    val isBelowTarget = allocation.driftPercent < -5.0
+    val isBelowTarget = allocation.investedValue > 0.0 && allocation.driftPercent < -5.0
     val barColor = if (isBelowTarget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     fun pct(v: Double) = String.format(java.util.Locale.ENGLISH, "%.0f%%", v)
+    fun baht(v: Double) = String.format(java.util.Locale.ENGLISH, "฿%,.0f", v)
+    fun lotsText(budget: Double): String? = corePrice?.let { price ->
+        val s = apincer.mobile.tradings.domain.CoreSatellite.dcaSuggestion(budget, price, atsEnabled)
+        if (s.shares > 0) "buys ${String.format(java.util.Locale.ENGLISH, "%,d", s.shares)} $coreSymbol at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", price)} " +
+            "(${baht(s.estimatedCost)} with fees, ${baht(s.unusedBaht)} left)"
+        else "is less than one 100-share lot at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", price)}"
+    }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
@@ -1585,39 +1639,86 @@ fun CoreSatelliteCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Core $coreSymbol ${pct(allocation.corePercent)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = barColor)
-                Text("Target ${pct(targetCorePercent)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            LinearProgressIndicator(
-                progress = { (allocation.corePercent / 100.0).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(8.dp).padding(top = 4.dp),
-                color = barColor,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Satellite (individual stocks) ${pct(allocation.satellitePercent)} · cap ${pct(100.0 - targetCorePercent)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (allocation.coreValue <= 0.0 || isBelowTarget) {
-                Spacer(Modifier.height(8.dp))
+            if (allocation.investedValue > 0.0) {
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Core $coreSymbol ${pct(allocation.corePercent)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = barColor)
+                    Text("Target ${pct(targetCorePercent)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                LinearProgressIndicator(
+                    progress = { (allocation.corePercent / 100.0).toFloat().coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().height(8.dp).padding(top = 4.dp),
+                    color = barColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = if (allocation.coreValue <= 0.0) {
-                        "No index core yet. Set a monthly DCA amount in Settings to start building your $coreSymbol core."
-                    } else {
-                        String.format(
-                            java.util.Locale.ENGLISH,
-                            "About ฿%,.0f more %s reaches your target without selling. Direct new money to the core first.",
-                            allocation.coreShortfallBaht, coreSymbol
-                        )
-                    },
+                    "Satellite (individual stocks) ${pct(allocation.satellitePercent)} · cap ${pct(100.0 - targetCorePercent)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (allocation.coreValue > 0.0 && isBelowTarget) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "About ${baht(allocation.coreShortfallBaht)} more $coreSymbol reaches your target without selling. Direct new money to the core first.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            if (monthlyDcaAmount <= 0.0) {
+                // First-run setup: the core is the plan the backtest supports, so it is set up here, not in Settings.
+                var amountText by remember { mutableStateOf("") }
+                var dayText by remember { mutableStateOf(dcaDay.toString()) }
+                val amount = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }
+                val day = dayText.toIntOrNull()?.takeIf { it in 1..28 }
+                Text(
+                    "Start your index core: put a fixed amount into $coreSymbol (SET50 ETF) every month.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = amountText, onValueChange = { amountText = it },
+                        label = { Text("Monthly amount") }, prefix = { Text("฿ ") }, singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(2f), shape = RoundedCornerShape(14.dp)
+                    )
+                    OutlinedTextField(
+                        value = dayText, onValueChange = { dayText = it },
+                        label = { Text("Day") }, singleLine = true, isError = dayText.isNotBlank() && day == null,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)
+                    )
+                }
+                amount?.let { a -> lotsText(a)?.let {
+                    Text("${baht(a)} $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                } }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { if (amount != null && day != null) onSetupCore(amount, day) },
+                    enabled = amount != null && day != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Save monthly plan") }
+            } else {
+                Text(
+                    "Monthly plan: ${baht(monthlyDcaAmount)} on day $dcaDay" + (lotsText(monthlyDcaAmount)?.let { " $it" } ?: ""),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                val suggestion = corePrice?.let { apincer.mobile.tradings.domain.CoreSatellite.dcaSuggestion(monthlyDcaAmount, it, atsEnabled) }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { if (corePrice != null && suggestion != null) onBuyCore(corePrice, suggestion.shares) },
+                    enabled = corePrice != null && (suggestion?.shares ?: 0) > 0,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text(if (corePrice == null) "Loading $coreSymbol price…" else "Record $coreSymbol buy") }
             }
         }
     }

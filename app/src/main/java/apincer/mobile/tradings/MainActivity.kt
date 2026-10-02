@@ -34,6 +34,14 @@ import androidx.compose.runtime.setValue
 class MainActivity : ComponentActivity() {
     private var openSymbolState by mutableStateOf<String?>(null)
     private var startScreenState by mutableStateOf<String?>(null)
+    /** One-shot DCA buy request from the monthly reminder; cleared once the Buy dialog opens. */
+    private var dcaRequestState by mutableStateOf<Triple<String, Double, Int>?>(null)
+
+    private fun readDcaRequest(intent: Intent?): Triple<String, Double, Int>? {
+        val price = intent?.getDoubleExtra("DCA_PRICE", 0.0) ?: 0.0
+        if (price <= 0.0) return null
+        return Triple(apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL, price, intent?.getIntExtra("DCA_SHARES", 0) ?: 0)
+    }
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -51,6 +59,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         openSymbolState = intent.getStringExtra("OPEN_SYMBOL")
         startScreenState = intent.getStringExtra("START_SCREEN")
+        dcaRequestState = readDcaRequest(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +67,7 @@ class MainActivity : ComponentActivity() {
 
         openSymbolState = intent?.getStringExtra("OPEN_SYMBOL")
         startScreenState = intent?.getStringExtra("START_SCREEN")
+        if (savedInstanceState == null) dcaRequestState = readDcaRequest(intent)
 
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
@@ -79,7 +89,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    StockScreen(openSymbol = openSymbolState, startScreen = startScreenState)
+                    StockScreen(
+                        openSymbol = openSymbolState,
+                        startScreen = startScreenState,
+                        dcaBuyRequest = dcaRequestState,
+                        onDcaBuyRequestConsumed = { dcaRequestState = null }
+                    )
                 }
             }
         }

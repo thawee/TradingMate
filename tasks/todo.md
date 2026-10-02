@@ -374,3 +374,19 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 - [x] Confirm before History clear, watchlist remove and Undo Sell.
 - [x] AI Prompt FAB does not cover content; Gemini button disabled with 0 plans.
 - [x] Tests, build, device check, changelog, commit.
+
+# Real-life practicality, 2026-10-02
+
+## 1. Core setup and one-tap DCA
+- [x] Portfolio "Core vs Satellite" card: when no monthly DCA is set, show a setup action (amount + day) with the first purchase in whole TDEX lots, fees included.
+- [x] "Buy TDEX" action on the card opens the Buy dialog prefilled with TDEX, the suggested lots and the live price.
+- [x] Monthly DCA notification opens the app straight into that prefilled Buy dialog.
+
+## 2. Stop decision step
+- [x] When price is through the saved stop, the holding card asks for one decision: Sell (existing flow), Move stop (new stop below price + required reason), Hold anyway (required reason).
+- [x] Each decision is journaled (advice event + note) and "Hold anyway" silences repeat sell reminders for that stop level until the stop changes.
+
+## Later (not started)
+- [ ] Auto-filled pending dividends on XD; "start tracking from today's cost" for the scorecard.
+- [ ] Hide Speculative Watch, AI buy ranking, daily movers and Dividend Stars until they pass the evidence gate.
+- [ ] Broker statement import, cloud backup, ThaiESG/RMF tracker, rebalance nudge, remote holiday/SET50 lists, single stop model.

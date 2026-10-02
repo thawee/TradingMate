@@ -367,7 +367,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     }
                 }
 
-                if (entity.quantity > 0 && sellReasonsList.isNotEmpty()) {
+                // The user recorded "Hold anyway" for this exact stop: stay quiet until the stop changes.
+                val heldPastStop = entity.portfolio.stopLoss > 0.0 &&
+                    alertPrefs.getString(apincer.mobile.tradings.ui.STOP_ACK_PREFIX + entity.symbol.uppercase(), null)
+                        ?.toDoubleOrNull() == entity.portfolio.stopLoss
+                if (entity.quantity > 0 && sellReasonsList.isNotEmpty() && !heldPastStop) {
                     maybeSendSellReminder(
                         prefs = alertPrefs,
                         symbol = entity.symbol,

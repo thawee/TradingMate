@@ -33,7 +33,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -558,7 +561,11 @@ fun StockItemCard(
     onDelete: (StockWatchlistInfo) -> Unit,
     onSell: ((StockWatchlistInfo) -> Unit)? = null,
     onEdit: ((StockWatchlistInfo) -> Unit)? = null,
-    showSignalBadge: Boolean = true
+    showSignalBadge: Boolean = true,
+    /** Stop level the user chose to hold past, if any. */
+    stopAckLevel: Double? = null,
+    /** (item, move, newStop, reason): the decision once price is through the saved stop. */
+    onStopDecision: ((StockWatchlistInfo, Boolean, Double?, String) -> Unit)? = null
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var lastKnownPrice by remember(item.info.symbol) { mutableDoubleStateOf(item.info.lastPrice) }
@@ -978,6 +985,39 @@ fun StockItemCard(
                                     color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
+                                if (stopAckLevel == stopLoss) {
+                                    Text(
+                                        text = "You chose to hold past this stop. Reminders are paused until you change it.",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                } else if (onStopDecision != null) {
+                                    // A passed stop needs a decision, not another reminder: sell, move the stop, or hold on purpose.
+                                    var decisionMove by remember { mutableStateOf<Boolean?>(null) }
+                                    Text(
+                                        text = "Decide: sell below, or",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 6.dp)
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                                        OutlinedButton(onClick = { decisionMove = true }, shape = RoundedCornerShape(10.dp)) { Text("Move stop", fontSize = 12.sp) }
+                                        OutlinedButton(onClick = { decisionMove = false }, shape = RoundedCornerShape(10.dp)) { Text("Hold anyway", fontSize = 12.sp) }
+                                    }
+                                    decisionMove?.let { move ->
+                                        StopDecisionDialog(
+                                            symbol = item.info.symbol,
+                                            move = move,
+                                            lastPrice = lastPrice,
+                                            onDismiss = { decisionMove = null },
+                                            onConfirm = { newStop, reason ->
+                                                decisionMove = null
+                                                onStopDecision(item, move, newStop, reason)
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -1575,4 +1615,58 @@ fun UntestedEdgeNotice(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+@Composable
+fun StopDecisionDialog(
+    symbol: String,
+    move: Boolean,
+    lastPrice: Double,
+    onDismiss: () -> Unit,
+    onConfirm: (newStop: Double?, reason: String) -> Unit
+) {
+    var stopText by remember { mutableStateOf("") }
+    var reason by remember { mutableStateOf("") }
+    val enteredStop = stopText.toDoubleOrNull()
+    val snapped = enteredStop?.takeIf { it > 0.0 }?.let { apincer.mobile.tradings.domain.SetTick.ceil(it) }
+    val stopOk = !move || (snapped != null && snapped < lastPrice)
+    val reasonOk = reason.trim().length >= 3
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (move) "Move $symbol stop" else "Hold $symbol past its stop") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    if (move) "Set a new stop below today's price ฿${String.format(Locale.ENGLISH, "%.2f", lastPrice)}. Moving a stop down adds risk, so the reason is saved to your journal."
+                    else "Reminders for this stop pause until you change it. The reason is saved to your journal so you can review it later.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (move) {
+                    OutlinedTextField(
+                        value = stopText, onValueChange = { stopText = it },
+                        label = { Text("New stop") }, prefix = { Text("฿ ") }, singleLine = true,
+                        isError = stopText.isNotBlank() && !stopOk,
+                        supportingText = when {
+                            snapped != null && snapped >= lastPrice -> { { Text("Must be below ฿${String.format(Locale.ENGLISH, "%.2f", lastPrice)}") } }
+                            snapped != null && snapped != enteredStop -> { { Text("SET price: ฿${String.format(Locale.ENGLISH, "%.2f", snapped)}") } }
+                            else -> null
+                        },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                    )
+                }
+                OutlinedTextField(
+                    value = reason, onValueChange = { reason = it },
+                    label = { Text("Reason") },
+                    placeholder = { Text(if (move) "e.g. earnings next week, support at ฿10" else "e.g. long-term dividend hold") },
+                    minLines = 2
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(if (move) snapped else null, reason.trim()) }, enabled = stopOk && reasonOk) {
+                Text(if (move) "Save stop" else "Hold")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }

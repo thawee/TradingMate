@@ -71,7 +71,9 @@ fun StockScreen(
     viewModel: StockViewModel = viewModel(),
     settingsViewModel: SettingsViewModel = viewModel(),
     openSymbol: String? = null,
-    startScreen: String? = null
+    startScreen: String? = null,
+    dcaBuyRequest: Triple<String, Double, Int>? = null,
+    onDcaBuyRequestConsumed: () -> Unit = {}
 ) {
     var currentScreen by rememberSaveable { mutableStateOf(Screen.WATCHLIST) }
     val uiState by viewModel.uiState.collectAsState()
@@ -348,7 +350,8 @@ fun StockScreen(
                                 label = "screenTransition"
                             ) { screen ->
                                 when (screen) {
-                                    Screen.PORTFOLIO -> PortfolioScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar, scrollSymbol = openSymbol)
+                                    Screen.PORTFOLIO -> PortfolioScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar, scrollSymbol = openSymbol,
+                                        dcaBuyRequest = dcaBuyRequest, onDcaBuyRequestConsumed = onDcaBuyRequestConsumed)
                                     Screen.WATCHLIST -> WatchlistScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar)
                                     Screen.ADVISOR -> DividendAdvisorScreen(
                                         viewModel = viewModel,

@@ -1132,6 +1132,63 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _stopAcks = MutableStateFlow(readStopAcks())
+    /** Stop levels the user chose to hold past, by symbol; sell reminders stay quiet until the stop changes. */
+    val stopAcks: StateFlow<Map<String, Double>> = _stopAcks
+
+    private fun readStopAcks(): Map<String, Double> = alertPrefs.all.mapNotNull { (k, v) ->
+        if (k.startsWith(STOP_ACK_PREFIX)) (v as? String)?.toDoubleOrNull()?.let { k.removePrefix(STOP_ACK_PREFIX) to it } else null
+    }.toMap()
+
+    /**
+     * Decision once price is through the saved stop: MOVE sets a new stop below the price, HOLD keeps
+     * the position deliberately. Both need a reason and are journaled, so ignored alerts become a record.
+     */
+    fun recordStopDecision(item: StockWatchlistInfo, move: Boolean, newStopInput: Double?, reason: String,
+                           onResult: (Result<String>) -> Unit) {
+        val symbol = item.info.symbol.uppercase()
+        val p = item.portfolio.portfolio
+        viewModelScope.launch {
+            try {
+                val why = reason.trim()
+                if (why.length < 3) throw IllegalArgumentException("Write a short reason for the journal")
+                val stamp = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                if (move) {
+                    val newStop = newStopInput?.takeIf { it > 0.0 }?.let { apincer.mobile.tradings.domain.SetTick.ceil(it) }
+                        ?: throw IllegalArgumentException("Enter a new stop price")
+                    if (newStop >= item.info.lastPrice)
+                        throw IllegalArgumentException("The new stop must be below the current price ฿${item.info.lastPrice}")
+                    val note = listOf(p.playbookNote, "[$stamp] Stop moved ฿${p.stopLoss} → ฿$newStop: $why")
+                        .filter { it.isNotBlank() }.joinToString("\n")
+                    repository.addStock(symbol, p.cost, p.quantity, p.tradePurpose, 0.0, newStop, note,
+                        targetPrice = p.targetPrice)
+                    repository.recordAdviceEvent(apincer.mobile.tradings.data.AdviceEventEntity(
+                        symbol = symbol, planId = p.planId, planVersion = p.planVersion, kind = "STOP_MOVED",
+                        timeMillis = System.currentTimeMillis(), entryPrice = p.cost, stopPrice = newStop,
+                        quantity = 0, source = "USER", note = why))
+                    alertPrefs.edit().remove(STOP_ACK_PREFIX + symbol).apply()
+                    _stopAcks.value = readStopAcks()
+                    onResult(Result.success("Stop moved to ฿$newStop"))
+                } else {
+                    val note = listOf(p.playbookNote, "[$stamp] Held past stop ฿${p.stopLoss}: $why")
+                        .filter { it.isNotBlank() }.joinToString("\n")
+                    repository.addStock(symbol, p.cost, p.quantity, p.tradePurpose, 0.0, p.stopLoss, note,
+                        targetPrice = p.targetPrice)
+                    repository.recordAdviceEvent(apincer.mobile.tradings.data.AdviceEventEntity(
+                        symbol = symbol, planId = p.planId, planVersion = p.planVersion, kind = "STOP_HOLD",
+                        timeMillis = System.currentTimeMillis(), entryPrice = p.cost, stopPrice = p.stopLoss,
+                        quantity = 0, source = "USER", note = why))
+                    alertPrefs.edit().putString(STOP_ACK_PREFIX + symbol, p.stopLoss.toString()).apply()
+                    _stopAcks.value = readStopAcks()
+                    onResult(Result.success("Holding $symbol past its stop; reminders paused for this stop"))
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
     /**
      * Watch-only add. addToWatchlist(symbol) with no shares went through executeBuy, which rejects
      * quantity 0, so the "+" dialog reported success without adding. The symbol is also checked
@@ -1509,3 +1566,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
+
+/** SharedPreferences key prefix ("trading_mate_alerts") for a stop level the user chose to hold past. */
+const val STOP_ACK_PREFIX = "stop_ack_"

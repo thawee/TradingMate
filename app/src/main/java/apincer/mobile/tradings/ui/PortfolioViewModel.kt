@@ -57,6 +57,18 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
     private val historyRefreshIntervalMillis = 60L * 60L * 1000L
     private val _portfolioHistoricalCloses = MutableStateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>>(emptyMap())
     val portfolioHistoricalCloses: StateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>> = _portfolioHistoricalCloses.asStateFlow()
+    private val _corePrice = MutableStateFlow<Double?>(null)
+    /** Latest TDEX price for the core setup card and one-tap DCA; null until fetched or if offline. */
+    val corePrice: StateFlow<Double?> = _corePrice.asStateFlow()
+
+    fun refreshCorePrice() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _corePrice.value = apincer.mobile.tradings.data.SetScraper.fetchBatchQuotes(
+                listOf(apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL)
+            ).firstOrNull()?.lastPrice?.takeIf { it > 0.0 } ?: _corePrice.value
+        }
+    }
+
     private val _indexHistory = MutableStateFlow<List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>(emptyList())
     val indexHistory: StateFlow<List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>> = _indexHistory.asStateFlow()
 
