@@ -128,6 +128,7 @@ fun PortfolioScreen(
     LaunchedEffect(Unit) { portfolioViewModel.refreshCorePrice() }
     var showCashDialog by remember { mutableStateOf(false) }
     var showDividendDialog by remember { mutableStateOf(false) }
+    var pendingToRecord by remember { mutableStateOf<apincer.mobile.tradings.domain.PendingDividends.Pending?>(null) }
     var selectedStockForSell by remember { mutableStateOf<StockWatchlistInfo?>(null) }
     var selectedStockForEdit by remember { mutableStateOf<StockWatchlistInfo?>(null) }
     LaunchedEffect(dcaBuyRequest) {
@@ -145,6 +146,9 @@ fun PortfolioScreen(
     val totalDividendEarned = dividendHistory.sumOf { it.totalReceived }
 
     val allPortfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
+    val pendingDividends by portfolioViewModel.pendingDividends.collectAsState()
+    val heldKey = allPortfolioItems.map { it.info.symbol to it.portfolio.quantity }.sortedBy { it.first }
+    LaunchedEffect(heldKey) { if (heldKey.isNotEmpty()) portfolioViewModel.refreshPendingDividends(allPortfolioItems) }
     // Account equity for position sizing = cash on hand + current market value of holdings.
     val accountEquity = cashBalance + allPortfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
     val portfolioItems = when (selectedPlaybook) {
@@ -432,6 +436,14 @@ fun PortfolioScreen(
                     }
                 }
 
+                if (pendingDividends.isNotEmpty()) item {
+                    PendingDividendsCard(
+                        pending = pendingDividends,
+                        onRecord = { pendingToRecord = it; showDividendDialog = true },
+                        onDismiss = { portfolioViewModel.dismissPendingDividend(it) }
+                    )
+                }
+
                 item {
                     HoldingsSummaryTable(
                         items = portfolioItems
@@ -604,7 +616,8 @@ fun PortfolioScreen(
     if (showDividendDialog) {
         LogDividendDialog(
             isSaving = isSubmitting,
-            onDismiss = { if (!isSubmitting) showDividendDialog = false },
+            initial = pendingToRecord,
+            onDismiss = { if (!isSubmitting) { showDividendDialog = false; pendingToRecord = null } },
             onConfirm = { symbol, dateMillis, dps, shares, tax ->
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 if (!isSubmitting) {
@@ -613,6 +626,8 @@ fun PortfolioScreen(
                         isSubmitting = false
                         result.onSuccess {
                             showDividendDialog = false
+                            pendingToRecord = null
+                            portfolioViewModel.refreshPendingDividends(watchlist)
                             showSnackbar("Logged dividend for $symbol")
                         }.onFailure { showSnackbar(it.message ?: "Could not log dividend") }
                     }
@@ -647,13 +662,15 @@ fun PortfolioScreen(
 fun LogDividendDialog(
     initialSymbol: String = "",
     isSaving: Boolean = false,
+    /** Prefill from a pending payout: baht per share, shares, withholding tax. */
+    initial: apincer.mobile.tradings.domain.PendingDividends.Pending? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, Long, Double, Int, Double) -> Unit
 ) {
-    var symbol by remember { mutableStateOf(initialSymbol) }
-    var dps by remember { mutableStateOf("") }
-    var shares by remember { mutableStateOf("") }
-    var taxDeducted by remember { mutableStateOf("0.0") }
+    var symbol by remember { mutableStateOf(initial?.symbol ?: initialSymbol) }
+    var dps by remember { mutableStateOf(initial?.perShare?.toString() ?: "") }
+    var shares by remember { mutableStateOf(initial?.shares?.toString() ?: "") }
+    var taxDeducted by remember { mutableStateOf(initial?.let { String.format(java.util.Locale.ENGLISH, "%.2f", it.withholding) } ?: "0.0") }
     
     val dpsVal = dps.toDoubleOrNull() ?: 0.0
     val sharesVal = shares.toIntOrNull() ?: 0
@@ -1595,6 +1612,43 @@ fun SellStockDialog(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(if (isLessonSufficient) stringResource(R.string.action_confirm_sell) else "Write Lesson First", color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+/** Payouts the app expects on current holdings that are not logged yet: confirm instead of typing. */
+@Composable
+fun PendingDividendsCard(
+    pending: List<apincer.mobile.tradings.domain.PendingDividends.Pending>,
+    onRecord: (apincer.mobile.tradings.domain.PendingDividends.Pending) -> Unit,
+    onDismiss: (apincer.mobile.tradings.domain.PendingDividends.Pending) -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Dividends to record", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Recent payouts on your holdings that are not in the dividend log. Check the amount against your broker statement, then record it.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            pending.forEach { p ->
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(p.symbol, fontWeight = FontWeight.Black)
+                        Text(
+                            String.format(java.util.Locale.ENGLISH, "XD %s · ฿%.2f × %,d = ฿%,.2f, about ฿%,.2f after 10%% tax",
+                                p.exDate, p.perShare, p.shares, p.gross, p.net),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(onClick = { onDismiss(p) }) { Text("Dismiss") }
+                    Button(onClick = { onRecord(p) }, shape = RoundedCornerShape(10.dp)) { Text("Record") }
                 }
             }
         }

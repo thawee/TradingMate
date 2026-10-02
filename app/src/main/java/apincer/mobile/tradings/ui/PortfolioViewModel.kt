@@ -108,6 +108,31 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
      * closes (their dividends are counted from the dividend log, net of withholding tax);
      * TDEX uses dividend-adjusted closes (gross), a small bias in the core's favour.
      */
+    /**
+     * "Start tracking from today": journals the untracked shares of each excluded holding as a
+     * BASELINE_FILL at today's price, so the scorecard can compare the satellite from now on.
+     * Returns the number of holdings brought in.
+     */
+    fun startScorecardTracking(holdings: List<StockWatchlistInfo>, onDone: (Int) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val scorecard = apincer.mobile.tradings.domain.SatelliteScorecard
+            val fills = scorecard.fillsFromEvents(repository.getAllAdviceEventsSync(), isAtsEnabled.value)
+            val bySymbol = holdings.associateBy { it.info.symbol.uppercase() }
+            val now = System.currentTimeMillis()
+            val topUps = scorecard.baselineTopUps(fills, holdings.associate { it.info.symbol.uppercase() to it.portfolio.quantity })
+                .filter { (bySymbol[it.key]?.info?.lastPrice ?: 0.0) > 0.0 }
+            topUps.forEach { (symbol, qty) ->
+                val price = bySymbol.getValue(symbol).info.lastPrice
+                repository.recordAdviceEvent(apincer.mobile.tradings.data.AdviceEventEntity(
+                    symbol = symbol, planId = "", planVersion = 0, kind = "BASELINE_FILL", timeMillis = now,
+                    fillPrice = price, quantity = qty, source = "BASELINE",
+                    note = "Scorecard tracking started at today's price"))
+            }
+            loadSatelliteScorecard(holdings)
+            kotlinx.coroutines.withContext(Dispatchers.Main) { onDone(topUps.size) }
+        }
+    }
+
     fun loadSatelliteScorecard(holdings: List<StockWatchlistInfo>) {
         viewModelScope.launch(Dispatchers.IO) {
             val scorecard = apincer.mobile.tradings.domain.SatelliteScorecard
@@ -172,6 +197,35 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             started = SharingStarted.Lazily, 
             initialValue = emptyList()
         )
+
+    private val dividendPrefs = application.getSharedPreferences("trading_mate_alerts", android.content.Context.MODE_PRIVATE)
+    private val _pendingDividends = MutableStateFlow<List<apincer.mobile.tradings.domain.PendingDividends.Pending>>(emptyList())
+    /** Recent payouts on current holdings that are not in the dividend log yet. */
+    val pendingDividends: StateFlow<List<apincer.mobile.tradings.domain.PendingDividends.Pending>> = _pendingDividends.asStateFlow()
+
+    fun refreshPendingDividends(holdings: List<StockWatchlistInfo>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val held = holdings.filter { it.portfolio.quantity > 0 }
+                .associate { it.info.symbol.uppercase() to it.portfolio.quantity }
+            if (held.isEmpty()) { _pendingDividends.value = emptyList(); return@launch }
+            val bangkok = java.time.ZoneId.of("Asia/Bangkok")
+            fun day(ms: Long) = java.time.Instant.ofEpochMilli(ms).atZone(bangkok).toLocalDate()
+            val events = held.keys.associateWith { apincer.mobile.tradings.data.SetScraper.fetchDividendEvents(it, "6mo") }
+            val recorded = repository.getAllDividendsSync().groupBy({ it.symbol.uppercase() }, { day(it.dateMillis) })
+            // First journaled buy only; a scorecard baseline is not a purchase date.
+            val acquired = repository.getAllAdviceEventsSync().filter { it.kind == "BUY_FILL" }
+                .groupBy { it.symbol.uppercase() }.mapValues { (_, e) -> day(e.minOf { it.timeMillis }) }
+            val dismissed = dividendPrefs.getStringSet(DIVIDEND_DISMISSED_KEY, emptySet()).orEmpty()
+            _pendingDividends.value = apincer.mobile.tradings.domain.PendingDividends.find(
+                held, events, recorded, acquired, dismissed, java.time.LocalDate.now(bangkok))
+        }
+    }
+
+    fun dismissPendingDividend(pending: apincer.mobile.tradings.domain.PendingDividends.Pending) {
+        val set = dividendPrefs.getStringSet(DIVIDEND_DISMISSED_KEY, emptySet()).orEmpty() + pending.key
+        dividendPrefs.edit().putStringSet(DIVIDEND_DISMISSED_KEY, set).apply()
+        _pendingDividends.value = _pendingDividends.value.filterNot { it.key == pending.key }
+    }
 
     fun logDividend(symbol: String, dateMillis: Long, amountPerShare: Double, sharesHeld: Int, taxDeducted: Double,
                     onResult: (Result<Unit>) -> Unit = {}) {
@@ -253,3 +307,5 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 }
+
+private const val DIVIDEND_DISMISSED_KEY = "pending_dividends_dismissed"

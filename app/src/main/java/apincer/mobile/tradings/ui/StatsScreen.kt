@@ -32,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -277,7 +278,28 @@ fun StatsScreen(
             }
 
             item {
-                SatelliteScorecardCard(satelliteScorecard)
+                var confirmTracking by remember { mutableStateOf(false) }
+                if (confirmTracking) {
+                    GlassDialog(
+                        onDismissRequest = { confirmTracking = false },
+                        title = "Start tracking from today?",
+                        confirmButton = {
+                            Button(onClick = {
+                                confirmTracking = false
+                                portfolioViewModel.startScorecardTracking(watchlist.filter { it.portfolio.quantity > 0 }) { n ->
+                                    showSnackbar(if (n > 0) "Tracking $n holding(s) from today's prices" else "Nothing could be added; see the excluded list")
+                                }
+                            }, shape = RoundedCornerShape(12.dp)) { Text("Start tracking") }
+                        },
+                        dismissButton = { TextButton(onClick = { confirmTracking = false }) { Text(stringResource(R.string.action_cancel)) } }
+                    ) {
+                        Text("Each excluded holding's untracked shares are journaled as bought today at the current price. This cannot be undone from the app.")
+                    }
+                }
+                SatelliteScorecardCard(
+                    satelliteScorecard,
+                    onStartTracking = if (satelliteScorecard?.coverage?.excluded?.isNotEmpty() == true) ({ confirmTracking = true }) else null
+                )
             }
 
             // profit graph for 12 month period
@@ -898,7 +920,10 @@ fun InstitutionalRiskCard(
 }
 
 @Composable
-fun SatelliteScorecardCard(report: apincer.mobile.tradings.domain.SatelliteScorecard.Report?) {
+fun SatelliteScorecardCard(
+    report: apincer.mobile.tradings.domain.SatelliteScorecard.Report?,
+    onStartTracking: (() -> Unit)? = null
+) {
     val core = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
     fun pct(v: Double?) = v?.let { String.format(Locale.ENGLISH, "%+.1f%%", it) } ?: "n/a"
     GlassCard(
@@ -975,6 +1000,18 @@ fun SatelliteScorecardCard(report: apincer.mobile.tradings.domain.SatelliteScore
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (onStartTracking != null) {
+                    // Without this the card stays empty for anyone whose holdings predate the journal.
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onStartTracking, shape = RoundedCornerShape(12.dp)) {
+                        Text("Start tracking from today's prices")
+                    }
+                    Text(
+                        "Treats the untracked shares as bought today at the current price, so the comparison with $core starts now. Past gains and losses are not counted.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

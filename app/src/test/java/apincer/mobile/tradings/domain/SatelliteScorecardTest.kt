@@ -46,6 +46,25 @@ class SatelliteScorecardTest {
     }
 
     @Test
+    fun baselineTopsUpUntrackedSharesAndThenCovers() {
+        // CPALL: 200 journaled of 500 held; MBK: none journaled; JMT: journal went negative (unrepairable).
+        val fills = listOf(buy("CPALL", t0, 200, 48.0), sell("JMT", t0, 100, 12.0))
+        val held = mapOf("CPALL" to 500, "MBK" to 100, "JMT" to 300, "TDEX" to 400)
+        val topUps = SatelliteScorecard.baselineTopUps(fills, held)
+        assertEquals(mapOf("CPALL" to 300, "MBK" to 100), topUps)
+
+        val events = topUps.map { (s, q) ->
+            AdviceEventEntity(symbol = s, planId = "", planVersion = 0, kind = "BASELINE_FILL", timeMillis = t0 + day, fillPrice = 20.0, quantity = q)
+        }
+        val withBaseline = fills + SatelliteScorecard.fillsFromEvents(events)
+        val coverage = SatelliteScorecard.coverage(withBaseline, held)
+        assertTrue("CPALL" in coverage.included && "MBK" in coverage.included)
+        assertTrue("JMT" in coverage.excluded)
+        // Baseline cash flow is the market value on the start day, with no fees.
+        assertEquals(-2_000.0, SatelliteScorecard.fillsFromEvents(events).first { it.symbol == "MBK" }.cashFlow, 1e-9)
+    }
+
+    @Test
     fun coverageExcludesInconsistentLedgers() {
         val fills = listOf(
             buy("AAA", t0, 100, 10.0),

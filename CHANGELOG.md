@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (less typing)
+- **Dividends to record:** Portfolio lists payouts from the last 120 days on current holdings that are not in the dividend log (ex-date and baht per share from Yahoo dividend events), with gross, 10% withholding and net. "Record" opens the dividend dialog prefilled; "Dismiss" hides that payout. Uses today's share count and skips shares first bought on or after the ex-date when the buy is journaled.
+- **Scorecard "Start tracking from today's prices":** for holdings excluded because their fills were never journaled, the untracked shares are journaled once as a `BASELINE_FILL` at today's price (after a confirmation), so the Satellite vs TDEX comparison starts now. Past gains and losses are not counted.
+
 ### Added (practical use)
 - **Core setup on Portfolio:** with no monthly DCA set, the Core vs Satellite card offers a monthly amount and day and previews the purchase in whole TDEX lots with fees (e.g. ฿5,000 buys 400 TDEX at ฿10.37, ฿845 left). Once set, it shows the plan and a "Record TDEX buy" button that opens the Buy dialog prefilled with TDEX, the live price and the suggested lots.
 - **One-tap DCA from the reminder:** tapping the monthly DCA notification opens that prefilled Buy dialog; it opens once and does not reappear when you return to Portfolio.

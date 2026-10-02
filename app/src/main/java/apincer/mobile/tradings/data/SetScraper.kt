@@ -440,6 +440,33 @@ object SetScraper {
             }
         }
 
+    /** Cash dividends from Yahoo chart events: ex-date (Bangkok) and baht per share, oldest first. */
+    fun fetchDividendEvents(symbol: String, range: String = "2y"): List<Pair<java.time.LocalDate, Double>> =
+        try {
+            withRetry {
+                val url = "$YAHOO_FINANCE_URL/${symbol.uppercase()}.BK?range=$range&interval=1d&events=div"
+                val response = Jsoup.connect(url).userAgent(USER_AGENT).ignoreContentType(true).execute()
+                if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
+                parseDividendEvents(JSONObject(response.body()))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Dividend events error for $symbol", e)
+            emptyList()
+        }
+
+    internal fun parseDividendEvents(json: JSONObject): List<Pair<java.time.LocalDate, Double>> {
+        val divs = json.optJSONObject("chart")?.optJSONArray("result")?.optJSONObject(0)
+            ?.optJSONObject("events")?.optJSONObject("dividends") ?: return emptyList()
+        val bangkok = java.time.ZoneId.of("Asia/Bangkok")
+        return divs.keys().asSequence().mapNotNull { key ->
+            val e = divs.optJSONObject(key) ?: return@mapNotNull null
+            val amount = e.optDouble("amount", Double.NaN)
+            val epoch = e.optLong("date", key.toLongOrNull() ?: 0L)
+            if (!amount.isFinite() || amount <= 0.0 || epoch <= 0L) null
+            else java.time.Instant.ofEpochSecond(epoch).atZone(bangkok).toLocalDate() to amount
+        }.sortedBy { it.first }.toList()
+    }
+
     internal fun parseSparkQuotes(json: JSONObject, timestamp: String): List<ScrapedStockInfo> {
         val results = json.getJSONObject("spark").optJSONArray("result") ?: return emptyList()
         val infoList = mutableListOf<ScrapedStockInfo>()

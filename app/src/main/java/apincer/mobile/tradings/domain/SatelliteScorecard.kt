@@ -61,6 +61,8 @@ object SatelliteScorecard {
                 val symbol = e.symbol.uppercase()
                 when (e.kind) {
                     "BUY_FILL" -> Fill(symbol, e.timeMillis, Kind.BUY, e.quantity, -(gross + e.fees))
+                    // Untracked shares valued at the price on the day tracking started.
+                    "BASELINE_FILL" -> Fill(symbol, e.timeMillis, Kind.BUY, e.quantity, -gross)
                     "SELL_FILL" -> Fill(symbol, e.timeMillis, Kind.SELL, e.quantity,
                         gross - TechnicalAnalysis.calculateFees(gross, isSelling = true, atsEnabled = atsEnabled))
                     "UNDO_SELL" -> Fill(symbol, e.timeMillis, Kind.UNDO_SELL, e.quantity, -(gross - e.fees))
@@ -84,6 +86,24 @@ object SatelliteScorecard {
         }
         return Coverage(included.toSet(), excluded.toSet())
     }
+
+    /**
+     * Shares per excluded symbol that a "start tracking from today" baseline must add so the journal
+     * matches today's holding. Symbols whose journal ever went negative, or exceeds the holding,
+     * cannot be repaired this way and are left out.
+     */
+    fun baselineTopUps(fills: List<Fill>, currentQuantities: Map<String, Int>): Map<String, Int> =
+        currentQuantities.filter { it.value > 0 && !CoreSatellite.isCore(it.key) }
+            .mapKeys { it.key.uppercase() }
+            .mapNotNull { (symbol, held) ->
+                var running = 0
+                var consistent = true
+                fills.filter { it.symbol == symbol }.forEach {
+                    running += it.signedQuantity
+                    if (running < 0) consistent = false
+                }
+                if (consistent && running < held) symbol to (held - running) else null
+            }.toMap()
 
     private fun quantitiesAt(fills: List<Fill>, timeMillis: Long): Map<String, Int> =
         fills.filter { it.timeMillis <= timeMillis }.groupBy { it.symbol }

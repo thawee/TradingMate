@@ -387,6 +387,6 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 - [x] Each decision is journaled (advice event + note) and "Hold anyway" silences repeat sell reminders for that stop level until the stop changes.
 
 ## Later (not started)
-- [ ] Auto-filled pending dividends on XD; "start tracking from today's cost" for the scorecard.
+- [x] Auto-filled pending dividends on XD; "start tracking from today's cost" for the scorecard.
 - [ ] Hide Speculative Watch, AI buy ranking, daily movers and Dividend Stars until they pass the evidence gate.
 - [ ] Broker statement import, cloud backup, ThaiESG/RMF tracker, rebalance nudge, remote holiday/SET50 lists, single stop model.
