@@ -93,6 +93,7 @@ fun DividendAdvisorScreen(
     showSnackbar: (String) -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
+    val showUntestedLists by settingsViewModel.showUntestedLists.collectAsState()
     val alertRoutineState by viewModel.alertRoutineState.collectAsState()
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by viewModel.cashBalance.collectAsState()
@@ -329,48 +330,50 @@ fun DividendAdvisorScreen(
                 }
             }
 
-            // AI Master Prompts - Always at top for easy access
-            Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-                aiOffset = coordinates.positionInWindow().y.toInt() - 150
-            }) {
-                AiCopilotCard(
-                    playbookMode = playbookMode,
-                    checklist = checklist,
-                    onToggleAiDone = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        viewModel.toggleAlertRoutineStep(3)
-                    },
-                    onMarkAiDone = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.markAlertRoutineStepDone(3)
-                    },
-                    watchlist = watchlist,
-                    portfolioItems = portfolioItems,
-                    speculativePlays = speculativePlays,
-                    isQual = isQual,
-                    isVal = isVal,
-                    isDiv = isDiv,
-                    isMom = isMom,
-                    isSup = isSup,
-                    isGapUp = isGapUp,
-                    isLiquid = isLiquid,
-                    maxRiskPerTrade = maxRiskPerTrade,
-                    minRiskRewardRatio = minRiskRewardRatio,
-                    maxOpenExposure = maxOpenExposure,
-                    maxPortfolioAllocation = maxPortfolioAllocation,
-                    maxSectorAllocation = maxSectorAllocation,
-                    atsEnabled = atsEnabled,
-                    onValidatedAiResult = { result, plans ->
-                        viewModel.recordAiRecommendations(result, plans)
-                    },
-                    apiKey = geminiApiKey,
-                    geminiModelId = geminiModelId,
-                    cashBalance = cashBalance,
-                    marketRegime = marketRegime,
-                    showSnackbar = showSnackbar
-                )
+            if (showUntestedLists) {
+                // AI Master Prompts - Always at top for easy access
+                Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+                    aiOffset = coordinates.positionInWindow().y.toInt() - 150
+                }) {
+                    AiCopilotCard(
+                        playbookMode = playbookMode,
+                        checklist = checklist,
+                        onToggleAiDone = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            viewModel.toggleAlertRoutineStep(3)
+                        },
+                        onMarkAiDone = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.markAlertRoutineStepDone(3)
+                        },
+                        watchlist = watchlist,
+                        portfolioItems = portfolioItems,
+                        speculativePlays = speculativePlays,
+                        isQual = isQual,
+                        isVal = isVal,
+                        isDiv = isDiv,
+                        isMom = isMom,
+                        isSup = isSup,
+                        isGapUp = isGapUp,
+                        isLiquid = isLiquid,
+                        maxRiskPerTrade = maxRiskPerTrade,
+                        minRiskRewardRatio = minRiskRewardRatio,
+                        maxOpenExposure = maxOpenExposure,
+                        maxPortfolioAllocation = maxPortfolioAllocation,
+                        maxSectorAllocation = maxSectorAllocation,
+                        atsEnabled = atsEnabled,
+                        onValidatedAiResult = { result, plans ->
+                            viewModel.recordAiRecommendations(result, plans)
+                        },
+                        apiKey = geminiApiKey,
+                        geminiModelId = geminiModelId,
+                        cashBalance = cashBalance,
+                        marketRegime = marketRegime,
+                        showSnackbar = showSnackbar
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
             }
-            Spacer(Modifier.height(16.dp))
 
             // Step 1: Sell Alerts
             Box(modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -434,35 +437,39 @@ fun DividendAdvisorScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // Step 2: Candidates
-            Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-                candidatesOffset = coordinates.positionInWindow().y.toInt() - 150
-            }) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    val candidatesCount = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size
-                    SectionHeader(
-                        modifier = Modifier.weight(1f),
-                        title = if (playbookMode == PlaybookMode.SWING) "Scan Setups" else "Find Dividend Stars 💰",
-                        subtitle = if (playbookMode == PlaybookMode.SWING) "$candidatesCount setups (Quality + Momentum)" else "$candidatesCount stars (Yield ≥ 5% & Quality)",
-                        icon = Icons.Default.QueryStats
-                    )
-                    if (playbookMode == PlaybookMode.SWING) {
-                        StepCheckbox(
-                            isDone = checklist.swingWeeklyDone,
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                viewModel.toggleAlertRoutineStep(2)
-                                if (isAfternoonScanAvailable) {
-                                    viewModel.clearAfternoonScanFlag()
-                                }
-                            }
+            if (showUntestedLists) {
+                // Step 2: Candidates
+                Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+                    candidatesOffset = coordinates.positionInWindow().y.toInt() - 150
+                }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        val candidatesCount = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size
+                        SectionHeader(
+                            modifier = Modifier.weight(1f),
+                            title = if (playbookMode == PlaybookMode.SWING) "Scan Setups" else "Find Dividend Stars 💰",
+                            subtitle = if (playbookMode == PlaybookMode.SWING) "$candidatesCount setups (Quality + Momentum)" else "$candidatesCount stars (Yield ≥ 5% & Quality)",
+                            icon = Icons.Default.QueryStats
                         )
+                        if (playbookMode == PlaybookMode.SWING) {
+                            StepCheckbox(
+                                isDone = checklist.swingWeeklyDone,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.toggleAlertRoutineStep(2)
+                                    if (isAfternoonScanAvailable) {
+                                        viewModel.clearAfternoonScanFlag()
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
+            } else {
+                UntestedListsHiddenCard(onShow = { settingsViewModel.updateShowUntestedLists(true) })
             }
 
             if (playbookMode == PlaybookMode.DIVIDEND) {
@@ -511,109 +518,103 @@ fun DividendAdvisorScreen(
                 }
             }
 
-            // Strategy Archetype Preset Chips
-            val archetypes = if (playbookMode == PlaybookMode.SWING) {
-                listOf(
-                    "ALL" to "All Setups (${combinedSwingPlays.size})",
-                    "VCP" to "🚀 VCP Breakout",
-                    "MOAT" to "💎 Compounder",
-                    "WHALE" to "🐋 Whales Inflow",
-                    "SPRING" to "⚡ Oversold Spring"
-                )
-            } else {
-                listOf(
-                    "ALL" to "All Stars (${dividendPlays.size})",
-                    "SHIELD" to "🛡️ High Yield Shield",
-                    "MOAT" to "💎 Compounder",
-                    "WHALE" to "🐋 Foreign Flow"
-                )
-            }
-
-            androidx.compose.foundation.lazy.LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-            ) {
-                items(archetypes) { (key, label) ->
-                    val isSelected = selectedArchetype == key
-                    Surface(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            selectedArchetype = key
-                        },
-                        shape = RoundedCornerShape(20.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
-                        border = BorderStroke(0.5.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-            }
-
-            if (playbookMode == PlaybookMode.SWING) {
-                val candidateFiltered = when (selectedArchetype) {
-                    "VCP" -> combinedSwingPlays.filter { StockDna.isVcpBreakout(it) }
-                    "MOAT" -> combinedSwingPlays.filter { StockDna.isCompounderAristocrat(it) }
-                    "WHALE" -> combinedSwingPlays.filter { StockDna.isForeignWhale(it) }
-                    "SPRING" -> combinedSwingPlays.filter { StockDna.isOversoldRebound(it) }
-                    else -> combinedSwingPlays
-                }
-
-                if (candidateFiltered.isEmpty()) {
-                    Text("No setups matching preset.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (showUntestedLists) {
+                // Strategy Archetype Preset Chips
+                val archetypes = if (playbookMode == PlaybookMode.SWING) {
+                    listOf(
+                        "ALL" to "All Setups (${combinedSwingPlays.size})",
+                        "VCP" to "🚀 VCP Breakout",
+                        "MOAT" to "💎 Compounder",
+                        "WHALE" to "🐋 Whales Inflow",
+                        "SPRING" to "⚡ Oversold Spring"
+                    )
                 } else {
-                    candidateFiltered.forEach { stock ->
-                        AdvisorStockCard(stock, viewModel)
-                    }
-                }
-                
-                if (selectedArchetype == "ALL" && speculativePlays.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
-                    Text("Speculative Watch (Low Quality)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                    Text("These stocks triggered technical buys but failed the strict Quality filter. Trade with caution.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(8.dp))
-                    speculativePlays.forEach { stock ->
-                        AdvisorStockCard(stock, viewModel)
-                    }
-                }
-            } else {
-                val candidateFiltered = when (selectedArchetype) {
-                    "SHIELD" -> dividendPlays.filter { StockDna.isHighYieldShield(it) }
-                    "MOAT" -> dividendPlays.filter { StockDna.isCompounderAristocrat(it) }
-                    "WHALE" -> dividendPlays.filter { StockDna.isForeignWhale(it) }
-                    else -> dividendPlays
+                    listOf(
+                        "ALL" to "All Stars (${dividendPlays.size})",
+                        "SHIELD" to "🛡️ High Yield Shield",
+                        "MOAT" to "💎 Compounder",
+                        "WHALE" to "🐋 Foreign Flow"
+                    )
                 }
 
-                if (candidateFiltered.isEmpty()) {
-                    Text("No candidates matching preset.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) {
+                    items(archetypes) { (key, label) ->
+                        val isSelected = selectedArchetype == key
+                        Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                selectedArchetype = key
+                            },
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+                            border = BorderStroke(0.5.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (playbookMode == PlaybookMode.SWING) {
+                    val candidateFiltered = when (selectedArchetype) {
+                        "VCP" -> combinedSwingPlays.filter { StockDna.isVcpBreakout(it) }
+                        "MOAT" -> combinedSwingPlays.filter { StockDna.isCompounderAristocrat(it) }
+                        "WHALE" -> combinedSwingPlays.filter { StockDna.isForeignWhale(it) }
+                        "SPRING" -> combinedSwingPlays.filter { StockDna.isOversoldRebound(it) }
+                        else -> combinedSwingPlays
+                    }
+
+                    if (candidateFiltered.isEmpty()) {
+                        Text("No setups matching preset.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        candidateFiltered.forEach { stock ->
+                            AdvisorStockCard(stock, viewModel)
+                        }
+                    }
+                    
+                    // "Speculative Watch" (setups that failed the quality filter) was removed: it pushed the weakest trades.
                 } else {
-                    candidateFiltered.forEach { stock ->
-                        AdvisorStockCard(stock, viewModel)
+                    val candidateFiltered = when (selectedArchetype) {
+                        "SHIELD" -> dividendPlays.filter { StockDna.isHighYieldShield(it) }
+                        "MOAT" -> dividendPlays.filter { StockDna.isCompounderAristocrat(it) }
+                        "WHALE" -> dividendPlays.filter { StockDna.isForeignWhale(it) }
+                        else -> dividendPlays
+                    }
+
+                    if (candidateFiltered.isEmpty()) {
+                        Text("No candidates matching preset.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        candidateFiltered.forEach { stock ->
+                            AdvisorStockCard(stock, viewModel)
+                        }
                     }
                 }
-            }
 
-            val excluded = watchlist.filter {
-                it.portfolio.portfolio.quantity == 0 &&
-                    StockDna.assessSwing(it, !marketRegime.isBullish).status != CandidateStatus.READY
-            }
-            if (excluded.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Text("Watch or blocked from actionable swing plans", style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold)
-                excluded.take(6).forEach { stock ->
-                    val assessment = StockDna.assessSwing(stock, !marketRegime.isBullish)
-                    Text("${stock.info.symbol} · ${assessment.status.name.lowercase()}: ${assessment.reasons.joinToString("; ")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val excluded = watchlist.filter {
+                    it.portfolio.portfolio.quantity == 0 &&
+                        StockDna.assessSwing(it, !marketRegime.isBullish).status != CandidateStatus.READY
                 }
-                if (excluded.size > 6) Text("${excluded.size - 6} more excluded",
-                    style = MaterialTheme.typography.bodySmall)
+                if (excluded.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Watch or blocked from actionable swing plans", style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold)
+                    excluded.take(6).forEach { stock ->
+                        val assessment = StockDna.assessSwing(stock, !marketRegime.isBullish)
+                        Text("${stock.info.symbol} · ${assessment.status.name.lowercase()}: ${assessment.reasons.joinToString("; ")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (excluded.size > 6) Text("${excluded.size - 6} more excluded",
+                        style = MaterialTheme.typography.bodySmall)
+                }
             }
             Spacer(Modifier.height(40.dp))
         }
@@ -1836,6 +1837,26 @@ fun WizardStepBar(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Shown in place of the advisor buy lists while they remain untested; exits and the XD calendar stay. */
+@Composable
+fun UntestedListsHiddenCard(onShow: () -> Unit) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Buy lists are hidden", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Setups, Dividend Stars and the AI ranking have not beaten holding TDEX in testing (2015-2025), so they are off by default. " +
+                    "Your exit checks above still run. New money goes to your TDEX core on the Portfolio tab.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(onClick = onShow) { Text("Show them anyway") }
         }
     }
 }

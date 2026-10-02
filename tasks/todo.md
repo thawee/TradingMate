@@ -388,5 +388,5 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 
 ## Later (not started)
 - [x] Auto-filled pending dividends on XD; "start tracking from today's cost" for the scorecard.
-- [ ] Hide Speculative Watch, AI buy ranking, daily movers and Dividend Stars until they pass the evidence gate.
+- [x] Hide Speculative Watch, AI buy ranking, daily movers and Dividend Stars until they pass the evidence gate.
 - [ ] Broker statement import, cloud backup, ThaiESG/RMF tracker, rebalance nudge, remote holiday/SET50 lists, single stop model.

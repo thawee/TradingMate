@@ -371,6 +371,16 @@ fun SettingsScreen(
                         }
                     )
                 }
+
+                val showUntested by settingsViewModel.showUntestedLists.collectAsState()
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Show untested buy lists", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text("Advisor setups, Dividend Stars and the Gemini ranking. None has passed the evidence gate (see docs/ADVISOR_EVALUATION.md).",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = showUntested, onCheckedChange = { settingsViewModel.updateShowUntestedLists(it) })
+                }
             }
 
             SectionContent(title = "Risk Management", icon = Icons.Default.Warning) {

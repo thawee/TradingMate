@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (untested buy lists)
+- **Advisor buy lists hidden by default:** Scan Setups, Dividend Stars, strategy presets and the Gemini AI ranking (which also sent "strong daily movers") are behind Settings > App Environment > "Show untested buy lists", off by default, because none has passed the evidence gate. The Advisor still shows exit checks, the market regime and the XD calendar, plus a card explaining why the lists are hidden with a "Show them anyway" button.
+- **Speculative Watch removed:** the list of setups that failed the quality filter is gone even when the lists are shown.
+
 ### Added (less typing)
 - **Dividends to record:** Portfolio lists payouts from the last 120 days on current holdings that are not in the dividend log (ex-date and baht per share from Yahoo dividend events), with gross, 10% withholding and net. "Record" opens the dividend dialog prefilled; "Dismiss" hides that payout. Uses today's share count and skips shares first bought on or after the ex-date when the buy is journaled.
 - **Scorecard "Start tracking from today's prices":** for holdings excluded because their fills were never journaled, the untracked shares are journaled once as a `BASELINE_FILL` at today's price (after a confirmation), so the Satellite vs TDEX comparison starts now. Past gains and losses are not counted.
