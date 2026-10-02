@@ -445,3 +445,16 @@ Portfolio variants use the momentum-portfolio simulator unchanged (monthly re-ra
 - T2: decide at each month's last session: hold TDEX if that close is above the average of the last 10 month-end closes, else cash; trade at the next close.
 Gate as before for LV; for T1/T2 compare CAGR and max drawdown with TDEX buy-and-hold in both sub-periods. Report every variant.
 - [x] Result: no LV variant passes (LV3 low beta closest: 5.22%/yr, fails 2021-2025 by 0.38 points and on concentration). T2 cuts max drawdown 36.5% -> 23.5% but lowers return (1.68% vs 2.52%); T1 whipsaws. See tools/backtest/lowvol_trend_report.md.
+
+# Fundamental screens on history (thaifin), 2026-10-02 (fixed before the first run)
+
+Data: thaifin (Finnomena public API) quarterly financials for the frozen universe, fetched by tools/backtest/fetch_fundamentals.py into tools/backtest/fundamentals/ (git-ignored, like prices).
+Point-in-time: a quarter's figures are usable from 50 days after a Q1-Q3 quarter end and 90 days after a Q4 (year) end. ROE = trailing four quarters' net profit / latest equity x 100; net margin = trailing net profit / trailing revenue x 100; debt-to-equity and dividend yield as reported for that quarter. Financial sector = Banking, Finance and Securities, Insurance.
+Monthly ranked portfolio, top 10 at 10% target (RuleStudy.rankedPortfolio; empty slots stay in cash), costs and gate as before.
+- F1 Quality, old rule: ROE > 15, margin > 10, D/E < 1.5 (all sectors); rank by ROE.
+- F2 Quality, SET rule: ROE > 10, margin > 10, D/E < 1.5 except financials; rank by ROE.
+- F3 Dividend Stars: dividend yield >= 5% and F2 quality; rank by yield.
+- F4 F2 quality ranked by lowest 252-day beta to TDEX.
+- F5 Highest dividend yield, no quality filter; rank by yield.
+Report every variant.
+- [x] Result: F5 passes the gate (7.80%/yr vs TDEX 2.52%; 2015-2020 8.36% vs 1.75%; 2021-2025 5.50% vs 3.19%; 58% of P/L outside the top three). F1-F4 fail. See tools/backtest/fundamental_screens_report.md. Not yet confirmed: robustness and holdout below.
