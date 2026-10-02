@@ -1018,41 +1018,44 @@ fun BuyStockDialog(
                         enabled = initialStock == null,
                         shape = RoundedCornerShape(14.dp)
                     )
-                    Text("Trade Purpose", style = MaterialTheme.typography.labelMedium)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = { tradePurpose = "SWING" },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (tradePurpose == "SWING") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (tradePurpose == "SWING") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Swing Trade")
+                    // A core position is held, not swing- or dividend-managed.
+                    if (showTradePlan) {
+                        Text("Trade Purpose", style = MaterialTheme.typography.labelMedium)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { tradePurpose = "SWING" },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (tradePurpose == "SWING") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (tradePurpose == "SWING") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Swing Trade")
+                            }
+                            Button(
+                                onClick = { tradePurpose = "DIVIDEND" },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (tradePurpose == "DIVIDEND") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (tradePurpose == "DIVIDEND") MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Dividend")
+                            }
                         }
-                        Button(
-                            onClick = { tradePurpose = "DIVIDEND" },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (tradePurpose == "DIVIDEND") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (tradePurpose == "DIVIDEND") MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Dividend")
-                        }
+                        Text(
+                            text = if (tradePurpose == "SWING") {
+                                "⚡ Swing: Active trade management. Enforces daily trailing stops, take-profit at 2× the stop distance, and technical exits."
+                            } else {
+                                "💰 Dividend: Long-term compounding. Bypasses daily trailing stops; alerts only on fundamental breaks (ROE < 15%) or deep drawdown (> 20%)."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
                     }
-                    Text(
-                        text = if (tradePurpose == "SWING") {
-                            "⚡ Swing: Active trade management. Enforces daily trailing stops, take-profit at 2× the stop distance, and technical exits."
-                        } else {
-                            "💰 Dividend: Long-term compounding. Bypasses daily trailing stops; alerts only on fundamental breaks (ROE < 15%) or deep drawdown (> 20%)."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                    )
                     OutlinedTextField(
                         value = entryPrice,
                         onValueChange = { entryPrice = it },
@@ -1249,13 +1252,13 @@ fun BuyStockDialog(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        "Cash Buffer & Liquidity",
+                                        if (isCoreBuy) "Cash After Purchase" else "Cash Buffer & Liquidity",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = statusColor
                                     )
                                 }
-                                Surface(
+                                if (!isCoreBuy) Surface(
                                     color = statusColor.copy(alpha = 0.18f),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
@@ -1289,7 +1292,7 @@ fun BuyStockDialog(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                Column(horizontalAlignment = Alignment.End) {
+                                if (!isCoreBuy) Column(horizontalAlignment = Alignment.End) {
                                     Text("Mandated Buffer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(
                                         "฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}",
@@ -1305,7 +1308,7 @@ fun BuyStockDialog(
                                 }
                             }
 
-                            LinearProgressIndicator(
+                            if (!isCoreBuy) LinearProgressIndicator(
                                 progress = { ((projectedBufferPercent / 50.0).toFloat()).coerceIn(0.02f, 1f) },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1317,7 +1320,7 @@ fun BuyStockDialog(
                             val statusMsg = when {
                                 recordExecutedFill && isInsufficientCash -> "The recorded fill will leave negative cash. Reconcile deposits or earlier trades in the ledger."
                                 isInsufficientCash -> "Insufficient cash: Trade cost (฿${String.format(Locale.ENGLISH, "%,.0f", incrementalCost)}) exceeds available cash (฿${String.format(Locale.ENGLISH, "%,.0f", cashBalance)})."
-                                isCoreBuy -> "Core buy: the ${recommendedBufferPercent.toInt()}% regime cash buffer applies to satellite buys only."
+                                isCoreBuy -> "Core buy: no regime cash buffer applies, only available cash."
                                 isBufferDeficit -> "Buffer Breach: Post-trade cash (${String.format(Locale.ENGLISH, "%.1f", projectedBufferPercent)}%) falls below ${recommendedBufferPercent.toInt()}% regime target. Deficit: ฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve - projectedCashRemaining)}."
                                 else -> "Healthy liquidity: Preserves ${recommendedBufferPercent.toInt()}% cash buffer (฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}) required for ${marketRegime.name.lowercase().replaceFirstChar { it.uppercase() }} conditions."
                             }

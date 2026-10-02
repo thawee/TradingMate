@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Core buys no longer blocked by satellite rules:** a proposed TDEX buy needs only a valid price, a 100-share lot and enough cash. The 15% single-stock cap (which contradicted the 80% core target), sector cap, stop/target and 2:1 Reward:Risk requirement, and the regime cash buffer apply to satellite buys only. The buffer was never backtested and blocked DCA in falling markets. Enforced in both the Buy dialog and `StockRepository.executeBuy`.
 - **No technical sell reminders on the core:** TDEX holdings no longer get SELL-signal or trailing-stop reminders; a stop the user saved on it still alerts.
 - **Neutral core badge:** TDEX shows a "Core holding" signal (buy on your DCA schedule, hold through technical signals) instead of SETUP / WATCH / EXIT, in the watchlist, stock detail and alert worker.
+- **Core Buy dialog:** a new TDEX buy hides the Swing / Dividend purpose choice, and the cash card shows only cash after purchase (no regime target or mandated buffer).
 
 ## [4.0.0] - 2026-10-01
 
