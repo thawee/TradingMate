@@ -446,11 +446,16 @@ fun StatMetric(label: String, value: Double) {
 
         Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
 
+        val isZero = kotlin.math.abs(value) < 0.5 // shown as ฿0: neutral, not a gain
         Text(
-            text = "${if (value >= 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%,.0f", value)}",
+            text = "${if (!isZero && value > 0) "+" else ""}฿${String.format(Locale.ENGLISH,"%,.0f", if (isZero) 0.0 else value)}",
             fontSize = 16.sp,
             fontWeight = FontWeight.Black,
-            color = if (value >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+            color = when {
+                isZero -> MaterialTheme.colorScheme.onSurfaceVariant
+                value > 0 -> MaterialTheme.colorScheme.tertiary
+                else -> MaterialTheme.colorScheme.error
+            }
         )
     }
 }

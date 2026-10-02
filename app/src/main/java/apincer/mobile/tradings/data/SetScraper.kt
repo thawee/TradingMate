@@ -33,7 +33,7 @@ data class ScrapedStockInfo(
     val pbv: Double? = null,
     val roe: Double? = null,
     val eps: Double? = null,
-    val netProfit: Double? = null,
+    val netProfit: Double? = null, // thousand baht, as the SET company-highlight API reports it
     val netProfitMargin: Double? = null,
     val profitGrowth3Y: Double? = null,
     val equity: Double? = null,

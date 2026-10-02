@@ -940,7 +940,9 @@ fun ArchetypeLegendDialog(
         "SUP" to "Setup Confirmation: Active BUY or POTENTIAL technical indicator signal.",
         "MOVE" to "Strong daily move: +4% daily gain on heavy volume with profitable fundamentals.",
         "FLOW" to "Foreign Flow: Confirmed positive foreign NVDR net volume.",
-        "CYC" to "Cyclical Sector: Commodity/cyclical industry — requires active profit-taking discipline."
+        "CYC" to "Cyclical Sector: Commodity/cyclical industry — requires active profit-taking discipline.",
+        "RS" to "Relative Strength: outperformed TDEX over the last 63 trading days (about 3 months).",
+        "OS" to "Deeply Oversold: 14-day RSI below 30. Describes the fall; it is not a buy signal."
     )
 
     val currentDesc = descriptions[selectedTag] ?: "Quantitative screening filter tag."

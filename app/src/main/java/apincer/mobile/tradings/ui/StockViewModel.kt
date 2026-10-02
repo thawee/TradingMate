@@ -1132,6 +1132,32 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Watch-only add. addToWatchlist(symbol) with no shares went through executeBuy, which rejects
+     * quantity 0, so the "+" dialog reported success without adding. The symbol is also checked
+     * against a live SET quote so typos (e.g. BANPUU) are not saved.
+     */
+    fun addSymbolToWatchlist(symbol: String, onResult: (Result<String>) -> Unit) {
+        val normalized = symbol.trim().uppercase()
+        viewModelScope.launch {
+            try {
+                if (!normalized.matches(Regex("[A-Z0-9&.\\-]{1,12}")))
+                    throw IllegalArgumentException("Enter a SET ticker such as PTT or CPALL")
+                if (repository.getStockBySymbol(normalized) != null)
+                    throw IllegalStateException("$normalized is already in your watchlist")
+                val quote = withContext(Dispatchers.IO) { SetScraper.fetchBatchQuotes(listOf(normalized)) }
+                    .firstOrNull { it.symbol.equals(normalized, ignoreCase = true) && it.lastPrice > 0.0 }
+                    ?: throw IllegalStateException("No SET quote found for $normalized. Check the ticker or your connection.")
+                repository.addStockIfMissing(quote.symbol.uppercase())
+                refreshWatchlistInfo()
+                onResult(Result.success(normalized))
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
     fun removeFromWatchlist(symbol: String) {
         viewModelScope.launch {
             try {

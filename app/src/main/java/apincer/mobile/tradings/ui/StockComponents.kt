@@ -675,6 +675,9 @@ fun StockItemCard(
                     
                     val score = StockDna.calculateScore(item)
                     val tags = StockDna.tags(item)
+                    // Tapping a tag explains it; the short codes were unexplained on cards.
+                    var legendTag by remember { mutableStateOf<String?>(null) }
+                    ArchetypeLegendDialog(selectedTag = legendTag, onDismiss = { legendTag = null })
 
                     if (tags.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -693,6 +696,7 @@ fun StockItemCard(
                                     else -> Triple(0.10f, 0.0f, MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Surface(
+                                    onClick = { legendTag = tag },
                                     color = tagColor.copy(alpha = bgAlpha),
                                     shape = RoundedCornerShape(4.dp),
                                     border = if (borderAlpha > 0f) BorderStroke(0.5.dp, tagColor.copy(alpha = borderAlpha)) else null
@@ -728,18 +732,26 @@ fun StockItemCard(
                             maxLines = 1
                         )
                         
-                        val changeColor = if (item.info.change >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                        // An unchanged price is neutral, not a gain.
+                        val isFlat = kotlin.math.abs(item.info.percentChange) < 0.005
+                        val changeColor = when {
+                            isFlat -> MaterialTheme.colorScheme.onSurfaceVariant
+                            item.info.change > 0 -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.error
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (item.info.change >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
-                                contentDescription = null,
-                                tint = changeColor,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(Modifier.width(2.dp))
-                            
+                            if (!isFlat) {
+                                Icon(
+                                    imageVector = if (item.info.change > 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                                    contentDescription = null,
+                                    tint = changeColor,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(Modifier.width(2.dp))
+                            }
+
                             Text(
-                                text = "${if (item.info.change >= 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", item.info.percentChange)}%",
+                                text = "${if (!isFlat && item.info.change > 0) "+" else ""}${String.format(Locale.ENGLISH, "%.2f", if (isFlat) 0.0 else item.info.percentChange)}%",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = changeColor,
                                 fontWeight = FontWeight.Black

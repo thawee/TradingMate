@@ -541,7 +541,8 @@ fun StockDashboard(state: StockUiState.Success, scrollState: androidx.compose.fo
                 QualityStockBadge()
             }
             IndicatorRow(stringResource(R.string.label_roe), info.roe?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
-            IndicatorRow(stringResource(R.string.label_net_profit), info.netProfit?.let { "฿${String.format(Locale.ENGLISH,"%,.0f M", it)}" } ?: "N/A")
+            // SET reports net profit in thousand baht.
+            IndicatorRow(stringResource(R.string.label_net_profit), info.netProfit?.let { "฿${String.format(Locale.ENGLISH,"%,.0f M", it / 1000.0)}" } ?: "N/A")
             IndicatorRow(stringResource(R.string.label_net_margin), info.netProfitMargin?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
             IndicatorRow(stringResource(R.string.label_3y_growth), info.profitGrowth3Y?.let { String.format(Locale.ENGLISH,"%.2f%%", it) } ?: "N/A")
             IndicatorRow(stringResource(R.string.label_eps), info.eps?.let { String.format(Locale.ENGLISH,"%.2f", it) } ?: "N/A")

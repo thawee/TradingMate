@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (device review, part 2)
+- **Adding a watchlist symbol works and is validated:** the "+" dialog went through the buy path, which rejects zero shares, so it showed "Added X" without adding. It now adds watch-only, checks the ticker against a live SET quote first (typos like BANPUU are refused), and shows errors inside the dialog.
+- **Net profit unit:** SET reports company net profit in thousand baht; the detail screen showed TRUE as ฿13,142,849 M and now shows ฿13,143 M.
+- **RSI help text:** matches the app's 35/65 thresholds and no longer calls RSI levels "cheap" or "expensive".
+- **Unchanged is neutral:** a 0.00% day and ฿0 month show in grey without an up arrow or plus sign.
+- **Tags explain themselves:** tapping a tag on a watchlist or portfolio card opens its definition; RS and OS now have one.
+- **Core first in Settings:** the TDEX core and monthly DCA section is now the first section.
+
 ### Fixed (device review)
 - **Band proximity:** "near support" / "overextended" now use the lower and upper fifth of the Bollinger band. The old within-5%-of-the-edge rule flagged both for most prices in a tight band (TRUE at ฿12.90 in ฿12.47-13.17 read "Technical Setup ... at a major support level" with an "Overextended" chip; it now reads Neutral / Range). Replay: App signals CAGR -4.31% -> -1.39%; still fails the gate on 2021-2025 (`tools/backtest/report.md`).
 - **Watchlist target:** cards no longer show a clipped green "Target" when there is no saved target; the target appears only when saved.

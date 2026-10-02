@@ -460,14 +460,24 @@ fun WatchlistScreen(
     }
 
     if (showAddDialog) {
+        var addError by remember { mutableStateOf<String?>(null) }
+        var addChecking by remember { mutableStateOf(false) }
         AddStockDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { symbol ->
-                viewModel.addToWatchlist(symbol)
-                showSnackbar("Added $symbol to watchlist")
-                showAddDialog = false
+                addError = null
+                addChecking = true
+                viewModel.addSymbolToWatchlist(symbol) { result ->
+                    addChecking = false
+                    result.onSuccess {
+                        showSnackbar("Added $it to watchlist")
+                        showAddDialog = false
+                    }.onFailure { addError = it.message ?: "Could not add $symbol" }
+                }
             },
-            watchlistViewModel = watchlistViewModel
+            watchlistViewModel = watchlistViewModel,
+            error = addError,
+            isChecking = addChecking
         )
     }
 
@@ -547,7 +557,10 @@ fun ImportCollectionDialog(
 fun AddStockDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
-    watchlistViewModel: WatchlistViewModel
+    watchlistViewModel: WatchlistViewModel,
+    /** Shown inside the dialog: a screen snackbar sits behind it and goes unseen. */
+    error: String? = null,
+    isChecking: Boolean = false
 ) {
     var query by remember { mutableStateOf("") }
     val searchResults by watchlistViewModel.searchResults.collectAsState()
@@ -560,10 +573,10 @@ fun AddStockDialog(
                 onClick = { 
                     if (query.isNotBlank()) onConfirm(query.uppercase()) 
                 },
-                enabled = query.isNotBlank(),
+                enabled = query.isNotBlank() && !isChecking,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(stringResource(R.string.action_add_manually))
+                Text(if (isChecking) "Checking…" else stringResource(R.string.action_add_manually))
             }
         },
         dismissButton = {
@@ -583,6 +596,8 @@ fun AddStockDialog(
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true,
+                isError = error != null,
+                supportingText = error?.let { { Text(it) } },
                 shape = RoundedCornerShape(14.dp)
             )
 
