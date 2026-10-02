@@ -54,6 +54,10 @@ None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow t
 
 `tools/backtest/momentum_report.md` tests three rules fixed on 2026-10-02 before the first run: buy a new 20-session closing high above SMA50, sell on a new 10- or 20-session low, a 2x ATR stop, or a 20- or 40-session time limit, with and without a TDEX-above-SMA50 market filter. None passes the gate. All three trail TDEX in 2021-2025, and every variant's profit depends on its top three symbols (DELTA, KTC and others). The best, M2 (20-day low exit, 40-day limit), returned 6.26% a year over 2015-2025 against TDEX's 2.52% but -2.62% in 2021-2025. Across variants, exits on the short-term low lost money on average while time-limit exits made it: selling on the first dip cuts the winners.
 
+### Short-term rules from the literature
+
+`tools/backtest/shortterm_report.md` tests four rules fixed on 2026-10-02 before the first run, chosen from effects reported in research: weekly short-term reversal (documented in Asian markets including Thailand), buying a sharp RSI(2) dip inside an uptrend (two variants), and the turn-of-month effect on TDEX. None passes. Weekly reversal earned a small average gain on trades held the full five days (+0.16R) but stops and Thai trading costs (about 0.6% per round trip) erased it; it lost 6.97% a year in 2021-2025. The dip rules lost money in both sub-periods. Turn of the month returned -4.18% a year against TDEX's 2.52%, being in the market 30% of the time and paying costs 131 times.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.

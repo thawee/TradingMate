@@ -404,3 +404,13 @@ Common: SET50 frozen universe, 2015-2025, portfolio replay (1% risk, 15% stock c
 - M3: As M1 without the TDEX market condition.
 Rank simultaneous buys by 126-day momentum. Report every variant.
 - [x] Result: none passes (all trail TDEX in 2021-2025 and depend on their top three symbols). See tools/backtest/momentum_report.md.
+
+# Short-term rules from the literature, 2026-10-02 (fixed before the first run)
+
+Basis: short-term reversal documented in Asian markets incl. Thailand (Chang, McLeavey & Rhee style weekly contrarian studies; Hameed & Kusnadi); turn-of-month effect (Lakonishok & Smidt; Ariel). Same universe, replay, costs and evidence gate as the momentum test.
+- R1 Weekly reversal: on the last session of the week, buy SET50 stocks whose 5-session return is -5% or worse (worst first, max 10); sell after 5 sessions or at the 2x ATR stop.
+- R2 Dip in an uptrend: buy when close > SMA200 and RSI(2) < 10; sell when close > SMA5, after 10 sessions, or at the 2x ATR stop.
+- R3 As R2 with RSI(2) < 5 and close > SMA50 as well.
+- R4 Turn of month on TDEX: hold TDEX from the close of the 4th-last session of each month to the close of the 3rd session of the next; cash otherwise. Compare with TDEX buy-and-hold after fees.
+Report every variant.
+- [x] Result: none passes; see tools/backtest/shortterm_report.md.
