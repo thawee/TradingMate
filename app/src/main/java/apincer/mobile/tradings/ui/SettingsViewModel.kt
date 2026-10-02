@@ -202,6 +202,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             initialValue = 20.0
         )
 
+    val personalTaxRate: StateFlow<Double?> =
+        preferenceRepository.personalTaxRate.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    fun updatePersonalTaxRate(rate: Double?) {
+        viewModelScope.launch {
+            preferenceRepository.setPersonalTaxRate(rate?.coerceIn(0.0, 35.0))
+        }
+    }
+
     fun updateCitTaxRate(rate: Double) {
         viewModelScope.launch {
             preferenceRepository.setCitTaxRate(rate.coerceIn(0.0, 30.0))

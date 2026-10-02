@@ -111,6 +111,7 @@ fun PortfolioScreen(
     val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
     val maxSectorAllocation by settingsViewModel.maxSectorAllocation.collectAsState()
     val citTaxRate by settingsViewModel.citTaxRate.collectAsState()
+    val personalTaxRate by settingsViewModel.personalTaxRate.collectAsState()
     val targetCorePercent by settingsViewModel.targetCorePercent.collectAsState()
     val marketRegime by viewModel.marketRegime.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
@@ -440,7 +441,8 @@ fun PortfolioScreen(
                         DividendTaxShieldCard(
                             dividendHistory = dividendHistory,
                             avgYieldOnCost = avgYieldOnCost,
-                            citRate = citTaxRate
+                            citRate = citTaxRate,
+                            personalTaxRate = personalTaxRate
                         )
                     }
                 }
@@ -1732,13 +1734,24 @@ fun SectorBreakdownCard(
 fun DividendTaxShieldCard(
     dividendHistory: List<apincer.mobile.tradings.data.DividendHistoryEntity>,
     avgYieldOnCost: Double?,
-    citRate: Double = apincer.mobile.tradings.domain.TradingConstants.DEFAULT_CIT_TAX_RATE
+    citRate: Double = apincer.mobile.tradings.domain.TradingConstants.DEFAULT_CIT_TAX_RATE,
+    personalTaxRate: Double? = null
 ) {
-    val totalReceivedNet = dividendHistory.sumOf { it.totalReceived }
-    val totalTaxWithheld = dividendHistory.sumOf { it.taxDeducted }
-    val totalTaxCredit = dividendHistory.sumOf { 
-        TechnicalAnalysis.calculateThaiDividendTaxCredit(it.totalReceived, citRate = citRate) 
+    // Sec. 47 bis is elected per tax year (calendar year) and covers only dividends from Thai companies:
+    // fund distributions such as TDEX carry no credit, so they are left out.
+    val taxYear = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).year
+    val thisYear = dividendHistory.filter {
+        java.time.Instant.ofEpochMilli(it.dateMillis).atZone(java.time.ZoneId.of("Asia/Bangkok")).year == taxYear
     }
+    val (fundPayouts, companyPayouts) = thisYear.partition { apincer.mobile.tradings.domain.CoreSatellite.isCore(it.symbol) }
+    fun gross(d: apincer.mobile.tradings.data.DividendHistoryEntity) =
+        if (d.taxDeducted > 0.0) d.totalReceived + d.taxDeducted
+        else d.totalReceived / (1.0 - apincer.mobile.tradings.domain.TradingConstants.THAI_DIVIDEND_WHT_RATE / 100.0)
+    val grossCompany = companyPayouts.sumOf { gross(it) }
+    val totalTaxWithheld = thisYear.sumOf { it.taxDeducted }
+    val totalTaxCredit = grossCompany * citRate / (100.0 - citRate).coerceAtLeast(1.0)
+    val electionBenefit = personalTaxRate?.let { TechnicalAnalysis.dividendElectionBenefit(grossCompany, it, citRate) }
+    val breakEven = TechnicalAnalysis.dividendElectionBreakEvenRate(citRate)
     val netYoC = avgYieldOnCost?.let { it * (1.0 - apincer.mobile.tradings.domain.TradingConstants.THAI_DIVIDEND_WHT_RATE / 100.0) }
 
     GlassCard(
@@ -1748,7 +1761,7 @@ fun DividendTaxShieldCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Dividend Tax Shield (Section 47 bis)",
+                    text = "Dividend Tax Credit $taxYear (Sec. 47 bis)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -1771,8 +1784,13 @@ fun DividendTaxShieldCard(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text("Reclaimable Tax Credit", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("฿${String.format(java.util.Locale.ENGLISH, "%,.2f", totalTaxCredit)}", fontSize = 15.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
+                    Text(if (electionBenefit != null) "Net If You Claim" else "Gross Tax Credit", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val shown = electionBenefit ?: totalTaxCredit
+                    Text(
+                        "${if (shown < 0) "-" else ""}฿${String.format(java.util.Locale.ENGLISH, "%,.2f", kotlin.math.abs(shown))}",
+                        fontSize = 15.sp, fontWeight = FontWeight.Black,
+                        color = if (shown >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                    )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("10% WHT Withheld", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1788,6 +1806,20 @@ fun DividendTaxShieldCard(
                     )
                 }
             }
+
+            Spacer(Modifier.height(10.dp))
+            val advice = when {
+                electionBenefit == null -> "Set your top income-tax bracket in Settings to see the net effect. Claiming pays only below a ${String.format(java.util.Locale.ENGLISH, "%.0f", breakEven)}% bracket."
+                electionBenefit > 0.0 -> "At your ${String.format(java.util.Locale.ENGLISH, "%.0f", personalTaxRate)}% bracket, adding these dividends to your tax return gains about this much versus keeping the 10% withholding final."
+                else -> "At your ${String.format(java.util.Locale.ENGLISH, "%.0f", personalTaxRate)}% bracket, keep the 10% withholding final: claiming would cost this much."
+            }
+            Text(
+                text = "$advice The choice covers all dividends in the tax year. No credit on fund payouts" +
+                    (if (fundPayouts.isNotEmpty()) " (TDEX ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", fundPayouts.sumOf { it.totalReceived })} excluded)" else "") +
+                    " or on dividends paid from BOI tax-exempt profits; check each company's notice.",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

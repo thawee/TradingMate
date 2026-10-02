@@ -180,6 +180,32 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val personalTaxRate by settingsViewModel.personalTaxRate.collectAsState()
+                var editingPersonalRate by remember(personalTaxRate) {
+                    mutableStateOf(personalTaxRate?.let { String.format(java.util.Locale.ENGLISH, "%.0f", it) } ?: "")
+                }
+                OutlinedTextField(
+                    value = editingPersonalRate,
+                    onValueChange = {
+                        editingPersonalRate = it
+                        if (it.isBlank()) settingsViewModel.updatePersonalTaxRate(null)
+                        else it.toDoubleOrNull()?.let { rate -> settingsViewModel.updatePersonalTaxRate(rate) }
+                    },
+                    label = { Text(stringResource(R.string.label_personal_tax_rate)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    suffix = { Text("%") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Text(
+                    text = stringResource(R.string.desc_personal_tax_rate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
             }
 
             SectionContent(title = stringResource(R.string.section_price_alerts), icon = Icons.Default.NotificationsActive) {

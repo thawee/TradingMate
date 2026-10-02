@@ -259,6 +259,8 @@
     <string name="label_max_sector_allocation">Max Sector Concentration Cap</string>
     <string name="desc_max_sector_allocation" formatted="false">The maximum portfolio capital allocated to any single industry sector (Standard: 25%–30%). Triggers yellow concentration warnings in the Portfolio dashboard.</string>
     <string name="label_cit_tax_rate">Thai Dividend CIT Rate (Sec. 47 bis)</string>
+    <string name="label_personal_tax_rate">Your Top Income-Tax Bracket</string>
+    <string name="desc_personal_tax_rate" formatted="false">Your highest personal income-tax rate (0, 5, 10, 15, 20, 25, 30 or 35%). Used to show whether claiming the Sec. 47 bis dividend credit pays more than keeping the 10% withholding tax final. Leave blank if unsure.</string>
     <string name="desc_cit_tax_rate" formatted="false">Corporate Income Tax (CIT) rate used to estimate personal income tax credits on Thai cash dividend payouts (Standard SET: 20%, SMEs: 15%, REITs/Infra: 0%).</string>
     <string name="desc_min_risk_reward" formatted="false">The minimum ratio between potential profit (Reward) and potential loss (Risk) required to take a trade (Standard: 2.0:1 or higher).</string>
 

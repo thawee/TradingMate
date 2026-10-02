@@ -1137,6 +1137,31 @@ object TechnicalAnalysis {
     }
 
     /**
+     * Extra baht from electing to put Thai dividends in assessable income (Sec. 47 bis) instead of
+     * keeping the withholding tax final: the credit plus the withheld tax come back, but income tax
+     * at [marginalRate] applies to gross dividend + credit. Negative means keep the WHT final.
+     */
+    fun dividendElectionBenefit(
+        grossDividend: Double,
+        marginalRate: Double,
+        citRate: Double = TradingConstants.DEFAULT_CIT_TAX_RATE,
+        whtRate: Double = TradingConstants.THAI_DIVIDEND_WHT_RATE
+    ): Double {
+        if (grossDividend <= 0.0 || citRate < 0.0 || citRate >= 100.0) return 0.0
+        val credit = grossDividend * citRate / (100.0 - citRate)
+        return credit + grossDividend * whtRate / 100.0 - marginalRate / 100.0 * (grossDividend + credit)
+    }
+
+    /** Top income-tax bracket (%) below which the Sec. 47 bis election pays; 28% at a 20% CIT rate. */
+    fun dividendElectionBreakEvenRate(
+        citRate: Double = TradingConstants.DEFAULT_CIT_TAX_RATE,
+        whtRate: Double = TradingConstants.THAI_DIVIDEND_WHT_RATE
+    ): Double {
+        val creditRatio = citRate / (100.0 - citRate)
+        return (creditRatio + whtRate / 100.0) / (1.0 + creditRatio) * 100.0
+    }
+
+    /**
      * Net Yield-on-Cost (YoC) after standard 10% withholding tax.
      */
     fun calculateNetYieldOnCost(

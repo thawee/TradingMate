@@ -32,6 +32,7 @@ class PreferenceRepository(private val context: Context) {
     private val MAX_PORTFOLIO_ALLOCATION = doublePreferencesKey("max_portfolio_allocation")
     private val MAX_SECTOR_ALLOCATION = doublePreferencesKey("max_sector_allocation")
     private val CIT_TAX_RATE = doublePreferencesKey("cit_tax_rate")
+    private val PERSONAL_TAX_RATE = doublePreferencesKey("personal_tax_rate")
     private val MIN_RISK_REWARD_RATIO = doublePreferencesKey("min_risk_reward_ratio")
     private val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
     private val GEMINI_MODEL = stringPreferencesKey("gemini_model")
@@ -202,6 +203,16 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setCitTaxRate(rate: Double) {
         context.settingsDataStore.edit { preferences ->
             preferences[CIT_TAX_RATE] = rate
+        }
+    }
+
+    /** Top personal income-tax bracket in percent; null until the user sets it. */
+    val personalTaxRate: Flow<Double?> = context.settingsDataStore.data
+        .map { preferences -> preferences[PERSONAL_TAX_RATE]?.takeIf { it in 0.0..35.0 } }
+
+    suspend fun setPersonalTaxRate(rate: Double?) {
+        context.settingsDataStore.edit { preferences ->
+            if (rate == null) preferences.remove(PERSONAL_TAX_RATE) else preferences[PERSONAL_TAX_RATE] = rate
         }
     }
 

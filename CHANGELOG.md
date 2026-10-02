@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (dividend tax)
+- **Sec. 47 bis card shows the real trade-off:** the old card added a "reclaimable" credit on every dividend. It now covers the current tax year only, excludes fund payouts (TDEX carries no credit), and, once you set your top income-tax bracket in Settings, shows the net gain or cost of claiming versus keeping the 10% withholding final (break-even 28% at a 20% CIT rate). It notes that the choice covers all dividends in the year and that BOI tax-exempt payouts carry no credit.
+
 ### Added (Thai market calendar)
 - **SET holiday calendar:** market status treats published 2026 SET closures as CLOSED (`domain/SetHolidays.kt`), so signal scans skip stale holiday prices and the monthly DCA reminder waits for the next trading session. Years SET has not yet published (2027) fall back to weekends only; add them when released.
 
