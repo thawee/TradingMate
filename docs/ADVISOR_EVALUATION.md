@@ -58,6 +58,10 @@ None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow t
 
 `tools/backtest/shortterm_report.md` tests four rules fixed on 2026-10-02 before the first run, chosen from effects reported in research: weekly short-term reversal (documented in Asian markets including Thailand), buying a sharp RSI(2) dip inside an uptrend (two variants), and the turn-of-month effect on TDEX. None passes. Weekly reversal earned a small average gain on trades held the full five days (+0.16R) but stops and Thai trading costs (about 0.6% per round trip) erased it; it lost 6.97% a year in 2021-2025. The dip rules lost money in both sub-periods. Turn of the month returned -4.18% a year against TDEX's 2.52%, being in the market 30% of the time and paying costs 131 times.
 
+### 6-month momentum portfolio
+
+`tools/backtest/momentum_portfolio_report.md` tests monthly-rebalanced cross-sectional momentum (Jegadeesh & Titman), three variants fixed on 2026-10-02 before the first run: hold the top 10 SET50 stocks by 6-1 month return, the same with positive returns only, and by 6-0 month return. It is the strongest result of all studies (MOM3: 12.45% a year over 2015-2025 against TDEX's 2.52%, holding positions about 100 days), but it still fails the gate: every variant trails TDEX in 2021-2025 (about -3% a year against +3.19%), and without its top three symbols (DELTA, JMART, KTB or TRUE) the profit is close to zero. Survivorship bias flatters momentum more than any other rule here.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.

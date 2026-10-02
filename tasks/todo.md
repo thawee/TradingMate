@@ -414,3 +414,13 @@ Basis: short-term reversal documented in Asian markets incl. Thailand (Chang, Mc
 - R4 Turn of month on TDEX: hold TDEX from the close of the 4th-last session of each month to the close of the 3rd session of the next; cash otherwise. Compare with TDEX buy-and-hold after fees.
 Report every variant.
 - [x] Result: none passes; see tools/backtest/shortterm_report.md.
+
+# 6-month momentum portfolio, 2026-10-02 (fixed before the first run)
+
+Basis: Jegadeesh & Titman (1993) 3-12 month momentum; standard "6-1" ranking skips the latest month.
+Common: frozen SET50 universe, 2015-2025, ฿1M, rank at each month's last session, trade at the next session's close, 0.15% slippage per side, InnovestX fees (ATS), 100-share lots, equal target weight 10% per stock (within the 15% cap). Names that stay in the top list are kept without resizing; names that drop out are sold; new names are bought with available cash. Dividend-adjusted prices.
+- MOM1: rank by return from 126 to 21 sessions ago (6-1), hold the top 10.
+- MOM2: as MOM1, but only stocks with a positive 6-1 return; empty slots stay in cash.
+- MOM3: rank by the full 126-session return (no skipped month), hold the top 10.
+Evidence gate as before, with average net return per closed position standing in for expectancy R (no stop is used). Report every variant.
+- [x] Result: none passes (all trail TDEX in 2021-2025; profit depends on DELTA, JMART and one more). See tools/backtest/momentum_portfolio_report.md.
