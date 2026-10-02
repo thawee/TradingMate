@@ -342,3 +342,10 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 - Core instrument: TDEX only. CORE bucket is derived (symbol == TDEX), so no user tagging; Phase 2 `bucket` column not needed.
 - AI Advisor: demote to context. Show backtest result up front; "Accept AI Plan" becomes a secondary action.
 - Default split: 80 core / 20 satellite (configurable).
+
+# Core buys exempt from satellite rules, 2026-10-02
+
+- [x] `TradeRiskPolicy.evaluateCoreBuy`: core (TDEX) buys need only a valid price, a 100-share lot and enough cash. No stop, target, single-stock, sector or regime-buffer gate.
+- [x] Buy dialog: core path uses it, hides stop/target and position-size sections, and the cash card checks cash only.
+- [x] Alert worker: no technical sell reminders on the core; an explicit saved stop still alerts.
+- [x] Unit tests for the core policy; `./gradlew :app:testDebugUnitTest :app:assembleDebug`.

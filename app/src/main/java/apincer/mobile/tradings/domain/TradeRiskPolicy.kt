@@ -69,4 +69,16 @@ object TradeRiskPolicy {
             reasons.add("Purchase would breach the cash reserve")
         return TradeRiskResult(reasons)
     }
+
+    /**
+     * Core (TDEX) buys are held, not traded: no stop, target, single-stock, sector or regime
+     * cash-buffer gate. The buffer rule was never backtested and would block DCA when prices fall.
+     */
+    fun evaluateCoreBuy(entryPrice: Double, quantity: Int, buyFees: Double, cashBalance: Double): TradeRiskResult {
+        if (!entryPrice.isFinite() || entryPrice <= 0.0 || quantity <= 0 || quantity % 100 != 0)
+            return TradeRiskResult(listOf("Enter a valid price and 100-share quantity"))
+        return if (entryPrice * quantity + buyFees > cashBalance + 0.01)
+            TradeRiskResult(listOf("Purchase exceeds available cash"))
+        else TradeRiskResult(emptyList())
+    }
 }

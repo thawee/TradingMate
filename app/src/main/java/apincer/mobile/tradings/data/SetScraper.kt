@@ -655,21 +655,24 @@ object SetScraper {
     // tracks the broad market closely enough for return-based uses: regime (SMA/MACD),
     // relative strength and beta. Do not display its price as the SET index level.
     private const val SET_INDEX_PROXY_SYMBOL = "TDEX"
+    // ^SET.BK currently returns only today's bar; regime (SMA 50 + MACD), 63-day RS and beta need far more.
+    private const val MIN_INDEX_HISTORY_BARS = 120
     private const val INDEX_CACHE_TTL_MS = 60 * 60 * 1000L // 1 hour
     @Volatile private var cachedIndexHistory: List<ScrapedHistoricalPrice> = emptyList()
     @Volatile private var cachedIndexTimestamp: Long = 0L
 
     /**
      * Fetches ~1 year of SET index daily closes (cached 1h) for regime, Relative Strength and beta.
-     * Falls back to [SET_INDEX_PROXY_SYMBOL] when Yahoo serves no index history.
+     * Falls back to [SET_INDEX_PROXY_SYMBOL] when Yahoo serves fewer than [MIN_INDEX_HISTORY_BARS] bars.
      */
     fun fetchSetIndexHistory(): List<ScrapedHistoricalPrice> {
         val now = System.currentTimeMillis()
         if (cachedIndexHistory.isNotEmpty() && now - cachedIndexTimestamp < INDEX_CACHE_TTL_MS) {
             return cachedIndexHistory
         }
-        val history = fetchSetIndexHistoryDirect().ifEmpty {
-            Log.w(TAG, "No ^SET.BK history; using $SET_INDEX_PROXY_SYMBOL as index proxy")
+        val direct = fetchSetIndexHistoryDirect()
+        val history = if (direct.size >= MIN_INDEX_HISTORY_BARS) direct else {
+            Log.w(TAG, "^SET.BK returned ${direct.size} bars; using $SET_INDEX_PROXY_SYMBOL as index proxy")
             fetchHistoricalPrices(SET_INDEX_PROXY_SYMBOL)
         }
         if (history.isEmpty()) return cachedIndexHistory // stale cache is better than nothing

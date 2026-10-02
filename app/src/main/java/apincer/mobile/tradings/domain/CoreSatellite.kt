@@ -12,6 +12,10 @@ object CoreSatellite {
 
     fun isCore(symbol: String): Boolean = symbol.equals(CORE_SYMBOL, ignoreCase = true)
 
+    /** Shown instead of technical signals on the core, which the backtested signals trail. */
+    val CORE_SIGNAL = TradeSignal(IndicatorSignal.NEUTRAL, "Core holding",
+        "Index core: buy on your DCA schedule and hold through technical signals.")
+
     data class Allocation(
         val coreValue: Double,
         val satelliteValue: Double,

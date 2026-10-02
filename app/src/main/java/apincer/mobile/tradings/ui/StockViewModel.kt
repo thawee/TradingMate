@@ -326,6 +326,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         decision.reason.name, decision.description)
                     else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
                         "No saved exit level or early invalidation trigger reached")
+                } else if (apincer.mobile.tradings.domain.CoreSatellite.isCore(stock.symbol)) {
+                    apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL
                 } else rawSignal
 
                 val focusMovement = if (focus != null && focus.startPrice != 0.0) {
@@ -665,7 +667,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 val cachedStocks = repository.getAllStocksSync()
                 if (!isMarketOpen && cachedStocks.isNotEmpty() && cachedStocks.all {
                     !isCacheExpired(it.lastUpdated) && !isCacheExpired(it.cache?.fundamentalsUpdatedAt) &&
-                        !isTechnicalCacheExpired(it.signal?.lastUpdated)
+                        !needsTechnicalRefresh(it)
                 }) {
                     android.util.Log.d("StockViewModel", "Market is closed and data is up-to-date. Skipping refresh.")
                     return@launch
@@ -729,7 +731,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                 try {
                                     val latestStock = repository.getStockBySymbol(stock.symbol) ?: stock
                                     val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.cache?.fundamentalsUpdatedAt)
-                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.signal?.lastUpdated)
+                                    val needsIndicators = needsTechnicalRefresh(latestStock)
 
                                     if (needsDeepFetch || needsIndicators) {
                                         val info = if (needsDeepFetch) {
@@ -893,7 +895,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 if (portfolioStocks.isEmpty()) return@launch
                 if (!isMarketOpen && portfolioStocks.all {
                     !isCacheExpired(it.lastUpdated) && !isCacheExpired(it.cache?.fundamentalsUpdatedAt) &&
-                        !isTechnicalCacheExpired(it.signal?.lastUpdated)
+                        !needsTechnicalRefresh(it)
                 }) return@launch
                 val failedSymbols = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
@@ -937,7 +939,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                 try {
                                     val latestStock = repository.getStockBySymbol(stock.symbol) ?: stock
                                     val needsDeepFetch = latestStock.roe == null || latestStock.debtToEquity == null || latestStock.sector == null || isCacheExpired(latestStock.cache?.fundamentalsUpdatedAt)
-                                    val needsIndicators = latestStock.rsi == null || latestStock.macdHist == null || isTechnicalCacheExpired(latestStock.signal?.lastUpdated)
+                                    val needsIndicators = needsTechnicalRefresh(latestStock)
 
                                     if (needsDeepFetch || needsIndicators) {
                                         val info = if (needsDeepFetch) {
@@ -1346,6 +1348,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                             else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
                                 "No saved exit level or early invalidation trigger reached")
                         }
+                        apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol) ->
+                            apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL
                         else -> rawSignal
                     }
 
@@ -1460,6 +1464,16 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             true
         }
     }
+
+    /**
+     * Indicators must be recomputed when expired or incomplete. A missing observation or
+     * benchmark date blocks every swing candidate ("Price or SET benchmark history missing"),
+     * so it forces a refresh even inside the cache window.
+     */
+    private fun needsTechnicalRefresh(stock: apincer.mobile.tradings.data.StockAggregate): Boolean =
+        stock.rsi == null || stock.macdHist == null ||
+            stock.observationDate == null || stock.benchmarkDate == null ||
+            isTechnicalCacheExpired(stock.signal?.lastUpdated)
 
     private fun isTechnicalCacheExpired(lastUpdated: String?): Boolean {
         if (lastUpdated.isNullOrBlank()) return true

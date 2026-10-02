@@ -191,7 +191,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     ) else apincer.mobile.tradings.domain.TradeSignal(
                         IndicatorSignal.NEUTRAL, "Saved plan active", "No saved exit trigger reached"
                     )
-                } else rawSignal
+                } else if (CoreSatellite.isCore(entity.symbol)) CoreSatellite.CORE_SIGNAL else rawSignal
 
                 // 4. Check for state shift (entry opportunities only)
                 val oldSignalType = entity.signalType
@@ -213,8 +213,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     )
                 }
 
+                // The core is held through technical sells (the backtested signals trail TDEX itself);
+                // only a stop the user saved on it still alerts.
+                val isCoreHolding = CoreSatellite.isCore(entity.symbol)
                 val sellReasonsList = mutableListOf<String>()
-                if (entity.quantity > 0 && signal.type == IndicatorSignal.SELL) {
+                if (entity.quantity > 0 && signal.type == IndicatorSignal.SELL && (!isCoreHolding || explicitStopHit)) {
                     val reason = if (entity.portfolio.exitPolicy == "FIXED_TARGET" || explicitStopHit)
                         signal.description else signal.reason
                     reason?.takeIf { it.isNotBlank() }?.let { sellReasonsList.add(it) }
@@ -343,7 +346,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" &&
                     scraped.dividendYield?.let { it < TradingConstants.DIVIDEND_YIELD_PROTECTION } == true
                 
-                if (entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
+                if (!isCoreHolding && entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
                     (isSwingHold || isDividendTransitionHold)) {
                     val isSell = signal.type == IndicatorSignal.SELL
                     
