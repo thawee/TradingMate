@@ -53,4 +53,15 @@ class TradeRiskPolicyTest {
         assertFalse(TradeRiskPolicy.evaluate(input,
             limits.copy(minNetRewardRiskRatio = Double.NaN)).allowed)
     }
+
+    @Test fun coreBuyIgnoresSatelliteCapsAndBuffer() {
+        // ฿90,000 of TDEX on ฿100,000 equity would fail the 15% stock cap and any cash buffer.
+        assertTrue(TradeRiskPolicy.evaluateCoreBuy(9.0, 10_000, 135.0, 90_135.0).allowed)
+    }
+
+    @Test fun coreBuyNeedsCashAndBoardLot() {
+        assertFalse(TradeRiskPolicy.evaluateCoreBuy(9.0, 10_000, 135.0, 90_000.0).allowed)
+        assertFalse(TradeRiskPolicy.evaluateCoreBuy(9.0, 150, 0.0, 90_000.0).allowed)
+        assertFalse(TradeRiskPolicy.evaluateCoreBuy(0.0, 100, 0.0, 90_000.0).allowed)
+    }
 }

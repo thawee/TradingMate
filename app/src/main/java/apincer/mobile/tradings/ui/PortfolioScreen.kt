@@ -953,7 +953,11 @@ fun BuyStockDialog(
         holdings.filter { it.info.sector == sector && it.portfolio.quantity > 0 }
             .sumOf { it.info.lastPrice * it.portfolio.quantity }
     }
-    val riskResult = apincer.mobile.tradings.domain.TradeRiskPolicy.evaluate(
+    val isCoreBuy = apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol)
+    val showTradePlan = !(isCoreBuy && initialStock == null)
+    val riskResult = if (isCoreBuy) apincer.mobile.tradings.domain.TradeRiskPolicy.evaluateCoreBuy(
+        entry, amount, buyFeeEstimate, cashBalance
+    ) else apincer.mobile.tradings.domain.TradeRiskPolicy.evaluate(
         apincer.mobile.tradings.domain.TradeRiskInput(
             entry, planStop, amount, TechnicalAnalysis.calculateFees(entry * amount, false, atsEnabled),
             accountEquity, cashBalance, existingStockValue, existingSectorValue, atsEnabled,
@@ -970,7 +974,7 @@ fun BuyStockDialog(
             (target <= 0.0 || (stopLoss > 0.0 && stopLoss < entry && target > entry))
     } else {
         symbol.isNotBlank() && entry > 0 && amount > 0 && 
-        (recordExecutedFill || (isValidDividend && planStop > 0 && planStop < entry) ||
+        (recordExecutedFill || isCoreBuy || (isValidDividend && planStop > 0 && planStop < entry) ||
             (planTarget > entry && planStop > 0 && planStop < entry && rrRatio >= minRiskRewardRatio)) &&
         (recordExecutedFill || riskResult.allowed)
     }
@@ -1080,7 +1084,13 @@ fun BuyStockDialog(
                 }
             }
 
-            item {
+            if (!showTradePlan) item {
+                Text("${apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL} is your core: bought and held, so no stop, target or position caps apply. Only available cash is checked.",
+                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp))
+            }
+
+            if (showTradePlan) item {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp).alpha(0.1f))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1121,7 +1131,7 @@ fun BuyStockDialog(
                 }
             }
 
-            if (entry > 0 && riskPerShare > 0 && accountEquity > 0) {
+            if (showTradePlan && entry > 0 && riskPerShare > 0 && accountEquity > 0) {
                 item {
                     GlassCard(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
@@ -1210,7 +1220,8 @@ fun BuyStockDialog(
                     val projectedCashRemaining = cashBalance - incrementalCost
                     val projectedBufferPercent = if (accountEquity > 0) (projectedCashRemaining / accountEquity * 100.0).coerceAtLeast(0.0) else 0.0
                     val isInsufficientCash = incrementalCost > cashBalance
-                    val isBufferDeficit = projectedCashRemaining < targetCashReserve
+                    // The regime buffer gates satellite buys only; core DCA should continue when prices fall.
+                    val isBufferDeficit = !isCoreBuy && projectedCashRemaining < targetCashReserve
 
                     val statusColor = when {
                         isInsufficientCash -> MaterialTheme.colorScheme.error
@@ -1306,6 +1317,7 @@ fun BuyStockDialog(
                             val statusMsg = when {
                                 recordExecutedFill && isInsufficientCash -> "The recorded fill will leave negative cash. Reconcile deposits or earlier trades in the ledger."
                                 isInsufficientCash -> "Insufficient cash: Trade cost (฿${String.format(Locale.ENGLISH, "%,.0f", incrementalCost)}) exceeds available cash (฿${String.format(Locale.ENGLISH, "%,.0f", cashBalance)})."
+                                isCoreBuy -> "Core buy: the ${recommendedBufferPercent.toInt()}% regime cash buffer applies to satellite buys only."
                                 isBufferDeficit -> "Buffer Breach: Post-trade cash (${String.format(Locale.ENGLISH, "%.1f", projectedBufferPercent)}%) falls below ${recommendedBufferPercent.toInt()}% regime target. Deficit: ฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve - projectedCashRemaining)}."
                                 else -> "Healthy liquidity: Preserves ${recommendedBufferPercent.toInt()}% cash buffer (฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}) required for ${marketRegime.name.lowercase().replaceFirstChar { it.uppercase() }} conditions."
                             }
@@ -1320,7 +1332,7 @@ fun BuyStockDialog(
                 }
             }
 
-            if (entry > 0 && amount > 0 && planTarget > 0 && planStop > 0) {
+            if (showTradePlan && entry > 0 && amount > 0 && planTarget > 0 && planStop > 0) {
                 item {
                     GlassCard(
                         containerColor = (if (rrRatio >= minRiskRewardRatio) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary).copy(alpha = 0.1f),
@@ -1383,9 +1395,11 @@ fun BuyStockDialog(
                     enabled = isFormValid && !isSaving,
                     onClick = { 
                         if (isFormValid) {
-                            val acceptedTarget = if (recordExecutedFill &&
+                            // A new core position carries no stop or target, even if the fields hold stale text.
+                            val newCore = isCoreBuy && existingHolding == null
+                            val acceptedTarget = if (newCore || recordExecutedFill &&
                                 (planStop <= 0.0 || planStop >= entry || planTarget <= entry)) 0.0 else planTarget
-                            onConfirm(symbol, entry, amount, acceptedTarget, planStop, playbookNote,
+                            onConfirm(symbol, entry, amount, acceptedTarget, if (newCore) 0.0 else planStop, playbookNote,
                                 planPurpose, recordExecutedFill)
                         }
                     },

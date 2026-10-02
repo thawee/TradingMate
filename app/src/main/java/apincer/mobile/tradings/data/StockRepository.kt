@@ -316,7 +316,10 @@ class StockRepository(
             val deduction = cost * quantity + buyFees
             val current = cashDao.getCashSync()
             val existing = stockDao.getPortfolioBySymbol(symbol.uppercase())
-            val riskResult = if (riskLimits != null) {
+            val riskResult = if (apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol)) {
+                apincer.mobile.tradings.domain.TradeRiskPolicy.evaluateCoreBuy(
+                    cost, quantity, buyFees, current?.balance ?: 0.0)
+            } else if (riskLimits != null) {
                 val holdings = stockDao.getAllStocksSync().filter { it.quantity > 0 }
                 val holdingsValue = holdings.sumOf { it.quantity * (it.lastPrice.takeIf { p -> p > 0.0 } ?: it.cost) }
                 val sector = stockDao.getCacheBySymbol(symbol.uppercase())?.sector
