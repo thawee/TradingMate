@@ -323,14 +323,11 @@ class StockRepository(
                 val holdings = stockDao.getAllStocksSync().filter { it.quantity > 0 }
                 val holdingsValue = holdings.sumOf { it.quantity * (it.lastPrice.takeIf { p -> p > 0.0 } ?: it.cost) }
                 val sector = stockDao.getCacheBySymbol(symbol.uppercase())?.sector
+                // Concentration limits use cost basis (tasks/lessons.md #4); equity stays at market value.
                 val sectorValue = sector?.let { name ->
-                    holdings.filter { it.sector == name }.sumOf {
-                        it.quantity * (it.lastPrice.takeIf { p -> p > 0.0 } ?: it.cost)
-                    }
+                    holdings.filter { it.sector == name }.sumOf { it.quantity * it.cost }
                 }
-                val existingStockValue = holdings.filter { it.symbol == symbol.uppercase() }.sumOf {
-                    it.quantity * (it.lastPrice.takeIf { p -> p > 0.0 } ?: it.cost)
-                }
+                val existingStockValue = holdings.filter { it.symbol == symbol.uppercase() }.sumOf { it.quantity * it.cost }
                 val effectiveTarget = existing?.targetPrice?.takeIf { it > 0.0 } ?: targetPrice
                 val effectiveStop = existing?.stopLoss?.takeIf { it > 0.0 } ?: stopLoss
                 val effectivePurpose = existing?.tradePurpose ?: tradePurpose

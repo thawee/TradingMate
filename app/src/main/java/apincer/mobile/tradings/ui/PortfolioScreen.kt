@@ -950,11 +950,12 @@ fun BuyStockDialog(
     val currentTradeRiskPercent = if (accountEquity > 0) currentTradeRiskBaht / accountEquity * 100.0 else 0.0
     val isValidDividend = planPurpose == "DIVIDEND" || playbookNote.lowercase().contains("dividend")
     val selectedSector = holdings.find { it.info.symbol.equals(symbol, ignoreCase = true) }?.info?.sector
+    // Concentration limits use cost basis, as the advisor and executeBuy do (tasks/lessons.md #4).
     val existingStockValue = holdings.filter { it.info.symbol.equals(symbol, ignoreCase = true) && it.portfolio.quantity > 0 }
-        .sumOf { it.info.lastPrice * it.portfolio.quantity }
+        .sumOf { it.portfolio.cost * it.portfolio.quantity }
     val existingSectorValue = selectedSector?.let { sector ->
         holdings.filter { it.info.sector == sector && it.portfolio.quantity > 0 }
-            .sumOf { it.info.lastPrice * it.portfolio.quantity }
+            .sumOf { it.portfolio.cost * it.portfolio.quantity }
     }
     val isCoreBuy = apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol)
     val showTradePlan = !(isCoreBuy && initialStock == null)

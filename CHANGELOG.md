@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (portfolio card and risk checks)
+- **Take Profit shows the saved plan target:** the holding card no longer invents cost +10% (e.g. ฿52.89); it shows the accepted target or "No target".
+- **Off-tick saved stops flagged:** stops saved before tick rounding show the valid SET price beside them (฿45.68 -> "SET ฿45.75"); editing the holding saves the rounded stop.
+- **Concentration checks on cost basis everywhere:** the Buy dialog and `executeBuy` now value single-stock and sector exposure at cost, as the advisor already did, so the same buy cannot pass in one place and fail in another.
+
 ### Added
 - **SET tick sizes:** suggested stops round up and suggested targets round down to the SET price spread table (0.01 below ฿2 up to 2.00 at ฿400+), so watchlist "Plan: Cut", advisor plans and saved stops are prices an order can use. The Buy dialog snaps typed stop/target the same way and shows the valid "SET price" under the field.
 

@@ -870,8 +870,11 @@ fun StockItemCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 val totalCost = item.portfolio.cost * item.portfolio.quantity + item.portfolio.buyFees
                 val breakEven = totalCost / (item.portfolio.quantity * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE))
-                val takeProfitPrice = item.sellPriceTarget ?: (item.portfolio.cost * 1.10)
-                val expectedProfit = (takeProfitPrice * item.portfolio.quantity * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE)) - totalCost
+                // The saved plan target; no invented default, so a holding without one says so.
+                val takeProfitPrice = item.portfolio.portfolio.targetPrice.takeIf { it > 0.0 }
+                val expectedProfit = takeProfitPrice?.let {
+                    (it * item.portfolio.quantity * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE)) - totalCost
+                } ?: 0.0
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
@@ -895,10 +898,11 @@ fun StockItemCard(
                         Text("Take Profit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = "฿${String.format(Locale.ENGLISH, "%.2f", takeProfitPrice)}",
+                                text = takeProfitPrice?.let { "฿${String.format(Locale.ENGLISH, "%.2f", it)}" } ?: "No target",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.tertiary
+                                color = if (takeProfitPrice != null) MaterialTheme.colorScheme.tertiary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (expectedProfit > 0) {
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -928,6 +932,17 @@ fun StockItemCard(
                                     fontWeight = FontWeight.Black,
                                     color = MaterialTheme.colorScheme.error
                                 )
+                                // Saved before tick rounding: orders cannot sit at this price. Editing the holding snaps it.
+                                if (!apincer.mobile.tradings.domain.SetTick.isValid(stopLoss)) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "SET ฿${String.format(Locale.ENGLISH, "%.2f", apincer.mobile.tradings.domain.SetTick.ceil(stopLoss))}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(bottom = 1.dp)
+                                    )
+                                }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "(-฿${String.format(Locale.ENGLISH, "%,.0f", expectedLoss)})",
