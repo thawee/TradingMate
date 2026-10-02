@@ -391,7 +391,7 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 - [x] Hide Speculative Watch, AI buy ranking, daily movers and Dividend Stars until they pass the evidence gate.
 - [x] Cloud backup: already provided by Android Auto Backup (verified active on device; data < 1 MB); Settings now explains it.
 - [x] Remote holiday/SET50 lists: `config/market_lists.json`, fetched daily with validation and built-in fallback.
-- [ ] Broker statement import (needs a sample InnovestX statement or contract note).
+- [-] Broker statement import: skipped 2026-10-02 (no sample statement available). Screenshot import with Gemini remains the quick-entry path.
 - [x] ThaiESG/RMF tracker with December reminders.
 - [x] Rebalance nudge (monthly, core more than 5 points under target).
 - [x] Single stop model: volatility-based (user decision, 2026-10-02); fixed-% trailing setting removed.
