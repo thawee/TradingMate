@@ -803,7 +803,7 @@ fun AdvisorStockCard(
             }
 
             if (!isSellAlert && stock.info.lastPrice > 0) {
-                val isSet50 = apincer.mobile.tradings.domain.TradingConstants.SET50_SYMBOLS.contains(stock.info.symbol.uppercase())
+                val isSet50 = apincer.mobile.tradings.domain.MarketLists.isSet50(stock.info.symbol.uppercase())
                 val stopPrice = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSuggestedStopLossPrice(
                     lastPrice = stock.info.lastPrice,
                     atr = stock.portfolio.atr,
@@ -1138,7 +1138,7 @@ fun AiCopilotCard(
                     val sector = stock.info.sector ?: return@mapNotNull null
                     val stop = TechnicalAnalysis.calculateSuggestedStopLossPrice(
                         entry, stock.portfolio.atr,
-                        apincer.mobile.tradings.domain.TradingConstants.SET50_SYMBOLS.contains(stock.info.symbol.uppercase()), marketRegime = marketRegime)
+                        apincer.mobile.tradings.domain.MarketLists.isSet50(stock.info.symbol.uppercase()), marketRegime = marketRegime)
                     val sized = TechnicalAnalysis.calculateRecommendedPositionSize(
                         totalAssets, entry, stop, maxRiskPerTrade, maxPortfolioAllocation).shares
                     val affordable = ((spendable / entry / 100).toInt() * 100).coerceAtLeast(0)

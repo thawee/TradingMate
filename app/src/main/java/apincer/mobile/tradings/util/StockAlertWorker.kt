@@ -37,6 +37,9 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val atsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
         val entryAlertsEnabled = prefRepo.isEntryAlertsEnabled.firstOrNull() ?: false
         val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
+        // Holiday checks below depend on the current calendar.
+        MarketListsSync.loadCached(applicationContext)
+        MarketListsSync.refreshIfStale(applicationContext)
 
         var hasActiveSwingSellAlert = false
 
@@ -139,7 +142,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     Log.w("StockAlertWorker", "Skipping ${entity.symbol}: no valid technical history")
                     return@forEach
                 }
-                val isSet50 = TradingConstants.SET50_SYMBOLS.contains(entity.symbol.uppercase())
+                val isSet50 = apincer.mobile.tradings.domain.MarketLists.isSet50(entity.symbol.uppercase())
                 val userStopLoss = if (entity.portfolio.stopLoss > 0 && entity.cost > 0 && entity.portfolio.stopLoss < entity.cost) {
                     ((entity.portfolio.stopLoss - entity.cost) / entity.cost) * 100
                 } else null

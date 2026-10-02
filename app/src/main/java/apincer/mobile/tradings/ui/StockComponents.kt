@@ -783,7 +783,7 @@ fun StockItemCard(
             }
 
             if (item.portfolio.quantity == 0 && item.info.lastPrice > 0) {
-                val isSet50 = apincer.mobile.tradings.domain.TradingConstants.SET50_SYMBOLS.contains(item.info.symbol.uppercase())
+                val isSet50 = apincer.mobile.tradings.domain.MarketLists.isSet50(item.info.symbol.uppercase())
                 val stopPrice = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSuggestedStopLossPrice(
                     lastPrice = item.info.lastPrice,
                     atr = item.portfolio.atr,

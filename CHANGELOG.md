@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (keeping lists current)
+- **SET holidays and SET50 from the repository:** the app reads `config/market_lists.json` from this repo once a day (at launch and in the alert worker), validates it (45-55 tickers; 5-30 dates per year, all in that year) and caches the last good copy. A new year's holidays or a June/December SET50 review can be shipped by editing that file; built-in lists remain the fallback. A unit test checks the committed file.
+- **Backup explained:** Settings > Data Backup now states that Android Auto Backup already copies trades, journal and settings to the user's Google account when device backup is on (verified active on the test phone; app data is under 1 MB).
+
 ### Changed (untested buy lists)
 - **Advisor buy lists hidden by default:** Scan Setups, Dividend Stars, strategy presets and the Gemini AI ranking (which also sent "strong daily movers") are behind Settings > App Environment > "Show untested buy lists", off by default, because none has passed the evidence gate. The Advisor still shows exit checks, the market regime and the XD calendar, plus a card explaining why the lists are hidden with a "Show them anyway" button.
 - **Speculative Watch removed:** the list of setups that failed the quality filter is gone even when the lists are shown.

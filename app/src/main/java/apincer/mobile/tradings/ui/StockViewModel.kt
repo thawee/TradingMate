@@ -291,7 +291,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         dividendYield = stock.dividendYield,
                         roe = stock.roe,
                         peakPrice = if (stock.peakPrice > 0) stock.peakPrice else null,
-                        isSet50 = TradingConstants.SET50_SYMBOLS.contains(stock.symbol.uppercase()),
+                        isSet50 = apincer.mobile.tradings.domain.MarketLists.isSet50(stock.symbol.uppercase()),
                         // stopLoss is stored as a positive baht PRICE; convert to the negative
                         // percent-vs-cost that getDetailedSignal expects for the override
                         userStopLoss = if (stock.stopLoss > 0 && stock.cost > 0 && stock.stopLoss < stock.cost) {
@@ -1393,7 +1393,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         dividendYield = updatedInfo.dividendYield,
                         roe = updatedInfo.roe,
                         peakPrice = portfolio?.peakPrice?.takeIf { it > 0.0 },
-                        isSet50 = TradingConstants.SET50_SYMBOLS.contains(symbol.uppercase()),
+                        isSet50 = apincer.mobile.tradings.domain.MarketLists.isSet50(symbol.uppercase()),
                         userStopLoss = portfolio?.let { held ->
                             if (held.stopLoss > 0.0 && held.cost > 0.0 && held.stopLoss < held.cost)
                                 (held.stopLoss - held.cost) / held.cost * 100.0 else null

@@ -30,8 +30,10 @@ object SetHolidays {
         ).map(LocalDate::parse).toSet()
     )
 
-    fun isHoliday(date: LocalDate): Boolean = byYear[date.year]?.contains(date) == true
+    /** A year published in the remote market lists replaces the built-in one. */
+    fun isHoliday(date: LocalDate): Boolean =
+        (MarketLists.holidaysFor(date.year) ?: byYear[date.year])?.contains(date) == true
 
     /** False when SET has not published (or the app does not yet carry) that year's calendar. */
-    fun isKnownYear(year: Int): Boolean = byYear.containsKey(year)
+    fun isKnownYear(year: Int): Boolean = MarketLists.holidaysFor(year) != null || byYear.containsKey(year)
 }

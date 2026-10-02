@@ -698,6 +698,13 @@ fun SettingsScreen(
             }
 
             SectionContent(title = "Data Backup & Restore", icon = Icons.Default.History) {
+                // Auto Backup (allowBackup) already copies the database and settings to the user's Google account.
+                Text(
+                    "Automatic: when device backup is on (Settings > Google > Backup), Android copies your trades, journal and settings to your Google account about once a day while charging on Wi-Fi, and restores them when you reinstall or move to a new phone. Use Export for a copy you keep yourself.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)

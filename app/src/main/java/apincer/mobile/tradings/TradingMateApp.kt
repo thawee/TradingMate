@@ -11,6 +11,13 @@ import apincer.mobile.tradings.data.StockRepository
  */
 class TradingMateApp : Application() {
 
+    override fun onCreate() {
+        super.onCreate()
+        // Newest SET holiday / SET50 lists: cached copy now, refreshed in the background.
+        apincer.mobile.tradings.util.MarketListsSync.loadCached(this)
+        Thread { apincer.mobile.tradings.util.MarketListsSync.refreshIfStale(this) }.start()
+    }
+
     private var _database: apincer.mobile.tradings.data.StockDatabase? = null
     private var _repository: apincer.mobile.tradings.data.StockRepository? = null
 
