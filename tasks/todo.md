@@ -424,3 +424,12 @@ Common: frozen SET50 universe, 2015-2025, ฿1M, rank at each month's last sessi
 - MOM3: rank by the full 126-session return (no skipped month), hold the top 10.
 Evidence gate as before, with average net return per closed position standing in for expectancy R (no stop is used). Report every variant.
 - [x] Result: none passes (all trail TDEX in 2021-2025; profit depends on DELTA, JMART and one more). See tools/backtest/momentum_portfolio_report.md.
+
+# 6-month momentum + app signal timing, 2026-10-02 (fixed before the first run)
+
+Same simulator, universe, costs and gate as the momentum portfolio. Target list = top 10 SET50 by 126-session return, re-ranked at each month's last session; names leaving the list are sold at the next close.
+- S0: MOM3 baseline (buy new names at the next close after the month-end ranking), to confirm the simulator matches.
+- S1: a listed name not yet held is bought at the next close only on a day the app signal is BUY or POTENTIAL; otherwise it waits (cash).
+- S2: as S1, BUY only.
+Report every variant.
+- [x] Result: S0 matches MOM3; signal timing lowers returns (S1 8.55%, S2 3.52%/yr) and none passes. See tools/backtest/momentum_signal_report.md.

@@ -62,6 +62,10 @@ None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow t
 
 `tools/backtest/momentum_portfolio_report.md` tests monthly-rebalanced cross-sectional momentum (Jegadeesh & Titman), three variants fixed on 2026-10-02 before the first run: hold the top 10 SET50 stocks by 6-1 month return, the same with positive returns only, and by 6-0 month return. It is the strongest result of all studies (MOM3: 12.45% a year over 2015-2025 against TDEX's 2.52%, holding positions about 100 days), but it still fails the gate: every variant trails TDEX in 2021-2025 (about -3% a year against +3.19%), and without its top three symbols (DELTA, JMART, KTB or TRUE) the profit is close to zero. Survivorship bias flatters momentum more than any other rule here.
 
+### 6-month momentum with app signal timing
+
+`tools/backtest/momentum_signal_report.md` keeps the MOM3 list but buys a listed stock only after an app BUY or POTENTIAL signal (S1) or a BUY signal (S2), fixed on 2026-10-02 before the first run; the baseline (S0) reproduces MOM3 exactly. Signal timing made results worse: S1 returned 8.55% a year over 2015-2025 against MOM3's 12.45% and lost more in 2021-2025 (-5.36%). S2 cut the worst drop to 23% but sat mostly in cash (38% invested), returning 3.52% a year and -0.36% in 2021-2025. All fail the gate. Waiting for a signal delays entry into stocks that are already rising.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.
