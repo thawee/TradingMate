@@ -201,10 +201,8 @@ fun SettingsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = editingSecond,
-                        onValueChange = {
-                            editingSecond = it.uppercase()
-                            settingsViewModel.updateCoreMix(editingSecond.ifBlank { null }, editingSecondPct.toDoubleOrNull() ?: 50.0)
-                        },
+                        // Saved with the button below: saving per keystroke re-keyed this field and scrambled typing.
+                        onValueChange = { editingSecond = it.uppercase() },
                         label = { Text("Second core ETF (optional)") },
                         placeholder = { Text("e.g. 1DIV") },
                         singleLine = true,
@@ -213,10 +211,7 @@ fun SettingsScreen(
                     )
                     OutlinedTextField(
                         value = editingSecondPct,
-                        onValueChange = {
-                            editingSecondPct = it
-                            it.toDoubleOrNull()?.let { pct -> settingsViewModel.updateCoreMix(editingSecond.ifBlank { null }, pct) }
-                        },
+                        onValueChange = { editingSecondPct = it },
                         label = { Text("Share") },
                         suffix = { Text("%") },
                         singleLine = true,
@@ -224,6 +219,14 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
                     )
+                }
+                val pctValue = editingSecondPct.toDoubleOrNull()?.takeIf { it in 0.0..100.0 }
+                val changed = editingSecond.ifBlank { null } != coreMix.first || pctValue != coreMix.second
+                if (changed) {
+                    TextButton(
+                        onClick = { settingsViewModel.updateCoreMix(editingSecond.ifBlank { null }, pctValue ?: 50.0) },
+                        enabled = pctValue != null
+                    ) { Text("Save core mix") }
                 }
                 Text(
                     text = "TDEX holds the rest of the core. 1DIV (SET High Dividend 30 ETF) returned 3.86% a year vs TDEX 2.55% over 2015-2025, ahead in 2021-2025 but behind in 2015-2020 and 2012-2014. Leave blank for TDEX only.",

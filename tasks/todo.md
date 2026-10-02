@@ -474,4 +474,4 @@ F5 counts as confirmed only if D1-D4 each beat TDEX in both sub-periods and H be
 
 - [x] Advisor (Dividend tab, untested lists): top 10 current SET50 by dividend yield, ranked once a day from SET quotes, with the backtest and 1DIV real-world results beside it.
 - [x] Core as a mix: TDEX plus an optional second SET-listed ETF (e.g. 1DIV) with a split %. isCore covers both; the core card, DCA preview and reminder split the monthly amount by weight; buy buttons per fund. TDEX stays the scorecard benchmark.
-- [ ] Tests, build, device check, changelog, commit.
+- [x] Tests, build, device check, changelog, commit.
