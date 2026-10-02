@@ -365,3 +365,12 @@ Candidates: advisor replay = app BUY + completed weekly trend up + RS(63d vs TDE
 - P2: target = 20-session swing high, taken only if >= entry + 1R, time exit after 20 sessions.
 - P3: P1 without the BUY signal (weekly trend up + RS > 0 + close > SMA 50).
 Wire into the advisor only if a variant has positive mean net return AND beats TDEX over the same holding window in BOTH 2015-2020 and 2021-2025. Report every variant.
+
+# Device UX review fixes, 2026-10-02
+
+- [x] Band proximity: "near lower/upper band" by position in the band (%B), not within 5% of the edge; rerun backtest and report the change.
+- [x] Watchlist "Target unavailable" no longer clipped to "Target".
+- [x] Advisor "Check Exits" uses the saved stop; card shows a passed stop and the current loss.
+- [x] Confirm before History clear, watchlist remove and Undo Sell.
+- [x] AI Prompt FAB does not cover content; Gemini button disabled with 0 plans.
+- [x] Tests, build, device check, changelog, commit.

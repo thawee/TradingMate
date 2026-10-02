@@ -35,7 +35,17 @@ data class BollingerBands(
     val upper: Double,
     val middle: Double,
     val lower: Double
-)
+) {
+    /** Position of [price] in the band: 0 at the lower band, 1 at the upper (%B); null for a flat band. */
+    fun position(price: Double): Double? = (upper - lower).takeIf { it > 0.0 }?.let { (price - lower) / it }
+
+    /**
+     * Lower or upper fifth of the band. Measuring 5% from each edge instead made both true for most
+     * prices in a tight band (฿12.90 in 12.47-13.17 was "near support" and "overextended" at once).
+     */
+    fun isNearLower(price: Double): Boolean = position(price)?.let { it <= 0.2 } ?: false
+    fun isNearUpper(price: Double): Boolean = position(price)?.let { it >= 0.8 } ?: false
+}
 
 /** Entry names are persisted (signalType column); change [badgeLabel], not the names. */
 enum class IndicatorSignal(
@@ -108,8 +118,8 @@ object TechnicalAnalysis {
         val isRsiPotential = rsi < TradingConstants.RSI_POTENTIAL
         val isRsiOverbought = rsi > TradingConstants.RSI_OVERBOUGHT
         val isMacdBullish = macdHist > 0.0
-        val isNearLowerBB = if (bb != null) lastPrice <= bb.lower * 1.05 else false
-        val isNearUpperBB = if (bb != null) lastPrice >= bb.upper * 0.95 else false
+        val isNearLowerBB = bb?.isNearLower(lastPrice) ?: false
+        val isNearUpperBB = bb?.isNearUpper(lastPrice) ?: false
 
         // Each state is a distinct description, so it cannot contradict the signal headline
         // (the old "Selling Zone" merged overextended highs with breakdowns at support).
@@ -205,8 +215,8 @@ object TechnicalAnalysis {
         val isMacdBullish = macdHist > 0.0
         val isPriceAboveSma50 = if (lastPrice != null && sma50 != null) lastPrice > sma50 else true
         val isPriceAboveSma200 = if (lastPrice != null && sma200 != null) lastPrice > sma200 else true
-        val isNearLowerBB = if (bb != null && lastPrice != null) lastPrice <= bb.lower * 1.05 else false
-        val isNearUpperBB = if (bb != null && lastPrice != null) lastPrice >= bb.upper * 0.95 else false
+        val isNearLowerBB = if (bb != null && lastPrice != null) bb.isNearLower(lastPrice) else false
+        val isNearUpperBB = if (bb != null && lastPrice != null) bb.isNearUpper(lastPrice) else false
 
         val qualityPrefix = if (isFundamentalGood) "⭐ Quality: " else ""
 

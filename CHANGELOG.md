@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (device review)
+- **Band proximity:** "near support" / "overextended" now use the lower and upper fifth of the Bollinger band. The old within-5%-of-the-edge rule flagged both for most prices in a tight band (TRUE at ฿12.90 in ฿12.47-13.17 read "Technical Setup ... at a major support level" with an "Overextended" chip; it now reads Neutral / Range). Replay: App signals CAGR -4.31% -> -1.39%; still fails the gate on 2021-2025 (`tools/backtest/report.md`).
+- **Watchlist target:** cards no longer show a clipped green "Target" when there is no saved target; the target appears only when saved.
+- **Check Exits uses the saved stop:** Advisor now names "Saved stop ฿x reached", matching the Portfolio card, instead of a generic 7% rule; the 7% trailing rule applies after a gain or when no stop is saved.
+- **Stop passed:** the holding card adds "Stop passed: price ฿x, selling now loses ฿y" once price is through the stop, since the planned stop loss no longer describes the position.
+- **Undo Sell asks first:** reversing a sale (shares back, proceeds out of cash) now needs confirmation. Clear history and watchlist remove already asked.
+- **AI Prompt button:** shrinks to an icon once the stock detail scrolls and the page leaves room below it, so it no longer covers values.
+- **Gemini with nothing to send:** "Ask! Google Gemini" is disabled when there are no validated swing plans and says why, instead of spending a request on an empty list.
+
 ### Fixed (SET50 list)
 - **SET50 list updated to 2H 2026:** SET's official H1 2026 constituents with the 2H 2026 review applied (out: BTS, CBG, CENTEL, SAWAD; in: BCP, MRDIYT, TFG, THAI). The old list still had MAKRO and INTUCH and missed BANPU, CCET, MTC, OSP, TCAP, TIDLOR, TLI and TOP. It sets the SET50 stop tier used when ATR is unavailable.
 - **Backtest universe frozen:** backtests and the event study now read `tools/backtest/universe.txt` (the H1 2025 list the history was fetched with), so updating live membership no longer changes backtest results. Regenerated reports are numerically identical.

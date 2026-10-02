@@ -507,10 +507,30 @@ fun TradeHistoryCard(trade: TradeEntity, onUndo: (() -> Unit)? = null) {
             }
 
             if (onUndo != null) {
+                // Undo restores the shares and reverses the cash, so it asks first.
+                var confirmUndo by remember { mutableStateOf(false) }
+                if (confirmUndo) {
+                    GlassDialog(
+                        onDismissRequest = { confirmUndo = false },
+                        title = stringResource(R.string.action_undo_sell),
+                        confirmButton = {
+                            Button(
+                                onClick = { confirmUndo = false; onUndo() },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text(stringResource(R.string.action_undo_sell), color = Color.White) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { confirmUndo = false }) { Text(stringResource(R.string.action_cancel)) }
+                        }
+                    ) {
+                        Text("Put ${trade.quantity} ${trade.symbol} back in your portfolio and reverse the sale proceeds in cash?")
+                    }
+                }
                 Spacer(Modifier.height(12.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(
-                        onClick = onUndo,
+                        onClick = { confirmUndo = true },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Text(stringResource(R.string.action_undo_sell), fontSize = 12.sp, fontWeight = FontWeight.Bold)

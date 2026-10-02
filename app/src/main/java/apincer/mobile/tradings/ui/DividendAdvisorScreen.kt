@@ -841,20 +841,23 @@ fun AdvisorStockCard(
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1
                                 )
-                                Text(
-                                    text = "  •  ",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = targetPrice?.let { "Saved target ฿${String.format(Locale.ENGLISH, "%.2f", it)}" }
-                                        ?: "Target unavailable",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
+                                // Only a saved target is shown; a missing one is simply omitted (it used to clip to a bare "Target").
+                                if (targetPrice != null) {
+                                    Text(
+                                        text = "  •  ",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "Saved target ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                             if (rr != null) {
                                 Spacer(Modifier.width(6.dp))
@@ -1288,6 +1291,7 @@ fun AiCopilotCard(
                     geminiModelId = geminiModelId,
                     buildPrompt = buildSwingPrompt,
                     allowedPlans = aiPlans,
+                    requirePlans = true,
                     onValidatedResult = { onValidatedAiResult(it, aiPlans) },
                     onDone = onMarkAiDone,
                     showSnackbar = showSnackbar
@@ -1437,9 +1441,12 @@ fun AiAnalysisButton(
     onValidatedResult: (apincer.mobile.tradings.domain.AiAnalysisResult) -> Unit = {},
     onDone: () -> Unit,
     showSnackbar: (String) -> Unit,
-    onAcceptAiPlan: (apincer.mobile.tradings.domain.AiRecommendation) -> Unit = {}
+    onAcceptAiPlan: (apincer.mobile.tradings.domain.AiRecommendation) -> Unit = {},
+    /** When true the button is disabled with no plans, so no AI request is spent on an empty list. */
+    requirePlans: Boolean = false
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val nothingToSend = requirePlans && allowedPlans.isEmpty()
     var isLoading by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<apincer.mobile.tradings.domain.AiAnalysisResult?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -1479,7 +1486,7 @@ fun AiAnalysisButton(
             }
         },
         modifier = Modifier.fillMaxWidth(),
-        enabled = !isLoading,
+        enabled = !isLoading && !nothingToSend,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -1494,6 +1501,14 @@ fun AiAnalysisButton(
             Spacer(Modifier.width(8.dp))
             Text(label)
         }
+    }
+    if (nothingToSend) {
+        Text(
+            text = "No validated setups today, so there is nothing to send.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 
     // Fix 6: Warning must be visible — replace tiny labelSmall text with a prominent card.

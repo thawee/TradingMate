@@ -109,6 +109,9 @@ fun StockScreen(
         }
     }
 
+    // Shared with StockDashboard so the AI Prompt button shrinks to an icon once the user scrolls
+    // (expanded, it covered the company name and table values).
+    val dashboardScroll = rememberScrollState()
     AppBackground {
         Scaffold(
             containerColor = Color.Transparent,
@@ -201,6 +204,7 @@ fun StockScreen(
                         },
                         icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Ask AI") },
                         text = { Text("AI Prompt") },
+                        expanded = dashboardScroll.value == 0,
                         containerColor = MaterialTheme.colorScheme.tertiary,
                         contentColor = MaterialTheme.colorScheme.onTertiary,
                         shape = RoundedCornerShape(16.dp)
@@ -295,7 +299,7 @@ fun StockScreen(
                                     },
                                     actions = {}
                                 )
-                                StockDashboard(state)
+                                StockDashboard(state, dashboardScroll)
                             }
                         }
                         is StockUiState.Loading -> {
@@ -370,7 +374,7 @@ fun StockScreen(
 
 
 @Composable
-fun StockDashboard(state: StockUiState.Success) {
+fun StockDashboard(state: StockUiState.Success, scrollState: androidx.compose.foundation.ScrollState = rememberScrollState()) {
     val info = state.stockInfo
     val portfolio = state.portfolio
     val uriHandler = LocalUriHandler.current
@@ -378,8 +382,8 @@ fun StockDashboard(state: StockUiState.Success) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .verticalScroll(scrollState)
+            .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), // room to scroll past the AI button
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

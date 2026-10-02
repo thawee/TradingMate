@@ -521,11 +521,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     // Take-profit and overbought exits come from the R-based signal (target = 2R,
                     // overbought exits only after +1R), so they are not re-derived here.
-                    if (dropFromPeak <= -tsPercent) {
-                        val stopLabel = if (peakPrice > cost) "Trailing Stop Loss (Drop <= -$tsPercent% from peak)" else "Stop Loss (Drop <= -$tsPercent%)"
+                    // The stop the user saved comes first, so Advisor and the Portfolio card name the same exit.
+                    if (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) {
+                        targetAlerts.add(SellAlertData(stock, "Saved stop ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} reached"))
+                    } else if (dropFromPeak <= -tsPercent && (peakPrice > cost || explicitStopLoss <= 0)) {
+                        val stopLabel = if (peakPrice > cost) "Trailing stop: down $tsPercent% or more from peak"
+                            else "No saved stop: down $tsPercent% or more from cost"
                         targetAlerts.add(SellAlertData(stock, stopLabel))
-                    } else if (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) {
-                        targetAlerts.add(SellAlertData(stock, "Stop Loss (Price <= $explicitStopLoss)"))
                     } else if (stock.signal?.type == IndicatorSignal.SELL) {
                         targetAlerts.add(SellAlertData(stock, stock.signal.reason))
                     }

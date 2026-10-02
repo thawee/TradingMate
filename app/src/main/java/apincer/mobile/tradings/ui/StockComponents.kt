@@ -803,20 +803,23 @@ fun StockItemCard(
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1
                                 )
-                                Text(
-                                    text = "  •  ",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = targetPrice?.let { "Saved target ฿${String.format(Locale.ENGLISH, "%.2f", it)}" }
-                                        ?: "Target unavailable",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
+                                // Only a saved target is shown; a missing one is simply omitted (it used to clip to a bare "Target").
+                                if (targetPrice != null) {
+                                    Text(
+                                        text = "  •  ",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "Saved target ฿${String.format(Locale.ENGLISH, "%.2f", targetPrice)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                             if (rr != null) {
                                 Spacer(Modifier.width(6.dp))
@@ -950,6 +953,18 @@ fun StockItemCard(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
                                     modifier = Modifier.padding(bottom = 1.dp)
+                                )
+                            }
+                            // Once price is through the stop, the planned loss is history: show what selling now costs.
+                            val lastPrice = item.info.lastPrice
+                            if (lastPrice > 0.0 && lastPrice <= stopLoss) {
+                                val lossNow = totalCost - (lastPrice * item.portfolio.quantity * (1 - apincer.mobile.tradings.domain.TechnicalAnalysis.THAI_FEE_RATE))
+                                Text(
+                                    text = "Stop passed: price ฿${String.format(Locale.ENGLISH, "%.2f", lastPrice)}, selling now loses ฿${String.format(Locale.ENGLISH, "%,.0f", lossNow)}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
                         }
