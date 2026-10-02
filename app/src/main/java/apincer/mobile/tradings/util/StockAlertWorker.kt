@@ -80,6 +80,30 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
             }
 
+            // December: remind about unused ThaiESG / RMF room, once from the 1st and once from the 15th.
+            if (month == java.util.Calendar.DECEMBER && currentTime in 900..1700) {
+                val income = prefRepo.assessableIncome.firstOrNull()
+                val dayOfMonth = now.get(java.util.Calendar.DAY_OF_MONTH)
+                val taxKey = "tax_fund_reminder_${year}_${if (dayOfMonth >= 15) 2 else 1}"
+                if (income != null && !alertPrefs.getBoolean(taxKey, false)) {
+                    val rooms = apincer.mobile.tradings.domain.TaxFunds.room(
+                        prefRepo.taxFundPurchases.firstOrNull().orEmpty(), year, income,
+                        prefRepo.otherRetirementContributions.firstOrNull() ?: 0.0
+                    ).filter { it.remaining >= 1_000.0 }
+                    if (rooms.isNotEmpty()) {
+                        val bracket = prefRepo.personalTaxRate.firstOrNull()
+                        val parts = rooms.joinToString(" and ") { String.format(java.util.Locale.ENGLISH, "฿%,.0f %s", it.remaining, it.type.label) }
+                        val saving = bracket?.let {
+                            String.format(java.util.Locale.ENGLISH, " That could save about ฿%,.0f in tax at your %.0f%% bracket.",
+                                apincer.mobile.tradings.domain.TaxFunds.taxSaved(rooms.sumOf { r -> r.remaining }, it), it)
+                        } ?: ""
+                        NotificationHelper.showTaxFundReminderNotification(applicationContext,
+                            "You can still deduct $parts this year. Buy by the last bank day of December.$saving")
+                    }
+                    alertPrefs.edit().putBoolean(taxKey, true).apply()
+                }
+            }
+
             // 3b. Monthly core DCA reminder: first trading session on/after the DCA day, once per month.
             val dcaAmount = prefRepo.monthlyDcaAmount.firstOrNull() ?: 0.0
             if (dcaAmount > 0.0 && marketStatus != apincer.mobile.tradings.domain.MarketStatus.CLOSED) {

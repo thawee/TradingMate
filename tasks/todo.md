@@ -392,4 +392,5 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 - [x] Cloud backup: already provided by Android Auto Backup (verified active on device; data < 1 MB); Settings now explains it.
 - [x] Remote holiday/SET50 lists: `config/market_lists.json`, fetched daily with validation and built-in fallback.
 - [ ] Broker statement import (needs a sample InnovestX statement or contract note).
-- [ ] ThaiESG/RMF tracker, rebalance nudge, single stop model.
+- [x] ThaiESG/RMF tracker with December reminders.
+- [ ] Rebalance nudge, single stop model.

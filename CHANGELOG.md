@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (tax-saving funds)
+- **ThaiESG / RMF tracker on History:** enter this year's assessable income (and provident fund, SSF or pension-insurance contributions) and log fund purchases; the card shows each fund's limit, amount bought and room left, plus the tax saved at your top bracket. Rules as published for 2024-2026: ThaiESG up to 30% of income and ฿300,000, held 5 years, a separate limit; RMF up to 30% of income and ฿500,000 shared with the retirement group, held to age 55 and at least 5 years.
+- **December reminders:** from 1 and 15 December, a notification lists the ThaiESG/RMF room still open (≥ ฿1,000) and the tax it could save.
+- **Dividend-season notice reworded:** it no longer points to Dividend Stars (now hidden by default) and refers to the XD dates of your holdings instead.
+
 ### Added (keeping lists current)
 - **SET holidays and SET50 from the repository:** the app reads `config/market_lists.json` from this repo once a day (at launch and in the alert worker), validates it (45-55 tickers; 5-30 dates per year, all in that year) and caches the last good copy. A new year's holidays or a June/December SET50 review can be shipped by editing that file; built-in lists remain the fallback. A unit test checks the committed file.
 - **Backup explained:** Settings > Data Backup now states that Android Auto Backup already copies trades, journal and settings to the user's Google account when device backup is on (verified active on the test phone; app data is under 1 MB).

@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import apincer.mobile.tradings.data.PreferenceRepository
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -201,6 +202,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 20.0
         )
+
+    val assessableIncome: StateFlow<Double?> =
+        preferenceRepository.assessableIncome.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val otherRetirementContributions: StateFlow<Double> =
+        preferenceRepository.otherRetirementContributions.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+    val taxFundPurchases: StateFlow<List<apincer.mobile.tradings.domain.TaxFunds.Purchase>> =
+        preferenceRepository.taxFundPurchases.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun updateTaxFundProfile(income: Double?, otherRetirement: Double) {
+        viewModelScope.launch { preferenceRepository.setTaxFundProfile(income, maxOf(0.0, otherRetirement)) }
+    }
+
+    fun addTaxFundPurchase(purchase: apincer.mobile.tradings.domain.TaxFunds.Purchase) {
+        viewModelScope.launch { preferenceRepository.setTaxFundPurchases(preferenceRepository.taxFundPurchases.first() + purchase) }
+    }
+
+    fun removeTaxFundPurchase(purchase: apincer.mobile.tradings.domain.TaxFunds.Purchase) {
+        viewModelScope.launch { preferenceRepository.setTaxFundPurchases(preferenceRepository.taxFundPurchases.first() - purchase) }
+    }
 
     val showUntestedLists: StateFlow<Boolean> =
         preferenceRepository.showUntestedLists.stateIn(

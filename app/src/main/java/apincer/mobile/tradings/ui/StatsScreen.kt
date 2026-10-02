@@ -32,7 +32,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -74,6 +77,7 @@ import java.util.Locale
 fun StatsScreen(
     viewModel: StockViewModel,
     portfolioViewModel: PortfolioViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel = viewModel(),
     showSnackbar: (String) -> Unit,
     onNavigateToBacktest: () -> Unit = {}
 ) {
@@ -296,6 +300,8 @@ fun StatsScreen(
                         Text("Each excluded holding's untracked shares are journaled as bought today at the current price. This cannot be undone from the app.")
                     }
                 }
+                TaxFundsCard(settingsViewModel)
+                Spacer(Modifier.height(16.dp))
                 SatelliteScorecardCard(
                     satelliteScorecard,
                     onStartTracking = if (satelliteScorecard?.coverage?.excluded?.isNotEmpty() == true) ({ confirmTracking = true }) else null
@@ -1014,5 +1020,118 @@ fun SatelliteScorecardCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * ThaiESG / RMF room for this tax year. Deductions are the one return that is certain for a
+ * salaried investor (amount x top tax rate), so the remaining room is shown before year end.
+ */
+@Composable
+fun TaxFundsCard(settingsViewModel: SettingsViewModel) {
+    val income by settingsViewModel.assessableIncome.collectAsState()
+    val other by settingsViewModel.otherRetirementContributions.collectAsState()
+    val purchases by settingsViewModel.taxFundPurchases.collectAsState()
+    val bracket by settingsViewModel.personalTaxRate.collectAsState()
+    val year = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).year
+    var editingProfile by remember { mutableStateOf(false) }
+    var adding by remember { mutableStateOf(false) }
+    var removing by remember { mutableStateOf<apincer.mobile.tradings.domain.TaxFunds.Purchase?>(null) }
+    fun baht(v: Double) = String.format(Locale.ENGLISH, "฿%,.0f", v)
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Tax-saving funds $year", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            val inc = income
+            if (inc == null || editingProfile) {
+                var incomeText by remember { mutableStateOf(inc?.toLong()?.toString() ?: "") }
+                var otherText by remember { mutableStateOf(if (other > 0) other.toLong().toString() else "") }
+                Text("Enter this year's assessable income to see how much ThaiESG and RMF you can still deduct.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(value = incomeText, onValueChange = { incomeText = it }, label = { Text("Assessable income this year") },
+                    prefix = { Text("฿ ") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
+                OutlinedTextField(value = otherText, onValueChange = { otherText = it }, label = { Text("Provident fund, SSF, pension insurance this year") },
+                    prefix = { Text("฿ ") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("These share RMF's ฿500,000 limit. Leave blank if none.") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
+                val parsed = incomeText.toDoubleOrNull()?.takeIf { it > 0.0 }
+                Button(onClick = {
+                    settingsViewModel.updateTaxFundProfile(parsed, otherText.toDoubleOrNull() ?: 0.0)
+                    editingProfile = false
+                }, enabled = parsed != null, shape = RoundedCornerShape(12.dp)) { Text("Save") }
+            } else {
+                val rooms = apincer.mobile.tradings.domain.TaxFunds.room(purchases, year, inc, other)
+                rooms.forEach { r ->
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(r.type.label, fontWeight = FontWeight.Bold)
+                            Text("${baht(r.bought)} of ${baht(r.limit)}", style = MaterialTheme.typography.labelMedium)
+                        }
+                        LinearProgressIndicator(
+                            progress = { if (r.limit > 0) (r.bought / r.limit).toFloat().coerceIn(0f, 1f) else 0f },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).padding(top = 2.dp),
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        val saving = bracket?.let { " · saves up to ${baht(apincer.mobile.tradings.domain.TaxFunds.taxSaved(r.remaining, it))} more at your ${String.format(Locale.ENGLISH, "%.0f", it)}% bracket" } ?: ""
+                        Text("Room left ${baht(r.remaining)}$saving", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Text("ThaiESG: held 5 years. RMF: held to age 55 and at least 5 years. Buy by the last bank day of December." +
+                        (if (bracket == null) " Set your top tax bracket in Settings to see the tax saved." else ""),
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                purchases.filter { it.date.year == year }.forEach { p ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${p.date} · ${p.type.label} ${baht(p.amount)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { removing = p }) { Text("Remove", fontSize = 12.sp) }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { adding = true }, shape = RoundedCornerShape(12.dp)) { Text("Add purchase") }
+                    TextButton(onClick = { editingProfile = true }) { Text("Edit income") }
+                }
+            }
+        }
+    }
+
+    if (adding) {
+        var type by remember { mutableStateOf(apincer.mobile.tradings.domain.TaxFunds.Type.THAIESG) }
+        var amountText by remember { mutableStateOf("") }
+        var dateText by remember { mutableStateOf(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString()) }
+        val amount = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }
+        val date = runCatching { java.time.LocalDate.parse(dateText) }.getOrNull()
+        AlertDialog(
+            onDismissRequest = { adding = false },
+            title = { Text("Add tax-fund purchase") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        apincer.mobile.tradings.domain.TaxFunds.Type.entries.forEach { t ->
+                            if (t == type) Button(onClick = {}, shape = RoundedCornerShape(10.dp)) { Text(t.label) }
+                            else OutlinedButton(onClick = { type = t }, shape = RoundedCornerShape(10.dp)) { Text(t.label) }
+                        }
+                    }
+                    OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text("Amount") }, prefix = { Text("฿ ") }, singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
+                    OutlinedTextField(value = dateText, onValueChange = { dateText = it }, label = { Text("Date (YYYY-MM-DD)") }, singleLine = true, isError = date == null)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    settingsViewModel.addTaxFundPurchase(apincer.mobile.tradings.domain.TaxFunds.Purchase(type, amount!!, date!!))
+                    adding = false
+                }, enabled = amount != null && date != null) { Text("Add") }
+            },
+            dismissButton = { TextButton(onClick = { adding = false }) { Text(stringResource(R.string.action_cancel)) } }
+        )
+    }
+    removing?.let { p ->
+        AlertDialog(
+            onDismissRequest = { removing = null },
+            title = { Text("Remove purchase?") },
+            text = { Text("${p.date} · ${p.type.label} ${baht(p.amount)}") },
+            confirmButton = { Button(onClick = { settingsViewModel.removeTaxFundPurchase(p); removing = null }) { Text("Remove") } },
+            dismissButton = { TextButton(onClick = { removing = null }) { Text(stringResource(R.string.action_cancel)) } }
+        )
     }
 }

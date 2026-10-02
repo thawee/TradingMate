@@ -185,14 +185,36 @@ object NotificationHelper {
         
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("💰 Dividend Accumulation Season")
-            .setContentText("Start researching high-yield Dividend Stars now for the $seasonName payouts in $xdMonths.")
+            .setContentTitle("Dividend season")
+            .setContentText("$seasonName payouts go XD in $xdMonths. Check your holdings' XD dates on the Advisor's Dividend tab.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(9993, builder.build())
+    }
+
+    /** December: unused ThaiESG / RMF deduction room before the tax year closes. */
+    fun showTaxFundReminderNotification(context: Context, text: String) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("START_SCREEN", "STATS")
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, "taxfund".hashCode(), intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Tax-saving fund room left this year")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(9994, builder.build())
     }
 
     /**

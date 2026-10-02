@@ -36,6 +36,9 @@ class PreferenceRepository(private val context: Context) {
     private val PERSONAL_TAX_RATE = doublePreferencesKey("personal_tax_rate")
     private val MIN_RISK_REWARD_RATIO = doublePreferencesKey("min_risk_reward_ratio")
     private val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
+    private val ASSESSABLE_INCOME = doublePreferencesKey("assessable_income")
+    private val OTHER_RETIREMENT = doublePreferencesKey("other_retirement_contributions")
+    private val TAX_FUND_PURCHASES = stringPreferencesKey("tax_fund_purchases")
     private val GEMINI_MODEL = stringPreferencesKey("gemini_model")
     val targetMonthlyDividend: Flow<Double> = context.settingsDataStore.data
         .map { preferences ->
@@ -205,6 +208,28 @@ class PreferenceRepository(private val context: Context) {
         context.settingsDataStore.edit { preferences ->
             preferences[CIT_TAX_RATE] = rate
         }
+    }
+
+    /** This year's assessable income for the 30% tax-fund caps; null until set. */
+    val assessableIncome: Flow<Double?> = context.settingsDataStore.data
+        .map { it[ASSESSABLE_INCOME]?.takeIf { v -> v.isFinite() && v > 0.0 } }
+
+    /** This year's PVD, SSF, GPF and pension-insurance contributions, which share RMF's ฿500,000 group cap. */
+    val otherRetirementContributions: Flow<Double> = context.settingsDataStore.data
+        .map { it[OTHER_RETIREMENT]?.takeIf { v -> v.isFinite() && v >= 0.0 } ?: 0.0 }
+
+    val taxFundPurchases: Flow<List<apincer.mobile.tradings.domain.TaxFunds.Purchase>> = context.settingsDataStore.data
+        .map { apincer.mobile.tradings.domain.TaxFunds.fromJson(it[TAX_FUND_PURCHASES]) }
+
+    suspend fun setTaxFundProfile(income: Double?, otherRetirement: Double) {
+        context.settingsDataStore.edit {
+            if (income == null) it.remove(ASSESSABLE_INCOME) else it[ASSESSABLE_INCOME] = income
+            it[OTHER_RETIREMENT] = otherRetirement
+        }
+    }
+
+    suspend fun setTaxFundPurchases(purchases: List<apincer.mobile.tradings.domain.TaxFunds.Purchase>) {
+        context.settingsDataStore.edit { it[TAX_FUND_PURCHASES] = apincer.mobile.tradings.domain.TaxFunds.toJson(purchases) }
     }
 
     /** Advisor buy lists that have not passed the evidence gate; hidden unless the user opts in. */
