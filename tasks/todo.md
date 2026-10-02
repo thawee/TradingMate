@@ -393,4 +393,5 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 - [x] Remote holiday/SET50 lists: `config/market_lists.json`, fetched daily with validation and built-in fallback.
 - [ ] Broker statement import (needs a sample InnovestX statement or contract note).
 - [x] ThaiESG/RMF tracker with December reminders.
-- [ ] Rebalance nudge, single stop model.
+- [x] Rebalance nudge (monthly, core more than 5 points under target).
+- [ ] Single stop model (needs a decision: which rule stays).

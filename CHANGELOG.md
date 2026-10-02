@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (rebalance)
+- **Core-below-target reminder:** once a month during market hours, if the TDEX core is more than 5 points under its target share and you hold individual stocks, a notification gives the core's share, your target and roughly how much more TDEX restores it, suggesting new money rather than selling. Tapping it opens Portfolio. A core above target never triggers it.
+
 ### Added (tax-saving funds)
 - **ThaiESG / RMF tracker on History:** enter this year's assessable income (and provident fund, SSF or pension-insurance contributions) and log fund purchases; the card shows each fund's limit, amount bought and room left, plus the tax saved at your top bracket. Rules as published for 2024-2026: ThaiESG up to 30% of income and ฿300,000, held 5 years, a separate limit; RMF up to 30% of income and ฿500,000 shared with the retirement group, held to age 55 and at least 5 years.
 - **December reminders:** from 1 and 15 December, a notification lists the ThaiESG/RMF room still open (≥ ฿1,000) and the tax it could save.

@@ -195,6 +195,28 @@ object NotificationHelper {
         notificationManager.notify(9993, builder.build())
     }
 
+    /** Monthly: the index core is well under its target share. Opens Portfolio, where the core card is. */
+    fun showRebalanceNotification(context: Context, text: String) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("START_SCREEN", "PORTFOLIO")
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, "rebalance".hashCode(), intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Core below target")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(9995, builder.build())
+    }
+
     /** December: unused ThaiESG / RMF deduction room before the tax year closes. */
     fun showTaxFundReminderNotification(context: Context, text: String) {
         val intent = Intent(context, MainActivity::class.java).apply {

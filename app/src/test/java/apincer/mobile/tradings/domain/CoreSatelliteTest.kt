@@ -1,6 +1,8 @@
 package apincer.mobile.tradings.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -65,5 +67,18 @@ class CoreSatelliteTest {
         val s = CoreSatellite.dcaSuggestion(500.0, 8.0)
         assertEquals(0, s.shares)
         assertEquals(500.0, s.unusedBaht, 1e-9)
+    }
+
+    @Test fun rebalanceNudgesOnlyWhenCoreIsWellUnderTarget() {
+        // 70% core vs 80% target with a satellite: nudge, with the shortfall to reach target.
+        val under = CoreSatellite.allocation(listOf("TDEX" to 70_000.0, "PTT" to 30_000.0), 80.0)
+        val msg = CoreSatellite.rebalanceMessage(under)!!
+        assertTrue(msg.contains("70%") && msg.contains("฿50,000"))
+        // Within 5 points, above target, or no satellite: no nudge.
+        assertNull(CoreSatellite.rebalanceMessage(CoreSatellite.allocation(listOf("TDEX" to 76_000.0, "PTT" to 24_000.0), 80.0)))
+        assertNull(CoreSatellite.rebalanceMessage(CoreSatellite.allocation(listOf("TDEX" to 95_000.0, "PTT" to 5_000.0), 80.0)))
+        assertNull(CoreSatellite.rebalanceMessage(CoreSatellite.allocation(listOf("TDEX" to 10_000.0), 80.0)))
+        // No core at all is the strongest case.
+        assertNotNull(CoreSatellite.rebalanceMessage(CoreSatellite.allocation(listOf("PTT" to 37_400.0), 80.0)))
     }
 }

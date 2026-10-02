@@ -51,6 +51,22 @@ object CoreSatellite {
         !isCore(symbol) && buyValue > 0.0 &&
             allocationAfterBuy(holdings, symbol, buyValue, targetCorePercent).satellitePercent > 100.0 - targetCorePercent
 
+    /** Below-target drift that earns a reminder; above target is fine (never nudge toward stock picking). */
+    const val REBALANCE_DRIFT_PERCENT = 5.0
+
+    /**
+     * Reminder text when the core is more than [REBALANCE_DRIFT_PERCENT] points under target and
+     * there is a satellite to balance against; null otherwise. Suggests new money, never selling.
+     */
+    fun rebalanceMessage(allocation: Allocation): String? {
+        if (allocation.satelliteValue <= 0.0 || allocation.driftPercent >= -REBALANCE_DRIFT_PERCENT) return null
+        return String.format(
+            java.util.Locale.ENGLISH,
+            "Core %s is %.0f%% of invested money vs your %.0f%% target. About ฿%,.0f more %s gets you back on target; put new money into the core before buying more stocks.",
+            CORE_SYMBOL, allocation.corePercent, allocation.targetCorePercent, allocation.coreShortfallBaht, CORE_SYMBOL
+        )
+    }
+
     data class DcaSuggestion(val shares: Int, val estimatedCost: Double, val unusedBaht: Double)
 
     /** Largest whole 100-share board lot of [price] whose cost including buy fees fits [budget]. */

@@ -146,6 +146,22 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         )
         val allStocks = repository.allStocks.firstOrNull() ?: emptyList()
 
+        // Monthly nudge when the TDEX core has drifted well under target (new money, never selling).
+        run {
+            val monthKey = "rebalance_nudge_${now.get(java.util.Calendar.YEAR)}_${now.get(java.util.Calendar.MONTH) + 1}"
+            if (!alertPrefs.getBoolean(monthKey, false)) {
+                val target = prefRepo.targetCorePercent.firstOrNull() ?: CoreSatellite.DEFAULT_TARGET_CORE_PERCENT
+                val allocation = CoreSatellite.allocation(
+                    allStocks.filter { it.quantity > 0 }.map { it.symbol to it.quantity * (it.lastPrice.takeIf { p -> p > 0.0 } ?: it.cost) },
+                    target
+                )
+                CoreSatellite.rebalanceMessage(allocation)?.let { msg ->
+                    NotificationHelper.showRebalanceNotification(applicationContext, msg)
+                    alertPrefs.edit().putBoolean(monthKey, true).apply()
+                }
+            }
+        }
+
         if (allStocks.isEmpty()) {
             Log.d("StockAlertWorker", "No stocks in watchlist. Skipping.")
             return Result.success()
