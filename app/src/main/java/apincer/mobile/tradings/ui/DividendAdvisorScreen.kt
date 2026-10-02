@@ -606,6 +606,23 @@ fun DividendAdvisorScreen(
                     Spacer(Modifier.height(12.dp))
                     Text("Watch or blocked from actionable swing plans", style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold)
+                    // Why the list is empty, at a glance: rules are checked in order, so each stock counts once,
+                    // under the first rule it fails.
+                    val byReason = excluded.groupingBy { StockDna.assessSwing(it, !marketRegime.isBullish).reasons.firstOrNull() ?: "Other" }
+                        .eachCount().entries.sortedByDescending { it.value }
+                    Text(
+                        "${excluded.size} of ${watchlist.count { it.portfolio.portfolio.quantity == 0 }} watchlist stocks stopped at: " +
+                            byReason.joinToString(" · ") { "${it.key} ${it.value}" },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Text(
+                        "In 2016-2025, the price rules alone produced a shown setup on about 8% of trading days for SET50 stocks (roughly twice a month), in bull and bear markets alike. An empty list is normal.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
                     excluded.take(6).forEach { stock ->
                         val assessment = StockDna.assessSwing(stock, !marketRegime.isBullish)
                         Text("${stock.info.symbol} · ${assessment.status.name.lowercase()}: ${assessment.reasons.joinToString("; ")}",
@@ -934,7 +951,7 @@ fun ArchetypeLegendDialog(
         "WHALE" to "Foreign Smart Money: Institutional accumulation via positive foreign NVDR net buying and relative strength.",
         "SPRING" to "Wyckoff Oversold Spring: Profitable company (ROE ≥8%) experiencing extreme oversold mean-reversion (RSI ≤35).",
         "MTF" to "Multi-Timeframe Trend: Macro trend alignment across SMA 200/50 and positive MACD histogram.",
-        "QUAL" to "Quality: Strong profitability and balance sheet (ROE > 15%, NPM > 10%, D/E < 1.5).",
+        "QUAL" to "Quality: ROE above 10%, net margin above 10%, and debt-to-equity below 1.5 (not applied to banks, finance and insurers).",
         "VAL" to "Value Pricing: Undervalued multiples (P/E 0.1–15.0 and P/BV 0.1–1.0).",
         "DIV" to "Dividend: High current dividend yield (≥ 5.0%).",
         "MOM" to "Momentum: Meaningful MACD histogram expansion and active momentum (RSI 40–65).",
@@ -1852,6 +1869,7 @@ fun UntestedListsHiddenCard(onShow: () -> Unit) {
             Text("Buy lists are hidden", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
                 "Setups, Dividend Stars and the AI ranking have not beaten holding TDEX in testing (2015-2025), so they are off by default. " +
+                    "Even when shown, setups are rare: about twice a month for SET50 stocks, most days none. " +
                     "Your exit checks above still run. New money goes to your TDEX core on the Portfolio tab.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

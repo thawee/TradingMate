@@ -44,8 +44,9 @@ object StockDna {
      */
     fun isQual(s: StockWatchlistInfo): Boolean {
         val info = s.info
-        if ((info.roe ?: 0.0) <= TradingConstants.ROE_MIN_THRESHOLD) return false
-        if (info.debtToEquity?.let { it >= 1.5 } == true) return false
+        if ((info.roe ?: 0.0) <= TradingConstants.QUALITY_ROE_MIN) return false
+        // Banks, finance and insurers run on leverage, so debt-to-equity says nothing about their quality.
+        if (!isFinancialSector(info.sector) && info.debtToEquity?.let { it >= 1.5 } == true) return false
         if (info.netProfitMargin?.let { it <= 10.0 } == true) return false
         if (info.profitGrowth3Y?.let { it <= 10.0 } == true) return false
         return true
@@ -140,6 +141,17 @@ object StockDna {
         "Transportation & Logistics",
         "Steel",
         "Mining"
+    )
+
+    /** Banking, finance & securities and insurance, in SET's Thai or English sector names. */
+    fun isFinancialSector(sector: String?): Boolean {
+        if (sector.isNullOrBlank()) return false
+        return FINANCIAL_SECTORS.any { sector.contains(it, ignoreCase = true) }
+    }
+
+    private val FINANCIAL_SECTORS = listOf(
+        "ธนาคาร", "เงินทุนและหลักทรัพย์", "ประกันภัย",
+        "Banking", "Finance & Securities", "Insurance", "Financial Services"
     )
 
     fun isCyclical(sector: String?): Boolean {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (advisor on SET)
+- **Quality screen calibrated for SET:** ROE above 10% (was 15%) and no debt-to-equity test for banks, finance & securities and insurers, whose business runs on leverage. On the test watchlist this lets 33 of 101 stocks pass quality instead of 13. Dividend fundamental alerts keep the 15% ROE threshold. The screens remain untested and hidden by default.
+- **Why the advisor is empty:** with the lists shown, the blocked section now counts each watchlist stock under the first rule it fails (e.g. "Quality rules not met 57 · Completed weekly trend is bearish 15 · Within 5% of the 52-week low 9 …") and notes that, in 2016-2025, the price rules produced a shown setup on about 8% of trading days for SET50 stocks, in bull and bear markets alike. The hidden-lists card says the same.
+
 ### Changed (one stop rule)
 - **Volatility-based exits only:** the fixed "Trailing Stop Loss" percentage (default 7%) is removed from Settings, the alert worker, Advisor "Check Exits" and the home-screen widget. Exits now come from one model everywhere: the holding's saved stop (from daily volatility, rounded to a SET price), then the signal engine's trailing stop of 2.5x daily volatility (4-10%) once a trade is up 1R, plus its 2R target and overbought exits. This is the rule the backtest measured. Settings explains it in place of the old field. The widget counts the same exits (saved stop or engine SELL) and ignores the TDEX core.
 

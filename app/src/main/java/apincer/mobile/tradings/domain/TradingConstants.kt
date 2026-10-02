@@ -39,6 +39,9 @@ object TradingConstants {
     
     // Fundamental Thresholds
     const val ROE_MIN_THRESHOLD = 15.0
+    // Quality screen calibrated for SET: ROE above 15% kept 13 of 101 watchlist stocks (SET's typical
+    // ROE is in single digits), so the screen uses 10%. Dividend fundamentals alerts still use 15%.
+    const val QUALITY_ROE_MIN = 10.0
     const val DIVIDEND_YIELD_ENTRY = 5.0
     const val DIVIDEND_YIELD_PROTECTION = 3.0
 

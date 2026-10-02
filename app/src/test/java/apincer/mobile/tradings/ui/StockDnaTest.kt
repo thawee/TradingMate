@@ -325,4 +325,18 @@ class StockDnaTest {
         assertTrue("Stock above SMA50/200 with positive MACD hist is MTF aligned", StockDna.isMtfAligned(mtfStock))
         assertTrue("Tags should contain MTF chip", StockDna.tags(mtfStock).contains("MTF"))
     }
+
+    @Test
+    fun qualityIsCalibratedForSet() {
+        val base = createStock(nvdrNetVolume = null)
+        fun withInfo(roe: Double, npm: Double, de: Double, sector: String) =
+            base.copy(info = base.info.copy(roe = roe, netProfitMargin = npm, debtToEquity = de, sector = sector))
+        // ROE 12% now qualifies (15% kept only 13 of 101 SET watchlist stocks).
+        assertTrue(StockDna.isQual(withInfo(12.0, 14.0, 0.8, "พาณิชย์")))
+        assertFalse(StockDna.isQual(withInfo(9.0, 14.0, 0.8, "พาณิชย์")))
+        // Leverage blocks an ordinary company but not a bank.
+        assertFalse(StockDna.isQual(withInfo(14.0, 20.0, 6.0, "พาณิชย์")))
+        assertTrue(StockDna.isQual(withInfo(14.0, 20.0, 6.0, "ธนาคาร")))
+        assertTrue(StockDna.isFinancialSector("ประกันภัยและประกันชีวิต"))
+    }
 }
