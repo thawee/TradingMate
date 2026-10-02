@@ -66,6 +66,10 @@ None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow t
 
 `tools/backtest/momentum_signal_report.md` keeps the MOM3 list but buys a listed stock only after an app BUY or POTENTIAL signal (S1) or a BUY signal (S2), fixed on 2026-10-02 before the first run; the baseline (S0) reproduces MOM3 exactly. Signal timing made results worse: S1 returned 8.55% a year over 2015-2025 against MOM3's 12.45% and lost more in 2021-2025 (-5.36%). S2 cut the worst drop to 23% but sat mostly in cash (38% invested), returning 3.52% a year and -0.36% in 2021-2025. All fail the gate. Waiting for a signal delays entry into stocks that are already rising.
 
+### Low volatility and TDEX trend timing
+
+`tools/backtest/lowvol_trend_report.md` tests five rules fixed on 2026-10-02 before the first run. Low-volatility portfolios (top 10 by lowest 63- or 252-day volatility) did not beat TDEX. Lowest beta to TDEX came closest of any stock rule: 5.22% a year over 2015-2025 against 2.52%, 7.39% against 1.75% in 2015-2020, and 2.81% against 3.19% in 2021-2025, but it still fails on 2021-2025 and on concentration (DELTA, TISCO, COM7). Index trend timing on TDEX does not raise returns: the month-end 10-month rule returned 1.68% a year against 2.52% (0% on cash) but cut the worst drop from 36.5% to 23.5% with 10 round trips in 11 years; the daily 200-day rule whipsawed (-0.62% a year, 38 round trips).
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.

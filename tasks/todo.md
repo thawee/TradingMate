@@ -433,3 +433,15 @@ Same simulator, universe, costs and gate as the momentum portfolio. Target list 
 - S2: as S1, BUY only.
 Report every variant.
 - [x] Result: S0 matches MOM3; signal timing lowers returns (S1 8.55%, S2 3.52%/yr) and none passes. See tools/backtest/momentum_signal_report.md.
+
+# Low volatility and index trend timing, 2026-10-02 (fixed before the first run)
+
+Basis: low-risk anomaly on SET (2004-2015 study); Faber (2007) 10-month / 200-day trend timing.
+Portfolio variants use the momentum-portfolio simulator unchanged (monthly re-rank, top 10 at 10% target, kept names not resized, next-close trades, fees + 0.15% slippage, 100-share lots).
+- LV1: hold the 10 SET50 stocks with the lowest standard deviation of daily returns over the last 63 sessions.
+- LV2: as LV1 over 252 sessions.
+- LV3: the 10 with the lowest beta to TDEX over 252 sessions.
+- T1: hold TDEX while its close is above its 200-session average (decide at the close, trade at the next close), else cash at 0%.
+- T2: decide at each month's last session: hold TDEX if that close is above the average of the last 10 month-end closes, else cash; trade at the next close.
+Gate as before for LV; for T1/T2 compare CAGR and max drawdown with TDEX buy-and-hold in both sub-periods. Report every variant.
+- [x] Result: no LV variant passes (LV3 low beta closest: 5.22%/yr, fails 2021-2025 by 0.38 points and on concentration). T2 cuts max drawdown 36.5% -> 23.5% but lowers return (1.68% vs 2.52%); T1 whipsaws. See tools/backtest/lowvol_trend_report.md.
