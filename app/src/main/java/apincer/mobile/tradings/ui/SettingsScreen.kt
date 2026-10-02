@@ -408,26 +408,11 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val trailingStopPercent by settingsViewModel.trailingStopPercent.collectAsState()
-                var editingTrailingStop by remember(trailingStopPercent) { mutableStateOf(trailingStopPercent.toString()) }
-
-                OutlinedTextField(
-                    value = editingTrailingStop,
-                    onValueChange = { 
-                        editingTrailingStop = it
-                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateTrailingStopPercent(percent) }
-                    },
-                    label = { Text(stringResource(R.string.label_trailing_stop_percent)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    suffix = { Text("%") },
-                    shape = RoundedCornerShape(14.dp)
-                )
                 Text(
-                    text = stringResource(R.string.desc_trailing_stop_percent),
+                    text = "Exits: each holding's saved stop (set from daily volatility and rounded to a SET price), then a trailing stop of 2.5x daily volatility (4-10%) once the trade is up 1R. This is the rule the backtest measured.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                    modifier = Modifier.padding(start = 8.dp)
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))

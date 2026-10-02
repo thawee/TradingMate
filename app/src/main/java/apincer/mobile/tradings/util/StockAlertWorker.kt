@@ -33,7 +33,6 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val currentTime = hour * 100 + minute
 
         val prefRepo = apincer.mobile.tradings.data.PreferenceRepository(applicationContext)
-        val trailingStopPercent = prefRepo.trailingStopPercent.firstOrNull() ?: 5.0
         val atsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
         val entryAlertsEnabled = prefRepo.isEntryAlertsEnabled.firstOrNull() ?: false
         val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
@@ -380,34 +379,14 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     }
                 }
 
-                // 7. Check if this stock is currently in a swing exit condition
+                // 7. One stop model: the saved stop and the signal engine (volatility trailing stop after +1R,
+                // 2R target, overbought after +1R). The fixed-% trailing stop setting was removed.
                 val isSwingHold = entity.tradePurpose == "SWING"
                 val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" &&
                     scraped.dividendYield?.let { it < TradingConstants.DIVIDEND_YIELD_PROTECTION } == true
-                
                 if (!isCoreHolding && entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
-                    (isSwingHold || isDividendTransitionHold)) {
-                    val isSell = signal.type == IndicatorSignal.SELL
-                    
-                    val currentPrice = scraped.lastPrice
-                    val cost = entity.cost
-                    val peakPrice = entity.portfolio.peakPrice
-                    val explicitStopLoss = entity.portfolio.stopLoss
-                    val maxPeak = maxOf(cost, peakPrice)
-                    val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
-                    val trailingBreached = dropFromPeak <= -trailingStopPercent
-                    val explicitStopBreached = explicitStopLoss > 0 && currentPrice <= explicitStopLoss
-
-                    if (explicitStopBreached) {
-                        sellReasonsList.add("Stop Loss hit at ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} (current ฿${String.format(java.util.Locale.ENGLISH, "%.2f", currentPrice)})")
-                    } 
-                    if (trailingBreached) {
-                        sellReasonsList.add("Trailing stop breached (${String.format(java.util.Locale.ENGLISH, "%.2f", dropFromPeak)}% from peak, limit ${String.format(java.util.Locale.ENGLISH, "%.2f", trailingStopPercent)}%)")
-                    } 
-                    // Take-profit (2R) and overbought (after +1R) exits arrive via the signal's SELL reason above.
-                    if (trailingBreached || explicitStopBreached || isSell) {
-                        hasActiveSwingSellAlert = true
-                    }
+                    (isSwingHold || isDividendTransitionHold) && signal.type == IndicatorSignal.SELL) {
+                    hasActiveSwingSellAlert = true
                 }
 
                 // The user recorded "Hold anyway" for this exact stop: stay quiet until the stop changes.

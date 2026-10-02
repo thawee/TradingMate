@@ -95,26 +95,23 @@ class TradingMateWidget : GlanceAppWidget() {
             val netProfitPercent = if (totalCost > 0) (netProfitValue / (totalCost + buyFees)) * 100 else 0.0
 
             val snapshots = database.portfolioSnapshotDao().getAllSnapshotsSync().sortedBy { it.date }
-            val trailingStopPercent = prefRepo.trailingStopPercent.firstOrNull() ?: 5.0
             val explicitStopLossMap = portfolioItems.associate { it.portfolio.symbol to it.portfolio.stopLoss }
             
             var alertCount = 0
             portfolioItems.forEach { item ->
                 val symbol = item.portfolio.symbol
                 val lastPrice = item.cache?.lastPrice?.takeIf { it > 0.0 } ?: item.portfolio.cost
-                val cost = item.portfolio.cost
-                val peakPrice = item.portfolio.peakPrice
-                val maxPeak = maxOf(cost, peakPrice)
                 val stopLoss = explicitStopLossMap[symbol] ?: 0.0
 
-                val dropFromPeak = if (maxPeak > 0) ((lastPrice - maxPeak) / maxPeak) * 100 else 0.0
-                val isTrailingBreached = dropFromPeak <= -trailingStopPercent && maxPeak > 0
+                // Same exit model as the app: saved stop, or the engine's cached SELL (volatility trailing etc.).
+                val isEngineExit = item.signalType == "SELL"
                 val isStopLossBreached = stopLoss > 0 && lastPrice <= stopLoss
 
                 val isSwingHold = item.portfolio.tradePurpose == "SWING"
                 val isDividendYieldLow = (item.cache?.dividendYield ?: 0.0) < TradingConstants.DIVIDEND_YIELD_PROTECTION
 
-                if ((isTrailingBreached || isStopLossBreached) && (isSwingHold || isDividendYieldLow)) {
+                if ((isEngineExit || isStopLossBreached) && (isSwingHold || isDividendYieldLow) &&
+                    !apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol)) {
                     alertCount++
                 }
             }

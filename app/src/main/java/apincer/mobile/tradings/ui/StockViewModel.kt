@@ -121,9 +121,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     val isAtsEnabled: StateFlow<Boolean> = preferenceRepository.isAtsEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
-    val trailingStopPercent: StateFlow<Double> = preferenceRepository.trailingStopPercent
-        .stateIn(viewModelScope, SharingStarted.Eagerly, 5.0)
-
     val cashBalance: StateFlow<Double> = repository.cashBalance
         .map { it?.balance ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
@@ -389,7 +386,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     val marketRegime: StateFlow<TechnicalAnalysis.MarketRegime> = _marketRegime
 
     val alertRoutineState: StateFlow<AlertRoutineState> = 
-        combine(_playbookMode, watchlistInfo, _checklist, trailingStopPercent, _marketRegime) { mode, watchlist, checklist, tsPercent, marketRegime ->
+        combine(_playbookMode, watchlistInfo, _checklist, _marketRegime) { mode, watchlist, checklist, marketRegime ->
             val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
 
             val isQual = StockDna::isQual
@@ -513,22 +510,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     val targetAlerts = swingSellAlerts
                     
                     val currentPrice = stock.info.lastPrice
-                    val cost = stock.portfolio.cost
-                    val peakPrice = stock.portfolio.peakPrice
                     val explicitStopLoss = stock.portfolio.stopLoss
-                    val maxPeak = maxOf(cost, peakPrice)
-                    val dropFromPeak = if (maxPeak > 0) ((currentPrice - maxPeak) / maxPeak) * 100 else 0.0
 
                     // Take-profit and overbought exits come from the R-based signal (target = 2R,
                     // overbought exits only after +1R), so they are not re-derived here.
                     // The stop the user saved comes first, so Advisor and the Portfolio card name the same exit.
                     if (explicitStopLoss > 0 && currentPrice <= explicitStopLoss) {
                         targetAlerts.add(SellAlertData(stock, "Saved stop ฿${String.format(java.util.Locale.ENGLISH, "%.2f", explicitStopLoss)} reached"))
-                    } else if (dropFromPeak <= -tsPercent && (peakPrice > cost || explicitStopLoss <= 0)) {
-                        val stopLabel = if (peakPrice > cost) "Trailing stop: down $tsPercent% or more from peak"
-                            else "No saved stop: down $tsPercent% or more from cost"
-                        targetAlerts.add(SellAlertData(stock, stopLabel))
                     } else if (stock.signal?.type == IndicatorSignal.SELL) {
+                        // Engine exits, including the volatility trailing stop once a trade has gained 1R.
                         targetAlerts.add(SellAlertData(stock, stock.signal.reason))
                     }
                 }

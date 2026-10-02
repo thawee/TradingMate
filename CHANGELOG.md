@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (one stop rule)
+- **Volatility-based exits only:** the fixed "Trailing Stop Loss" percentage (default 7%) is removed from Settings, the alert worker, Advisor "Check Exits" and the home-screen widget. Exits now come from one model everywhere: the holding's saved stop (from daily volatility, rounded to a SET price), then the signal engine's trailing stop of 2.5x daily volatility (4-10%) once a trade is up 1R, plus its 2R target and overbought exits. This is the rule the backtest measured. Settings explains it in place of the old field. The widget counts the same exits (saved stop or engine SELL) and ignores the TDEX core.
+
 ### Added (rebalance)
 - **Core-below-target reminder:** once a month during market hours, if the TDEX core is more than 5 points under its target share and you hold individual stocks, a notification gives the core's share, your target and roughly how much more TDEX restores it, suggesting new money rather than selling. Tapping it opens Portfolio. A core above target never triggers it.
 

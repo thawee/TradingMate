@@ -26,7 +26,6 @@ class PreferenceRepository(private val context: Context) {
     private val TARGET_CORE_PERCENT = doublePreferencesKey("target_core_percent")
     private val MONTHLY_DCA_AMOUNT = doublePreferencesKey("monthly_dca_amount")
     private val DCA_DAY_OF_MONTH = intPreferencesKey("dca_day_of_month")
-    private val TRAILING_STOP_PERCENT = doublePreferencesKey("trailing_stop_percent")
 
     private val MAX_RISK_PER_TRADE = doublePreferencesKey("max_risk_per_trade")
     private val MAX_OPEN_EXPOSURE = doublePreferencesKey("max_open_exposure")
@@ -141,17 +140,6 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setDcaDayOfMonth(day: Int) {
         context.settingsDataStore.edit { preferences ->
             preferences[DCA_DAY_OF_MONTH] = day
-        }
-    }
-
-    val trailingStopPercent: Flow<Double> = context.settingsDataStore.data
-        .map { preferences ->
-            preferences[TRAILING_STOP_PERCENT] ?: 5.0
-        }
-
-    suspend fun setTrailingStopPercent(percent: Double) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[TRAILING_STOP_PERCENT] = percent
         }
     }
 

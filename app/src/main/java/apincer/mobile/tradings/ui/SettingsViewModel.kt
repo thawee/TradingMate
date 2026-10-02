@@ -65,20 +65,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    val trailingStopPercent: StateFlow<Double> = 
-        preferenceRepository.trailingStopPercent.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 5.0
-        )
-
-    fun updateTrailingStopPercent(percent: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setTrailingStopPercent(percent.coerceIn(1.0, 25.0))
-            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
-        }
-    }
-
     val isAtsEnabled: StateFlow<Boolean> =
         preferenceRepository.isAtsEnabled.stateIn(
             scope = viewModelScope,

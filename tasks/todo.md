@@ -394,4 +394,4 @@ Wire into the advisor only if a variant has positive mean net return AND beats T
 - [ ] Broker statement import (needs a sample InnovestX statement or contract note).
 - [x] ThaiESG/RMF tracker with December reminders.
 - [x] Rebalance nudge (monthly, core more than 5 points under target).
-- [ ] Single stop model (needs a decision: which rule stays).
+- [x] Single stop model: volatility-based (user decision, 2026-10-02); fixed-% trailing setting removed.
