@@ -42,6 +42,12 @@ Status on 2026-10-01: no rule passes. App signals, app entries with trend exits,
 
 Change on 2026-10-02: the "Early Breakdown Warning" and "Weak Trend" exits (sell a losing holding below SMA 50 with negative MACD) were removed from the signal engine and from saved-plan exits. On the same 2015-2025 replay, App signals CAGR moved from -10.10% to -4.31% (2015-2020: -5.10% to -0.61%; 2021-2025: -15.51% to -9.04%) and max drawdown from 72.5% to 53.8%; per-trade expectancy went from -0.09R to -0.10R. This is a removal measured on the data that motivated it, not an out-of-sample result, and App signals still fail the gate.
 
+### Short-swing plans (1-4 weeks)
+
+`tools/backtest/advisor_event_study.md` replays the advisor's price-based filters with a 20-session time exit. Four plan variants were fixed on 2026-10-02 before the first run: the current 52-week-high target (P0), a 2R target (P1), a 20-session swing-high target (P2), and P1 without the BUY signal (P3). The bar for wiring one into the advisor was a positive mean net return and a lead over TDEX in both 2015-2020 and 2021-2025.
+
+None passed. Reachable targets raise the hit rate (P2 34% vs P0 7%) and narrow the 2021-2025 loss (P1 -0.77% vs P0 -1.19% per trade), but every variant is negative in 2021-2025 and none beats TDEX in both sub-periods. Dropping the BUY signal (P3) changes little, consistent with the signal adding no edge. The advisor remains context, not a short-term buy list.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is today's SET50; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.

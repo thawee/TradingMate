@@ -352,7 +352,16 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 
 # Exit and short-swing repair, 2026-10-02
 
-- [ ] Remove "Early Breakdown Warning" from `getDetailedSignal` and the matching early invalidation in `ExitPolicyEvaluator`; rerun `MarketBacktestReport` and keep the change only if App signals improve.
-- [ ] Short-swing plan: reachable target (recent swing high, capped) plus a 20-session time exit. Write the rule down before the first run; measure with `AdvisorEventStudy` and report every variant tried.
-- [ ] Wire the plan into the advisor only if it beats the current plan in both sub-periods; otherwise record the result and leave the advisor as context.
-- [ ] Unit tests, build, device check; changelog; commit.
+- [x] Remove "Early Breakdown Warning" from `getDetailedSignal` and the matching early invalidation in `ExitPolicyEvaluator`; rerun `MarketBacktestReport` and keep the change only if App signals improve.
+- [x] Short-swing plan: reachable target (recent swing high, capped) plus a 20-session time exit. Write the rule down before the first run; measure with `AdvisorEventStudy` and report every variant tried.
+- [x] (Not wired: no variant passed) Wire the plan into the advisor only if it beats the current plan in both sub-periods; otherwise record the result and leave the advisor as context.
+- [x] Unit tests, build; changelog; commit. (No app behavior change from the swing study, so no device check.)
+
+## Short-swing plan variants (fixed before the first run, 2026-10-02)
+
+Candidates: advisor replay = app BUY + completed weekly trend up + RS(63d vs TDEX) > 0. Entry next close, stop = suggested ATR stop, fees + 0.15% slippage per side, first touch, stop wins a bar that spans both.
+- P0 current: target = 52-week high, R:R >= 2, measured at a 20-session time exit (for comparison).
+- P1: target = entry + 2R, time exit after 20 sessions.
+- P2: target = 20-session swing high, taken only if >= entry + 1R, time exit after 20 sessions.
+- P3: P1 without the BUY signal (weekly trend up + RS > 0 + close > SMA 50).
+Wire into the advisor only if a variant has positive mean net return AND beats TDEX over the same holding window in BOTH 2015-2020 and 2021-2025. Report every variant.

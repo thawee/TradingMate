@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Research
+- **Short-swing plan variants:** the advisor event study now tests four pre-registered 1-4 week plans (52-week-high, 2R and 20-day swing-high targets with a 20-session time exit, and a no-BUY-signal variant). None is positive and ahead of TDEX in both 2015-2020 and 2021-2025, so the advisor stays labelled as context (`tools/backtest/advisor_event_study.md`, `docs/ADVISOR_EVALUATION.md`).
+
 ### Changed (exits)
 - **Removed the early-breakdown exits:** "Early Breakdown Warning" and "Weak Trend" no longer sell a losing holding that slips below SMA 50 with negative MACD, and saved plans no longer have the matching early invalidation. Holdings exit at the saved stop, target or trailing stop; the weak trend shows as "Trend Weakening" context. In the 2015-2025 SET50 replay the early-breakdown exit was the largest loss source (1,058 exits, -685R); without both, App signals CAGR improved from -10.10% to -4.31% and max drawdown from 72.5% to 53.8% (`tools/backtest/report.md`). Still below TDEX and still failing the evidence gate.
 
