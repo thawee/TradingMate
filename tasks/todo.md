@@ -349,3 +349,10 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 - [x] Buy dialog: core path uses it, hides stop/target and position-size sections, and the cash card checks cash only.
 - [x] Alert worker: no technical sell reminders on the core; an explicit saved stop still alerts.
 - [x] Unit tests for the core policy; `./gradlew :app:testDebugUnitTest :app:assembleDebug`.
+
+# Exit and short-swing repair, 2026-10-02
+
+- [ ] Remove "Early Breakdown Warning" from `getDetailedSignal` and the matching early invalidation in `ExitPolicyEvaluator`; rerun `MarketBacktestReport` and keep the change only if App signals improve.
+- [ ] Short-swing plan: reachable target (recent swing high, capped) plus a 20-session time exit. Write the rule down before the first run; measure with `AdvisorEventStudy` and report every variant tried.
+- [ ] Wire the plan into the advisor only if it beats the current plan in both sub-periods; otherwise record the result and leave the advisor as context.
+- [ ] Unit tests, build, device check; changelog; commit.

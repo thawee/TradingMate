@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (exits)
+- **Removed the early-breakdown exits:** "Early Breakdown Warning" and "Weak Trend" no longer sell a losing holding that slips below SMA 50 with negative MACD, and saved plans no longer have the matching early invalidation. Holdings exit at the saved stop, target or trailing stop; the weak trend shows as "Trend Weakening" context. In the 2015-2025 SET50 replay the early-breakdown exit was the largest loss source (1,058 exits, -685R); without both, App signals CAGR improved from -10.10% to -4.31% and max drawdown from 72.5% to 53.8% (`tools/backtest/report.md`). Still below TDEX and still failing the evidence gate.
+
 ### Fixed (portfolio card and risk checks)
 - **Take Profit shows the saved plan target:** the holding card no longer invents cost +10% (e.g. ฿52.89); it shows the accepted target or "No target".
 - **Off-tick saved stops flagged:** stops saved before tick rounding show the valid SET price beside them (฿45.68 -> "SET ฿45.75"); editing the holding saves the rounded stop.

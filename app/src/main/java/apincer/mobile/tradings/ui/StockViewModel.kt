@@ -317,15 +317,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 val signal = if (explicitStopHit) {
                     TradeSignal(IndicatorSignal.SELL, "STOP", "Saved stop reached at ฿${stock.stopLoss}")
                 } else if (stock.quantity > 0 && stock.portfolio.exitPolicy == "FIXED_TARGET") {
-                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
-                        stock.portfolio.toTradePlan(), stock.lastPrice,
-                        stock.macdHist, stock.sma50,
-                        TechnicalAnalysis.isNearExDividendDate(info.dividendDate ?: stock.dividendDate)
-                    )
+                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(stock.portfolio.toTradePlan(), stock.lastPrice)
                     if (decision != null) TradeSignal(IndicatorSignal.SELL,
                         decision.reason.name, decision.description)
                     else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
-                        "No saved exit level or early invalidation trigger reached")
+                        "No saved stop or target reached")
                 } else if (apincer.mobile.tradings.domain.CoreSatellite.isCore(stock.symbol)) {
                     apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL
                 } else rawSignal
@@ -508,11 +504,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 if (stock.portfolio.portfolio.exitPolicy == "FIXED_TARGET") {
-                        val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
-                            stock.portfolio.portfolio.toTradePlan(), stock.info.lastPrice,
-                            stock.portfolio.macdHist, stock.portfolio.sma50,
-                            TechnicalAnalysis.isNearExDividendDate(stock.info.dividendDate)
-                        )
+                        val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(stock.portfolio.portfolio.toTradePlan(), stock.info.lastPrice)
                         if (decision != null) {
                             val alerts = if (tradePurpose == "DIVIDEND") dividendSellAlerts else swingSellAlerts
                             alerts.add(SellAlertData(stock, decision.description))
@@ -1340,13 +1332,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         explicitStopHit -> TradeSignal(IndicatorSignal.SELL, "STOP",
                             "Saved stop reached at ฿${portfolio!!.stopLoss}")
                         portfolio != null && portfolio.quantity > 0 && portfolio.exitPolicy == "FIXED_TARGET" -> {
-                            val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
-                                portfolio.toTradePlan(), updatedInfo.lastPrice, macd.third, sma50,
-                                TechnicalAnalysis.isNearExDividendDate(updatedInfo.dividendDate))
+                            val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(portfolio.toTradePlan(), updatedInfo.lastPrice)
                             if (decision != null) TradeSignal(IndicatorSignal.SELL,
                                 decision.reason.name, decision.description)
                             else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
-                                "No saved exit level or early invalidation trigger reached")
+                                "No saved stop or target reached")
                         }
                         apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol) ->
                             apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL

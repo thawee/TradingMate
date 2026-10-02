@@ -271,15 +271,9 @@ object TechnicalAnalysis {
                     )
                 }
 
-                // EARLY BREAKDOWN WARNING: Position in loss (-1.5% to dynamic stop) and momentum breaks below SMA50 with negative MACD
-                // Suppressed if within 2 days of XD date (price drop is cash dividend adjustment)
-                if (!isNearXdDate && netProfitPercent <= -1.5 && !isMacdBullish && !isPriceAboveSma50) {
-                    return TradeSignal(
-                        IndicatorSignal.SELL,
-                        "${qualityPrefix}Early Breakdown Warning (${String.format(Locale.ENGLISH, "%.1f", netProfitPercent)}%)",
-                        "Price broke below SMA 50 and momentum collapsed while position is down ${String.format(Locale.ENGLISH, "%.2f", netProfitPercent)}%. Consider cutting early to prevent full stop-loss."
-                    )
-                }
+                // No "early breakdown" exit (below SMA50, MACD < 0, down 1.5%): in the 2015-2025 SET50
+                // replay it was the largest loss source (1,058 exits, -685R), cutting trades that the
+                // stop would have let recover. See tools/backtest/report.md.
 
             // DYNAMIC TRAILING STOP: Armed once the peak has run +1R. Fires on a pullback of
             // 2.5×ATR% (clamped 4–10%, 5% fallback) or when the gain is fully given back,
@@ -481,29 +475,23 @@ object TechnicalAnalysis {
         }
 
         // 5. NEUTRAL/WEAK TREND (Fallback)
-        // Anti-whipsaw: only SELL a holding on weak trend once real damage shows (net loss > 2%).
-        // A flat or slightly-profitable position gets a NEUTRAL warning instead of an exit signal.
+        // Context only: selling a holding below SMA 50 with negative MACD (the old "Weak Trend" exit at
+        // a 2% loss) lost money in the 2015-2025 SET50 replay. The saved stop handles real damage.
         if (!isMacdBullish && !isPriceAboveSma50) {
             val holdingNetProfit = if (userCost != null && userCost > 0 && lastPrice != null) {
                 positionProfitPercent(userCost, lastPrice)
             } else null
-            return if (!isNearXdDate && holdingNetProfit != null && holdingNetProfit < -2.0) {
-                TradeSignal(
-                    IndicatorSignal.SELL,
-                    "${qualityPrefix}Weak Trend",
-                    "The stock is losing momentum, trading below its average, and your position is down ${String.format(Locale.ENGLISH, "%.2f", holdingNetProfit)}%. Likely to continue falling."
-                )
-            } else if (isNearXdDate) {
+            return if (isNearXdDate) {
                 TradeSignal(
                     IndicatorSignal.NEUTRAL,
                     "${qualityPrefix}Ex-Dividend Grace Period",
-                    "Price dip reflects XD cash dividend adjustment. Trend breakdown sell signals are paused around XD date."
+                    "Price dip reflects the XD cash dividend adjustment, not a trend change."
                 )
             } else if (holdingNetProfit != null) {
                 TradeSignal(
                     IndicatorSignal.NEUTRAL,
                     "${qualityPrefix}Trend Weakening",
-                    "Momentum is fading but your position is holding up. Watch closely — a net loss beyond 2% will trigger an exit signal."
+                    "Momentum is fading and price is below its 50-day average. Your saved stop is the exit; no early sell signal is given."
                 )
             } else {
                 TradeSignal(

@@ -40,6 +40,8 @@ Rules for changing a rule:
 
 Status on 2026-10-01: no rule passes. App signals, app entries with trend exits, and the 52-week breakout all fail (see the report).
 
+Change on 2026-10-02: the "Early Breakdown Warning" and "Weak Trend" exits (sell a losing holding below SMA 50 with negative MACD) were removed from the signal engine and from saved-plan exits. On the same 2015-2025 replay, App signals CAGR moved from -10.10% to -4.31% (2015-2020: -5.10% to -0.61%; 2021-2025: -15.51% to -9.04%) and max drawdown from 72.5% to 53.8%; per-trade expectancy went from -0.09R to -0.10R. This is a removal measured on the data that motivated it, not an out-of-sample result, and App signals still fail the gate.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is today's SET50; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.

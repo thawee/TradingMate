@@ -139,7 +139,7 @@ class TechnicalAnalysisTest {
     }
 
     @Test
-    fun testSellSignalWhenTrendTurnsDownward() {
+    fun testTrendTurningDownAboveStopIsContext() {
         val signal = TechnicalAnalysis.getDetailedSignal(
             rsi = 50.0,
             macdHist = -0.5,
@@ -152,8 +152,9 @@ class TechnicalAnalysisTest {
             userQuantity = 100,
             tradePurpose = "SWING"
         )
-        assertEquals(IndicatorSignal.SELL, signal.type)
-        assertTrue(signal.reason.contains("Early Breakdown Warning") || signal.reason.contains("Weak Trend"))
+        // Below SMA 50 with negative MACD and a 2% loss is context now; only the stop exits.
+        assertEquals(IndicatorSignal.NEUTRAL, signal.type)
+        assertTrue(signal.reason.contains("Trend Weakening"))
     }
 
     @Test
@@ -535,7 +536,7 @@ class TechnicalAnalysisTest {
     }
 
     @Test
-    fun testEarlyBreakdownWarning() {
+    fun testNoEarlyBreakdownExitAboveStop() {
         val signal = TechnicalAnalysis.getDetailedSignal(
             rsi = 45.0,
             macdHist = -0.5,
@@ -547,8 +548,8 @@ class TechnicalAnalysisTest {
             userCost = 100.0,
             userQuantity = 100
         )
-        assertEquals(IndicatorSignal.SELL, signal.type)
-        assertTrue(signal.reason.contains("Early Breakdown Warning"))
+        // Down 2% (stop not hit) below SMA 50 with negative MACD: held, not sold (backtest, -685R).
+        assertTrue(signal.type != IndicatorSignal.SELL)
     }
 
     @Test

@@ -181,11 +181,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     apincer.mobile.tradings.domain.TradeSignal(IndicatorSignal.SELL, "STOP",
                         "Saved stop reached at ฿${entity.portfolio.stopLoss}")
                 } else if (entity.quantity > 0 && entity.portfolio.exitPolicy == "FIXED_TARGET") {
-                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(
-                        entity.portfolio.toTradePlan(), scraped.lastPrice,
-                        indicators.histogram, indicators.sma50,
-                        TechnicalAnalysis.isNearExDividendDate(scraped.dividendDate)
-                    )
+                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(entity.portfolio.toTradePlan(), scraped.lastPrice)
                     if (decision != null) apincer.mobile.tradings.domain.TradeSignal(
                         IndicatorSignal.SELL, decision.reason.name, decision.description
                     ) else apincer.mobile.tradings.domain.TradeSignal(

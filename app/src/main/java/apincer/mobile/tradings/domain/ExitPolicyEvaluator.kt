@@ -1,6 +1,6 @@
 package apincer.mobile.tradings.domain
 
-enum class ExitReason { STOP, TARGET, INVALIDATION }
+enum class ExitReason { STOP, TARGET }
 
 data class ExitDecision(
     val reason: ExitReason,
@@ -12,24 +12,16 @@ data class ExitDecision(
 
 /** Pure evaluation of accepted fixed-plan levels. Prices are alert observations, not guaranteed fills. */
 object ExitPolicyEvaluator {
-    fun evaluate(
-        plan: TradePlan,
-        currentPrice: Double,
-        macdHist: Double? = null,
-        sma50: Double? = null,
-        isNearXdDate: Boolean = false
-    ): ExitDecision? {
+    /**
+     * Saved stop, then saved target. No early-breakdown invalidation: the same rule in the signal
+     * engine was the largest loss source in the 2015-2025 SET50 replay (tools/backtest/report.md).
+     */
+    fun evaluate(plan: TradePlan, currentPrice: Double): ExitDecision? {
         if (plan.exitPolicy != ExitPolicy.FIXED_TARGET || !currentPrice.isFinite() || currentPrice <= 0.0) return null
         val stop = plan.initialStopPrice
         if (stop != null && currentPrice <= stop) {
             return ExitDecision(ExitReason.STOP, stop, plan.id, plan.version,
                 "Saved stop reached at ฿$stop")
-        }
-        val entry = plan.plannedEntryPrice
-        if (!isNearXdDate && macdHist != null && sma50 != null &&
-            currentPrice <= entry * 0.985 && currentPrice < sma50 && macdHist < 0.0) {
-            return ExitDecision(ExitReason.INVALIDATION, currentPrice, plan.id, plan.version,
-                "Early breakdown: below SMA 50 with negative MACD while down at least 1.5%")
         }
         val target = plan.targetPrice
         if (target != null && currentPrice >= target) {

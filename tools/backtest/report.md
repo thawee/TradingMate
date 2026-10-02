@@ -5,9 +5,9 @@ Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 
 
 | Rule | Period | CAGR % | TDEX CAGR % | Gap % | MDD % | TDEX MDD % | Trades | Trades/yr | Win % | Expectancy R | Exposure % | Skipped |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| App signals | Full 2015-2025 | -10.10 | 2.52 | -12.62 | 72.53 | 36.53 | 2082 | 189.54 | 36.89 | -0.09 | 88.86 | 3641 |
-| App signals | 2015-2020 | -5.10 | 1.75 | -6.85 | 40.97 | 36.53 | 1097 | 183.29 | 38.56 | -0.04 | 86.69 | 1742 |
-| App signals | 2021-2025 | -15.51 | 3.19 | -18.70 | 61.14 | 26.55 | 991 | 198.77 | 34.11 | -0.15 | 91.02 | 1877 |
+| App signals | Full 2015-2025 | -4.31 | 2.52 | -6.83 | 53.83 | 36.53 | 1446 | 131.64 | 46.20 | -0.10 | 92.94 | 4546 |
+| App signals | 2015-2020 | -0.61 | 1.75 | -2.36 | 35.08 | 36.53 | 769 | 128.49 | 48.76 | -0.03 | 91.28 | 2137 |
+| App signals | 2021-2025 | -9.04 | 3.19 | -12.23 | 52.99 | 26.55 | 678 | 135.99 | 43.36 | -0.18 | 94.79 | 2380 |
 | App entries + trend exit | Full 2015-2025 | -12.78 | 2.52 | -15.30 | 78.36 | 36.53 | 3524 | 320.82 | 29.14 | -0.09 | 89.63 | 4513 |
 | App entries + trend exit | 2015-2020 | -8.92 | 1.75 | -10.67 | 52.87 | 36.53 | 1793 | 299.59 | 29.34 | -0.07 | 87.61 | 2296 |
 | App entries + trend exit | 2021-2025 | -17.80 | 3.19 | -20.99 | 66.36 | 26.55 | 1739 | 348.80 | 28.23 | -0.14 | 91.33 | 2196 |
@@ -19,14 +19,13 @@ Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 
 
 | Exit reason | Trades | Avg R | Total R |
 |---|---|---|---|
-| Early Breakdown Warning | 1058 | -0.65 | -685.49 |
-| Overbought | 370 | 1.19 | 440.59 |
-| Upper Band Resistance | 292 | 1.09 | 317.00 |
-| Stop Loss | 266 | -1.34 | -357.43 |
-| Trailing Stop Triggered | 42 | -0.13 | -5.27 |
-| Distribution Detected | 28 | 1.07 | 29.95 |
-| Exit Target | 15 | 2.69 | 40.38 |
-| Scale Out Target | 11 | 2.55 | 28.08 |
+| Stop Loss | 735 | -1.30 | -954.70 |
+| Overbought | 352 | 1.20 | 423.09 |
+| Upper Band Resistance | 261 | 1.12 | 292.26 |
+| Trailing Stop Triggered | 43 | -0.33 | -14.01 |
+| Distribution Detected | 27 | 1.19 | 32.16 |
+| Exit Target | 17 | 2.89 | 49.06 |
+| Scale Out Target | 11 | 2.74 | 30.14 |
 
 ## Exit reasons: App entries + trend exit (full period)
 
@@ -46,7 +45,7 @@ Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 
 
 | Rule | Total ฿ | Top 3 symbols ฿ | Total excl. top 3 ฿ | Top 3 |
 |---|---|---|---|---|
-| App signals | -689,578 | 109,496 | -799,074 | TISCO 40,247, AOT 36,564, CENTEL 32,685 |
+| App signals | -373,977 | 182,229 | -556,206 | KCE 79,620, TISCO 55,393, DELTA 47,216 |
 | App entries + trend exit | -785,019 | 218,276 | -1,003,295 | KTC 141,505, CBG 41,152, BH 35,619 |
 | 52w breakout + trend exit | 1,907,466 | 1,893,735 | 13,731 | DELTA 970,673, KTC 468,737, JMART 454,326 |
 
@@ -54,7 +53,7 @@ Config: ฿1M start, 1% risk per trade, 15% single-stock cap, max 10 positions, 
 
 | Rule | Verdict | Reasons |
 |---|---|---|
-| App signals | FAIL | Trails benchmark in 2015-2020 (-5.10% vs 1.75%); Trails benchmark in 2021-2025 (-15.51% vs 3.19%); Without its top 3 symbols, P/L is ฿-799,074 of ฿-689,578 (need positive and ≥ 50%); Expectancy -0.09R is not positive |
+| App signals | FAIL | Trails benchmark in 2015-2020 (-0.61% vs 1.75%); Trails benchmark in 2021-2025 (-9.04% vs 3.19%); Without its top 3 symbols, P/L is ฿-556,206 of ฿-373,977 (need positive and ≥ 50%); Expectancy -0.10R is not positive |
 | App entries + trend exit | FAIL | Trails benchmark in 2015-2020 (-8.92% vs 1.75%); Trails benchmark in 2021-2025 (-17.80% vs 3.19%); Without its top 3 symbols, P/L is ฿-1,003,295 of ฿-785,019 (need positive and ≥ 50%); Expectancy -0.09R is not positive |
 | 52w breakout + trend exit | FAIL | Trails benchmark in 2021-2025 (-1.03% vs 3.19%); Without its top 3 symbols, P/L is ฿13,731 of ฿1,907,466 (need positive and ≥ 50%) |
 

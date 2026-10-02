@@ -17,8 +17,8 @@ class ExitPolicyTest {
         assertEquals(ExitReason.STOP, ExitPolicyEvaluator.evaluate(plan, 94.0)?.reason)
     }
 
-    @Test fun invalidationUsesKnownIndicators() {
-        assertEquals(ExitReason.INVALIDATION,
-            ExitPolicyEvaluator.evaluate(plan, 97.0, macdHist = -0.1, sma50 = 99.0)?.reason)
+    @Test fun dipAboveStopHoldsThePlan() {
+        // Below SMA 50 with negative MACD used to invalidate here; the plan now holds to its stop.
+        assertNull(ExitPolicyEvaluator.evaluate(plan, 97.0))
     }
 }
