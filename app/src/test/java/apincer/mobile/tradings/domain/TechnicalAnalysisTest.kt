@@ -139,6 +139,21 @@ class TechnicalAnalysisTest {
     }
 
     @Test
+    fun testTrailingStopExitsOnPullbackWhileStillInProfit() {
+        // ATR 4% -> trailing distance 2.5 x 4 = 10%. Peak 120: 107 is 10.8% off the peak (exit, still +7%),
+        // 109 is 9.2% off (hold).
+        fun at(price: Double) = TechnicalAnalysis.getDetailedSignal(
+            rsi = 50.0, macdHist = 0.5, lastPrice = price,
+            sma50 = 98.0, sma200 = 95.0, bb = null,
+            isVolumeSurge = false, atrPercent = 4.0,
+            userCost = 100.0, userQuantity = 100,
+            tradePurpose = "SWING", peakPrice = 120.0
+        )
+        assertTrue(at(107.0).reason.contains("Trailing Stop"))
+        assertTrue(at(109.0).type != IndicatorSignal.SELL)
+    }
+
+    @Test
     fun testTrendTurningDownAboveStopIsContext() {
         val signal = TechnicalAnalysis.getDetailedSignal(
             rsi = 50.0,

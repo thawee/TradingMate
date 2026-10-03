@@ -54,7 +54,7 @@ Address all identified ambiguous, panic-inducing, or misleading UI labels and ba
 
 # Advisor reliability repair
 
-**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 2 manual 100/95/110 restart check (needs a throwaway holding); Task 3 legacy/dividend exit behavior and its fixtures (trailing, XD, dividend stops); Task 4 consumer parity beyond fixed plans; Task 6 freshness parity tests; Task 8 minimum-fee and changed-input tests; Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
+**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 2 manual 100/95/110 restart check (needs a throwaway holding); Task 6 freshness parity tests; Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
 
 **Re-scoped 2026-10-03 (core-first decision, [plan](plan.md#core-first-repositioning-plan)).** Kept: work that protects money in any flow (saved plans, exits and stop alerts on holdings, data freshness, cash/cap checks on every buy, accurate recording of executed fills, honest claims and release review). Deferred: work that only improves swing trade proposals (candidate eligibility, target provenance, Gemini swing plans, swing backtest repair, advice capture). Deferred tasks stay unchecked; reopen them only if swing entries show an edge in a pre-registered test. Unchecked items were not re-verified against current code.
 
@@ -104,7 +104,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 - [x] Add a pure structured exit evaluator using saved plans; price-stop checks work with missing indicators, stops never silently widen, and risk exits take precedence. Audit 2026-10-03: `ExitPolicyEvaluator` for fixed plans: saved stop before target, needs no indicators, never widens the stop. Legacy/dividend holdings still use other paths (next item).
 - [x] Define legacy/dividend behavior and early invalidation reasons. Planned trades do not use unrelated 3%/5% profit overrides; fees honor configured settings and actual buy fees when available. 2026-10-03 (user decision: follow the tested rule): Dividend-purpose holdings exit only on a saved stop or leaving the high-yield top 10 (monthly); ROE, yield and drawdown are review notes (`HoldingSignal`, `DividendExitPolicy`). Swing legacy holdings keep the R-based engine exits; fixed plans keep the evaluator, without the 3%/5% overrides. Early breakdown was removed earlier (largest loss source in the replay).
-- [ ] Verify the 100/95/110 fixture, trailing behavior, missing indicators, XD context and dividend explicit stops using focused unit tests.
+- [x] Verify the 100/95/110 fixture, trailing behavior, missing indicators, XD context and dividend explicit stops using focused unit tests. 2026-10-03: `ExitPolicyTest` (100/95/110 plan, stop without indicators), `testTrailingStopProtectsTradeThatReachedOneR` (given back, not armed), new `testTrailingStopExitsOnPullbackWhileStillInProfit`, XD tests (`testEarlyBreakdownSuppressedOnExDividendDate`, `testIsNearExDividendDate`), `HoldingSignalTest.savedStopStillAlertsOnDividendHolding`.
 
 **Dependencies:** 1. **Scope:** Medium.
 **Likely files:** new `domain/ExitPolicy.kt`, `domain/TechnicalAnalysis.kt`, `domain/TradePlan.kt`, new exit policy tests, `domain/TechnicalAnalysisTest.kt`.
@@ -120,8 +120,8 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Checkpoint B: Exit advice agrees
 
-- [ ] Regression fixtures and consumer parity pass; unit tests and debug build pass.
-- [ ] Changing current price cannot change an accepted target or disable an explicit stop merely because indicators are missing.
+- [x] Regression fixtures and consumer parity pass; unit tests and debug build pass. 2026-10-03: one `HoldingSignal.resolve` for Advisor, Portfolio and worker, so parity holds by construction; `HoldingSignalTest`, `ExitPolicyTest`; 194 unit tests pass, build passes.
+- [x] Changing current price cannot change an accepted target or disable an explicit stop merely because indicators are missing. 2026-10-03: `ExitPolicyEvaluator` reads only saved levels; `stopWorksWithoutIndicators`, `fixedPlanDoesNotTakeProfitEarly`.
 
 ## Task 5: Centralize candidate eligibility (Deferred)
 
@@ -159,7 +159,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 - [x] Add one validator for post-fee cash reserve, per-trade risk, combined existing/new ticker exposure, sector exposure, valid prices and board lots; use current configured budgets. Audit 2026-10-03: `TradeRiskPolicy.evaluate` covers reserve after fees, risk with buy and sell fees, combined stock and sector exposure at cost, valid prices and board lots, current settings.
 - [x] Missing exposure/sector evidence returns an explicit unverified result. Separate proposal validation from recording an already executed fill. Audit 2026-10-03: unknown sector returns "Sector exposure is unknown"; executed fills bypass proposal checks via the dialog checkbox.
-- [ ] Verify exact boundaries, one-lot excess, existing holdings, minimum-fee settings and stale/changed account inputs with unit tests.
+- [x] Verify exact boundaries, one-lot excess, existing holdings, minimum-fee settings and stale/changed account inputs with unit tests. 2026-10-03: `exactlyAtPositionLimitPasses`, `largestFitMatchesALinearScan` (next lot fails), `existingHoldingsShrinkTheQuantity`, new `minimumCommissionWithoutAtsCanBreakASmallBudget`; changed account state at confirmation: device test `secondProposalIsRecheckedAgainstTheHoldingTheFirstCreated`.
 
 **Dependencies:** 1, 7. **Scope:** Medium.
 **Likely files:** new `domain/TradeRiskPolicy.kt`, `domain/TradePlan.kt`, `domain/TechnicalAnalysis.kt`, new risk policy tests.

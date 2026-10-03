@@ -105,6 +105,18 @@ class TradeRiskPolicyTest {
         assertEquals(0, fit(stock = Double.POSITIVE_INFINITY).quantity)
     }
 
+    @Test fun minimumCommissionWithoutAtsCanBreakASmallBudget() {
+        // 10,000 equity, 1% = 100 baht. 100 shares at 10.00, stop 9.70: 30 baht gross loss.
+        fun input(ats: Boolean) = TradeRiskInput(10.0, 9.7, 100, TechnicalAnalysis.calculateFees(1_000.0, false, ats),
+            10_000.0, 10_000.0, 0.0, 0.0, ats)
+        assertTrue(TradeRiskPolicy.evaluate(input(true), limits).allowed)
+        // Without ATS the 50-baht minimum commission applies on both sides, so the loss at the stop exceeds 100.
+        assertEquals(listOf("Stop-loss risk exceeds the configured per-trade budget"),
+            TradeRiskPolicy.evaluate(input(false), limits).reasons)
+        assertEquals(0, TradeRiskPolicy.largestFit(10.0, 9.7, 10_000.0, 10_000.0, 0.0, 0.0, false, limits).quantity)
+        assertTrue(TradeRiskPolicy.largestFit(10.0, 9.7, 10_000.0, 10_000.0, 0.0, 0.0, true, limits).quantity >= 100)
+    }
+
     @Test fun largestFitMatchesALinearScan() {
         for (entry in listOf(1.5, 4.2, 10.0, 37.25, 120.0, 480.0))
             for (stopFraction in listOf(0.8, 0.93, 0.98))
