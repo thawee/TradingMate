@@ -6,19 +6,19 @@ This document outlines the user journey and navigation architecture of the Tradi
 
 ## 🧭 Primary Navigation (Bottom Bar)
 
-The bottom navigation bar provides instant access to the five main functional areas of the app:
+The bottom navigation bar provides instant access to the five main functional areas of the app. The app is core-first (decision 2026-10-03): it opens on Portfolio, where the index core, DCA and allocation live.
 
-1.  **📊 Watchlist (Data Center)**
-    *   **Focus:** Broad market monitoring.
-    *   **Features:** A comprehensive list of saved stocks with technical signals, fundamental overview, search filter, and dynamic sorting.
+1.  **💼 Portfolio (Financial Hub, start screen)**
+    *   **Focus:** Consolidated asset tracking & Risk Management.
+    *   **Features:** Total Asset summary (Stock + Cash), inline cash management & ledger audit, Sector Breakdown with 30% concentration caps, Section 47 bis Dividend Tax Shield card, and 1-Click Anti-Ruin Position Sizing in trade entry dialogs.
 2.  **🧠 Advisor (AI Discovery Hub)**
-    *   **Focus:** Actionable trade setups and Risk Management.
+    *   **Focus:** Dividend list, rebalance plan and holding checks first (opens on the Dividend tab); swing setups as technical context, marked "Context, not a buy call".
     *   **Features:** Sell alerts, screened Swing, strong daily move, and Dividend candidates, plus prompts and in-app AI analysis. A strong daily move alone does not establish an opening or earnings gap.
     *   **Swing sizing:** Each swing plan uses the largest 100-share lot that passes every budget check with fees (risk per trade, cash reserve, stock and sector caps at cost). Candidates where not even one lot fits are listed with the blocking limit under the AI data preview.
     *   **High dividend yield list and monthly rebalance plan (Dividend tab, untested lists on):** the top 10 SET50 names by yield, and an order list for the tested rule: sell satellite names that left the list, keep held names without resizing, buy each new name with up to a tenth of the budget. It manages only Dividend-purpose holdings (default budget: their value); other holdings are never sold. Cap breaches are warnings. Place the order at the broker first; "Record buy" then opens the Portfolio Buy dialog prefilled, with the Dividend purpose and "Record an already executed broker trade" preset. A monthly notification reminds users who follow the plan (untested lists on and a Dividend-purpose holding). When a tenth of the budget is below one lot, the card shows the budget needed to hold all ten and points to 1DIV.
-3.  **💼 Portfolio (Financial Hub)**
-    *   **Focus:** Consolidated asset tracking & Risk Management.
-    *   **Features:** Total Asset summary (Stock + Cash), inline cash management & ledger audit, Sector Breakdown with 30% concentration caps, Section 47 bis Dividend Tax Shield card, and 1-Click Anti-Ruin Position Sizing in trade entry dialogs.
+3.  **📊 Watchlist (Data Center)**
+    *   **Focus:** Broad market monitoring.
+    *   **Features:** A comprehensive list of saved stocks with technical signals (shown as context under the same notice as the Swing tab), fundamental overview, search filter, and dynamic sorting.
 4.  **📈 History & Stats (CRO Dashboard)**
     *   **Focus:** Performance review & Quantitative Risk Matrix.
     *   **Features:** Closed trade records, cumulative profit trajectory with Catmull-Rom splines, 1-Day 95% Historical Value-at-Risk (VaR), Conditional VaR (Expected Shortfall), Max Drawdown (MDD), and 63-day rolling Portfolio Beta ($\beta$).

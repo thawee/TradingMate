@@ -55,9 +55,10 @@ import apincer.mobile.tradings.domain.TradingZone
 import java.util.Locale
 
 enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: Boolean = true) {
-    WATCHLIST(R.string.title_watchlist, Icons.Default.QueryStats),
-    ADVISOR(R.string.title_advisor, Icons.Default.AutoAwesome),
+    // Core-first: Portfolio (index core, DCA, allocation) leads; bottom-bar order follows declaration order.
     PORTFOLIO(R.string.title_portfolio, Icons.Default.AccountBalance),
+    ADVISOR(R.string.title_advisor, Icons.Default.AutoAwesome),
+    WATCHLIST(R.string.title_watchlist, Icons.Default.QueryStats),
     STATS(R.string.title_history, Icons.Default.History),
     SETTINGS(R.string.title_settings, Icons.Default.Settings),
     EDUCATION(R.string.title_academy, Icons.Default.School, false),
@@ -75,7 +76,7 @@ fun StockScreen(
     dcaBuyRequest: BuyPrefill? = null,
     onDcaBuyRequestConsumed: () -> Unit = {}
 ) {
-    var currentScreen by rememberSaveable { mutableStateOf(Screen.WATCHLIST) }
+    var currentScreen by rememberSaveable { mutableStateOf(Screen.PORTFOLIO) }
     // Buy dialog prefill from the Advisor's rebalance plan, consumed by Portfolio like a DCA request.
     var advisorBuyRequest by remember { mutableStateOf<BuyPrefill?>(null) }
     val uiState by viewModel.uiState.collectAsState()

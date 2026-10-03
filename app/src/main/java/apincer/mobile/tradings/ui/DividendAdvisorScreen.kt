@@ -82,9 +82,10 @@ data class SellAlertData(
     val reason: String
 )
 
+/** Toggle order follows declaration order: Dividend first (core-first decision, 2026-10-03). */
 enum class PlaybookMode(val label: String) {
-    SWING("Swing Playbook"),
-    DIVIDEND("Dividend Playbook")
+    DIVIDEND("Dividend Playbook"),
+    SWING("Swing Playbook")
 }
 
 

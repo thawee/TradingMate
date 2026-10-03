@@ -287,6 +287,8 @@ fun WatchlistScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Signal column is technical context (core-first decision); same notice as the Swing tab.
+                    if (watchlist.isNotEmpty()) item { UntestedEdgeNotice(modifier = Modifier.padding(top = 4.dp)) }
                     if (watchlist.isEmpty() && isRefreshing) {
                         items(5) {
                             StockCardSkeleton(modifier = Modifier.padding(horizontal = 0.dp))

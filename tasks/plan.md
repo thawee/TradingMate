@@ -1,3 +1,34 @@
+# Core-first repositioning plan
+
+Date: 2026-10-03. Status: approved and implemented the same day (see the todo for results).
+Checklist: [Core-first repositioning todos](todo.md#core-first-repositioning-2026-10-03).
+
+## Decision (user, 2026-10-03)
+
+Index DCA core plus risk and discipline tooling is the primary flow. Swing signals become education and watchlist context. Evidence: swing entry rules trailed TDEX in every tested variant (docs/ADVISOR_EVALUATION.md); only the high-dividend-yield rule passed, with survivorship caveats.
+
+## Verified starting point
+
+- README already leads with the index core; the app does not: it opens on Watchlist (`StockScreen.kt:78`), the bottom bar starts with Watchlist, and the Advisor opens on the Swing tab (`StockViewModel.kt:382`).
+- Watchlist has a "Signal" column with BUY/SELL labels; SCREEN_FLOWS describes the Advisor as "Actionable trade setups".
+- Entry alerts already default off (`PreferenceRepository.kt:102`). Untested lists default off.
+
+## Changes
+
+1. Navigation: Portfolio (core card, DCA, allocation, scorecard) becomes the start screen and first bottom-bar item; order Portfolio, Advisor, Watchlist, History, Settings. Notification deep links unchanged.
+2. Advisor opens on the Dividend tab (high-yield list and rebalance plan when untested lists are on; dividend holdings checks always).
+3. Swing as context: the existing `UntestedEdgeNotice` (already on the Swing tab and stock detail) also shown above the Watchlist list ("Technical signals are context, not buy calls: tested entry rules trailed TDEX after costs"). Labels change, rules do not: signals keep computing, stop/exit alerts for held positions stay.
+4. Docs: SCREEN_FLOWS and README feature order match; Advisor focus text changes from "Actionable trade setups" to "Dividend list, rebalance plan, and technical context".
+5. Old reliability plan re-scoped (todo only): keep tasks that protect money in any flow (exit/stop alerts on holdings, executed-fill accuracy, data freshness, cash and cap checks); mark swing-proposal, swing AI and swing backtest tasks as deferred under this decision.
+
+Not in scope: removing swing features, changing signal or exit rules, new research.
+
+## Verification
+
+Unit tests, build, lint; device: cold start lands on Portfolio, bottom-bar order, notification deep links (DCA, sell reminder, high-yield review) still open the right screen, Advisor opens on Dividend, banners readable at the phone's font size.
+
+---
+
 # Advisor sizing fix and High Yield rebalance plan
 
 Date: 2026-10-03. Status: planned; implementation has not started. Supersedes the same-day "Risk-adaptive Advisor" plan (presets, open-risk enforcement, full sizing unification), which was cut after review.

@@ -54,6 +54,8 @@ Address all identified ambiguous, panic-inducing, or misleading UI labels and ba
 
 # Advisor reliability repair
 
+**Re-scoped 2026-10-03 (core-first decision, [plan](plan.md#core-first-repositioning-plan)).** Kept: work that protects money in any flow (saved plans, exits and stop alerts on holdings, data freshness, cash/cap checks on every buy, accurate recording of executed fills, honest claims and release review). Deferred: work that only improves swing trade proposals (candidate eligibility, target provenance, Gemini swing plans, swing backtest repair, advice capture). Deferred tasks stay unchecked; reopen them only if swing entries show an edge in a pre-registered test. Unchecked items were not re-verified against current code.
+
 Implementation plan: [plan.md](plan.md). The completed terminology work above is retained.
 The checklist below is an acceptance checklist. Items stay open until all parts of the item are verified, including device checks where needed.
 
@@ -73,7 +75,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 - Device check: a migration instrumentation test was added and compiled, but `adb devices` showed no connected device. Migration execution, app restart, notification behavior, and end-to-end user flow remain unverified.
 - Open product work: apply the Ready/Watch/Blocked assessment consistently to dividend and every archetype; full source/session freshness and market-holiday handling; identical screen/worker fixture tests; complete net reward/risk in both advisor cards; explicit AI plan-ID acceptance/link to a later fill; full advisor replay with recorded historical inputs or forward snapshots; spread/slippage, portfolio sizing and board-lot accounting in replay; old/new decision comparison. See [evaluation protocol](../docs/ADVISOR_EVALUATION.md).
 
-## Task 1: Persist a versioned trade plan
+## Task 1: Persist a versioned trade plan (Keep)
 
 - [ ] Add a typed plan and additive persistence for entry, stop, target, source, strategy, exit policy, timestamps and revision; preserve existing portfolio data.
 - [ ] Existing holdings migrate as incomplete legacy plans without fabricated targets. Repository reads/writes retain plans across updates.
@@ -82,7 +84,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 **Dependencies:** None. **Scope:** Medium.
 **Likely files:** new `domain/TradePlan.kt`, `data/RoomModels.kt`, `data/StockRepository.kt`, new persistence/migration tests; test dependencies if required.
 
-## Task 2: Round-trip the user's plan through forms and backup
+## Task 2: Round-trip the user's plan through forms and backup (Keep)
 
 - [ ] Pass the entered target through the view model and repository; editing/reopening/restarting displays the accepted plan, independently of focus targets.
 - [ ] Export/import plan fields with old-backup defaults. Plan revision, partial sale and additional same-symbol buy behavior is explicit and preserves recorded holdings/fees.
@@ -96,7 +98,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 - [ ] Migration and round-trip checks pass; `./gradlew :app:testDebugUnitTest :app:assembleDebug` passes.
 - [ ] Existing holdings, cash and completed trade history remain intact.
 
-## Task 3: Implement one exit policy
+## Task 3: Implement one exit policy (Keep)
 
 - [ ] Add a pure structured exit evaluator using saved plans; price-stop checks work with missing indicators, stops never silently widen, and risk exits take precedence.
 - [ ] Define legacy/dividend behavior and early invalidation reasons. Planned trades do not use unrelated 3%/5% profit overrides; fees honor configured settings and actual buy fees when available.
@@ -105,7 +107,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 **Dependencies:** 1. **Scope:** Medium.
 **Likely files:** new `domain/ExitPolicy.kt`, `domain/TechnicalAnalysis.kt`, `domain/TradePlan.kt`, new exit policy tests, `domain/TechnicalAnalysisTest.kt`.
 
-## Task 4: Connect every live exit consumer
+## Task 4: Connect every live exit consumer (Keep)
 
 - [ ] Advisor, portfolio signals and worker consume the same exit result and plan revision; remove duplicated target/trailing conditions.
 - [ ] Alerts distinguish target reached, stop breached, technical invalidation and review-only warnings; all consumers use consistent XD/strategy context.
@@ -119,7 +121,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 - [ ] Regression fixtures and consumer parity pass; unit tests and debug build pass.
 - [ ] Changing current price cannot change an accepted target or disable an explicit stop merely because indicators are missing.
 
-## Task 5: Centralize candidate eligibility
+## Task 5: Centralize candidate eligibility (Deferred)
 
 - [ ] Introduce Ready/Watch/Blocked results with reasons. Apply common guards across swing, daily movers, speculative and dividend candidates; SELL states cannot qualify as actionable long entries.
 - [ ] Replace unsupported gap/earnings labels with Strong daily move; null required evidence does not count as a pass. Preserve strategy-specific predicates explicitly.
@@ -128,7 +130,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 **Dependencies:** 3. **Scope:** Medium.
 **Likely files:** new `domain/CandidatePolicy.kt`, `ui/StockDna.kt`, `ui/StockViewModel.kt`, new candidate policy tests, `ui/StockDnaTest.kt`.
 
-## Task 6: Supply weekly trend and freshness evidence
+## Task 6: Supply weekly trend and freshness evidence (Keep freshness; weekly-trend parts deferred)
 
 - [ ] Carry per-symbol observation timestamps and completed-bar provenance; calculate completed-calendar-week trend from dates rather than five-row chunks and persist/pass it to the policy.
 - [ ] Foreground and worker use the same evidence rules, including stale/missing data states and last trading session handling.
@@ -142,7 +144,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 - [ ] All actionable lists honor common guards; unit tests and debug build pass.
 - [ ] Screen shows a concrete reason when a candidate is Watch or Blocked.
 
-## Task 7: Make target provenance and net reward/risk explicit
+## Task 7: Make target provenance and net reward/risk explicit (Deferred)
 
 - [ ] Replace automatic favorable 2R targets with a target source: user-entered, documented historical level, or hypothetical. Missing supported target cannot automatically qualify a setup.
 - [ ] Compute reward/risk after quantity-aware fees and disclosed fill assumptions; both stock-card implementations show the same plan and source.
@@ -151,7 +153,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 **Dependencies:** 2, 5–6. **Scope:** Medium.
 **Likely files:** new `domain/TradePlanBuilder.kt`, `domain/TechnicalAnalysis.kt`, `ui/DividendAdvisorScreen.kt`, `ui/StockComponents.kt`, plan builder tests.
 
-## Task 8: Implement proposal risk validation
+## Task 8: Implement proposal risk validation (Keep; `TradeRiskPolicy.evaluate`/`largestFit` cover part, not re-verified)
 
 - [ ] Add one validator for post-fee cash reserve, per-trade risk, combined existing/new ticker exposure, sector exposure, valid prices and board lots; use current configured budgets.
 - [ ] Missing exposure/sector evidence returns an explicit unverified result. Separate proposal validation from recording an already executed fill.
@@ -160,7 +162,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 **Dependencies:** 1, 7. **Scope:** Medium.
 **Likely files:** new `domain/TradeRiskPolicy.kt`, `domain/TradePlan.kt`, `domain/TechnicalAnalysis.kt`, new risk policy tests.
 
-## Task 9: Enforce risk at confirmation while preserving the ledger
+## Task 9: Enforce risk at confirmation while preserving the ledger (Keep)
 
 - [ ] Proposal preview and confirmation share validation; revalidate current holdings/settings at the persistence boundary and show specific failure reasons.
 - [ ] Recording/importing a broker fill remains possible with truthful amounts and its rule breaches recorded; remove generic overrides that turn an invalid proposal into Ready.
@@ -174,7 +176,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 - [ ] Saved plan, card levels, fees, accepted quantity and confirmation result agree; unit tests and debug build pass.
 - [ ] The app accurately records an executed trade even if it violates a proposed-trade rule.
 
-## Task 10: Constrain AI to validated plans
+## Task 10: Constrain AI to validated plans (Deferred)
 
 - [ ] Send the shared eligible list and typed plan IDs/levels/evidence to Gemini; replace duplicate selection and free-form executable recommendations with validated plan references.
 - [ ] Reject unknown/stale plans and invalid numbers/allocations. Display qualitative model assessment and support No valid setup without inventing a pick.
@@ -183,7 +185,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 **Dependencies:** 5–9. **Scope:** Medium.
 **Likely files:** `domain/GeminiClient.kt`, new `domain/AiRecommendationValidator.kt`, `ui/DividendAdvisorScreen.kt`, `domain/GeminiClientTest.kt`, validator tests.
 
-## Task 11: Repair backtest execution and accounting
+## Task 11: Repair backtest execution and accounting (Deferred)
 
 - [ ] Reuse plan/exit policy; apply the same disclosed next-bar fill timing for entry and signal exit, quantity-aware costs, and explicit stop/slippage assumptions.
 - [ ] Mark equity to market every bar including open positions; expose realized/unrealized results, daily drawdown and historical data coverage. Missing historical fundamentals/flow stays technical-only replay.
@@ -197,7 +199,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 - [ ] AI cannot reintroduce rejected candidates; backtest fixture outcomes match hand-calculated accounting.
 - [ ] Unit tests and debug build pass; unsupported full-advisor performance claims are absent from result screens.
 
-## Task 12: Capture advice and subsequent outcomes
+## Task 12: Capture advice and subsequent outcomes (Deferred)
 
 - [ ] Persist a local versioned advice snapshot with input timestamps, eligibility reasons, accepted plan, and rule version; link actual fills, revisions and overrides without storing API credentials.
 - [ ] Provide exportable evidence for planned-versus-realized reward/risk, fees and exit reasons; replay complete recorded snapshots through the same policies.
@@ -206,7 +208,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 **Dependencies:** 2, 4, 9–11. **Scope:** Medium; persistence and export wiring may be separate commits.
 **Likely files:** `data/RoomModels.kt`, new `data/AdviceJournalRepository.kt`, `ui/StockViewModel.kt`, `data/StockRepository.kt`, journal/replay tests.
 
-## Task 13: Correct claims and complete release review
+## Task 13: Correct claims and complete release review (Keep)
 
 - [ ] Update README, indicator/alert docs and affected labels to match the final strategy, qualitative AI assessment, stop-alert behavior and replay limitations; remove unsupported win-rate/expectancy claims.
 - [ ] Review a deterministic old/new decision comparison and a forward paper-evaluation protocol with strategy version, sample size, period, costs, data coverage and a holdout selected before tuning.
@@ -583,3 +585,15 @@ A variant counts as better than F5 only if it beats A0 CAGR in both sub-periods 
 - [x] Monthly reminder: first trading session of each month, once, when untested lists are on and at least one Dividend-purpose holding exists; opens the Advisor.
 - [x] Tests, build, lint, device check (prefill flags; plan with real holdings), docs, changelog, commit.
 - [x] Result: 182 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings (+1 `UseKtx` on the new `alertPrefs.edit()` call, matching the surrounding worker code). Device: plan now sells only MBK and JMT (Dividend purpose), TRUE and CPALL left out; default budget 14,180 baht; "Record buy" opened LH 400 @ 3.44 with Dividend and executed fill preset and no stop message; cancelled without saving. The reminder was not triggered on the device (worker timing); it is gated by month key, open market, untested lists and a Dividend-purpose holding. Untested-lists setting restored off.
+
+# Core-first repositioning, 2026-10-03
+
+Plan: [Core-first repositioning](plan.md#core-first-repositioning-plan). Status: approved and implemented.
+
+- [x] Portfolio is the start screen and first bottom-bar item; deep links unchanged.
+- [x] Advisor opens on the Dividend tab (now first in the toggle).
+- [x] Evidence notice: the existing `UntestedEdgeNotice` was already on the Swing tab and stock detail; added above the Watchlist list. No rule changes.
+- [x] SCREEN_FLOWS updated (core-first order, Advisor focus, Watchlist context). README already led with the index core and does not describe navigation order: no change.
+- [x] Re-scope the reliability plan: note at its top; Tasks 1-4, 8, 9, 13 Keep, 6 freshness Keep, 5, 7, 10-12 Deferred. Checkboxes unchanged.
+- [x] Tests, build, lint, device checks, changelog, commit.
+- [x] Result: 182 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings (unchanged). Device: cold start on Portfolio; bottom bar Portfolio, Advisor, Watchlist, History, Settings; Advisor opens on Dividend; notice on Swing tab and Watchlist; intents matching the notifications open Advisor (START_SCREEN=ADVISOR), Portfolio (sell reminder with OPEN_SYMBOL) and the DCA Buy dialog prefilled TDEX 9.0 x 100 with executed fill unticked (cancelled, nothing saved).

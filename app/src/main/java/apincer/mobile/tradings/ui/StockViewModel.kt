@@ -35,7 +35,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 data class AlertRoutineState(
-    val playbookMode: PlaybookMode = PlaybookMode.SWING,
+    val playbookMode: PlaybookMode = PlaybookMode.DIVIDEND,
     val swingSellAlerts: List<SellAlertData> = emptyList(),
     val dividendSellAlerts: List<SellAlertData> = emptyList(),
     val combinedSwingPlays: List<StockWatchlistInfo> = emptyList(),
@@ -379,7 +379,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val _checklist = MutableStateFlow(ChecklistEntity())
     val checklist: StateFlow<ChecklistEntity> = _checklist
 
-    private val _playbookMode = MutableStateFlow(PlaybookMode.SWING)
+    // Dividend first: the only tested rule that beat TDEX lives there; Swing is technical context.
+    private val _playbookMode = MutableStateFlow(PlaybookMode.DIVIDEND)
     val playbookMode: StateFlow<PlaybookMode> = _playbookMode
 
     private val _marketRegime = MutableStateFlow(TechnicalAnalysis.MarketRegime.NEUTRAL)

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (core-first navigation)
+- The app opens on Portfolio, where the index core, DCA and allocation live; the bottom bar is now Portfolio, Advisor, Watchlist, History, Settings. Notification links open the same screens as before.
+- The Advisor opens on the Dividend tab, now listed first. Swing stays available as technical context.
+- The Watchlist shows the same "Context, not a buy call" notice as the Swing tab above its signals. Signal, entry and exit rules are unchanged.
+
 ### Changed (rebalance plan follow-ups)
 - The monthly rebalance plan manages only holdings recorded with the Dividend purpose: only those are sold or counted in the default budget. Other holdings in the top 10 show as kept ("held for another purpose"); the rest are left out.
 - "Record buy" opens the Buy dialog with the Dividend purpose and "Record an already executed broker trade" preset. The proposal stop-check message is hidden for a recorded dividend fill without a stop, since dividend holdings use none. Core DCA prefill is unchanged.
