@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (dividend cut review)
+- The Advisor flags a dividend cut or suspension on Dividend-purpose holdings as a review note, never a sell: the latest payment more than 10% below the payment about a year earlier (so a smaller interim is not mistaken for a cut), or no payment for over 13 months. Three years of dividend history is fetched once a day. Idea adapted from tradermonty's kanchi-dividend-review-monitor (MIT).
+- A holding's dividend notes now appear together in one alert, exits first; before, only the first was shown.
+
 ### Build
 - Release signing reads `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD` from `local.properties`; without them the release APK stays unsigned. `local.properties` is no longer tracked (it held only the machine's SDK path), and keystore files are ignored.
 

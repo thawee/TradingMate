@@ -48,6 +48,11 @@ class HoldingSignalTest {
         assertTrue(notes.last().reason.contains("-25.0%"))
     }
 
+    @Test fun dividendCutIsAReviewNoteNotAnExit() {
+        val notes = DividendExitPolicy.notes(10.0, 9.0, 0.0, 6.0, 18.0, true, dividendCut = "Dividend cut: test")
+        assertEquals(listOf(DividendExitPolicy.Note(false, "Review: Dividend cut: test")), notes)
+    }
+
     @Test fun healthyListedHoldingHasNoNotes() {
         assertTrue(DividendExitPolicy.notes(10.0, 9.0, 0.0, 6.0, 18.0, true).isEmpty())
         // No ranking yet: no list note.

@@ -376,8 +376,26 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val _marketRegime = MutableStateFlow(TechnicalAnalysis.MarketRegime.NEUTRAL)
     val marketRegime: StateFlow<TechnicalAnalysis.MarketRegime> = _marketRegime
 
+    // Dividend cut/suspension reasons for Dividend-purpose holdings (symbol -> reason), refreshed once a day.
+    private val _dividendCuts = MutableStateFlow<Map<String, String>>(emptyMap())
+    private var dividendCutsCheckedFor: Pair<String, Set<String>>? = null
+
+    /** Fetches three years of dividend events for [symbols] at most once a day per symbol set. */
+    fun refreshDividendCuts(symbols: Set<String>) {
+        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok"))
+        val key = today.toString() to symbols
+        if (symbols.isEmpty() || dividendCutsCheckedFor == key) return
+        dividendCutsCheckedFor = key
+        viewModelScope.launch(Dispatchers.IO) {
+            _dividendCuts.value = symbols.mapNotNull { symbol ->
+                apincer.mobile.tradings.domain.DividendCut.check(SetScraper.fetchDividendEvents(symbol, "3y"), today)
+                    ?.let { symbol to it }
+            }.toMap()
+        }
+    }
+
     val alertRoutineState: StateFlow<AlertRoutineState> = 
-        combine(_playbookMode, watchlistInfo, _checklist, _marketRegime) { mode, watchlist, checklist, marketRegime ->
+        combine(_playbookMode, watchlistInfo, _checklist, _marketRegime, _dividendCuts) { mode, watchlist, checklist, marketRegime, dividendCuts ->
             val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
 
             val isQual = StockDna::isQual
@@ -471,8 +489,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         price = stock.info.lastPrice, costPerShare = stock.portfolio.cost,
                         savedStop = if (fixedPlan) 0.0 else stock.portfolio.stopLoss,
                         yieldPercent = stock.info.dividendYield, roe = stock.info.roe,
-                        inHighYieldList = ranked?.let { stock.info.symbol.uppercase() in it }
-                    ).forEach { dividendSellAlerts.add(SellAlertData(stock, it.reason)) }
+                        inHighYieldList = ranked?.let { stock.info.symbol.uppercase() in it },
+                        dividendCut = dividendCuts[stock.info.symbol.uppercase()]
+                    ).takeIf { it.isNotEmpty() }?.let { notes ->
+                        // One alert per holding (alerts are de-duplicated by symbol): exits first, then reviews.
+                        dividendSellAlerts.add(SellAlertData(stock, notes.joinToString("\n") { it.reason }))
+                    }
                 }
 
                 if (stock.portfolio.portfolio.exitPolicy == "FIXED_TARGET") {

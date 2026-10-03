@@ -618,3 +618,11 @@ Known limitations (not blockers unless the user decides otherwise):
 - Deferred under the core-first decision: weekly-trend evidence, target provenance, Gemini plan constraints, swing backtest repair, advice-to-outcome capture, a deterministic old/new decision comparison.
 - The rebalance plan's held-name rule, the satellite budget default and sells of names outside the list follow the user's 2026-10-03 choices.
 - Lint: 127 warnings, none errors; one added today (`UseKtx` on the reminder's `alertPrefs.edit()`, matching surrounding code).
+
+# Dividend cut review trigger, 2026-10-03
+
+Idea adapted from tradermonty `kanchi-dividend-review-monitor` (T1 dividend cut/suspension; review, never auto-sell). User agreed.
+
+- [x] Pure `DividendCut.check(events, today)`: latest payment vs the payment closest to one year earlier (within 75 days) so interim/final patterns compare like with like; cut when more than 10% lower; suspension when the last payment is over 400 days old. Unit tests.
+- [x] `DividendExitPolicy.notes` gains the cut as a REVIEW note; `StockViewModel` fetches 3 years of events for Dividend-purpose holdings once a day and feeds them into the Advisor alerts reactively.
+- [x] Tests, build, lint, device check, docs, changelog, commit. 201 unit tests (10 skipped), 0 failures; lint 0 errors, 127 warnings. Device: MBK and JMT have no cut (MBK 0.60 vs 0.50, JMT 0.27 vs 0.24 a year earlier, checked against Yahoo); JMT's alert now lists saved stop, left the list and ROE review together.

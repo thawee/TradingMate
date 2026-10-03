@@ -122,6 +122,9 @@ fun DividendAdvisorScreen(
     val speculativePlays = alertRoutineState.speculativePlays
     val dividendPlays = alertRoutineState.dividendPlays
     val portfolioItems = alertRoutineState.portfolioItems
+    val dividendSymbols = portfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
+        .map { it.info.symbol.uppercase() }.toSet()
+    LaunchedEffect(dividendSymbols) { viewModel.refreshDividendCuts(dividendSymbols) }
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAfternoonScanAvailable by viewModel.isAfternoonScanAvailable.collectAsState()
