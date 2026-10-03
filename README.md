@@ -18,6 +18,7 @@ It also covers the practical side of Thai investing:
 ## ✨ Key Features
 
 - **Core-Satellite Allocation:** TDEX is the core; everything else is satellite. Portfolio shows core % against your target with the TDEX amount needed to close the gap, and the Buy dialog warns when a stock purchase would push the satellite over its cap.
+- **Core-first navigation:** The app opens on Portfolio (core allocation, DCA, scorecard); the Advisor opens on its Dividend tab. Swing signals are labelled "Context, not a buy call" on the Watchlist, the Swing tab and stock details.
 - **Monthly DCA Reminder:** On your chosen day (or the next trading session), a notification suggests whole TDEX board lots for your monthly amount, fees included.
 - **Satellite Scorecard:** Stats compares the satellite with a shadow TDEX position fed the same journaled buys, sells and dividends: end-value gap and money-weighted annual return since the first fill and over two trailing 12-month windows. Holdings without complete fill records are excluded and listed.
 - **Institutional Risk Management & CRO Suite:**
@@ -29,7 +30,8 @@ It also covers the practical side of Thai investing:
   - **63-Day Rolling Covariance Portfolio Beta ($\beta$):** Tracks systematic volatility vs. SET Index (*Defensive Low-Vol*, *Balanced*, or *Aggressive High-Beta*).
 - **Multi-Timeframe (MTF) Macro Trend Alignment:** Daily candle resampling to compute **Weekly 20-EMA** macro trends. Prevents counter-trend daily whipsaw buys with the **Macro Weekly Bearish Guard** and awards the `MTF` confluence tag.
 - **Thai Dividend Tax Shield (Section 47 bis):** Calculates reclaimable Corporate Income Tax (CIT 20%) credits ($\text{Gross} \times \frac{20}{80}$) and Net Yield-on-Cost ($\text{YoC}_{\text{net}}$) after 10% Withholding Tax.
-- **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. Suggests high-yield "Dividend Stars" based on strict fundamental and solvency criteria.
+- **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. Suggests high-yield "Dividend Stars" based on strict fundamental and solvency criteria (untested list).
+- **High Dividend Yield List and Monthly Rebalance Plan:** The top 10 SET50 stocks by yield, the one stock rule that passed the evidence gate (backtest +7.80% a year vs TDEX +2.52%, inflated by survivorship; the real 1DIV ETF +3.86% vs +2.55%). The rebalance plan turns it into a review-only order list for your Dividend-purpose holdings: sell names that left the list, keep the rest unresized, buy new names with a tenth of the budget in whole lots. It says when the budget is too small to hold all ten and points to 1DIV. A monthly notification reminds you to review it.
 - **Market Pulse:** Watchlist monitoring with multi-factor technical context (Technical Setup, On Watch, Exit Rule). Entry signals carry a "Context, not a buy call" notice; entry alerts are off by default.
 - **AI Advisor:** Explains and ranks locally validated swing setups as context. The backtest result is shown first, and saving a plan is a secondary action ("Save as Satellite Plan"). Model assessments are qualitative and do not represent win probabilities.
 - **Saved Swing Plans:** Records an accepted entry, stop, target, and exit policy. Proposed buys are checked against net reward to risk, stop risk, concentration, cash reserve, and SET board lots. Broker fills can still be recorded when they differ from a proposal.
@@ -113,10 +115,11 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **🟢 Buy - Oversold Accumulation:** RSI < 35 while above the long-term SMA 200 (Stoch %K > %D confirmed).
 - **🟢 Buy - Early Recovery:** MACD turns positive near support with volume/MFI confirmation.
 - **🟢 Buy - Healthy Momentum:** Positive MACD, RSI < 55, price above SMA 50, filtered against false breakouts and NVDR selling.
-- **🔴 Sell - Early Breakdown:** Triggers early exit if a position drops $\le -1.5\%$ and loses SMA 50 with negative MACD (suppressed near XD date).
+- **⚪ Context - Trend Weakening:** Below SMA 50 with negative MACD is a note, not a sell; the saved stop is the exit. Selling there was the largest loss source in the 2015-2025 SET50 replay. Near an XD date the dip is labelled as the dividend adjustment.
 - **🔴 Sell - Saved Target:** New fixed swing plans alert when the saved target is reached. Legacy holdings retain their earlier profit rules until a plan is completed.
 - **🔴 Sell - R-Multiple Target (legacy holdings):** Holdings without a saved plan take profit at 2R (twice the stop distance). Overbought, MFI and upper-band exits apply only after +1R, and the trailing stop arms at +1R and exits before the trade turns into a loss.
 - **🔴 Sell - Stop Loss:** Volatility-adjusted (2× ATR) or -4.5% (SET50) / -6.5% (Mid/Small-Cap).
+- **💰 Dividend-purpose holdings:** Follow the tested high-yield rule: no price, trailing, quality or yield exits. The Advisor lists leaving the high-yield top 10 as the exit (acted on at the monthly review) and shows ROE below 15%, yield below 3% and a 20% drawdown as review notes. Only a stop you saved sends a notification.
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance/Breakdown) ALWAYS override BUY momentum.
 
 ## 📊 Measuring Performance
@@ -177,7 +180,8 @@ TradingMate sends push notifications during specific time windows on weekdays (A
 | **Within 7 days of XD** | 💰 Ex-Dividend Alert | Once/XD date | Per-stock alert when an ex-dividend date is approaching |
 | **Jan & Jun, 09:00–17:00** | 📅 Dividend Season | Once/season | Start accumulating for upcoming payout season |
 | **Any month** | 💰 Yield Opportunity | Once/week/stock | DIVIDEND stock yield ≥ 5% + ROE ≥ 15% — good accumulation price |
-| **Any time (market open)** | 🚨 Sell Reminder | Per stock | Stop, trailing stop, saved-plan exit or SELL signal on a holding |
+| **First trading session of the month** | 📊 High-Yield Review | Once/month | Review the high dividend yield rebalance plan. Only with untested lists on and a Dividend-purpose holding |
+| **Any time (market open)** | 🚨 Sell Reminder | Per stock | Stop, trailing stop, saved-plan exit or SELL signal on a holding (Dividend-purpose holdings: saved stop only) |
 | **Any time (market open)** | 🔔 Entry Signal | Per stock | New BUY/POTENTIAL on a non-held quality candidate. **Off by default** |
 
 > **Deduplication rules:**

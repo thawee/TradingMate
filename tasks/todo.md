@@ -212,9 +212,9 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Task 13: Correct claims and complete release review (Keep)
 
-- [ ] Update README, indicator/alert docs and affected labels to match the final strategy, qualitative AI assessment, stop-alert behavior and replay limitations; remove unsupported win-rate/expectancy claims.
+- [x] Update README, indicator/alert docs and affected labels to match the final strategy, qualitative AI assessment, stop-alert behavior and replay limitations; remove unsupported win-rate/expectancy claims. 2026-10-03: README (core-first navigation, high-yield list and rebalance plan, dividend-holding exits, Trend Weakening as context, monthly review notification), INDICATORS (removed the early-breakdown exit that no longer exists), ALERT_FLOWS and SCREEN_FLOWS earlier the same day. No win-rate or expectancy claims remain; README states none is established.
 - [ ] Review a deterministic old/new decision comparison and a forward paper-evaluation protocol with strategy version, sample size, period, costs, data coverage and a holdout selected before tuning.
-- [ ] Run final unit/build/lint gates, migration checks and device walkthrough. Record actual results and remaining limitations here before user release review.
+- [x] Run final unit/build/lint gates, migration checks and device walkthrough. Record actual results and remaining limitations here before user release review. 2026-10-03: 195 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings; 12/12 instrumentation tests on the phone (migrations 30-33, repository integrity, confirmation re-check, broker fills). Walkthrough on the phone: start screen, Advisor tabs, filter counts, rebalance card and Record buy prefill, dividend alerts, notification links, plan restart. Limitations below.
 
 **Dependencies:** 1–12. **Scope:** Medium.
 **Likely files:** `README.md`, `docs/INDICATORS.md`, `docs/ALERT_FLOWS.md`, affected string resources, this checklist.
@@ -606,3 +606,15 @@ Plan: [Core-first repositioning](plan.md#core-first-repositioning-plan). Status:
 - [x] `HoldingSignal.resolve` shared by `StockViewModel` (two sites) and `StockAlertWorker`; `DividendExitPolicy` for the Advisor's dividend alerts; Buy dialog text and ALERT_FLOWS updated (also removed the stale early-breakdown wording).
 - [x] 192 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings. Seven new tests: dividend hold ignores technical/quality sells, saved stop still alerts, swing and core unchanged, fixed plan before dividend hold, exit vs review notes, no notes when healthy or unranked.
 - [x] Device check: Dividend tab shows 2 alerts: MBK "Left the high dividend yield top 10" (+21.8%) and JMT "Saved stop reached at ฿12.0" (฿10.10, -20.2%; one alert per symbol, highest priority first). No ROE or yield SELLs.
+
+## Release review, 2026-10-03
+
+Ready for the user's review. Verified today: see Task 13 above and the sections for each change.
+
+Known limitations (not blockers unless the user decides otherwise):
+- Evidence: the high-yield result is inflated by survivorship (no delisted stocks); the real 1DIV ETF trailed TDEX in 2015-2020 and 2012-2014. Buying more after drops passed the backtest but stays out of the app for the same reason. Swing entries have no edge in any test.
+- Index data: `^SET.BK` returns one bar, so TDEX is the index proxy; sessions without a TDEX close carry the previous close.
+- Not exercised on the device: the monthly high-yield review notification (worker timing) and the Swing "blocked by budget" line (no swing candidates reach sizing in the current bear regime); both are unit-tested.
+- Deferred under the core-first decision: weekly-trend evidence, target provenance, Gemini plan constraints, swing backtest repair, advice-to-outcome capture, a deterministic old/new decision comparison.
+- The rebalance plan's held-name rule, the satellite budget default and sells of names outside the list follow the user's 2026-10-03 choices.
+- Lint: 127 warnings, none errors; one added today (`UseKtx` on the reminder's `alertPrefs.edit()`, matching surrounding code).

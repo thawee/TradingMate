@@ -110,11 +110,8 @@ Guards against "bull traps" where technical momentum appears positive but lacks 
 - **NVDR Dumping Guard:** If foreign institutions are heavily net selling (NVDR net selling $> \text{฿}5,000,000$), BUY signals are downgraded to `POTENTIAL` (watch).
 - **Volume & RS Confirmation:** If a stock is lagging the SET index (Relative Strength $< -2.0$) and lacks above-average volume or rising OBV, breakout BUY signals are downgraded to `POTENTIAL`.
 
-### 15. Early Breakdown Warning (Active Loss Protection)
-Rather than waiting for a full stop loss ($-4.5\%$ to $-8.0\%$), the engine actively monitors open positions:
-
-- **Trigger:** If a holding is in a slight net loss ($\le -1.5\%$) and price breaks below the 50-day SMA while momentum (MACD) turns negative.
-- **Action:** Generates an immediate `SELL` (*Early Breakdown Warning*) alert, allowing traders to cut deteriorating positions early with minimal capital loss.
+### 15. Trend Weakening (context, no early exit)
+A holding below its 50-day SMA with negative MACD gets a *Trend Weakening* note (`NEUTRAL`), not a sell; non-holdings get *Downward Trend*. The saved stop is the exit. The earlier early-breakdown exit (sell at $-1.5\%$ on this pattern) was the largest loss source in the 2015-2025 SET50 replay (1,058 exits, -685R; tools/backtest/report.md), so it was removed. Within the XD window the dip is labelled *Ex-Dividend Grace Period*.
 
 ### 16. Multi-Timeframe (MTF) Macro Trend Alignment (Weekly 20-EMA)
 To avoid counter-trend "knife-catching" in larger macro downtrends:
@@ -217,8 +214,8 @@ Stocks that are becoming cheap but haven't confirmed a reversal yet.
 
 ### 🔴 Selling Zone (Distribution)
 Stocks that are overvalued or have broken their upward trend.
-- **Criteria:** RSI > 65 **OR** Price is near Upper Bollinger Band **OR** (MACD is Bearish **AND** Price < SMA 50) **OR** Early Breakdown.
-- **Signal:** *Overbought*, *Upper Band Resistance*, *Early Breakdown Warning*, or *Weak Trend*.
+- **Criteria:** RSI > 65 **OR** Price is near Upper Bollinger Band. For holdings, overbought-style exits apply only after +1R. Bearish MACD below SMA 50 is context (*Trend Weakening* / *Downward Trend*), not a sell.
+- **Signal:** *Overbought*, *Upper Band Resistance*.
 
 ### ⚪ Neutral Zone
 Stocks with no clear trend or extreme valuation.
@@ -229,7 +226,7 @@ Stocks with no clear trend or extreme valuation.
 ## 🛡️ Institutional Risk Management (The Golden Rules)
 
 1. **SELL Overrides BUY:** Even if a stock has great momentum, if it hits RSI 65 or the Upper Bollinger Band, the app triggers a **SELL** warning. Never buy at the peak.
-2. **Early Breakdown Cutting (with XD Grace Period):** If a trade loses $-1.5\%$ and breaks below SMA 50 with negative MACD, exit early rather than suffering full stop-loss drawdown. *Grace Period:* If the price drop occurs within $\pm 2$ trading days of an Ex-Dividend (XD) date, the sell signal is paused to account for expected cash dividend payouts.
+2. **No Early Breakdown Exit:** Losing SMA 50 with negative MACD is a note, not a sell; the saved stop is the exit (the early exit lost money in the 2015-2025 replay). Dividend-purpose holdings follow the tested high-yield rule instead: only a saved stop alerts, and leaving the high-yield top 10 is reviewed monthly.
 3. **Volatility-Adjusted Stop Loss:** The stop is 2× the stock's daily ATR (clamped -3.5% to -8.0%). If ATR is unavailable, fixed tiers apply: -4.5% (SET50) / -6.5% (Mid/Small-Cap). A breach triggers a mandatory **SELL** signal to preserve capital.
 4. **Market Regime Sizing & Dynamic Cash Buffer:** Adapt position sizing and cash reserves based on SET Index health:
    - **Bullish Regime:** 100% full position sizing, 10–15% cash buffer.
