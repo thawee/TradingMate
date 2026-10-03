@@ -508,3 +508,67 @@ Design: existing Compose components are sufficient; no external Sleek project is
 - Final `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passed: 169 tests reported, 9 skipped, zero failures/errors; lint has 126 warnings and zero errors, none pointing to the new explorer files.
 - Installed the final debug APK on the connected phone without clearing data. Verified live Swing defaults yield zero; disabling Confirmed BUY yields 11. Dividend defaults yield 11; disabling Quality yields 31; Swing retains its independent selection. Clear filters displayed all 101 tracked stocks. Visually inspected `/tmp/tradingmate-advisor-filters.png` at the phone's current font size.
 - Existing optional lists/presets and all trade-plan/AI/exit rules remain intact. Git diff against main inspected and whitespace check passed. No commit created.
+
+
+# Advisor sizing fix and High Yield rebalance, 2026-10-03
+
+Plan: [Advisor sizing fix and High Yield rebalance](plan.md#advisor-sizing-fix-and-high-yield-rebalance-plan).
+Status: planned; application implementation has not started.
+
+## Planning
+
+- [x] Draft the risk-adaptive Advisor plan (risk fit, presets, open risk).
+- [x] Review value: verified the sizing drop at `DividendAdvisorScreen.kt:1171-1194`, the hardcoded 15% at `:1276` and `:1402`, and unenforced `maxOpenExposure`. Presets and open-risk enforcement cut (low value while swing BUY=0); core drift and pending dividends already exist.
+- [x] Narrow scope to the swing sizing fix plus a High Yield rebalance plan for the tested F5 rule.
+
+## Decisions (user)
+
+- [ ] Default satellite budget (recommended: current satellite market value).
+- [ ] Rebalance cadence prompt (recommended: monthly, as tested).
+- [ ] List sells of satellite names outside the top 10 (recommended: yes, labelled).
+
+## Phase 0: Clean start
+
+- [ ] Commit the finished filter explorer (`AdvisorFilters.kt`, `AdvisorFilterExplorer.kt`, `AdvisorFiltersTest.kt`, `DividendAdvisorScreen.kt`, changelog).
+- [ ] Remove or ignore stray scripts (`append_changelog.py`, `append_readme.py`, `patch_ai_accept.py`, `update_tasks.py`) and tracked `.gradle/` churn.
+
+## Part 1: Swing sizing fix
+
+- [ ] Pure helper beside `TradeRiskPolicy`: largest whole-lot quantity passing `evaluate`, plus the blocking limit (or minimum-lot block); explicit unavailable result for invalid input.
+- [ ] Advisor uses it instead of `minOf(sized, affordable)`; record the blocking reason for candidates that still do not fit.
+- [ ] AI prompt reads the actual stock allocation setting; describe `maxOpenExposure` as advisory.
+- [ ] Unit fixtures from the plan (Part 1); separate commit.
+
+## Part 2: High Yield rebalance plan
+
+- [ ] Pure function: budget, holdings, ranking, prices, fees -> per-symbol held/buy/sell lots, fees, leftover cash, following the tested rule (sell names that left; keep held names without resizing; new names at min(budget / 10, cash) in whole lots); core funds excluded; cap warnings without changing weights.
+- [ ] Dividend tab UI under the High Yield list: budget field, order table, totals, evidence note; buy buttons prefill the existing buy dialog. Nothing executed automatically.
+- [ ] Unit fixtures from the plan (Part 2); separate commit.
+
+## Verification
+
+- [ ] `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug` pass.
+- [ ] Device: Swing quantities and blocking reasons; High Yield plan with real holdings; buy dialog prefill; core funds absent from the plan.
+- [ ] Diff against main reviewed, `git diff --check` passes, changelog and user docs updated with actual results.
+
+## Deferred
+
+- Presets (Cautious/Balanced/Adventurous) for the four risk settings.
+- Open stop-risk aggregation and `maxOpenExposure` enforcement.
+- Unifying PortfolioScreen and `PortfolioBacktest` sizing with the new helper (versioned backtest rerun, no forced parity).
+- Preferences in backup/restore (`TradingBackup` has none today).
+
+# Averaging down on the high-dividend list, 2026-10-03 (fixed before the first run)
+
+Question: instead of a stop, does buying more of a held name after it falls improve F5? F5 as tested never resizes held names (`RuleStudy.rankedPortfolio`: names that stay are kept without resizing), so this is a new rule, not already covered by F5.
+Same simulator, universe, costs (ATS fees, 0.15% slippage per side), point-in-time fundamentals and periods as F5. Decisions only at month ends; "down" = last close at least 15% below the position's average cost per share including fees.
+- A0: F5 baseline rerun; must reproduce 7.80%/yr (2015-2025) before any variant counts.
+- A1: top up. A held name still in the top 10 and down >= 15% is bought back up to 10% of equity, at most once per position.
+- A2: overweight add. Same trigger, buy up to 15% of equity, at most once per position.
+- A3: full monthly resize of every held name to 10% (buys losers and trims winners). Also decides Part 2's held-name rule.
+- A4: control in the opposite direction. A held name down >= 15% is sold even if still in the top 10 (stop-like exit at month end).
+Report for every variant: CAGR 2015-2025, 2015-2020 and 2021-2025, holdout 2011-04-01 to 2014-12-31, max drawdown, trades, turnover, share of P/L from the top three symbols, and the largest single-name weight reached.
+A variant counts as better than F5 only if it beats A0 CAGR in both sub-periods and the holdout, with max drawdown no worse than A0 + 5 points. Any pass is weak evidence: the frozen universe excludes delisted stocks, and survivorship flatters averaging down more than any other rule, because the losers that never recovered are missing. A pass therefore needs a follow-up with a delisting-inclusive universe before it reaches the app.
+- [x] Add per-position resize/exit hooks to `rankedPortfolio` (`RuleStudy.HeldRule`) without changing A0 output: A0 reproduces 7.80 / 8.36 / 5.50 / 24.95 exactly.
+- [x] Run A0-A4; write tools/backtest/averaging_down_report.md and a summary in docs/ADVISOR_EVALUATION.md; report every result, pass or fail.
+- [x] Result: A1 (8.31%), A2 (8.71%) and A3 (8.35%) pass the gate against A0 (7.80%) in both sub-periods and the holdout, with drawdowns 2.5-4.6 points deeper; A4 (sell when down, 7.43%) fails. Gains are small and flattered by survivorship. A2 concentrates (one name up to 22%); A3 keeps the largest name near 13%. Unit suite: 170 tests, 0 failures. Not yet done: delisting-inclusive check; nothing changed in the app.

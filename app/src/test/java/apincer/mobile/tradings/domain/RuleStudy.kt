@@ -69,55 +69,117 @@ internal object RuleStudy {
     }
 
     data class Ranked(val stats: EquityStats, val positions: List<Double>, val pnlBySymbol: Map<String, Double>,
-                      val trades: Int, val turnoverPerYear: Double, val avgHeld: Double)
+                      val trades: Int, val turnoverPerYear: Double, val avgHeld: Double,
+                      val resizeOrders: Int = 0, val maxWeightPercent: Double = 0.0)
+
+    /**
+     * Rule for names kept across a rebalance (averaging-down study, tasks/todo.md 2026-10-03). A name is
+     * "down" when its month-end close is at least [downPercent] below its average cost per share including
+     * fees. [topUpTo] buys a down name back up to that fraction of equity, at most [maxAdds] times per
+     * position; [resizeAll] resizes every kept name to 1/topN of equity; [sellDown] sells down names even
+     * if still ranked (not re-bought in the same rebalance).
+     */
+    data class HeldRule(val downPercent: Double = 15.0, val topUpTo: Double? = null, val maxAdds: Int = 1,
+                        val resizeAll: Boolean = false, val sellDown: Boolean = false)
 
     /**
      * Monthly ranked portfolio: at each month's last session, rank symbols by [score] (higher first,
      * null = not eligible), hold the top [topN] at 1/[topN] target each from the next close. Names that
-     * stay are kept without resizing; names that drop out are sold. Fees (ATS) and slippage per side.
+     * stay are kept without resizing unless [heldRule] says otherwise; names that drop out are sold.
+     * Fees (ATS) and slippage per side.
      */
     fun rankedPortfolio(universe: Map<String, List<ScrapedHistoricalPrice>>, tdex: List<ScrapedHistoricalPrice>,
                         from: String, to: String, topN: Int = 10, slip: Double = 0.0015,
-                        rebalanceMonths: Set<Int>? = null,
+                        rebalanceMonths: Set<Int>? = null, heldRule: HeldRule? = null,
                         score: (String, List<ScrapedHistoricalPrice>, Int) -> Double?): Ranked {
         val dates = tdex.map { it.date }.filter { it in from..to }
         val idx = universe.mapValues { (_, bars) -> bars.withIndex().associate { it.value.date to it.index } }
         val monthEnds = dates.indices.filter { i -> i + 1 == dates.size || dates[i + 1].substring(0, 7) != dates[i].substring(0, 7) }.toSet()
         var cash = 1_000_000.0
-        data class Pos(val shares: Int, val cost: Double, val openDate: String)
+        data class Pos(val shares: Int, val cost: Double, val openDate: String, val adds: Int = 0)
         val held = mutableMapOf<String, Pos>()
         val closedReturns = mutableListOf<Double>(); val pnl = mutableMapOf<String, Double>(); val heldDays = mutableListOf<Double>()
         var tradedValue = 0.0
+        var resizeOrders = 0
+        var maxWeight = 0.0
         var pending: List<String>? = null
+        var pendingDown: Set<String> = emptySet()
         val curve = mutableListOf<Pair<String, Double>>()
         fun price(s: String, d: String) = idx.getValue(s)[d]?.let { universe.getValue(s)[it].close }
+        fun sell(s: String, shares: Int, p: Double, d: String) {
+            val pos = held.getValue(s)
+            val gross = shares * p * (1 - slip)
+            val net = gross - TechnicalAnalysis.calculateFees(gross, true, true)
+            cash += net; tradedValue += gross
+            if (shares == pos.shares) {
+                held.remove(s)
+                pnl[s] = (pnl[s] ?: 0.0) + net - pos.cost
+                closedReturns += net / pos.cost - 1
+                heldDays += java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(pos.openDate), java.time.LocalDate.parse(d)).toDouble()
+            } else {
+                val costPart = pos.cost * shares / pos.shares
+                pnl[s] = (pnl[s] ?: 0.0) + net - costPart
+                held[s] = pos.copy(shares = pos.shares - shares, cost = pos.cost - costPart)
+            }
+        }
+        /** Whole lots worth up to [budget] at [fill] whose cost with fees fits in cash. */
+        fun lotsFor(budget: Double, fill: Double): Int {
+            var lots = (budget / (fill * 100)).toInt()
+            while (lots > 0 && lots * 100 * fill + TechnicalAnalysis.calculateFees(lots * 100 * fill, false, true) > cash) lots--
+            return lots
+        }
         for ((di, d) in dates.withIndex()) {
             pending?.let { target ->
                 // Sell names that left the list, then buy new names at up to 10% of equity each.
                 for (s in held.keys.filter { it !in target }) {
                     val p = price(s, d) ?: continue
-                    val pos = held.remove(s)!!
-                    val gross = pos.shares * p * (1 - slip)
-                    val net = gross - TechnicalAnalysis.calculateFees(gross, true, true)
-                    cash += net; tradedValue += gross
-                    pnl[s] = (pnl[s] ?: 0.0) + net - pos.cost
-                    closedReturns += net / pos.cost - 1
-                    heldDays += java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(pos.openDate), java.time.LocalDate.parse(d)).toDouble()
+                    sell(s, held.getValue(s).shares, p, d)
                 }
+                val stopped = mutableSetOf<String>()
+                if (heldRule?.sellDown == true) for (s in held.keys.filter { it in pendingDown }) {
+                    val p = price(s, d) ?: continue
+                    sell(s, held.getValue(s).shares, p, d); stopped += s
+                }
+                if (heldRule?.resizeAll == true) {
+                    val eq = cash + held.entries.sumOf { (s, pos) -> pos.shares * (price(s, d) ?: 0.0) }
+                    for (s in held.keys.toList()) {
+                        val p = price(s, d) ?: continue
+                        val excess = ((held.getValue(s).shares * p - eq / topN) / (p * 100)).toInt()
+                        if (excess > 0) { sell(s, excess * 100, p, d); resizeOrders++ }
+                    }
+                }
+                val kept = held.keys.toSet()
                 val equity = cash + held.entries.sumOf { (s, pos) -> pos.shares * (price(s, d) ?: 0.0) }
-                for (s in target.filter { it !in held }) {
+                for (s in target.filter { it !in held && it !in stopped }) {
                     val p = price(s, d) ?: continue
                     val fill = p * (1 + slip)
-                    val budget = minOf(equity / topN, cash)
-                    var lots = (budget / (fill * 100)).toInt()
-                    while (lots > 0 && lots * 100 * fill + TechnicalAnalysis.calculateFees(lots * 100 * fill, false, true) > cash) lots--
+                    val lots = lotsFor(minOf(equity / topN, cash), fill)
                     if (lots <= 0) continue
                     val gross = lots * 100 * fill
                     val cost = gross + TechnicalAnalysis.calculateFees(gross, false, true)
                     cash -= cost; tradedValue += gross
                     held[s] = Pos(lots * 100, cost, d)
                 }
+                // Top up kept names (after new names, which keep F5's budget) from the remaining cash.
+                if (heldRule != null) for (s in kept) {
+                    val pos = held[s] ?: continue
+                    val goal = when {
+                        heldRule.resizeAll -> equity / topN
+                        heldRule.topUpTo != null && s in pendingDown && pos.adds < heldRule.maxAdds -> equity * heldRule.topUpTo
+                        else -> continue
+                    }
+                    val p = price(s, d) ?: continue
+                    val fill = p * (1 + slip)
+                    val lots = lotsFor(minOf(goal - pos.shares * p, cash), fill)
+                    if (lots <= 0) continue
+                    val gross = lots * 100 * fill
+                    val cost = gross + TechnicalAnalysis.calculateFees(gross, false, true)
+                    cash -= cost; tradedValue += gross; resizeOrders++
+                    held[s] = pos.copy(shares = pos.shares + lots * 100, cost = pos.cost + cost,
+                        adds = if (heldRule.resizeAll) pos.adds else pos.adds + 1)
+                }
                 pending = null
+                pendingDown = emptySet()
             }
             if (di in monthEnds && di + 1 < dates.size &&
                 (rebalanceMonths == null || d.substring(5, 7).toInt() in rebalanceMonths)) {
@@ -126,8 +188,14 @@ internal object RuleStudy {
                     score(s, universe.getValue(s), i)?.let { s to it }
                 }
                 pending = scores.sortedByDescending { it.second }.take(topN).map { it.first }
+                if (heldRule != null) pendingDown = held.filter { (s, pos) ->
+                    price(s, d)?.let { it <= pos.cost / pos.shares * (1 - heldRule.downPercent / 100) } == true
+                }.keys
             }
-            curve += d to (cash + held.entries.sumOf { (s, pos) -> pos.shares * (price(s, d) ?: (pos.cost / pos.shares)) })
+            val values = held.entries.map { (s, pos) -> pos.shares * (price(s, d) ?: (pos.cost / pos.shares)) }
+            val total = cash + values.sum()
+            curve += d to total
+            values.maxOrNull()?.let { maxWeight = maxOf(maxWeight, it / total * 100) }
         }
         // Mark open positions at the last close for per-symbol P/L.
         val last = dates.last()
@@ -139,6 +207,7 @@ internal object RuleStudy {
         val stats = EquityStats.from(curve, 1_000_000.0)
         val avgEquity = curve.map { it.second }.average()
         return Ranked(stats, closedReturns, pnl, closedReturns.size + held.size,
-            tradedValue / avgEquity / years, heldDays.takeIf { it.isNotEmpty() }?.average() ?: 0.0)
+            tradedValue / avgEquity / years, heldDays.takeIf { it.isNotEmpty() }?.average() ?: 0.0,
+            resizeOrders, maxWeight)
     }
 }

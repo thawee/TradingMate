@@ -1,3 +1,60 @@
+# Advisor sizing fix and High Yield rebalance plan
+
+Date: 2026-10-03. Status: planned; implementation has not started. Supersedes the same-day "Risk-adaptive Advisor" plan (presets, open-risk enforcement, full sizing unification), which was cut after review.
+Checklist: [Advisor sizing fix and High Yield rebalance todos](todo.md#advisor-sizing-fix-and-high-yield-rebalance-2026-10-03).
+The earlier reliability repair plan is preserved below as historical context.
+
+## Why the scope changed
+
+- The only screen that passed testing is F5, the highest-dividend-yield screen (top 10, 10% target each, monthly; confirmed by D1-D4, the holdout and the 1DIV check). The core is TDEX plus an optional second ETF. Swing signals currently give BUY=0, and momentum failed.
+- Stop-based sizing and open stop-risk only apply to swing trades, so a large rework there would mostly be tested against empty data.
+- Core drift (`CoreSatellite.Allocation.driftPercent`, `coreShortfallBaht`), core DCA and pending dividends (`PendingDividends`) already exist. The High Yield list (`HighYieldList.rank`, `RankedListCard`) shows only symbols, yields and a held marker: users cannot act on the tested rule without doing the arithmetic themselves.
+
+## Part 1: Swing sizing fix (small, local)
+
+Verified problems:
+- `DividendAdvisorScreen.kt:1171-1194` sizes with `calculateRecommendedPositionSize` before considering existing stock/sector cost basis and fees, then drops the candidate when `TradeRiskPolicy.evaluate` rejects it. A smaller whole-lot order can fit where that quantity fails.
+- The AI prompt hardcodes "Max 15%" (`DividendAdvisorScreen.kt:1276`, `:1402`) instead of the user's stock allocation setting, and states `maxOpenExposure` as a limit although nothing enforces it.
+
+Change:
+- Add a pure helper next to `TradeRiskPolicy` that returns the largest whole-lot quantity passing `TradeRiskPolicy.evaluate` (risk per trade with fees, cash/regime reserve, stock and sector caps on cost basis), plus the first limit that blocks the next lot, or blocks the minimum lot. Invalid or non-finite input returns an explicit unavailable result. It never widens a stop or changes a target; the reward:risk check stays where it is.
+- Advisor uses it instead of `minOf(sized, affordable)`. Candidates that still do not fit are kept out of actionable plans, but the reason is recorded so the card or a count can show "blocked by sector cap" and similar.
+- Prompt text reads the actual stock allocation setting; `maxOpenExposure` is described as advisory.
+- Not in scope: PortfolioScreen's two helpers, `PortfolioBacktest` sizing, presets, open-risk enforcement. Revisit only if swing signals start producing trades.
+
+## Part 2: High Yield rebalance plan
+
+Goal: turn the tested F5 rule into a concrete order list for the user's satellite money, review only.
+
+- Input: satellite budget in baht, current holdings (quantity, price), today's `HighYieldList` ranking, fee settings.
+- Target, matching the tested F5 simulator (`RuleStudy.rankedPortfolio`): names that left the top 10 are sold; held names still in the top 10 are kept without resizing (no topping up losers, no trimming winners); each new name gets min(budget / 10, remaining cash), rounded down to whole board lots including fees. Leftover stays in cash, as in the backtest. If the averaging-down study below passes, the held-name rule may change; until then the plan follows the tested rule exactly.
+- Output per symbol: target lots, held lots, buy/sell lots, estimated baht including fees. Held satellite names that dropped out of the top 10 appear as "not in list: sell under the tested rule". Total buys, sells, fees and leftover cash.
+- Core funds (`CoreSatellite.isCore`) are never in the plan. Stock and sector caps are shown as warnings on rows that would exceed them; the plan does not silently change the tested weights.
+- Nothing is executed or written to the ledger; buy buttons reuse the existing buy dialog with the quantity prefilled.
+- Text states the evidence plainly: backtest inflated by survivorship; real 1DIV result 3.86% vs TDEX 2.55% (2015-2025), behind in 2015-2020. No return promises.
+
+Open decisions:
+1. Default satellite budget: current satellite market value (recommended), or a user-entered amount, or derived from target core % and total equity.
+2. Rebalance cadence prompt: monthly as tested (recommended), or only when the list changes.
+3. Whether to list sells of satellite names not in the top 10 (recommended: yes, labelled; the user may hold them for other reasons).
+
+## Delivery
+
+0. Commit the finished filter explorer; remove the stray scripts and `.gradle/` churn.
+1. Part 1 with unit tests; separate commit.
+2. Part 2 domain function (`HighYieldList.rebalance` or a sibling object) with unit tests, then UI on the Dividend tab; separate commit.
+3. Verify, changelog and docs.
+
+Deferred: presets, open-risk aggregation/enforcement, unifying PortfolioScreen and backtest sizing, preferences in backup/restore.
+
+## Verification
+
+Part 1 fixtures: default settings give the same quantity as before when no holdings exist; existing same-symbol and same-sector holdings shrink the quantity; returned quantity passes and the next lot fails a named limit; fees using the remaining risk budget; insufficient cash; minimum lot blocked with reason; non-finite input; a Watch/SELL candidate is never promoted.
+Part 2 fixtures: empty portfolio; exact lot rounding with leftover cash; held name in and out of the list; core funds excluded; price missing for a ranked name (row shown as unavailable, not sized); budget too small for one lot; fees included in totals.
+Run `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug`, device check on the Dividend and Swing tabs, review the diff against main, `git diff --check`.
+
+---
+
 # Advisor reliability repair plan
 
 Status: implementation in progress. Core plan, exit, risk, AI validation and technical replay repairs are in the app; remaining release checks and outcome linkage are tracked in `todo.md`.

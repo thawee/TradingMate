@@ -78,6 +78,10 @@ Because F5 was the one pass among about 19 rules, it was checked further (`tools
 
 These numbers are inflated by survivorship: the universe is today's SET50, so high-yield companies whose yield signalled distress before they fell out of the index are missing. A real, investable comparison has none of that bias: the 1DIV ETF (SET High Dividend 30) returned 3.86% a year over 2015-2025 against TDEX's 2.55% (Yahoo adjusted closes), but 0.48% against 1.80% in 2015-2020, 8.05% against 3.25% in 2021-2025 and 5.65% against 13.74% in 2012-2014. A high-dividend tilt has helped over the whole decade and strongly since 2021, but not in every period, and by far less than the backtest suggests.
 
+### Averaging down on the high-dividend list
+
+`tools/backtest/averaging_down_report.md` tests four changes to F5 fixed on 2026-10-03 before the first run, all triggered at month end when a held name is still in the top 10 and its close is at least 15% below average cost: A1 top up once to 10%, A2 add once up to 15%, A3 resize every kept name to 10% each month, and A4 (control) sell instead. The baseline reproduces F5 exactly. A1-A3 beat F5 in 2015-2020, 2021-2025 and the 2011-2014 holdout by 0.4 to 0.9 points a year (A3: 8.35% vs 7.80% over 2015-2025), with drawdowns 2.5 to 4.6 points deeper. A4 trails F5 in both sub-periods, consistent with the momentum finding that selling on a dip cuts winners. A2 lets one name reach 22% of equity; A3 keeps the largest name near 13% and lowers the top-three P/L share. The gains are small and the universe excludes delisted stocks, which flatters buying more of losers more than any other rule, so none of this reaches the app without a delisting-inclusive check.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.
