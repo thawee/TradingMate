@@ -72,12 +72,12 @@ fun StockScreen(
     settingsViewModel: SettingsViewModel = viewModel(),
     openSymbol: String? = null,
     startScreen: String? = null,
-    dcaBuyRequest: Triple<String, Double, Int>? = null,
+    dcaBuyRequest: BuyPrefill? = null,
     onDcaBuyRequestConsumed: () -> Unit = {}
 ) {
     var currentScreen by rememberSaveable { mutableStateOf(Screen.WATCHLIST) }
     // Buy dialog prefill from the Advisor's rebalance plan, consumed by Portfolio like a DCA request.
-    var advisorBuyRequest by remember { mutableStateOf<Triple<String, Double, Int>?>(null) }
+    var advisorBuyRequest by remember { mutableStateOf<BuyPrefill?>(null) }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val minRR by settingsViewModel.minRiskRewardRatio.collectAsState()
@@ -362,7 +362,7 @@ fun StockScreen(
                                         onNavigateToAcademy = { currentScreen = Screen.EDUCATION },
                                         showSnackbar = showSnackbar,
                                         onRecordBuy = { symbol, price, shares ->
-                                            advisorBuyRequest = Triple(symbol, price, shares)
+                                            advisorBuyRequest = BuyPrefill(symbol, price, shares, purpose = "DIVIDEND", executedFill = true)
                                             currentScreen = Screen.PORTFOLIO
                                         }
                                     )

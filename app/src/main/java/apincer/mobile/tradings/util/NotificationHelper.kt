@@ -216,6 +216,29 @@ object NotificationHelper {
         notificationManager.notify(9995, builder.build())
     }
 
+    /** Monthly: review the high dividend yield rebalance plan (Advisor, Dividend tab). */
+    fun showHighYieldReviewNotification(context: Context) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("START_SCREEN", "ADVISOR")
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, "high_yield_review".hashCode(), intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val text = "Monthly check of the high dividend yield list: open the Advisor's Dividend tab, re-rank, and review the rebalance plan. Nothing is traded automatically."
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("High-yield rebalance review")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify("high_yield_review".hashCode(), builder.build())
+    }
+
     /** December: unused ThaiESG / RMF deduction room before the tax year closes. */
     fun showTaxFundReminderNotification(context: Context, text: String) {
         val intent = Intent(context, MainActivity::class.java).apply {

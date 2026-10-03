@@ -90,6 +90,13 @@ import apincer.mobile.tradings.R
 import apincer.mobile.tradings.domain.TechnicalAnalysis
 import java.util.Locale
 
+/**
+ * New-buy prefill for the Buy dialog: a core DCA purchase or a rebalance-plan buy. [purpose] and
+ * [executedFill] preset the trade purpose and the "already executed broker trade" checkbox.
+ */
+data class BuyPrefill(val symbol: String, val price: Double, val shares: Int,
+                      val purpose: String? = null, val executedFill: Boolean = false)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioScreen(
@@ -100,7 +107,7 @@ fun PortfolioScreen(
     showSnackbar: (String) -> Unit,
     scrollSymbol: String? = null,
     /** From the monthly DCA notification: open the Buy dialog prefilled with the core purchase. */
-    dcaBuyRequest: Triple<String, Double, Int>? = null,
+    dcaBuyRequest: BuyPrefill? = null,
     onDcaBuyRequestConsumed: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
@@ -120,7 +127,7 @@ fun PortfolioScreen(
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
     var showBuyDialog by remember { mutableStateOf(false) }
-    var buyPrefill by remember { mutableStateOf<Triple<String, Double, Int>?>(null) }
+    var buyPrefill by remember { mutableStateOf<BuyPrefill?>(null) }
     val corePrices by portfolioViewModel.corePrices.collectAsState()
     val stopAcks by viewModel.stopAcks.collectAsState()
     val monthlyDcaAmount by settingsViewModel.monthlyDcaAmount.collectAsState()
@@ -470,7 +477,7 @@ fun PortfolioScreen(
                         },
                         onBuyCore = { symbol, price, shares ->
                             selectedStockForEdit = null
-                            buyPrefill = Triple(symbol, price, shares)
+                            buyPrefill = BuyPrefill(symbol, price, shares)
                             showBuyDialog = true
                         }
                     )
@@ -918,19 +925,19 @@ fun BuyStockDialog(
     atsEnabled: Boolean = true,
     isSaving: Boolean = false,
     /** New-buy prefill, e.g. a DCA purchase of the core: symbol, price, shares. */
-    prefill: Triple<String, Double, Int>? = null,
+    prefill: BuyPrefill? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, Double, Double, String, String, Boolean) -> Unit
 ) {
-    var symbol by remember { mutableStateOf(initialStock?.info?.symbol ?: prefill?.first ?: "") }
-    var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: prefill?.second?.toString() ?: "") }
-    var qty by remember { mutableStateOf(initialStock?.portfolio?.quantity?.toString() ?: prefill?.third?.takeIf { it > 0 }?.toString() ?: "") }
+    var symbol by remember { mutableStateOf(initialStock?.info?.symbol ?: prefill?.symbol ?: "") }
+    var entryPrice by remember { mutableStateOf(initialStock?.portfolio?.cost?.toString() ?: prefill?.price?.toString() ?: "") }
+    var qty by remember { mutableStateOf(initialStock?.portfolio?.quantity?.toString() ?: prefill?.shares?.takeIf { it > 0 }?.toString() ?: "") }
     
     var targetPrice by remember { mutableStateOf(initialStock?.portfolio?.portfolio?.targetPrice?.let { if (it > 0) it.toString() else "" } ?: "") }
     var stopLossPrice by remember { mutableStateOf(initialStock?.portfolio?.stopLoss?.let { if (it > 0) it.toString() else "" } ?: "") }
     var playbookNote by remember { mutableStateOf(initialStock?.portfolio?.playbookNote ?: "") }
-    var tradePurpose by remember { mutableStateOf(initialStock?.portfolio?.tradePurpose ?: "SWING") }
-    var recordExecutedFill by remember { mutableStateOf(false) }
+    var tradePurpose by remember { mutableStateOf(initialStock?.portfolio?.tradePurpose ?: prefill?.purpose ?: "SWING") }
+    var recordExecutedFill by remember { mutableStateOf(initialStock == null && prefill?.executedFill == true) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -1458,7 +1465,8 @@ fun BuyStockDialog(
                     Checkbox(checked = recordExecutedFill, onCheckedChange = { recordExecutedFill = it })
                     Text("Record an already executed broker trade", style = MaterialTheme.typography.bodySmall)
                 }
-                if (!riskResult.allowed) {
+                // A recorded dividend fill has no stop by design, so the proposal's stop check does not apply.
+                if (!riskResult.allowed && !(recordExecutedFill && planPurpose == "DIVIDEND" && planStop <= 0.0)) {
                     Text(riskResult.reasons.joinToString("; "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)

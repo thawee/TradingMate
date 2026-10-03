@@ -158,6 +158,19 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             }
         }
 
+        // Monthly review of the high-yield rebalance plan, only for users following it: untested lists on
+        // and at least one Dividend-purpose satellite holding. First trading session of the month, once.
+        run {
+            val monthKey = "high_yield_review_${now.get(java.util.Calendar.YEAR)}_${now.get(java.util.Calendar.MONTH) + 1}"
+            if (!alertPrefs.getBoolean(monthKey, false) &&
+                TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED &&
+                prefRepo.showUntestedLists.firstOrNull() == true &&
+                allStocks.any { it.quantity > 0 && it.tradePurpose == "DIVIDEND" && !CoreSatellite.isCore(it.symbol) }) {
+                NotificationHelper.showHighYieldReviewNotification(applicationContext)
+                alertPrefs.edit().putBoolean(monthKey, true).apply()
+            }
+        }
+
         if (allStocks.isEmpty()) {
             Log.d("StockAlertWorker", "No stocks in watchlist. Skipping.")
             return Result.success()

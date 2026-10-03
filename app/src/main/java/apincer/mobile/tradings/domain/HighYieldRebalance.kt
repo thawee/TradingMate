@@ -7,8 +7,12 @@ package apincer.mobile.tradings.domain
  * the current satellite value. Leftover stays in cash. Review only: nothing is executed or recorded.
  */
 object HighYieldRebalance {
-    /** A current holding; [price] is the last price, [costPerShare] the average cost including fees. */
-    data class Holding(val symbol: String, val shares: Int, val price: Double?, val costPerShare: Double, val sector: String?)
+    /**
+     * A current holding; [price] is the last price, [costPerShare] the average cost including fees.
+     * [managed] holdings (the Dividend purpose) are the ones this plan budgets and may sell.
+     */
+    data class Holding(val symbol: String, val shares: Int, val price: Double?, val costPerShare: Double,
+                       val sector: String?, val managed: Boolean = true)
 
     enum class Action { BUY, KEEP, SELL, UNAVAILABLE }
 
@@ -16,12 +20,12 @@ object HighYieldRebalance {
                    val baht: Double, val fees: Double, val note: String? = null)
 
     /** [fullListBudget]: budget at which a tenth covers one lot of the priciest listed name (null without prices). */
-    data class Plan(val rows: List<Row>, val satelliteValue: Double, val sellProceeds: Double,
+    data class Plan(val rows: List<Row>, val managedValue: Double, val sellProceeds: Double,
                     val buyCost: Double, val fees: Double, val leftoverCash: Double, val fullListBudget: Double? = null)
 
     /**
      * [ranked] in rank order; [prices] and [sectors] cover ranked names not held. Core funds are never
-     * sold or bought. Caps are warnings only, measured at cost basis against [accountEquity], so the
+     * sold or bought. Unmanaged holdings are never sold or budgeted; one in the list is shown as kept. Caps are warnings only, measured at cost basis against [accountEquity], so the
      * plan keeps the tested weights.
      */
     fun plan(budget: Double, ranked: List<String>, holdings: List<Holding>, prices: Map<String, Double>,
@@ -30,14 +34,15 @@ object HighYieldRebalance {
              topN: Int = HighYieldList.TOP_N): Plan {
         val top = ranked.map { it.uppercase() }.distinct().take(topN)
         val satellite = holdings.filter { it.shares > 0 && !CoreSatellite.isCore(it.symbol) }
+        val managed = satellite.filter { it.managed }
         fun value(h: Holding) = h.shares * (h.price?.takeIf { it > 0.0 } ?: h.costPerShare)
-        val satelliteValue = satellite.sumOf { value(it) }
+        val managedValue = managed.sumOf { value(it) }
 
         val sells = mutableListOf<Row>()
         var proceeds = 0.0
         var fees = 0.0
         val sold = mutableSetOf<String>()
-        for (h in satellite.filter { it.symbol.uppercase() !in top }) {
+        for (h in managed.filter { it.symbol.uppercase() !in top }) {
             val p = h.price?.takeIf { it > 0.0 && it.isFinite() }
             if (p == null) {
                 sells += Row(h.symbol, Action.SELL, h.shares, null, 0.0, 0.0, "Not in the list; no price, so proceeds are not counted")
@@ -56,7 +61,7 @@ object HighYieldRebalance {
         val stockCap = accountEquity * stockCapPercent / 100.0
         val sectorCap = accountEquity * sectorCapPercent / 100.0
 
-        var cash = minOf(maxOf(0.0, budget - satelliteValue) + proceeds, maxOf(0.0, cashBalance) + proceeds)
+        var cash = minOf(maxOf(0.0, budget - managedValue) + proceeds, maxOf(0.0, cashBalance) + proceeds)
         val perName = budget / topN
         val held = satellite.associateBy { it.symbol.uppercase() }
         val ranks = mutableListOf<Row>()
@@ -64,7 +69,8 @@ object HighYieldRebalance {
         for (s in top) {
             val h = held[s]
             if (h != null) {
-                ranks += Row(s, Action.KEEP, h.shares, h.price, value(h), 0.0, "Held: keep, no resizing")
+                ranks += Row(s, Action.KEEP, h.shares, h.price, value(h), 0.0,
+                    if (h.managed) "Held: keep, no resizing" else "Held for another purpose; not in the budget")
                 continue
             }
             val p = prices[s]?.takeIf { it > 0.0 && it.isFinite() }
@@ -94,6 +100,6 @@ object HighYieldRebalance {
         }
         val maxLot = top.mapNotNull { s -> (held[s]?.price ?: prices[s])?.takeIf { it > 0.0 && it.isFinite() } }
             .maxOfOrNull { it * 100 + TechnicalAnalysis.calculateFees(it * 100, false, atsEnabled) }
-        return Plan(ranks + sells, satelliteValue, proceeds, buyCost, fees, cash, maxLot?.let { it * topN })
+        return Plan(ranks + sells, managedValue, proceeds, buyCost, fees, cash, maxLot?.let { it * topN })
     }
 }

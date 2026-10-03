@@ -546,7 +546,7 @@ Status: planned; application implementation has not started.
 - [x] Dividend tab UI under the High Yield list: budget field, order table, totals, evidence note; buy buttons prefill the existing buy dialog. Nothing executed automatically.
 - [x] Unit fixtures from the plan (Part 2); separate commit.
 - [x] Part 2 result: `HighYieldRebalance.plan` plus `HighYieldRebalanceCard`; `StockScreen` routes "Record buy" to Portfolio's Buy dialog through the DCA prefill path. Decisions taken as recommended: budget defaults to the current satellite value; cadence is stated as monthly in the card text (no notification added); sells of names outside the list are listed and labelled. 181 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 126 warnings. Device: with the user's holdings (satellite about 37k baht) the plan sold MBK, TRUE, CPALL and JMT, bought LH, TFG, CRC and CPF, left six names below one lot and showed the 345,580-baht full-list budget hint; "Record buy" opened the dialog prefilled (CPF, 21.1, 100) and was cancelled without saving. Untested-lists setting turned on for the check and restored off.
-- [ ] Possible follow-up: prefill the Dividend purpose and executed-fill checkbox (the prefill carries only symbol, price and shares); a monthly reminder notification.
+- [x] Follow-ups (Dividend purpose and executed-fill prefill; monthly reminder): done in the section below.
 
 ## Verification
 
@@ -575,3 +575,11 @@ A variant counts as better than F5 only if it beats A0 CAGR in both sub-periods 
 - [x] Add per-position resize/exit hooks to `rankedPortfolio` (`RuleStudy.HeldRule`) without changing A0 output: A0 reproduces 7.80 / 8.36 / 5.50 / 24.95 exactly.
 - [x] Run A0-A4; write tools/backtest/averaging_down_report.md and a summary in docs/ADVISOR_EVALUATION.md; report every result, pass or fail.
 - [x] Result: A1 (8.31%), A2 (8.71%) and A3 (8.35%) pass the gate against A0 (7.80%) in both sub-periods and the holdout, with drawdowns 2.5-4.6 points deeper; A4 (sell when down, 7.43%) fails. Gains are small and flattered by survivorship. A2 concentrates (one name up to 22%); A3 keeps the largest name near 13%. Unit suite: 170 tests, 0 failures. Not yet done: delisting-inclusive check; nothing changed in the app.
+
+# Rebalance plan follow-ups, 2026-10-03
+
+- [x] Managed holdings: the plan sells and budgets only satellite holdings with the Dividend purpose; other holdings in the top 10 show as Keep ("held as another purpose, not in the budget"); others are left out. No new setting.
+- [x] Buy prefill carries purpose and executed-fill: replace the `Triple` prefill with a `BuyPrefill` data class (symbol, price, shares, purpose, executed fill); "Record buy" opens with Dividend and "Record an already executed broker trade" ticked; DCA prefill unchanged.
+- [x] Monthly reminder: first trading session of each month, once, when untested lists are on and at least one Dividend-purpose holding exists; opens the Advisor.
+- [x] Tests, build, lint, device check (prefill flags; plan with real holdings), docs, changelog, commit.
+- [x] Result: 182 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings (+1 `UseKtx` on the new `alertPrefs.edit()` call, matching the surrounding worker code). Device: plan now sells only MBK and JMT (Dividend purpose), TRUE and CPALL left out; default budget 14,180 baht; "Record buy" opened LH 400 @ 3.44 with Dividend and executed fill preset and no stop message; cancelled without saving. The reminder was not triggered on the device (worker timing); it is gated by month key, open market, untested lists and a Dividend-purpose holding. Untested-lists setting restored off.

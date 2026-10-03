@@ -1952,12 +1952,13 @@ fun HighYieldRebalanceCard(
     val sectorCap by settingsViewModel.maxSectorAllocation.collectAsState()
     val holdings = portfolioItems.filter { it.portfolio.quantity > 0 }.map {
         apincer.mobile.tradings.domain.HighYieldRebalance.Holding(it.info.symbol.uppercase(), it.portfolio.quantity,
-            it.info.lastPrice.takeIf { p -> p > 0.0 }, it.portfolio.cost, it.info.sector)
+            it.info.lastPrice.takeIf { p -> p > 0.0 }, it.portfolio.cost, it.info.sector,
+            managed = it.portfolio.tradePurpose == "DIVIDEND")
     }
-    val satelliteValue = holdings.filterNot { apincer.mobile.tradings.domain.CoreSatellite.isCore(it.symbol) }
+    val managedValue = holdings.filter { it.managed && !apincer.mobile.tradings.domain.CoreSatellite.isCore(it.symbol) }
         .sumOf { it.shares * (it.price ?: it.costPerShare) }
     var budgetText by rememberSaveable { mutableStateOf("") }
-    val budget = budgetText.replace(",", "").toDoubleOrNull()?.takeIf { it >= 0.0 } ?: satelliteValue
+    val budget = budgetText.replace(",", "").toDoubleOrNull()?.takeIf { it >= 0.0 } ?: managedValue
     fun baht(v: Double) = String.format(Locale.ENGLISH, "฿%,.0f", v)
 
     GlassCard(
@@ -1967,19 +1968,23 @@ fun HighYieldRebalanceCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Monthly rebalance plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text("Follows the tested rule once a month: sell names that left the list, keep held names as they are, " +
-                "and buy each new name with up to a tenth of the budget. Nothing is executed. Place orders at your broker, " +
-                "then record each fill (tick \"Record an already executed broker trade\").",
+                "and buy each new name with up to a tenth of the budget. It manages holdings recorded with the Dividend purpose; " +
+                "others are never sold. Nothing is executed: place orders at your broker, then use Record buy to log each fill.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
                 value = budgetText,
                 onValueChange = { budgetText = it },
                 label = { Text("Satellite budget (baht)") },
-                placeholder = { Text(String.format(Locale.ENGLISH, "%,.0f (current satellite value)", satelliteValue)) },
+                placeholder = { Text(String.format(Locale.ENGLISH, "%,.0f", managedValue)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
-            Text(if (budgetText.isBlank()) "Using ${baht(budget)}, your current satellite value (core funds excluded)." else "Using ${baht(budget)}.",
+            Text(when {
+                    budgetText.isNotBlank() -> "Using ${baht(budget)}."
+                    managedValue > 0.0 -> "Using ${baht(budget)}, the value of your Dividend-purpose holdings."
+                    else -> "No Dividend-purpose holdings yet: enter the amount to invest."
+                },
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             val ranked = list?.second?.map { it.symbol }
             if (ranked.isNullOrEmpty()) {

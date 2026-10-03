@@ -35,13 +35,13 @@ class MainActivity : ComponentActivity() {
     private var openSymbolState by mutableStateOf<String?>(null)
     private var startScreenState by mutableStateOf<String?>(null)
     /** One-shot DCA buy request from the monthly reminder; cleared once the Buy dialog opens. */
-    private var dcaRequestState by mutableStateOf<Triple<String, Double, Int>?>(null)
+    private var dcaRequestState by mutableStateOf<apincer.mobile.tradings.ui.BuyPrefill?>(null)
 
-    private fun readDcaRequest(intent: Intent?): Triple<String, Double, Int>? {
+    private fun readDcaRequest(intent: Intent?): apincer.mobile.tradings.ui.BuyPrefill? {
         val price = intent?.getDoubleExtra("DCA_PRICE", 0.0) ?: 0.0
         if (price <= 0.0) return null
         val symbol = intent?.getStringExtra("DCA_SYMBOL") ?: apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
-        return Triple(symbol, price, intent?.getIntExtra("DCA_SHARES", 0) ?: 0)
+        return apincer.mobile.tradings.ui.BuyPrefill(symbol, price, intent?.getIntExtra("DCA_SHARES", 0) ?: 0)
     }
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(

@@ -34,7 +34,7 @@ class HighYieldRebalanceTest {
             Holding("XOLD", 1000, 20.0, 18.0, "S-X"),
             Holding("TDEX", 1000, 9.0, 8.5, null))
         val p = plan(25_000.0, ranked = listOf("SA", "SB", "SC"), holdings = holdings, cash = 1_000.0)
-        assertEquals(25_000.0, p.satelliteValue, 1e-9)
+        assertEquals(25_000.0, p.managedValue, 1e-9)
         val byName = p.rows.associateBy { it.symbol }
         assertEquals(Action.KEEP, byName.getValue("SA").action)
         assertEquals(500, byName.getValue("SA").shares)
@@ -78,9 +78,26 @@ class HighYieldRebalanceTest {
         assertNull(plan(100_000.0).rows.first().note)
     }
 
+    @Test fun unmanagedHoldingsAreNeitherSoldNorBudgeted() {
+        val holdings = listOf(
+            Holding("SA", 300, 10.0, 9.0, "S-SA", managed = false),
+            Holding("SWING1", 1000, 20.0, 18.0, "S-X", managed = false),
+            Holding("DIV1", 500, 10.0, 9.5, "S-D"))
+        val p = plan(50_000.0, ranked = listOf("SA", "SB"), holdings = holdings, cash = 45_000.0)
+        assertEquals(5_000.0, p.managedValue, 1e-9)
+        val byName = p.rows.associateBy { it.symbol }
+        assertEquals(Action.KEEP, byName.getValue("SA").action)
+        assertEquals("Held for another purpose; not in the budget", byName.getValue("SA").note)
+        assertTrue("SWING1" !in byName)
+        assertEquals(Action.SELL, byName.getValue("DIV1").action)
+        // Budget above the managed value (45,000) plus the managed sale funds buys; the swing sale is not counted.
+        assertEquals(45_000.0 + p.sellProceeds - p.buyCost, p.leftoverCash, 1e-6)
+        assertEquals(500, byName.getValue("SB").shares)
+    }
+
     @Test fun heldNameWithoutPriceIsValuedAtCostAndNotCountedAsProceeds() {
         val p = plan(5_000.0, ranked = listOf("SA"), holdings = listOf(Holding("XOLD", 100, null, 50.0, null)), cash = 0.0)
-        assertEquals(5_000.0, p.satelliteValue, 1e-9)
+        assertEquals(5_000.0, p.managedValue, 1e-9)
         val sell = p.rows.single { it.symbol == "XOLD" }
         assertEquals(Action.SELL, sell.action)
         assertEquals(0.0, p.sellProceeds, 0.0)
