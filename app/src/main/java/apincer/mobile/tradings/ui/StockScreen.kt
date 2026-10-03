@@ -76,6 +76,8 @@ fun StockScreen(
     onDcaBuyRequestConsumed: () -> Unit = {}
 ) {
     var currentScreen by rememberSaveable { mutableStateOf(Screen.WATCHLIST) }
+    // Buy dialog prefill from the Advisor's rebalance plan, consumed by Portfolio like a DCA request.
+    var advisorBuyRequest by remember { mutableStateOf<Triple<String, Double, Int>?>(null) }
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val minRR by settingsViewModel.minRiskRewardRatio.collectAsState()
@@ -351,13 +353,18 @@ fun StockScreen(
                             ) { screen ->
                                 when (screen) {
                                     Screen.PORTFOLIO -> PortfolioScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar, scrollSymbol = openSymbol,
-                                        dcaBuyRequest = dcaBuyRequest, onDcaBuyRequestConsumed = onDcaBuyRequestConsumed)
+                                        dcaBuyRequest = dcaBuyRequest ?: advisorBuyRequest,
+                                        onDcaBuyRequestConsumed = { advisorBuyRequest = null; onDcaBuyRequestConsumed() })
                                     Screen.WATCHLIST -> WatchlistScreen(viewModel, settingsViewModel, onSelectStock = { viewModel.fetchStockData(it) }, showSnackbar = showSnackbar)
                                     Screen.ADVISOR -> DividendAdvisorScreen(
                                         viewModel = viewModel,
                                         settingsViewModel = settingsViewModel,
                                         onNavigateToAcademy = { currentScreen = Screen.EDUCATION },
-                                        showSnackbar = showSnackbar
+                                        showSnackbar = showSnackbar,
+                                        onRecordBuy = { symbol, price, shares ->
+                                            advisorBuyRequest = Triple(symbol, price, shares)
+                                            currentScreen = Screen.PORTFOLIO
+                                        }
                                     )
                                     Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar, onNavigateToBacktest = { currentScreen = Screen.BACKTEST })
                                     Screen.SETTINGS -> SettingsScreen(viewModel, settingsViewModel, showSnackbar = showSnackbar)

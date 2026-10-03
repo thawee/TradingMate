@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (High Yield rebalance plan)
+- **Monthly rebalance plan (Advisor, Dividend tab, under the High dividend yield list):** an order list that follows the tested rule exactly: satellite names that left the top 10 are listed as sells, held names in the list are kept without resizing, and each new name is bought with up to a tenth of the satellite budget in whole lots, funded by sale proceeds plus any budget above the current satellite value (never more than cash). The budget defaults to the current satellite value and can be edited. Shows fees, leftover cash, single-stock and sector cap warnings (weights are not changed), and the budget needed to hold all ten when a tenth is below one lot. "Record buy" opens the Portfolio Buy dialog prefilled with symbol, price and shares. Nothing is executed. A 2026-10-03 pre-registered study found buying more of fallen names beat this rule slightly in the backtest, but survivorship flatters that result, so the plan keeps the tested rule.
+
 ### Fixed (Advisor swing sizing)
 - Swing plans are sized to the largest whole lot that passes every budget check with fees: risk per trade including buy and sell fees, cash reserve, and stock and sector caps counting existing holdings at cost. Before, a gross risk size was dropped whenever fees or existing holdings pushed it over a limit, even when a smaller lot fit. Candidates where not even one lot fits are listed under the AI data preview with the limit that blocks them.
 - The Gemini prompts use the configured single-stock (and sector) allocation instead of a fixed 15%, and describe the total open-risk setting as advisory, since the app does not enforce it.

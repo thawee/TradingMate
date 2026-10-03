@@ -523,9 +523,9 @@ Status: planned; application implementation has not started.
 
 ## Decisions (user)
 
-- [ ] Default satellite budget (recommended: current satellite market value).
-- [ ] Rebalance cadence prompt (recommended: monthly, as tested).
-- [ ] List sells of satellite names outside the top 10 (recommended: yes, labelled).
+- [x] Default satellite budget (recommended: current satellite market value).
+- [x] Rebalance cadence prompt (recommended: monthly, as tested).
+- [x] List sells of satellite names outside the top 10 (recommended: yes, labelled).
 
 ## Phase 0: Clean start
 
@@ -542,9 +542,11 @@ Status: planned; application implementation has not started.
 
 ## Part 2: High Yield rebalance plan
 
-- [ ] Pure function: budget, holdings, ranking, prices, fees -> per-symbol held/buy/sell lots, fees, leftover cash, following the tested rule (sell names that left; keep held names without resizing; new names at min(budget / 10, cash) in whole lots); core funds excluded; cap warnings without changing weights.
-- [ ] Dividend tab UI under the High Yield list: budget field, order table, totals, evidence note; buy buttons prefill the existing buy dialog. Nothing executed automatically.
-- [ ] Unit fixtures from the plan (Part 2); separate commit.
+- [x] Pure function: budget, holdings, ranking, prices, fees -> per-symbol held/buy/sell lots, fees, leftover cash, following the tested rule (sell names that left; keep held names without resizing; new names at min(budget / 10, cash) in whole lots); core funds excluded; cap warnings without changing weights.
+- [x] Dividend tab UI under the High Yield list: budget field, order table, totals, evidence note; buy buttons prefill the existing buy dialog. Nothing executed automatically.
+- [x] Unit fixtures from the plan (Part 2); separate commit.
+- [x] Part 2 result: `HighYieldRebalance.plan` plus `HighYieldRebalanceCard`; `StockScreen` routes "Record buy" to Portfolio's Buy dialog through the DCA prefill path. Decisions taken as recommended: budget defaults to the current satellite value; cadence is stated as monthly in the card text (no notification added); sells of names outside the list are listed and labelled. 181 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 126 warnings. Device: with the user's holdings (satellite about 37k baht) the plan sold MBK, TRUE, CPALL and JMT, bought LH, TFG, CRC and CPF, left six names below one lot and showed the 345,580-baht full-list budget hint; "Record buy" opened the dialog prefilled (CPF, 21.1, 100) and was cancelled without saving. Untested-lists setting turned on for the check and restored off.
+- [ ] Possible follow-up: prefill the Dividend purpose and executed-fill checkbox (the prefill carries only symbol, price and shares); a monthly reminder notification.
 
 ## Verification
 

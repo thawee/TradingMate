@@ -14,6 +14,8 @@ The bottom navigation bar provides instant access to the five main functional ar
 2.  **🧠 Advisor (AI Discovery Hub)**
     *   **Focus:** Actionable trade setups and Risk Management.
     *   **Features:** Sell alerts, screened Swing, strong daily move, and Dividend candidates, plus prompts and in-app AI analysis. A strong daily move alone does not establish an opening or earnings gap.
+    *   **Swing sizing:** Each swing plan uses the largest 100-share lot that passes every budget check with fees (risk per trade, cash reserve, stock and sector caps at cost). Candidates where not even one lot fits are listed with the blocking limit under the AI data preview.
+    *   **High dividend yield list and monthly rebalance plan (Dividend tab, untested lists on):** the top 10 SET50 names by yield, and an order list for the tested rule: sell satellite names that left the list, keep held names without resizing, buy each new name with up to a tenth of the satellite budget (default: current satellite value, core funds excluded). Cap breaches are warnings. "Record buy" opens the Portfolio Buy dialog prefilled; place the order at the broker first, then tick "Record an already executed broker trade" and choose the Dividend purpose. When a tenth of the budget is below one lot, the card shows the budget needed to hold all ten and points to 1DIV.
 3.  **💼 Portfolio (Financial Hub)**
     *   **Focus:** Consolidated asset tracking & Risk Management.
     *   **Features:** Total Asset summary (Stock + Cash), inline cash management & ledger audit, Sector Breakdown with 30% concentration caps, Section 47 bis Dividend Tax Shield card, and 1-Click Anti-Ruin Position Sizing in trade entry dialogs.

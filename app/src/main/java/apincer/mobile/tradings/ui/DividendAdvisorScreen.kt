@@ -39,6 +39,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Text
@@ -91,7 +94,9 @@ fun DividendAdvisorScreen(
     viewModel: StockViewModel,
     settingsViewModel: SettingsViewModel,
     onNavigateToAcademy: () -> Unit,
-    showSnackbar: (String) -> Unit
+    showSnackbar: (String) -> Unit,
+    /** Opens Portfolio's Buy dialog prefilled with symbol, price and shares. */
+    onRecordBuy: (String, Double, Int) -> Unit = { _, _, _ -> }
 ) {
     val haptic = LocalHapticFeedback.current
     val showUntestedLists by settingsViewModel.showUntestedLists.collectAsState()
@@ -448,7 +453,10 @@ fun DividendAdvisorScreen(
             if (showUntestedLists) {
                 val heldSymbols = portfolioItems.map { it.info.symbol.uppercase() }.toSet()
                 if (playbookMode == PlaybookMode.SWING) MomentumListCard(viewModel, heldSymbols)
-                else HighYieldListCard(viewModel, heldSymbols)
+                else {
+                    HighYieldListCard(viewModel, heldSymbols)
+                    HighYieldRebalanceCard(viewModel, settingsViewModel, portfolioItems, watchlist, cashBalance, onRecordBuy)
+                }
                 Spacer(Modifier.height(16.dp))
                 // Step 2: Candidates
                 Box(modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -1926,6 +1934,94 @@ fun HighYieldListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
         onRefresh = { viewModel.refreshHighYieldList(force = true) },
         signed = false
     )
+}
+
+/**
+ * Order list for the high-yield rule as tested: sell satellite names that left the list, keep held names
+ * without resizing, buy new names at up to a tenth of the budget. Review only; nothing is executed.
+ */
+@Composable
+fun HighYieldRebalanceCard(
+    viewModel: StockViewModel, settingsViewModel: SettingsViewModel,
+    portfolioItems: List<StockWatchlistInfo>, watchlist: List<StockWatchlistInfo>, cashBalance: Double,
+    onRecordBuy: (String, Double, Int) -> Unit
+) {
+    val list by viewModel.highYieldList.collectAsState()
+    val atsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
+    val stockCap by settingsViewModel.maxPortfolioAllocation.collectAsState()
+    val sectorCap by settingsViewModel.maxSectorAllocation.collectAsState()
+    val holdings = portfolioItems.filter { it.portfolio.quantity > 0 }.map {
+        apincer.mobile.tradings.domain.HighYieldRebalance.Holding(it.info.symbol.uppercase(), it.portfolio.quantity,
+            it.info.lastPrice.takeIf { p -> p > 0.0 }, it.portfolio.cost, it.info.sector)
+    }
+    val satelliteValue = holdings.filterNot { apincer.mobile.tradings.domain.CoreSatellite.isCore(it.symbol) }
+        .sumOf { it.shares * (it.price ?: it.costPerShare) }
+    var budgetText by rememberSaveable { mutableStateOf("") }
+    val budget = budgetText.replace(",", "").toDoubleOrNull()?.takeIf { it >= 0.0 } ?: satelliteValue
+    fun baht(v: Double) = String.format(Locale.ENGLISH, "฿%,.0f", v)
+
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Monthly rebalance plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Follows the tested rule once a month: sell names that left the list, keep held names as they are, " +
+                "and buy each new name with up to a tenth of the budget. Nothing is executed. Place orders at your broker, " +
+                "then record each fill (tick \"Record an already executed broker trade\").",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = budgetText,
+                onValueChange = { budgetText = it },
+                label = { Text("Satellite budget (baht)") },
+                placeholder = { Text(String.format(Locale.ENGLISH, "%,.0f (current satellite value)", satelliteValue)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(if (budgetText.isBlank()) "Using ${baht(budget)}, your current satellite value (core funds excluded)." else "Using ${baht(budget)}.",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val ranked = list?.second?.map { it.symbol }
+            if (ranked.isNullOrEmpty()) {
+                Text("Rank the list above first.", style = MaterialTheme.typography.bodySmall)
+            } else {
+                val plan = apincer.mobile.tradings.domain.HighYieldRebalance.plan(
+                    budget, ranked, holdings,
+                    watchlist.filter { it.info.lastPrice > 0.0 }.associate { it.info.symbol.uppercase() to it.info.lastPrice },
+                    watchlist.mapNotNull { w -> w.info.sector?.let { w.info.symbol.uppercase() to it } }.toMap(),
+                    cashBalance, cashBalance + holdings.sumOf { it.shares * (it.price ?: it.costPerShare) },
+                    stockCap, sectorCap, atsEnabled)
+                plan.rows.forEach { row ->
+                    val action = when (row.action) {
+                        apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY -> if (row.shares > 0) "Buy ${row.shares}" else "Buy 0"
+                        apincer.mobile.tradings.domain.HighYieldRebalance.Action.KEEP -> "Keep ${row.shares}"
+                        apincer.mobile.tradings.domain.HighYieldRebalance.Action.SELL -> "Sell ${row.shares}"
+                        apincer.mobile.tradings.domain.HighYieldRebalance.Action.UNAVAILABLE -> "No price"
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("${row.symbol}  ·  $action" + (row.price?.let { String.format(Locale.ENGLISH, " @ %.2f", it) } ?: ""),
+                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Text((if (row.baht > 0.0) baht(row.baht) + "  " else "") + (row.note ?: ""),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (row.note?.contains("cap") == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        val price = row.price
+                        if (row.action == apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY && row.shares > 0 && price != null)
+                            TextButton(onClick = { onRecordBuy(row.symbol, price, row.shares) }) { Text("Record buy") }
+                    }
+                }
+                Text("Sells ${baht(plan.sellProceeds)} · Buys ${baht(plan.buyCost)} · Fees ${baht(plan.fees)} · Cash left ${baht(plan.leftoverCash)}",
+                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                val full = plan.fullListBudget
+                if (full != null && budget < full && plan.rows.any { it.action == apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY && it.shares == 0 })
+                    Text("A tenth of this budget is below one lot of some names. Holding all ten at a tenth each needs about ${baht(full)}; " +
+                        "below that, the 1DIV ETF gives the same tilt in small amounts.",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
 }
 
 @Composable
