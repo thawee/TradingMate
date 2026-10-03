@@ -635,3 +635,12 @@ Idea adapted from tradermonty `drawdown-circuit-breaker` / `pre-trade-discipline
 - [x] Pure `SwingCooldown.check`: last 2 Swing trades lost and the latest closed under 24 hours ago, or this month's Swing losses at least 8% of equity. Core and Dividend trades never count. Four tests.
 - [x] Buy dialog shows the warning on new Swing proposals (not edits, core, or already-executed broker trades); never blocks.
 - [x] 205 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings. Device: the user's last Swing trade (RCL, 2026-09-18) was a win and October has none, so the dialog correctly shows no warning; the positive cases are unit-tested only.
+
+# High-yield forward record, 2026-10-03
+
+Idea adapted from tradermonty `signal-postmortem` (record outcomes, honest attribution). User agreed. Purpose: survivorship-free evidence for the high-yield rule, which the backtest cannot give.
+
+- [x] Pure `HighYieldTracker`: one snapshot per month (first ranking of the month: top 10 and prices, TDEX price); checkpoints at 30, 91 and 365 days with equal-weight total return (price plus dividends with ex-date in the window) vs TDEX total return; names without a current price are counted and excluded, never silently dropped from the count. JSON in preferences. Unit tests. Six tests, including late checkpoints left out of the summary (measured more than 15 days after the horizon).
+- [x] `refreshHighYieldList` saves the snapshot and fills due checkpoints (batch quotes plus dividend events).
+- [x] High-yield card shows the forward record per horizon: lists measured, average list vs TDEX, months ahead.
+- [x] Tests, build, lint, device check, docs, changelog, commit. 211 unit tests (10 skipped), 0 failures; lint 0 errors, 128 warnings (+1 `UseKtx`, same pattern as the neighbouring prefs writes). Device: Re-rank now saved the first real snapshot (2026-10, 10 names, TDEX 10.37); the card shows Saved: 1 month since 2026-10. Untested lists restored off. Limitation: the record updates only while the card is shown.

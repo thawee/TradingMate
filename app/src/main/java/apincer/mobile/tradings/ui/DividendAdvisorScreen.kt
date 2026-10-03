@@ -1938,6 +1938,39 @@ fun HighYieldListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
         onRefresh = { viewModel.refreshHighYieldList(force = true) },
         signed = false
     )
+    HighYieldForwardRecord(viewModel)
+}
+
+/** Monthly snapshots of the list measured against TDEX after 1, 3 and 12 months (HighYieldTracker). */
+@Composable
+private fun HighYieldForwardRecord(viewModel: StockViewModel) {
+    val track by viewModel.highYieldTrack.collectAsState()
+    val summary = apincer.mobile.tradings.domain.HighYieldTracker.summary(track)
+    fun pct(v: Double) = String.format(Locale.ENGLISH, "%+.1f%%", v)
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Forward record", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Each month's list is saved with its prices and checked against TDEX after 1, 3 and 12 months, " +
+                "dividends included. Names are fixed when saved, so a later delisting stays in the record. " +
+                "Saved: ${track.size} month(s)" + (track.firstOrNull()?.let { " since ${it.month}" } ?: "") + ".",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (summary.isEmpty()) {
+                Text("No results yet: the first one is due 30 days after the first saved list.",
+                    style = MaterialTheme.typography.bodySmall)
+            } else {
+                summary.forEach { h ->
+                    val label = when (h.days) { 30 -> "1 month"; 91 -> "3 months"; else -> "12 months" }
+                    Text("$label: ${h.measured} list(s) · list ${pct(h.avgListPercent)} vs TDEX ${pct(h.avgTdexPercent)} · " +
+                        "ahead in ${h.ahead} of ${h.measured}", style = MaterialTheme.typography.bodyMedium)
+                }
+                Text("A fair read needs a year or more of months.", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
 }
 
 /**

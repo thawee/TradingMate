@@ -1152,6 +1152,39 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val _highYieldLoading = MutableStateFlow(false)
     val highYieldLoading: StateFlow<Boolean> = _highYieldLoading
 
+    private val _highYieldTrack = MutableStateFlow(
+        apincer.mobile.tradings.domain.HighYieldTracker.fromJson(alertPrefs.getString(HIGH_YIELD_TRACK_KEY, null)))
+    /** Monthly snapshots of the high-yield list and their 30/91/365-day results against TDEX. */
+    val highYieldTrack: StateFlow<List<apincer.mobile.tradings.domain.HighYieldTracker.Snapshot>> = _highYieldTrack
+
+    /** Saves this month's snapshot of [top] and measures snapshots whose horizons are due. Runs on IO. */
+    private fun updateHighYieldTrack(top: List<String>, today: java.time.LocalDate) {
+        val tracker = apincer.mobile.tradings.domain.HighYieldTracker
+        val core = apincer.mobile.tradings.domain.CoreSatellite.CORE_SYMBOL
+        var track = _highYieldTrack.value
+        val needSnapshot = tracker.needsSnapshot(track, today)
+        val due = track.filter { tracker.dueHorizons(it, today).isNotEmpty() }
+        if (!needSnapshot && due.isEmpty()) return
+        val symbols = ((if (needSnapshot) top else emptyList()) + due.flatMap { it.prices.keys } + core).distinct()
+        val quotes = SetScraper.fetchBatchQuotes(symbols).filter { it.lastPrice > 0.0 }
+            .associate { it.symbol.uppercase() to it.lastPrice }
+        val tdexNow = quotes[core] ?: return
+        if (needSnapshot) tracker.snapshot(today, top.associateWith { quotes[it] ?: Double.NaN }, tdexNow)
+            ?.let { track = track + it }
+        if (due.isNotEmpty()) {
+            val dividends = (due.flatMap { it.prices.keys } + core).distinct()
+                .associateWith { SetScraper.fetchDividendEvents(it, "2y") }
+            track = track.map { snap ->
+                val horizons = tracker.dueHorizons(snap, today)
+                val result = if (horizons.isEmpty()) null else tracker.checkpoint(snap, today, quotes, dividends,
+                    tdexNow, dividends[core].orEmpty())
+                if (result == null) snap else snap.copy(checkpoints = snap.checkpoints + horizons.associateWith { result })
+            }
+        }
+        alertPrefs.edit().putString(HIGH_YIELD_TRACK_KEY, tracker.toJson(track)).apply()
+        _highYieldTrack.value = track
+    }
+
     fun refreshHighYieldList(force: Boolean = false) {
         val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString()
         if (_highYieldLoading.value || (!force && _highYieldList.value?.first == today)) return
@@ -1165,6 +1198,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 if (ranked.isNotEmpty()) {
                     alertPrefs.edit().putString(HIGH_YIELD_LIST_KEY, apincer.mobile.tradings.domain.MomentumList.toJson(today, ranked)).apply()
                     _highYieldList.value = today to ranked
+                    runCatching { updateHighYieldTrack(ranked.map { it.symbol.uppercase() }, java.time.LocalDate.parse(today)) }
+                        .onFailure { android.util.Log.w("StockViewModel", "High-yield forward record update failed", it) }
                 }
             } finally {
                 _highYieldLoading.value = false
@@ -1603,3 +1638,4 @@ const val STOP_ACK_PREFIX = "stop_ack_"
 
 private const val MOMENTUM_LIST_KEY = "momentum_list_cache"
 private const val HIGH_YIELD_LIST_KEY = "high_yield_list_cache"
+private const val HIGH_YIELD_TRACK_KEY = "high_yield_forward_record"
