@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (swing cooldown warning)
+- The Buy dialog warns on a new Swing buy after the last 2 Swing trades closed at a loss (for 24 hours) or when this month's Swing losses reach 8% of equity. Dividend-purpose, core and already-executed broker trades are never warned, so the monthly high-yield rebalance and DCA continue. Advisory only; the thresholds (tradermonty's drawdown-circuit-breaker defaults, MIT) are untested.
+
 ### Added (dividend cut review)
 - The Advisor flags a dividend cut or suspension on Dividend-purpose holdings as a review note, never a sell: the latest payment more than 10% below the payment about a year earlier (so a smaller interim is not mistaken for a cut), or no payment for over 13 months. Three years of dividend history is fetched once a day. Idea adapted from tradermonty's kanchi-dividend-review-monitor (MIT).
 - A holding's dividend notes now appear together in one alert, exits first; before, only the first was shown.

@@ -114,6 +114,7 @@ fun PortfolioScreen(
     val watchlist by viewModel.watchlistInfo.collectAsState()
     val cashBalance by portfolioViewModel.cashBalance.collectAsState()
     val cashTransactions by portfolioViewModel.allCashTransactions.collectAsState()
+    val tradeHistory by portfolioViewModel.tradeHistory.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
     val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
@@ -577,6 +578,10 @@ fun PortfolioScreen(
             atsEnabled = isAtsEnabled,
             isSaving = isSubmitting,
             prefill = buyPrefill,
+            swingCooldown = apincer.mobile.tradings.domain.SwingCooldown.check(
+                tradeHistory.map { apincer.mobile.tradings.domain.SwingCooldown.ClosedTrade(
+                    it.symbol, it.tradePurpose, it.netProfitBaht, it.dateMillis) },
+                accountEquity, System.currentTimeMillis()),
             onDismiss = {
                 if (!isSubmitting) {
                     showBuyDialog = false
@@ -926,6 +931,8 @@ fun BuyStockDialog(
     isSaving: Boolean = false,
     /** New-buy prefill, e.g. a DCA purchase of the core: symbol, price, shares. */
     prefill: BuyPrefill? = null,
+    /** [apincer.mobile.tradings.domain.SwingCooldown] warning, shown on new Swing buys only. */
+    swingCooldown: String? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, Double, Double, String, String, Boolean) -> Unit
 ) {
@@ -1264,6 +1271,19 @@ fun BuyStockDialog(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            if (swingCooldown != null && initialStock == null && !isCoreBuy && !recordExecutedFill && planPurpose == "SWING") {
+                item {
+                    Surface(
+                        color = Color(0xFFFFA726).copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(swingCooldown, modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }

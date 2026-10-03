@@ -626,3 +626,12 @@ Idea adapted from tradermonty `kanchi-dividend-review-monitor` (T1 dividend cut/
 - [x] Pure `DividendCut.check(events, today)`: latest payment vs the payment closest to one year earlier (within 75 days) so interim/final patterns compare like with like; cut when more than 10% lower; suspension when the last payment is over 400 days old. Unit tests.
 - [x] `DividendExitPolicy.notes` gains the cut as a REVIEW note; `StockViewModel` fetches 3 years of events for Dividend-purpose holdings once a day and feeds them into the Advisor alerts reactively.
 - [x] Tests, build, lint, device check, docs, changelog, commit. 201 unit tests (10 skipped), 0 failures; lint 0 errors, 127 warnings. Device: MBK and JMT have no cut (MBK 0.60 vs 0.50, JMT 0.27 vs 0.24 a year earlier, checked against Yahoo); JMT's alert now lists saved stop, left the list and ROE review together.
+
+# Swing cooldown warning, 2026-10-03
+
+Idea adapted from tradermonty `drawdown-circuit-breaker` / `pre-trade-discipline-gate`. User agreed.
+
+- [x] Scope decision: Swing-purpose buys only. Pausing Dividend-purpose or core buys would stop the tested monthly rebalance and DCA (a rebalance sells losers and buys replacements by rule, not as revenge trades).
+- [x] Pure `SwingCooldown.check`: last 2 Swing trades lost and the latest closed under 24 hours ago, or this month's Swing losses at least 8% of equity. Core and Dividend trades never count. Four tests.
+- [x] Buy dialog shows the warning on new Swing proposals (not edits, core, or already-executed broker trades); never blocks.
+- [x] 205 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings. Device: the user's last Swing trade (RCL, 2026-09-18) was a win and October has none, so the dialog correctly shows no warning; the positive cases are unit-tested only.

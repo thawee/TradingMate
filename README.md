@@ -120,6 +120,7 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
 - **🔴 Sell - R-Multiple Target (legacy holdings):** Holdings without a saved plan take profit at 2R (twice the stop distance). Overbought, MFI and upper-band exits apply only after +1R, and the trailing stop arms at +1R and exits before the trade turns into a loss.
 - **🔴 Sell - Stop Loss:** Volatility-adjusted (2× ATR) or -4.5% (SET50) / -6.5% (Mid/Small-Cap).
 - **💰 Dividend-purpose holdings:** Follow the tested high-yield rule: no price, trailing, quality or yield exits. The Advisor lists leaving the high-yield top 10 as the exit (acted on at the monthly review) and shows a dividend cut or suspension (the latest payment more than 10% below the one a year earlier, or none for 13 months), ROE below 15%, yield below 3% and a 20% drawdown as review notes. Only a stop you saved sends a notification.
+- **⏸️ Swing cooldown (advisory):** The Buy dialog warns on a new Swing buy after the last 2 Swing trades closed at a loss (for 24 hours) or when this month's Swing losses reach 8% of equity. Dividend-purpose and core buys are never warned, so the monthly rebalance and DCA are not paused. The thresholds are untested; it warns and never blocks. Adapted from tradermonty's drawdown-circuit-breaker (MIT).
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance/Breakdown) ALWAYS override BUY momentum.
 
 ## 📊 Measuring Performance
