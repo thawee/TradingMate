@@ -54,6 +54,8 @@ Address all identified ambiguous, panic-inducing, or misleading UI labels and ba
 
 # Advisor reliability repair
 
+**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 2 manual 100/95/110 restart check (needs a throwaway holding); Task 3 legacy/dividend exit behavior and its fixtures (trailing, XD, dividend stops); Task 4 consumer parity beyond fixed plans; Task 6 freshness parity tests; Task 8 minimum-fee and changed-input tests; Task 9 confirmation revalidation and recorded breaches (not re-verified); Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
+
 **Re-scoped 2026-10-03 (core-first decision, [plan](plan.md#core-first-repositioning-plan)).** Kept: work that protects money in any flow (saved plans, exits and stop alerts on holdings, data freshness, cash/cap checks on every buy, accurate recording of executed fills, honest claims and release review). Deferred: work that only improves swing trade proposals (candidate eligibility, target provenance, Gemini swing plans, swing backtest repair, advice capture). Deferred tasks stay unchecked; reopen them only if swing entries show an edge in a pre-registered test. Unchecked items were not re-verified against current code.
 
 Implementation plan: [plan.md](plan.md). The completed terminology work above is retained.
@@ -77,17 +79,17 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Task 1: Persist a versioned trade plan (Keep)
 
-- [ ] Add a typed plan and additive persistence for entry, stop, target, source, strategy, exit policy, timestamps and revision; preserve existing portfolio data.
-- [ ] Existing holdings migrate as incomplete legacy plans without fabricated targets. Repository reads/writes retain plans across updates.
-- [ ] Verify migration from current schema version 30 and plan serialization with focused persistence tests; assemble debug.
+- [x] Add a typed plan and additive persistence for entry, stop, target, source, strategy, exit policy, timestamps and revision; preserve existing portfolio data. Audit 2026-10-03: `TradePlan` (version, entry, stop, target, strategy, source, exit policy, createdAt); persisted on the portfolio row.
+- [x] Existing holdings migrate as incomplete legacy plans without fabricated targets. Repository reads/writes retain plans across updates. Audit 2026-10-03: `migratedHoldingHasNoInventedTarget`, device `migrationRetainsLegacyHoldingAndAddsEmptyPlan`.
+- [x] Verify migration from current schema version 30 and plan serialization with focused persistence tests; assemble debug. Audit 2026-10-03: device instrumentation run: TradePlanMigrationTest (30->31->32, 32->33) and StockRepositoryIntegrityTest, 9/9 passed; DB now v33.
 
 **Dependencies:** None. **Scope:** Medium.
 **Likely files:** new `domain/TradePlan.kt`, `data/RoomModels.kt`, `data/StockRepository.kt`, new persistence/migration tests; test dependencies if required.
 
 ## Task 2: Round-trip the user's plan through forms and backup (Keep)
 
-- [ ] Pass the entered target through the view model and repository; editing/reopening/restarting displays the accepted plan, independently of focus targets.
-- [ ] Export/import plan fields with old-backup defaults. Plan revision, partial sale and additional same-symbol buy behavior is explicit and preserves recorded holdings/fees.
+- [x] Pass the entered target through the view model and repository; editing/reopening/restarting displays the accepted plan, independently of focus targets. Audit 2026-10-03: `addToWatchlist(targetPrice)` -> `StockRepository` accepted target; edits keep the accepted plan.
+- [x] Export/import plan fields with old-backup defaults. Plan revision, partial sale and additional same-symbol buy behavior is explicit and preserves recorded holdings/fees. Audit 2026-10-03: `oldBackupDefaultsToLegacyPlan`, `acceptedPlanFieldsRoundTripThroughBackup`, `fullSaleUndoRestoresAcceptedPlanAndFees`, device undo tests.
 - [ ] Verify save/reload and old/new backup round-trips; manually enter 100/95/110 and confirm the target survives restart and export/import.
 
 **Dependencies:** 1. **Scope:** Medium.
@@ -95,12 +97,12 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Checkpoint A: Plan survives the complete user flow
 
-- [ ] Migration and round-trip checks pass; `./gradlew :app:testDebugUnitTest :app:assembleDebug` passes.
-- [ ] Existing holdings, cash and completed trade history remain intact.
+- [x] Migration and round-trip checks pass; `./gradlew :app:testDebugUnitTest :app:assembleDebug` passes. Audit 2026-10-03: unit and device tests above; build passes.
+- [x] Existing holdings, cash and completed trade history remain intact. Audit 2026-10-03: device integrity tests pass; the live database migrated to v33 with holdings and cash present.
 
 ## Task 3: Implement one exit policy (Keep)
 
-- [ ] Add a pure structured exit evaluator using saved plans; price-stop checks work with missing indicators, stops never silently widen, and risk exits take precedence.
+- [x] Add a pure structured exit evaluator using saved plans; price-stop checks work with missing indicators, stops never silently widen, and risk exits take precedence. Audit 2026-10-03: `ExitPolicyEvaluator` for fixed plans: saved stop before target, needs no indicators, never widens the stop. Legacy/dividend holdings still use other paths (next item).
 - [ ] Define legacy/dividend behavior and early invalidation reasons. Planned trades do not use unrelated 3%/5% profit overrides; fees honor configured settings and actual buy fees when available.
 - [ ] Verify the 100/95/110 fixture, trailing behavior, missing indicators, XD context and dividend explicit stops using focused unit tests.
 
@@ -155,8 +157,8 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Task 8: Implement proposal risk validation (Keep; `TradeRiskPolicy.evaluate`/`largestFit` cover part, not re-verified)
 
-- [ ] Add one validator for post-fee cash reserve, per-trade risk, combined existing/new ticker exposure, sector exposure, valid prices and board lots; use current configured budgets.
-- [ ] Missing exposure/sector evidence returns an explicit unverified result. Separate proposal validation from recording an already executed fill.
+- [x] Add one validator for post-fee cash reserve, per-trade risk, combined existing/new ticker exposure, sector exposure, valid prices and board lots; use current configured budgets. Audit 2026-10-03: `TradeRiskPolicy.evaluate` covers reserve after fees, risk with buy and sell fees, combined stock and sector exposure at cost, valid prices and board lots, current settings.
+- [x] Missing exposure/sector evidence returns an explicit unverified result. Separate proposal validation from recording an already executed fill. Audit 2026-10-03: unknown sector returns "Sector exposure is unknown"; executed fills bypass proposal checks via the dialog checkbox.
 - [ ] Verify exact boundaries, one-lot excess, existing holdings, minimum-fee settings and stale/changed account inputs with unit tests.
 
 **Dependencies:** 1, 7. **Scope:** Medium.
@@ -220,7 +222,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 ## Checkpoint F: Ready for release review
 
 - [x] `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passes.
-- [ ] Migration/instrumentation checks pass on an available device; failures or environment blockers are documented.
+- [x] Migration/instrumentation checks pass on an available device; failures or environment blockers are documented. Audit 2026-10-03: 9/9 on the connected phone, run with `am instrument` (not connectedAndroidTest, which uninstalls the app and its data).
 - [ ] User flow checks cover legacy holdings, saved target, exit notification, blocked proposal, executed-fill recording, AI empty/invalid result and backtest open loss.
 - [ ] The user reviews the completed behavior and evidence before release. Profitability is evaluated separately from software acceptance.
 

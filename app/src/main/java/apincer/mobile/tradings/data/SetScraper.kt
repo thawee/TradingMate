@@ -560,7 +560,61 @@ object SetScraper {
      * Daily history for the last [days] calendar days (default ~1 year for live indicators).
      * [dividendAdjusted] scales OHLC by Yahoo's adjclose, giving a total-return series.
      */
-    fun fetchHistoricalPrices(symbol: String, days: Int = 365, dividendAdjusted: Boolean = false): List<ScrapedHistoricalPrice> {
+    /**
+     * Daily bars from a Yahoo chart response; null closes are skipped unless [carryForwardMissingClose]
+     * (index proxy only), which repeats the previous close for that session.
+     */
+    internal fun parseChartHistory(json: JSONObject, dividendAdjusted: Boolean,
+                                   carryForwardMissingClose: Boolean = false): List<ScrapedHistoricalPrice> {
+        val result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0)
+
+        if (!result.has("timestamp")) return emptyList()
+
+        val timestamps = result.getJSONArray("timestamp")
+        val indicators = result.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0)
+        val closes = indicators.getJSONArray("close")
+        val volumes = indicators.getJSONArray("volume")
+        // high/low may be absent in degraded responses — fall back to close
+        val highs = indicators.optJSONArray("high")
+        val lows = indicators.optJSONArray("low")
+        val adjCloses = if (dividendAdjusted) result.getJSONObject("indicators")
+            .optJSONArray("adjclose")?.optJSONObject(0)?.optJSONArray("adjclose") else null
+
+        val prices = mutableListOf<ScrapedHistoricalPrice>()
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
+
+        for (i in 0 until timestamps.length()) {
+            val ts = timestamps.getLong(i) * 1000
+            if (closes.isNull(i)) {
+                // A session timestamp without a close: no trade (or not yet) in that session. For the index
+                // proxy, carry the last close so its date matches stocks that did trade that session.
+                val previous = prices.lastOrNull()
+                if (carryForwardMissingClose && previous != null) prices.add(previous.copy(
+                    date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate().format(dateFormatter),
+                    volume = 0L, high = previous.close, low = previous.close))
+                continue
+            }
+            val rawClose = closes.getDouble(i)
+            val factor = if (adjCloses != null && !adjCloses.isNull(i) && rawClose > 0) adjCloses.getDouble(i) / rawClose else 1.0
+            val close = rawClose * factor
+            val volume = if (!volumes.isNull(i)) volumes.getLong(i) else 0L
+            val high = (if (highs != null && !highs.isNull(i)) highs.getDouble(i) else rawClose) * factor
+            val low = (if (lows != null && !lows.isNull(i)) lows.getDouble(i) else rawClose) * factor
+
+            prices.add(ScrapedHistoricalPrice(
+                date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate().format(dateFormatter),
+                close = close,
+                volume = volume,
+                high = high,
+                low = low
+            ))
+        }
+
+        return prices
+    }
+
+    fun fetchHistoricalPrices(symbol: String, days: Int = 365, dividendAdjusted: Boolean = false,
+                              carryForwardMissingClose: Boolean = false): List<ScrapedHistoricalPrice> {
         return try {
             withRetry {
                 val symbolBK = "${symbol.uppercase()}.BK"
@@ -578,44 +632,7 @@ object SetScraper {
                     
                 if (response.statusCode() != 200) throw java.io.IOException("HTTP ${response.statusCode()}")
                 
-                val json = JSONObject(response.body())
-                val result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0)
-                
-                if (!result.has("timestamp")) return@withRetry emptyList()
-                
-                val timestamps = result.getJSONArray("timestamp")
-                val indicators = result.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0)
-                val closes = indicators.getJSONArray("close")
-                val volumes = indicators.getJSONArray("volume")
-                // high/low may be absent in degraded responses — fall back to close
-                val highs = indicators.optJSONArray("high")
-                val lows = indicators.optJSONArray("low")
-                val adjCloses = if (dividendAdjusted) result.getJSONObject("indicators")
-                    .optJSONArray("adjclose")?.optJSONObject(0)?.optJSONArray("adjclose") else null
-                
-                val prices = mutableListOf<ScrapedHistoricalPrice>()
-                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US)
-                
-                for (i in 0 until timestamps.length()) {
-                    if (closes.isNull(i)) continue
-                    val ts = timestamps.getLong(i) * 1000
-                    val rawClose = closes.getDouble(i)
-                    val factor = if (adjCloses != null && !adjCloses.isNull(i) && rawClose > 0) adjCloses.getDouble(i) / rawClose else 1.0
-                    val close = rawClose * factor
-                    val volume = if (!volumes.isNull(i)) volumes.getLong(i) else 0L
-                    val high = (if (highs != null && !highs.isNull(i)) highs.getDouble(i) else rawClose) * factor
-                    val low = (if (lows != null && !lows.isNull(i)) lows.getDouble(i) else rawClose) * factor
-                    
-                    prices.add(ScrapedHistoricalPrice(
-                        date = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.of("Asia/Bangkok")).toLocalDate().format(dateFormatter),
-                        close = close,
-                        volume = volume,
-                        high = high,
-                        low = low
-                    ))
-                }
-                
-                prices
+                parseChartHistory(JSONObject(response.body()), dividendAdjusted, carryForwardMissingClose)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Historical Price Fetch Error after retries", e)
@@ -700,7 +717,7 @@ object SetScraper {
         val direct = fetchSetIndexHistoryDirect()
         val history = if (direct.size >= MIN_INDEX_HISTORY_BARS) direct else {
             Log.w(TAG, "^SET.BK returned ${direct.size} bars; using $SET_INDEX_PROXY_SYMBOL as index proxy")
-            fetchHistoricalPrices(SET_INDEX_PROXY_SYMBOL)
+            fetchHistoricalPrices(SET_INDEX_PROXY_SYMBOL, carryForwardMissingClose = true)
         }
         if (history.isEmpty()) return cachedIndexHistory // stale cache is better than nothing
         cachedIndexHistory = history

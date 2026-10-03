@@ -1592,6 +1592,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private fun needsTechnicalRefresh(stock: apincer.mobile.tradings.data.StockAggregate): Boolean =
         stock.rsi == null || stock.macdHist == null ||
             stock.observationDate == null || stock.benchmarkDate == null ||
+            // Mismatched sessions fail the freshness gate; retry rather than wait out the cache.
+            stock.observationDate != stock.benchmarkDate ||
             isTechnicalCacheExpired(stock.signal?.lastUpdated)
 
     private fun isTechnicalCacheExpired(lastUpdated: String?): Boolean {

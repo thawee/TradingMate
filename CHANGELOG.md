@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (benchmark one session behind)
+- When Yahoo lists a session for the TDEX index proxy without a close, the previous close now carries into that session instead of the session being dropped. Before, the benchmark could sit one session behind the stocks, and the freshness check blocked nearly every Swing and Dividend candidate (seen on 2026-10-03: 99 of 101 stocks). Stock histories are unchanged.
+- A stock whose price session differs from the benchmark's is refreshed on the next sync instead of waiting out the 12-hour closed-market cache.
+
 ### Changed (core-first navigation)
 - The app opens on Portfolio, where the index core, DCA and allocation live; the bottom bar is now Portfolio, Advisor, Watchlist, History, Settings. Notification links open the same screens as before.
 - The Advisor opens on the Dividend tab, now listed first. Swing stays available as technical context.
