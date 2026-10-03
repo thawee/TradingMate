@@ -1,6 +1,6 @@
 # Advisor screen clarity plan
 
-Date: 2026-10-03. Status: approved (both decisions as recommended), in progress.
+Date: 2026-10-03. Status: done (both decisions as recommended); see the todo for results.
 Checklist: [Advisor screen clarity todos](todo.md#advisor-screen-clarity-2026-10-03).
 
 ## Goal

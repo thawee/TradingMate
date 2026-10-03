@@ -648,7 +648,7 @@ Idea adapted from tradermonty `signal-postmortem` (record outcomes, honest attri
 
 # Advisor screen clarity, 2026-10-03
 
-Plan: [Advisor screen clarity](plan.md#advisor-screen-clarity-plan). Status: approved 2026-10-03, in progress.
+Plan: [Advisor screen clarity](plan.md#advisor-screen-clarity-plan). Status: done 2026-10-03.
 
 ## Decisions (user)
 
@@ -676,4 +676,4 @@ Plan: [Advisor screen clarity](plan.md#advisor-screen-clarity-plan). Status: app
 
 ## Verification
 
-- [ ] Tests, build, lint; before/after screenshots; Today card with real holdings; notification links; docs and changelog.
+- [x] Tests, build, lint; before/after screenshots; Today card with real holdings; notification links; docs and changelog. 213 unit tests (10 skipped), 0 failures; lint 0 errors, 122 warnings (was 126). Device: Today lists CPALL and JMT (saved stops), the 2 Nov review (sell MBK) and Core DCA 5 Oct; holdings grouped Act now / At the monthly review; high-yield list, forward record, rebalance plan and Upcoming dividends (latest ex-dates) show by default; Research expands; Swing tab shows the context notice, the Swing-only regime banner and CPALL. START_SCREEN=ADVISOR link opens the Advisor.
