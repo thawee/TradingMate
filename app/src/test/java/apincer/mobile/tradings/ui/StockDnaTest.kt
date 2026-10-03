@@ -104,6 +104,26 @@ class StockDnaTest {
     }
 
     @Test
+    fun testFreshnessAcrossWeekendBoundaryAndFutureDates() {
+        val stock = createStock(500_000.0)
+        fun on(date: String) = stock.copy(portfolio = stock.portfolio.copy(signal =
+            stock.portfolio.signal!!.copy(observationDate = date, benchmarkDate = date)))
+        val friday = on("2026-10-02")
+        // Saturday and the next Monday morning, before a new session: Friday's matched session is still current.
+        assertTrue(StockDna.isFresh(friday, java.time.LocalDate.of(2026, 10, 3)))
+        assertTrue(StockDna.isFresh(friday, java.time.LocalDate.of(2026, 10, 5)))
+        // Seven days is the limit (covers a long holiday); eight is stale.
+        assertTrue(StockDna.isFresh(friday, java.time.LocalDate.of(2026, 10, 9)))
+        assertFalse(StockDna.isFresh(friday, java.time.LocalDate.of(2026, 10, 10)))
+        // A session dated after today (clock or source error) is rejected.
+        assertFalse(StockDna.isFresh(on("2026-10-06"), java.time.LocalDate.of(2026, 10, 5)))
+        // The 2026-10-03 failure: stock on Friday, index proxy one session behind.
+        val lagging = stock.copy(portfolio = stock.portfolio.copy(signal =
+            stock.portfolio.signal!!.copy(observationDate = "2026-10-02", benchmarkDate = "2026-10-01")))
+        assertFalse(StockDna.isFresh(lagging, java.time.LocalDate.of(2026, 10, 3)))
+    }
+
+    @Test
     fun testIsFlowPositiveNetVolume() {
         val stock = createStock(nvdrNetVolume = 500_000.0)
         assertTrue(StockDna.isFlow(stock))

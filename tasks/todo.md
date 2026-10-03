@@ -54,7 +54,7 @@ Address all identified ambiguous, panic-inducing, or misleading UI labels and ba
 
 # Advisor reliability repair
 
-**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 6 freshness parity tests; Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
+**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
 
 **Re-scoped 2026-10-03 (core-first decision, [plan](plan.md#core-first-repositioning-plan)).** Kept: work that protects money in any flow (saved plans, exits and stop alerts on holdings, data freshness, cash/cap checks on every buy, accurate recording of executed fills, honest claims and release review). Deferred: work that only improves swing trade proposals (candidate eligibility, target provenance, Gemini swing plans, swing backtest repair, advice capture). Deferred tasks stay unchecked; reopen them only if swing entries show an edge in a pre-registered test. Unchecked items were not re-verified against current code.
 
@@ -134,9 +134,9 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Task 6: Supply weekly trend and freshness evidence (Keep freshness; weekly-trend parts deferred)
 
-- [ ] Carry per-symbol observation timestamps and completed-bar provenance; calculate completed-calendar-week trend from dates rather than five-row chunks and persist/pass it to the policy.
-- [ ] Foreground and worker use the same evidence rules, including stale/missing data states and last trading session handling.
-- [ ] Verify weekly bearish downgrades, incomplete-week exclusion, old quote with recent fetch time, weekend freshness and worker/foreground parity.
+- [x] Carry per-symbol observation timestamps and completed-bar provenance; calculate completed-calendar-week trend from dates rather than five-row chunks and persist/pass it to the policy. 2026-10-03, freshness part: `observationDate` (last stock bar) and `benchmarkDate` (last index-proxy bar) are persisted per symbol from `SetScraper.fetchTechnicalIndicators`; the proxy keeps sessions without a close. Completed-week trend work is deferred under the core-first scope.
+- [x] Foreground and worker use the same evidence rules, including stale/missing data states and last trading session handling. 2026-10-03: both call `SetScraper.fetchTechnicalIndicators` for the dates and `StockDna` (`isFresh` via `preFilter`, `assessSwing`) for the gate; the foreground also refetches when the two dates differ.
+- [x] Verify weekly bearish downgrades, incomplete-week exclusion, old quote with recent fetch time, weekend freshness and worker/foreground parity. 2026-10-03, freshness part: `testOldOrMissingMarketObservationBlocksEntry`, new `testFreshnessAcrossWeekendBoundaryAndFutureDates` (weekend, 7-day limit, future date, the one-session index lag), `ChartHistoryParserTest`. Weekly-trend cases deferred with that work.
 
 **Dependencies:** 5. **Scope:** Medium; split data plumbing from consumer wiring if it grows beyond one session.
 **Likely files:** `data/SetScraper.kt`, `data/RoomModels.kt`, `ui/StockViewModel.kt`, `util/StockAlertWorker.kt`, evidence tests.
