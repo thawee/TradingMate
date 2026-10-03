@@ -103,7 +103,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 ## Task 3: Implement one exit policy (Keep)
 
 - [x] Add a pure structured exit evaluator using saved plans; price-stop checks work with missing indicators, stops never silently widen, and risk exits take precedence. Audit 2026-10-03: `ExitPolicyEvaluator` for fixed plans: saved stop before target, needs no indicators, never widens the stop. Legacy/dividend holdings still use other paths (next item).
-- [ ] Define legacy/dividend behavior and early invalidation reasons. Planned trades do not use unrelated 3%/5% profit overrides; fees honor configured settings and actual buy fees when available.
+- [x] Define legacy/dividend behavior and early invalidation reasons. Planned trades do not use unrelated 3%/5% profit overrides; fees honor configured settings and actual buy fees when available. 2026-10-03 (user decision: follow the tested rule): Dividend-purpose holdings exit only on a saved stop or leaving the high-yield top 10 (monthly); ROE, yield and drawdown are review notes (`HoldingSignal`, `DividendExitPolicy`). Swing legacy holdings keep the R-based engine exits; fixed plans keep the evaluator, without the 3%/5% overrides. Early breakdown was removed earlier (largest loss source in the replay).
 - [ ] Verify the 100/95/110 fixture, trailing behavior, missing indicators, XD context and dividend explicit stops using focused unit tests.
 
 **Dependencies:** 1. **Scope:** Medium.
@@ -111,7 +111,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Task 4: Connect every live exit consumer (Keep)
 
-- [ ] Advisor, portfolio signals and worker consume the same exit result and plan revision; remove duplicated target/trailing conditions.
+- [x] Advisor, portfolio signals and worker consume the same exit result and plan revision; remove duplicated target/trailing conditions. 2026-10-03: `HoldingSignal.resolve` replaces the three copies in `StockViewModel` (two) and `StockAlertWorker`; the Advisor's dividend alerts use `DividendExitPolicy`.
 - [ ] Alerts distinguish target reached, stop breached, technical invalidation and review-only warnings; all consumers use consistent XD/strategy context.
 - [ ] Verify identical decisions for identical input snapshots, plus a manual screen/notification check for stop and target events.
 
@@ -599,3 +599,10 @@ Plan: [Core-first repositioning](plan.md#core-first-repositioning-plan). Status:
 - [x] Re-scope the reliability plan: note at its top; Tasks 1-4, 8, 9, 13 Keep, 6 freshness Keep, 5, 7, 10-12 Deferred. Checkboxes unchanged.
 - [x] Tests, build, lint, device checks, changelog, commit.
 - [x] Result: 182 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings (unchanged). Device: cold start on Portfolio; bottom bar Portfolio, Advisor, Watchlist, History, Settings; Advisor opens on Dividend; notice on Swing tab and Watchlist; intents matching the notifications open Advisor (START_SCREEN=ADVISOR), Portfolio (sell reminder with OPEN_SYMBOL) and the DCA Buy dialog prefilled TDEX 9.0 x 100 with executed fill unticked (cancelled, nothing saved).
+
+## Dividend holding exits, 2026-10-03
+
+- [x] User decision: Dividend-purpose holdings follow the tested high-yield rule (exit on a saved stop or leaving the top 10; ROE, yield and drawdown are review notes).
+- [x] `HoldingSignal.resolve` shared by `StockViewModel` (two sites) and `StockAlertWorker`; `DividendExitPolicy` for the Advisor's dividend alerts; Buy dialog text and ALERT_FLOWS updated (also removed the stale early-breakdown wording).
+- [x] 192 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings. Seven new tests: dividend hold ignores technical/quality sells, saved stop still alerts, swing and core unchanged, fixed plan before dividend hold, exit vs review notes, no notes when healthy or unranked.
+- [ ] Device check of the Advisor's dividend alerts for MBK and JMT: not done, the phone was locked. Installed build is current.

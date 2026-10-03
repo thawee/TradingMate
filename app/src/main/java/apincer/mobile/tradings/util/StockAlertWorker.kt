@@ -229,17 +229,9 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 )
                 val explicitStopHit = entity.quantity > 0 && entity.portfolio.stopLoss > 0.0 &&
                     scraped.lastPrice > 0.0 && scraped.lastPrice <= entity.portfolio.stopLoss
-                val signal = if (explicitStopHit) {
-                    apincer.mobile.tradings.domain.TradeSignal(IndicatorSignal.SELL, "STOP",
-                        "Saved stop reached at ฿${entity.portfolio.stopLoss}")
-                } else if (entity.quantity > 0 && entity.portfolio.exitPolicy == "FIXED_TARGET") {
-                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(entity.portfolio.toTradePlan(), scraped.lastPrice)
-                    if (decision != null) apincer.mobile.tradings.domain.TradeSignal(
-                        IndicatorSignal.SELL, decision.reason.name, decision.description
-                    ) else apincer.mobile.tradings.domain.TradeSignal(
-                        IndicatorSignal.NEUTRAL, "Saved plan active", "No saved exit trigger reached"
-                    )
-                } else if (CoreSatellite.isCore(entity.symbol)) CoreSatellite.CORE_SIGNAL else rawSignal
+                val signal = apincer.mobile.tradings.domain.HoldingSignal.resolve(entity.symbol, entity.quantity,
+                    entity.tradePurpose, entity.portfolio.stopLoss, scraped.lastPrice, entity.portfolio.exitPolicy,
+                    { entity.portfolio.toTradePlan() }, rawSignal) ?: rawSignal
 
                 // 4. Check for state shift (entry opportunities only)
                 val oldSignalType = entity.signalType
@@ -390,12 +382,10 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
 
                 // 7. One stop model: the saved stop and the signal engine (volatility trailing stop after +1R,
-                // 2R target, overbought after +1R). The fixed-% trailing stop setting was removed.
+                // 2R target, overbought after +1R). Dividend holdings follow HoldingSignal (saved stop only).
                 val isSwingHold = entity.tradePurpose == "SWING"
-                val isDividendTransitionHold = entity.tradePurpose == "DIVIDEND" &&
-                    scraped.dividendYield?.let { it < TradingConstants.DIVIDEND_YIELD_PROTECTION } == true
                 if (!isCoreHolding && entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
-                    (isSwingHold || isDividendTransitionHold) && signal.type == IndicatorSignal.SELL) {
+                    isSwingHold && signal.type == IndicatorSignal.SELL) {
                     hasActiveSwingSellAlert = true
                 }
 

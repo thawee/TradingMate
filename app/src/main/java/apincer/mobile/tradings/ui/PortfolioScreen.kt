@@ -1127,7 +1127,7 @@ fun BuyStockDialog(
                             text = if (tradePurpose == "SWING") {
                                 "⚡ Swing: Active trade management. Enforces daily trailing stops, take-profit at 2× the stop distance, and technical exits."
                             } else {
-                                "💰 Dividend: Long-term compounding. Bypasses daily trailing stops; alerts only on fundamental breaks (ROE < 15%) or deep drawdown (> 20%)."
+                                "💰 Dividend: Held under the tested high-yield rule. No trailing, quality or price exits; it is reviewed at the monthly rebalance and sold when it leaves the top 10. Only a stop you save sends an alert."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),

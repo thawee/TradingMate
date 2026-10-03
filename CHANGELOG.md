@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (dividend holding exits follow the tested rule)
+- Dividend-purpose holdings no longer get SELL signals or notifications from ROE below 15%, yield below 3% (the old switch to swing exits) or technical rules. In the Advisor, leaving the high dividend yield top 10 is listed as the exit, to act on at the monthly review; ROE, yield and a 20% drawdown appear as review notes. A stop you saved still alerts. Reason: the tested high-yield rule has no quality or price exits, quality filters failed, and selling after a 15% fall did worse.
+- One function now decides every holding's signal for the Advisor, Portfolio and notifications (before: three copies). The Advisor and notifications no longer disagree when a dividend stock's yield is missing.
+
 ### Fixed (benchmark one session behind)
 - When Yahoo lists a session for the TDEX index proxy without a close, the previous close now carries into that session instead of the session being dropped. Before, the benchmark could sit one session behind the stocks, and the freshness check blocked nearly every Swing and Dividend candidate (seen on 2026-10-03: 99 of 101 stocks). Stock histories are unchanged.
 - A stock whose price session differs from the benchmark's is refreshed on the next sync instead of waiting out the 12-hour closed-market cache.

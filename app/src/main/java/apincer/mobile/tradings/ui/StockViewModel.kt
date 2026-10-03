@@ -309,19 +309,9 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         description = stock.signalDescription ?: ""
                     )
                 } else null
-                val explicitStopHit = stock.quantity > 0 && stock.stopLoss > 0.0 &&
-                    stock.lastPrice > 0.0 && stock.lastPrice <= stock.stopLoss
-                val signal = if (explicitStopHit) {
-                    TradeSignal(IndicatorSignal.SELL, "STOP", "Saved stop reached at ฿${stock.stopLoss}")
-                } else if (stock.quantity > 0 && stock.portfolio.exitPolicy == "FIXED_TARGET") {
-                    val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(stock.portfolio.toTradePlan(), stock.lastPrice)
-                    if (decision != null) TradeSignal(IndicatorSignal.SELL,
-                        decision.reason.name, decision.description)
-                    else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
-                        "No saved stop or target reached")
-                } else if (apincer.mobile.tradings.domain.CoreSatellite.isCore(stock.symbol)) {
-                    apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL
-                } else rawSignal
+                val signal = apincer.mobile.tradings.domain.HoldingSignal.resolve(stock.symbol, stock.quantity,
+                    stock.tradePurpose, stock.stopLoss, stock.lastPrice, stock.portfolio.exitPolicy,
+                    { stock.portfolio.toTradePlan() }, rawSignal)
 
                 val focusMovement = if (focus != null && focus.startPrice != 0.0) {
                     ((stock.lastPrice - focus.startPrice) / focus.startPrice) * 100
@@ -473,32 +463,16 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 var applySwingLogic = true
 
                 if (tradePurpose == "DIVIDEND") {
-                    if (stock.portfolio.stopLoss > 0.0 && stock.info.lastPrice > 0.0 &&
-                        stock.info.lastPrice <= stock.portfolio.stopLoss &&
-                        stock.portfolio.portfolio.exitPolicy != "FIXED_TARGET") {
-                        dividendSellAlerts.add(SellAlertData(stock,
-                            "Saved stop reached at ฿${stock.portfolio.stopLoss}"))
-                    }
-                    val yield = stock.info.dividendYield
-                    val roe = stock.info.roe
-
-                    if (roe != null && roe < 15.0) {
-                        dividendSellAlerts.add(SellAlertData(stock, "Fundamentals Break (ROE < 15%)"))
-                    }
-
-                    if (yield == null || yield >= TradingConstants.DIVIDEND_YIELD_PROTECTION) {
-                        applySwingLogic = false
-                        // Fix #3: Deep drawdown guardrail even for protected dividend stocks
-                        val drawdown = if (stock.portfolio.cost > 0)
-                            ((stock.info.lastPrice - stock.portfolio.cost) / stock.portfolio.cost) * 100
-                            else 0.0
-                        if (drawdown <= TradingConstants.DIVIDEND_DEEP_DRAWDOWN_PERCENT) {
-                            dividendSellAlerts.add(SellAlertData(stock, "⚠️ Deep Drawdown (${String.format(java.util.Locale.ENGLISH, "%.1f", drawdown)}%) — Review Hold Thesis"))
-                        }
-                    } else {
-                        swingSellAlerts.add(SellAlertData(stock, "Yield Dropped (< 3%) (Transition to Swing)"))
-                        applySwingLogic = true
-                    }
+                    // Tested high-yield rule: exits are a saved stop or leaving the ranked list; the rest are review notes.
+                    applySwingLogic = false
+                    val fixedPlan = stock.portfolio.portfolio.exitPolicy == "FIXED_TARGET"
+                    val ranked = _highYieldList.value?.second?.map { it.symbol.uppercase() }?.toSet()
+                    apincer.mobile.tradings.domain.DividendExitPolicy.notes(
+                        price = stock.info.lastPrice, costPerShare = stock.portfolio.cost,
+                        savedStop = if (fixedPlan) 0.0 else stock.portfolio.stopLoss,
+                        yieldPercent = stock.info.dividendYield, roe = stock.info.roe,
+                        inHighYieldList = ranked?.let { stock.info.symbol.uppercase() in it }
+                    ).forEach { dividendSellAlerts.add(SellAlertData(stock, it.reason)) }
                 }
 
                 if (stock.portfolio.portfolio.exitPolicy == "FIXED_TARGET") {
@@ -1454,23 +1428,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         userBuyFees = portfolio?.buyFees,
                         atsEnabled = isAtsEnabled.value
                     )
-                    val explicitStopHit = portfolio != null && portfolio.quantity > 0 &&
-                        portfolio.stopLoss > 0.0 && updatedInfo.lastPrice > 0.0 &&
-                        updatedInfo.lastPrice <= portfolio.stopLoss
-                    val signal = when {
-                        explicitStopHit -> TradeSignal(IndicatorSignal.SELL, "STOP",
-                            "Saved stop reached at ฿${portfolio!!.stopLoss}")
-                        portfolio != null && portfolio.quantity > 0 && portfolio.exitPolicy == "FIXED_TARGET" -> {
-                            val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(portfolio.toTradePlan(), updatedInfo.lastPrice)
-                            if (decision != null) TradeSignal(IndicatorSignal.SELL,
-                                decision.reason.name, decision.description)
-                            else TradeSignal(IndicatorSignal.NEUTRAL, "Saved plan active",
-                                "No saved stop or target reached")
-                        }
-                        apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol) ->
-                            apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL
-                        else -> rawSignal
-                    }
+                    val signal = if (portfolio == null) {
+                        if (apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol))
+                            apincer.mobile.tradings.domain.CoreSatellite.CORE_SIGNAL else rawSignal
+                    } else apincer.mobile.tradings.domain.HoldingSignal.resolve(symbol, portfolio.quantity,
+                        portfolio.tradePurpose, portfolio.stopLoss, updatedInfo.lastPrice, portfolio.exitPolicy,
+                        { portfolio.toTradePlan() }, rawSignal) ?: rawSignal
 
                     val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, bb)
 

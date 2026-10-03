@@ -8,7 +8,7 @@ TradingMate has two alert paths: reactive in-app alerts from `StockViewModel` an
 
 During a scan, the worker updates watchlist prices and indicators and checks for signal changes, active sell reminders, XD dates within seven days, and dividend-yield opportunities. A morning exit reminder (10:00–11:00) depends on an active swing sell alert. The notification helper deduplicates these reminders by their relevant stock, date, week, or season.
 
-For a holding with an accepted `FIXED_TARGET` plan, the worker checks its saved stop first, confirmed early breakdown next, then its saved target. The notification names the saved level when one is reached. Legacy holdings without a complete fixed plan continue to use compatibility exit logic. Dividend-purpose alerts follow their separate fundamentals and yield rules.
+One function, `HoldingSignal.resolve`, decides the signal for every holding in the Advisor, Portfolio and the worker: a saved stop first, then an accepted `FIXED_TARGET` plan (saved stop, then saved target; no early-breakdown exit), then the core fund's hold signal, then Dividend-purpose holdings, then the technical signal for other holdings. The notification names the saved level when one is reached. Dividend-purpose holdings follow the tested high-yield rule: only a saved stop sends a notification. In the Advisor, `DividendExitPolicy` lists leaving the high-yield top 10 as the exit (acted on at the monthly review) and low ROE, yield below 3% and a 20% drawdown as review notes, not sells.
 
 ## In-app advisor alerts
 
