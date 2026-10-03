@@ -169,31 +169,6 @@ object NotificationHelper {
         notificationManager.notify(symbol.hashCode() + 2000, builder.build())
     }
 
-    fun showDividendSeasonNotification(context: Context, isFirstSeason: Boolean) {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("START_SCREEN", "WATCHLIST")
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, 3, intent, 
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val seasonName = if (isFirstSeason) "First-Half" else "Second-Half"
-        val xdMonths = if (isFirstSeason) "April/May" else "August/September"
-        
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Dividend season")
-            .setContentText("$seasonName payouts go XD in $xdMonths. Check your holdings' XD dates on the Advisor's Dividend tab.")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(9993, builder.build())
-    }
-
     /** Monthly: the index core is well under its target share. Opens Portfolio, where the core card is. */
     fun showRebalanceNotification(context: Context, text: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -261,44 +236,4 @@ object NotificationHelper {
         notificationManager.notify(9994, builder.build())
     }
 
-    /**
-     * Year-round alert: fires any month when a DIVIDEND-purpose watchlist stock's
-     * yield spikes above the threshold (price dropped → yield rose) with solid fundamentals.
-     * Deduplicates per week so it doesn't spam on every 30-min worker cycle.
-     */
-    fun showDividendYieldOpportunityNotification(
-        context: Context,
-        symbol: String,
-        yield: Double,
-        price: Double,
-        roe: Double
-    ) {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("OPEN_SYMBOL", symbol)
-            putExtra("START_SCREEN", "WATCHLIST")
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, symbol.hashCode() + 5000, intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("💰 Yield Opportunity: $symbol")
-            .setContentText("Yield %.1f%% at ฿%.2f — strong ROE %.1f%%. Good accumulation point.".format(yield, price, roe))
-            .setStyle(
-                NotificationCompat.BigTextStyle().bigText(
-                    "$symbol dividend yield has risen to %.1f%% at ฿%.2f. ".format(yield, price) +
-                    "Fundamentals remain solid (ROE %.1f%%). ".format(roe) +
-                    "Price weakness may be a good long-term accumulation opportunity."
-                )
-            )
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(symbol.hashCode() + 5000, builder.build())
-    }
 }

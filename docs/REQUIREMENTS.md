@@ -62,19 +62,10 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **SET Collections Import:** Enable one-click import of curated stock groups (SET50, SET100, SETHD, Dividend Stars, Bluechips).
 - **Dynamic Sorting & Filtering:** Sort stocks by Symbol, Change %, or Signal priority (BUY > POTENTIAL > SELL > MONITOR) with direction toggle, search filter, fast scroll index track, and auto-scroll to top on sort change.
 
-### 2.5 Smart Advisor
-- **Playbook Modes:** Two modes — Swing Playbook and Dividend Playbook.
-- **3-Step Routine (SWING):**
-    1. **Check Exits** — Review saved-plan and legacy sell alerts. Completes automatically if no exit alert exists.
-    2. **Scan Setups** — Review screened swing and strong daily move candidates plus separate speculative and liquidity/trap risk groups. The afternoon reminder can add a badge to this step.
-    3. **Ask AI** — Copy a prompt or run in-app analysis to explain and rank locally validated swing plans. The AI card appears above the exit and setup sections on screen.
-- **AI Prompt Generation:** Send only locally validated actionable swing plans to Gemini for ranking and explanation. Include plan levels, size and observation identity. Model scores are qualitative assessments, not measured probabilities. Dividend AI remains informational until locally validated dividend plans exist.
-- **In-App AI Analysis:** "Analyze with AI" calls Gemini with a user-supplied API key. Actionable prices and allocations shown in the app come from the locally validated plan. The direct call has no live web/news access.
-- **Selectable Gemini Model:** Users can pick which free-tier Gemini model powers the in-app analysis (Settings > AI Integration), and refresh the list live from Gemini's ListModels API to pick up newly released or soon-to-be-retired models automatically.
+### 2.5 Advisor
+- **Layout (2026-10-03):** The Advisor opens with a Today card (holdings at a saved exit first, then the monthly high-yield review date and names to sell, then the core DCA date, or "No holding needs action today"). Holdings are grouped Act now / At the monthly review / Review only. The Dividend tab shows the high dividend yield list, its forward record, the monthly rebalance plan and upcoming ex-dates for holdings; the Swing tab shows the context notice, the regime banner (Swing buys only) and swing holding exits. Research (the filter explorer) is collapsed at the bottom.
+- **Removed 2026-10-03:** the Swing 3-step routine, Gemini ranking of swing plans, Dividend Stars, the momentum list and strategy presets (failed or untested rules), and the "Show untested buy lists" setting.
 - **Push Notifications:** Morning exit alerts (10:00–11:00 AM) and afternoon entry reminders (15:30–16:15).
-- **Afternoon Badge:** Visual indicator on the Scan Setups step when the afternoon scan notification has fired.
-- **Auto-mark:** Check Exits completes when no sell alerts exist. Ask AI completes when its prompt is copied or in-app analysis finishes.
-- **Wizard Step Bar:** Bottom bar showing step progress, alert counts, and candidate counts.
 
 ### 2.6 Alert & Notification System
 - **Signal Change Alerts:** Push notification when stock signal shifts (BUY → SELL, etc.).
@@ -82,8 +73,6 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **XD Date Alerts:** Push notification for upcoming ex-dividend dates (within 7 days).
 - **Morning Exit Window:** Push notification at 10:00–11:00 AM if swing exit conditions exist.
 - **Afternoon Entry Window:** Push notification at 15:30–16:15 (capped before close) if market is open.
-- **Dividend Season Reminder:** Push notification in January and June for accumulation season (once per season, 09:00–17:00 only).
-- **Yield Opportunity Alert:** Year-round push notification (any month) when a DIVIDEND-purpose watchlist stock's yield rises ≥ 5% with ROE ≥ 15% — deduplicated per ISO week per stock.
 - **In-App Sell Alerts:** Planned swing positions use their saved target and explicit stop; overbought is review context. Legacy holdings retain compatibility alerts until their plan is completed.
 
 ### 2.7 Trading Academy
@@ -105,10 +94,10 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 
 ### 3.1 Main Navigation
 - **Watchlist:** Active monitoring list with quick filtering (All/Focus/Portfolio), sorting, and Focus management via Filter Chips. Signal-based BUY/SELL alerts are surfaced on the Advisor screen instead of here.
-- **Advisor:** Smart Advisor with 3-step routine (SWING) or informational view (DIVIDEND). Single screen aggregating sell alerts, Swing/Dividend/Gap candidates, Speculative Plays, Liquidity/Trap Risk signals, and both copy-paste and in-app AI prompts.
+- **Advisor:** Today card, holdings grouped by urgency, the tested high dividend yield section (Dividend tab), swing context and exits (Swing tab), collapsed research.
 - **Portfolio:** Central hub for viewing current holdings, cash management, and net return summary. Pull-to-refresh updates only portfolio stocks.
 - **History (Stats):** Audit trail of completed trades with profitability analytics and lessons learned.
-- **Settings:** App configuration, dynamic Risk Management limits, AI Integration (Gemini API key + model selection), and data management.
+- **Settings:** App configuration, dynamic Risk Management limits, AI Integration (Gemini API key for screenshot import), and data management.
 
 ### 3.2 Secondary Flows
 - **Stock Detail (Dashboard):** Triggered from any list item. Shows cached data first, refreshes from API if stale. Provides deep technical drill-down, price trend charts, and Focus toggle.
@@ -135,7 +124,7 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 ## 5. Non-Functional Requirements
 
 ### 5.1 Performance & Technical
-- **Background Sync:** WorkManager runs every **30 minutes** on weekdays only. Skips stock scan when market is closed (including public holidays). Time-based alerts (afternoon window, dividend season) are checked first and guarded independently.
+- **Background Sync:** WorkManager runs every **30 minutes** on weekdays only. Skips stock scan when market is closed (including public holidays). Time-based alerts (afternoon window, DCA, tax-fund and high-yield review reminders) are checked first and guarded independently.
 - **Data Privacy:** All personal portfolio and watchlist data must be stored locally on the device (Local-First architecture).
 - **Backup & Restore:** Export/import watchlist symbols, portfolio holdings and accepted plans, trade history, advice events, cash transactions, dividend history, daily portfolio snapshots, and cash balance as JSON. Import merges historical records with content deduplication and fresh local IDs. Older backups import with the data they contain; omitted historical records cannot be recovered. Caches and signals are regenerated on refresh.
 - **Freshness:** Quote and fundamental fetch timestamps are independent. Preserve a usable cached quote on source failure and identify partial refresh failures. Risk history refreshes periodically while Stats is open; beta and 1-day VaR/CVaR are unavailable if their historical observations are incomplete or stale.

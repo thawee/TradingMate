@@ -20,7 +20,6 @@ class PreferenceRepository(private val context: Context) {
     private val DIVIDEND_ALERT_WINDOW = intPreferencesKey("dividend_alert_window")
     private val IS_DIVIDEND_ALERT_END_YEAR = booleanPreferencesKey("is_dividend_alert_end_year")
     private val IS_PRIVACY_MODE = booleanPreferencesKey("is_privacy_mode")
-    private val SHOW_UNTESTED_LISTS = booleanPreferencesKey("show_untested_lists")
     private val IS_ATS_ENABLED = booleanPreferencesKey("is_ats_enabled")
     private val IS_ENTRY_ALERTS_ENABLED = booleanPreferencesKey("is_entry_alerts_enabled")
     private val TARGET_CORE_PERCENT = doublePreferencesKey("target_core_percent")
@@ -233,13 +232,6 @@ class PreferenceRepository(private val context: Context) {
         context.settingsDataStore.edit { it[TAX_FUND_PURCHASES] = apincer.mobile.tradings.domain.TaxFunds.toJson(purchases) }
     }
 
-    /** Advisor buy lists that have not passed the evidence gate; hidden unless the user opts in. */
-    val showUntestedLists: Flow<Boolean> = context.settingsDataStore.data
-        .map { preferences -> preferences[SHOW_UNTESTED_LISTS] ?: false }
-
-    suspend fun setShowUntestedLists(show: Boolean) {
-        context.settingsDataStore.edit { preferences -> preferences[SHOW_UNTESTED_LISTS] = show }
-    }
 
     /** Top personal income-tax bracket in percent; null until the user sets it. */
     val personalTaxRate: Flow<Double?> = context.settingsDataStore.data

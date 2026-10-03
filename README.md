@@ -30,10 +30,10 @@ It also covers the practical side of Thai investing:
   - **63-Day Rolling Covariance Portfolio Beta ($\beta$):** Tracks systematic volatility vs. SET Index (*Defensive Low-Vol*, *Balanced*, or *Aggressive High-Beta*).
 - **Multi-Timeframe (MTF) Macro Trend Alignment:** Daily candle resampling to compute **Weekly 20-EMA** macro trends. Prevents counter-trend daily whipsaw buys with the **Macro Weekly Bearish Guard** and awards the `MTF` confluence tag.
 - **Thai Dividend Tax Shield (Section 47 bis):** Calculates reclaimable Corporate Income Tax (CIT 20%) credits ($\text{Gross} \times \frac{20}{80}$) and Net Yield-on-Cost ($\text{YoC}_{\text{net}}$) after 10% Withholding Tax.
-- **Dividend Advisor:** A specialized planning dashboard that calculates required capital to reach passive income goals. Suggests high-yield "Dividend Stars" based on strict fundamental and solvency criteria (untested list).
+- **Advisor:** The Advisor opens with a Today card (holdings at a saved exit first, then the monthly high-yield review date and names to sell, then the core DCA date, or "No holding needs action today"). Holdings are grouped Act now / At the monthly review / Review only. The Dividend tab shows the high dividend yield list, its forward record, the monthly rebalance plan and upcoming ex-dates for holdings; the Swing tab shows the context notice, the regime banner (Swing buys only) and swing holding exits. Research (the filter explorer) is collapsed at the bottom.
 - **High Dividend Yield List and Monthly Rebalance Plan:** The top 10 SET50 stocks by yield, the one stock rule that passed the evidence gate (backtest +7.80% a year vs TDEX +2.52%, inflated by survivorship; the real 1DIV ETF +3.86% vs +2.55%). The rebalance plan turns it into a review-only order list for your Dividend-purpose holdings: sell names that left the list, keep the rest unresized, buy new names with a tenth of the budget in whole lots. It says when the budget is too small to hold all ten and points to 1DIV. A monthly notification reminds you to review it. A forward record saves each month's list with its prices and compares it with TDEX after 1, 3 and 12 months, dividends included; names are fixed when saved, so delistings stay in the record (idea from tradermonty's signal-postmortem).
 - **Market Pulse:** Watchlist monitoring with multi-factor technical context (Technical Setup, On Watch, Exit Rule). Entry signals carry a "Context, not a buy call" notice; entry alerts are off by default.
-- **AI Advisor:** Explains and ranks locally validated swing setups as context. The backtest result is shown first, and saving a plan is a secondary action ("Save as Satellite Plan"). Model assessments are qualitative and do not represent win probabilities.
+- **Screenshot import:** The Buy dialog can read a broker trade screenshot with Gemini (user-supplied API key).
 - **Saved Swing Plans:** Records an accepted entry, stop, target, and exit policy. Proposed buys are checked against net reward to risk, stop risk, concentration, cash reserve, and SET board lots. Broker fills can still be recorded when they differ from a proposal.
 - **Local Trade Record and Backup:** Saves plan history, trades, fees, cash transactions, dividends, daily portfolio snapshots, and advice events in JSON backups. Older backups import with their available fields.
 - **Consolidated Portfolio:** Professional financial dashboard grouping stock holdings, cash balance, net profit, fee tracking, and sector risk meters in one unified view.
@@ -140,35 +140,6 @@ The universe is today's SET50, so results are flattered by survivorship bias. Re
 
 Market quotes and fundamentals have separate freshness checks. Failed refreshes retain usable cached values and identify affected symbols; check the last-sync time before acting. The Stats risk panel uses date-aligned history and shows VaR/CVaR or beta as unavailable when the necessary observations are missing or stale. The minimum net reward-to-risk threshold for proposed swing buys is configurable in Settings (default 2:1). Saved stops and targets are alert levels, not broker orders or guaranteed fill prices.
 
-## 📋 Swing Playbook (Daily Discipline Tracker)
-
-The Swing Playbook is a 3-step daily workflow to keep traders disciplined during market hours. It appears at the bottom of the Smart Advisor screen as a floating step bar.
-
-### The 3 Steps
-
-| Step | Name | What It Does |
-|------|------|--------------|
-| 1 | 🚨 Check Exits | Review saved stop/target alerts, early breakdown warnings and legacy position alerts |
-| 2 | 🔍 Scan Setups | Review eligible swing and strong daily move candidates, with missing targets identified |
-| 3 | 🤖 Ask AI | Copy an analysis prompt or ask Gemini to explain and rank locally validated plans; its assessment is qualitative |
-
-- Each step has a checkbox. Tapping **"Next →"** scrolls to the next step.
-- When all 3 steps are checked, the bar shows **"✅ All 3 steps done! You're ready to trade."**
-- If no sell alerts exist, Step 1 auto-marks as done.
-
-### Reset Schedule
-
-All 3 steps reset **daily after market close (16:30)**:
-
-- **Before 16:30** (trading hours): Steps are still valid for today — no reset.
-- **After 16:30** (market closed): Opening the app triggers a fresh reset for the new trading day.
-
-This ensures your checklist stays intact during market hours and starts clean the next day.
-
-> Note: The Dividend Playbook does not have step tracking — only the Swing Playbook follows this discipline workflow. Dividend stocks require multiple reviews throughout the day and across the week (e.g., monitoring yield changes, XD dates, fundamental shifts), so a single daily checklist is not feasible for this strategy.
-
----
-
 ## 🔔 Notification Alerts
 
 TradingMate sends push notifications during specific time windows on weekdays (Asia/Bangkok timezone). The background worker runs every **30 minutes**.
@@ -179,16 +150,12 @@ TradingMate sends push notifications during specific time windows on weekdays (A
 | **15:30–16:15 PM** | 🏙️ Afternoon Swing Entry | Once/day | Scan Advisor for new Swing & Gap candidates before close. **Off by default** (Settings > Entry signal alerts) |
 | **DCA day or next trading session** | 📈 Monthly Core Buy | Once/month | TDEX board lots for your monthly DCA amount, fees included (when an amount is set) |
 | **Within 7 days of XD** | 💰 Ex-Dividend Alert | Once/XD date | Per-stock alert when an ex-dividend date is approaching |
-| **Jan & Jun, 09:00–17:00** | 📅 Dividend Season | Once/season | Start accumulating for upcoming payout season |
-| **Any month** | 💰 Yield Opportunity | Once/week/stock | DIVIDEND stock yield ≥ 5% + ROE ≥ 15% — good accumulation price |
-| **First trading session of the month** | 📊 High-Yield Review | Once/month | Review the high dividend yield rebalance plan. Only with untested lists on and a Dividend-purpose holding |
+| **First trading session of the month** | 📊 High-Yield Review | Once/month | Review the high dividend yield rebalance plan. Only with a Dividend-purpose holding |
 | **Any time (market open)** | 🚨 Sell Reminder | Per stock | Stop, trailing stop, saved-plan exit or SELL signal on a holding (Dividend-purpose holdings: saved stop only) |
 | **Any time (market open)** | 🔔 Entry Signal | Per stock | New BUY/POTENTIAL on a non-held quality candidate. **Off by default** |
 
 > **Deduplication rules:**
 > - Morning / Afternoon alerts: once per trading day
-> - Dividend Season: once per season (January key, June key) — fires on first qualifying business day
-> - Yield Opportunity: at most once per ISO week per stock
 > - Notifications are skipped on weekends. Stock-scan alerts are also skipped on public holidays (market closed).
 
 ## 🔏 Building a Signed Release

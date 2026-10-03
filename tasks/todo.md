@@ -645,3 +645,35 @@ Idea adapted from tradermonty `signal-postmortem` (record outcomes, honest attri
 - [x] High-yield card shows the forward record per horizon: lists measured, average list vs TDEX, months ahead.
 - [x] Tests, build, lint, device check, docs, changelog, commit. 211 unit tests (10 skipped), 0 failures; lint 0 errors, 128 warnings (+1 `UseKtx`, same pattern as the neighbouring prefs writes). Device: Re-rank now saved the first real snapshot (2026-10, 10 names, TDEX 10.37); the card shows Saved: 1 month since 2026-10. Untested lists restored off. Limitation: the record updates only while the card is shown.
 - [x] Background update: `HighYieldRecorder` (ranking, list cache, forward record) shared by the Advisor and `StockAlertWorker`; the worker runs it on trading days when a snapshot or result is due, at most one attempt a day, whatever the untested-lists setting. 211 unit tests, 0 failures; lint 0 errors, 126 warnings (new file uses KTX `edit {}`). Not exercised on the device: nothing is due until 2026-11 (October snapshot exists); the attempt guard has no unit test (needs Android preferences).
+
+# Advisor screen clarity, 2026-10-03
+
+Plan: [Advisor screen clarity](plan.md#advisor-screen-clarity-plan). Status: approved 2026-10-03, in progress.
+
+## Decisions (user)
+
+- [x] Remove the "Show untested buy lists" setting (user: do them all, 2026-10-03).
+- [x] XD card: real ex-dates for holdings (user, 2026-10-03).
+
+## Phase 1: Remove
+
+- [x] Momentum list; Dividend Stars and the Compounder / High Yield Shield presets; swing presets and the Watch-or-blocked list.
+- [x] Advisor AI card, prompts, AI plan validation and advice recording (keep GeminiClient for screenshot import). `acceptAiPlan`, `recordAiRecommendations`, `AiRecommendationValidator` and its test deleted; `GeminiClient` kept.
+- [x] Yield Opportunity and Dividend Season notifications.
+- [x] Dead code: WizardStepBar, speculative candidates, README Swing Playbook section; the untested-lists setting if decided. Checklist DB table kept (no migration).
+
+## Phase 2: Followable
+
+- [x] Today card (act now, this month, core, or nothing to do). `AdvisorToday` with four tests (review date, DCA date across weekends and holidays, ordering, quiet day).
+- [x] Alerts grouped Act now / At the monthly review / Review; no DNA badges on alert cards. `AlertLevel` on dividend notes; `SellAlertData.lines`.
+- [x] High Yield list, rebalance plan and forward record shown by default.
+- [x] Plain labels.
+
+## Phase 3: Smaller fixes
+
+- [x] Upcoming dividends with real ex-dates (or remove, per decision). SET-announced `dividendDate`; none upcoming today, so it shows the latest ones.
+- [x] Regime banner on Swing only; research collapsed; disclaimer at the bottom.
+
+## Verification
+
+- [ ] Tests, build, lint; before/after screenshots; Today card with real holdings; notification links; docs and changelog.

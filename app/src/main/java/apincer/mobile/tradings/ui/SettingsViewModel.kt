@@ -215,16 +215,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { preferenceRepository.setTaxFundPurchases(preferenceRepository.taxFundPurchases.first() - purchase) }
     }
 
-    val showUntestedLists: StateFlow<Boolean> =
-        preferenceRepository.showUntestedLists.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    fun updateShowUntestedLists(show: Boolean) {
-        viewModelScope.launch { preferenceRepository.setShowUntestedLists(show) }
-    }
 
     val personalTaxRate: StateFlow<Double?> =
         preferenceRepository.personalTaxRate.stateIn(

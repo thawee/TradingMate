@@ -16,7 +16,7 @@ One function, `HoldingSignal.resolve`, decides the signal for every holding in t
 
 Swing candidates are screened for recent aligned stock and SET observations, liquidity, 52-week-low distance, quality, completed-week trend, and signal. The UI distinguishes Ready, Watch, and Blocked. A strong daily move is not proof of an opening gap or an earnings catalyst. Dividend candidates follow their separate dividend screen and are not fully covered by the swing status.
 
-The Swing playbook presents **Check Exits**, **Scan Setups**, and **Ask AI**. The first step can complete automatically when no exit alerts exist; copying or running AI analysis can complete the AI step. The afternoon notification sets a scan badge that clears when the setup step is completed. Dividend mode is informational and does not use the Swing checklist.
+The Advisor's Today card summarizes holding exits, the monthly high-yield review and the core DCA date (`AdvisorToday`). Holding alerts carry a level (`AlertLevel`: act now, at the monthly review, review only) and are grouped by it. The Swing 3-step checklist, the AI ranking and the Yield Opportunity and Dividend Season notifications were removed on 2026-10-03.
 
 ## Implementation points
 

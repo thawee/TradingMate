@@ -43,6 +43,7 @@ class HoldingSignalTest {
         val notes = DividendExitPolicy.notes(price = 7.5, costPerShare = 10.0, savedStop = 0.0,
             yieldPercent = 2.0, roe = 8.0, inHighYieldList = false)
         assertEquals(listOf(true, false, false, false), notes.map { it.exit })
+        assertEquals(listOf(AlertLevel.MONTHLY, AlertLevel.REVIEW, AlertLevel.REVIEW, AlertLevel.REVIEW), notes.map { it.level })
         assertTrue(notes[0].reason.startsWith("Left the high dividend yield top 10"))
         assertTrue(notes.drop(1).all { it.reason.startsWith("Review:") })
         assertTrue(notes.last().reason.contains("-25.0%"))
@@ -50,13 +51,13 @@ class HoldingSignalTest {
 
     @Test fun dividendCutIsAReviewNoteNotAnExit() {
         val notes = DividendExitPolicy.notes(10.0, 9.0, 0.0, 6.0, 18.0, true, dividendCut = "Dividend cut: test")
-        assertEquals(listOf(DividendExitPolicy.Note(false, "Review: Dividend cut: test")), notes)
+        assertEquals(listOf(DividendExitPolicy.Note(AlertLevel.REVIEW, "Review: Dividend cut: test")), notes)
     }
 
     @Test fun healthyListedHoldingHasNoNotes() {
         assertTrue(DividendExitPolicy.notes(10.0, 9.0, 0.0, 6.0, 18.0, true).isEmpty())
         // No ranking yet: no list note.
         assertTrue(DividendExitPolicy.notes(10.0, 9.0, 0.0, null, null, null).isEmpty())
-        assertEquals(listOf(true), DividendExitPolicy.notes(8.9, 9.0, 9.0, 6.0, 18.0, true).map { it.exit })
+        assertEquals(listOf(AlertLevel.ACT_NOW), DividendExitPolicy.notes(8.9, 9.0, 9.0, 6.0, 18.0, true).map { it.level })
     }
 }

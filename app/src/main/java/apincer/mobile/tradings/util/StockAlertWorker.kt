@@ -61,24 +61,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
             }
 
-            // 3. Dividend Accumulation Season Reminder (January & June)
-            //    - January  → accumulate before April/May XD (First-Half payouts)
-            //    - June     → accumulate before August/September XD (Second-Half payouts)
-            //    Fires ONCE per season (keyed by year-month, not date) during business hours.
             val month = now.get(java.util.Calendar.MONTH)
             val year = now.get(java.util.Calendar.YEAR)
-            if ((month == java.util.Calendar.JANUARY || month == java.util.Calendar.JUNE)
-                && currentTime in 900..1700) {
-                val yearMonth = "$year-${month + 1}"   // e.g. "2026-1" or "2026-6"
-                val seasonKey = "dividend_season_$yearMonth"
-                if (!alertPrefs.getBoolean(seasonKey, false)) {
-                    NotificationHelper.showDividendSeasonNotification(
-                        context = applicationContext,
-                        isFirstSeason = month == java.util.Calendar.JANUARY
-                    )
-                    alertPrefs.edit().putBoolean(seasonKey, true).apply()
-                }
-            }
 
             // December: remind about unused ThaiESG / RMF room, once from the 1st and once from the 15th.
             if (month == java.util.Calendar.DECEMBER && currentTime in 900..1700) {
@@ -163,13 +147,12 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         apincer.mobile.tradings.data.HighYieldRecorder.runIfDue(alertPrefs,
             java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")))
 
-        // Monthly review of the high-yield rebalance plan, only for users following it: untested lists on
-        // and at least one Dividend-purpose satellite holding. First trading session of the month, once.
+        // Monthly review of the high-yield rebalance plan, only for users following it: at least one
+        // Dividend-purpose satellite holding. First trading session of the month, once.
         run {
             val monthKey = "high_yield_review_${now.get(java.util.Calendar.YEAR)}_${now.get(java.util.Calendar.MONTH) + 1}"
             if (!alertPrefs.getBoolean(monthKey, false) &&
                 TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED &&
-                prefRepo.showUntestedLists.firstOrNull() == true &&
                 allStocks.any { it.quantity > 0 && it.tradePurpose == "DIVIDEND" && !CoreSatellite.isCore(it.symbol) }) {
                 NotificationHelper.showHighYieldReviewNotification(applicationContext)
                 alertPrefs.edit().putBoolean(monthKey, true).apply()
@@ -359,30 +342,6 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         }
                     } catch (e: java.lang.Exception) {
                         Log.e("StockAlertWorker", "Failed to parse XD date $xdDateStr for ${entity.symbol}: ${e.message}")
-                    }
-                }
-
-                // 6b. Year-round yield opportunity alert (any month)
-                // Fires when a DIVIDEND-purpose stock's yield spikes ≥ YIELD_OPPORTUNITY_THRESHOLD
-                // due to price weakness, AND fundamentals are solid (ROE ≥ ROE_MIN_THRESHOLD).
-                // Deduplicates by ISO week — fires at most once per week per stock.
-                val dividendYield = scraped.dividendYield ?: 0.0
-                val roe = scraped.roe ?: 0.0
-                if (entity.tradePurpose == "DIVIDEND"
-                    && dividendYield >= TradingConstants.DIVIDEND_YIELD_ENTRY
-                    && roe >= TradingConstants.ROE_MIN_THRESHOLD) {
-                    val weekOfYear = now.get(java.util.Calendar.WEEK_OF_YEAR)
-                    val weekYear  = now.get(java.util.Calendar.YEAR)
-                    val yieldKey  = "yield_opp_${entity.symbol}_${weekYear}_W${weekOfYear}"
-                    if (!alertPrefs.getBoolean(yieldKey, false)) {
-                        NotificationHelper.showDividendYieldOpportunityNotification(
-                            context = applicationContext,
-                            symbol  = entity.symbol,
-                            yield   = dividendYield,
-                            price   = scraped.lastPrice,
-                            roe     = roe
-                        )
-                        alertPrefs.edit().putBoolean(yieldKey, true).apply()
                     }
                 }
 

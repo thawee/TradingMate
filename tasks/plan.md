@@ -1,3 +1,56 @@
+# Advisor screen clarity plan
+
+Date: 2026-10-03. Status: approved (both decisions as recommended), in progress.
+Checklist: [Advisor screen clarity todos](todo.md#advisor-screen-clarity-2026-10-03).
+
+## Goal
+
+A user opening the Advisor sees what to do today, in order of urgency, and follows only rules with evidence. Everything else is either an exit on a holding or collapsed research.
+
+## Verified starting point (device screenshots and code, 2026-10-03)
+
+- No summary of actions. Dividend tab order: disclaimer, regime banner, "Check My Shields" alerts, filter explorer, "Ranked lists are hidden", XD calendar.
+- The tested High Yield list, rebalance plan and forward record are hidden behind "Show untested buy lists".
+- Alert lines are all red with the same icon, whether "act now" (saved stop), "monthly" (left the list) or "review" (ROE, yield, cut, drawdown). Sell-alert cards show DNA badges (A, MOAT, SHIELD, ...).
+- "Upcoming XD Calendar" shows the first 5 watchlist stocks with a yield and no dates.
+- The regime banner ("Defensive Sizing 50%, Cash Buffer 50%+") shows on the Dividend tab although DCA and the rebalance are exempt.
+- Gemini is also used for the Buy dialog's screenshot import; that stays.
+
+## Phase 1: Remove what the evidence contradicts or that is dead
+
+1. Momentum list card (MOM3 failed the gate).
+2. Dividend Stars list and the Compounder / High Yield Shield presets (quality screens F1-F3 failed).
+3. Swing presets Oversold Spring, VCP Breakout, Foreign Flow, and the "Watch or blocked" list (dip and breakout rules failed; flow untested). Swing research stays in the filter explorer.
+4. Advisor AI card (Gemini ranking, prompts, AI plan validation and advice recording); its Dividend prompt contradicts the current exit rule. Keep GeminiClient for screenshot import.
+5. Notifications "Yield Opportunity" (yield >= 5% and ROE >= 15%) and "Dividend Season" (untested timing).
+6. Dead code: commented-out WizardStepBar and its function, the speculative-candidates computation, README "Swing Playbook (Daily Discipline Tracker)" section.
+7. "Show untested buy lists" setting, which would no longer control anything (pending decision 1).
+
+## Phase 2: Make the screen followable
+
+1. Today card at the top: one line per action, ordered: act now (saved stop reached), this month (rebalance review date and its sells/buys), core (DCA day and lots), or "Nothing to do today".
+2. Holding alerts grouped as Act now (red), At the monthly review (amber), Review (grey); DNA badges removed from alert cards (kept on stock details).
+3. Dividend tab shows the High Yield list, rebalance plan and forward record by default, with the evidence note.
+4. Plain labels: "Advisor", tabs "Dividend" and "Swing (context)", "Your holdings" instead of "Check My Shields" / "Check Exits", "Research" for the filter explorer.
+
+## Phase 3: Smaller fixes
+
+1. Upcoming dividends with real ex-dates and expected cash for holdings (dividend events already fetched), or remove the card (pending decision 2).
+2. Regime banner only on the Swing tab.
+3. Filter explorer collapsed under Research by default.
+4. Disclaimer moved to the bottom.
+
+## Open decisions
+
+1. Remove the "Show untested buy lists" setting (recommended), or keep it for future untested lists.
+2. XD card: real ex-dates for holdings (recommended), or remove it.
+
+## Verification
+
+Unit tests, build, lint (removed code must not leave warnings); device screenshots of both tabs before and after; the Today card with the user's real holdings (JMT and CPALL stops, MBK monthly sell, DCA day); notification links still open the right screens; README, SCREEN_FLOWS, ALERT_FLOWS and changelog updated.
+
+---
+
 # Core-first repositioning plan
 
 Date: 2026-10-03. Status: approved and implemented the same day (see the todo for results).

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (Advisor screen clarity)
+- **Today card** at the top of the Advisor: holdings at a saved exit first ("JMT: saved stop reached... Sell, or open it to hold anyway"), then the monthly high-yield review date and the names to sell, then the core DCA date, or "No holding needs action today". Dates skip weekends and SET holidays.
+- **Your holdings** grouped Act now (red), At the monthly review (amber) and Review only; each card lists all of its notes, most urgent first. Strategy badges were removed from these cards (still on stock details).
+- **Dividend tab** always shows the high dividend yield list, its forward record and the monthly rebalance plan, plus **Upcoming dividends** with announced ex-dates for holdings (or the latest ones when none is announced). The old "Upcoming XD Calendar" listed no dates.
+- **Swing tab** shows the context notice, the regime banner (now labelled Swing buys only; core DCA and the rebalance are exempt) and swing exits. The regime banner no longer appears on the Dividend tab.
+- **Research** (the filter explorer) is collapsed at the bottom; the disclaimer moved to the bottom. Labels: "Advisor", "Dividend", "Swing (context)".
+
+### Removed
+- Lists and presets for rules that failed testing or were never tested: the 6-month momentum list, Dividend Stars, the Compounder / High Yield Shield / Oversold Spring / VCP Breakout / Foreign Flow presets, and the Watch-or-blocked list.
+- The Advisor's Gemini ranking card, its prompts (the dividend prompt still described the old ROE/yield exits) and AI plan validation. Gemini remains for the Buy dialog's screenshot import.
+- The "Show untested buy lists" setting; the monthly high-yield review notification now needs only a Dividend-purpose holding.
+- The "Yield Opportunity" (yield >= 5% with ROE >= 15%) and "Dividend Season" notifications (a failed quality filter and an untested timing rule).
+- Dead code: the Swing 3-step checklist and step bar, speculative candidates, the momentum list cache, AI plan acceptance. The checklist database table is left in place (no migration).
+
 ### Added (high-yield forward record)
 - The High dividend yield card keeps a forward record: the first ranking each month saves the top 10 with their prices and TDEX's price, and after 30, 91 and 365 days the list's equal-weight total return (dividends included) is compared with TDEX's. Names are fixed when saved, so a later delisting cannot drop a loser, unlike the survivorship-biased backtest. Results measured more than 15 days late are left out of the summary. Idea adapted from tradermonty's signal-postmortem (MIT). The background worker keeps the record on trading days even when the card is hidden (at most one attempt a day, only when a snapshot or result is due).
 

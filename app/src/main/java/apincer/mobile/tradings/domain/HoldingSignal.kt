@@ -27,13 +27,18 @@ object HoldingSignal {
     }
 }
 
+/** How soon a holding alert needs the user: a saved exit now, the monthly review, or reading only. */
+enum class AlertLevel { ACT_NOW, MONTHLY, REVIEW }
+
 /**
  * Advisor notes for a Dividend-purpose holding under the tested high-yield rule. Only a saved stop and
  * leaving the ranked list are exits; low ROE, low yield and a deep drawdown are review notes, because
  * quality filters and selling after a fall both did worse in the 2015-2025 tests.
  */
 object DividendExitPolicy {
-    data class Note(val exit: Boolean, val reason: String)
+    data class Note(val level: AlertLevel, val reason: String) {
+        val exit: Boolean get() = level != AlertLevel.REVIEW
+    }
 
     /**
      * [inHighYieldList] is null when no ranking is available; [savedStop] 0 when none (or a fixed plan owns it);
@@ -43,18 +48,18 @@ object DividendExitPolicy {
               inHighYieldList: Boolean?, dividendCut: String? = null): List<Note> {
         val notes = mutableListOf<Note>()
         if (savedStop > 0.0 && price > 0.0 && price <= savedStop)
-            notes += Note(true, "Saved stop reached at ฿$savedStop")
+            notes += Note(AlertLevel.ACT_NOW, "Saved stop reached at ฿$savedStop")
         if (inHighYieldList == false)
-            notes += Note(true, "Left the high dividend yield top 10: sell at the monthly review (tested rule)")
-        dividendCut?.let { notes += Note(false, "Review: $it") }
+            notes += Note(AlertLevel.MONTHLY, "Left the high dividend yield top 10: sell at the monthly review (tested rule)")
+        dividendCut?.let { notes += Note(AlertLevel.REVIEW, "Review: $it") }
         if (roe != null && roe < TradingConstants.ROE_MIN_THRESHOLD)
-            notes += Note(false, "Review: ROE below ${TradingConstants.ROE_MIN_THRESHOLD.toInt()}% (not part of the tested rule)")
+            notes += Note(AlertLevel.REVIEW, "Review: ROE below ${TradingConstants.ROE_MIN_THRESHOLD.toInt()}% (not part of the tested rule)")
         if (yieldPercent != null && yieldPercent < TradingConstants.DIVIDEND_YIELD_PROTECTION)
-            notes += Note(false, "Review: yield below ${TradingConstants.DIVIDEND_YIELD_PROTECTION.toInt()}%")
+            notes += Note(AlertLevel.REVIEW, "Review: yield below ${TradingConstants.DIVIDEND_YIELD_PROTECTION.toInt()}%")
         if (costPerShare > 0.0 && price > 0.0) {
             val drawdown = (price - costPerShare) / costPerShare * 100
             if (drawdown <= TradingConstants.DIVIDEND_DEEP_DRAWDOWN_PERCENT)
-                notes += Note(false, String.format(java.util.Locale.ENGLISH, "Review: down %.1f%% from cost", drawdown))
+                notes += Note(AlertLevel.REVIEW, String.format(java.util.Locale.ENGLISH, "Review: down %.1f%% from cost", drawdown))
         }
         return notes
     }

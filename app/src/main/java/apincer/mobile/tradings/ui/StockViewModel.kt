@@ -38,31 +38,9 @@ data class AlertRoutineState(
     val playbookMode: PlaybookMode = PlaybookMode.DIVIDEND,
     val swingSellAlerts: List<SellAlertData> = emptyList(),
     val dividendSellAlerts: List<SellAlertData> = emptyList(),
-    val combinedSwingPlays: List<StockWatchlistInfo> = emptyList(),
-    val speculativePlays: List<StockWatchlistInfo> = emptyList(),
-    val dividendPlays: List<StockWatchlistInfo> = emptyList(),
     val portfolioItems: List<StockWatchlistInfo> = emptyList(),
-    val checklist: ChecklistEntity = ChecklistEntity(),
     val marketRegime: TechnicalAnalysis.MarketRegime = TechnicalAnalysis.MarketRegime.NEUTRAL
-) {
-    val activeAlerts: List<SellAlertData>
-        get() = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
-
-    val activeCandidatesCount: Int
-        get() = if (playbookMode == PlaybookMode.SWING) combinedSwingPlays.size else dividendPlays.size
-
-    val exitAlertsCount: Int
-        get() = activeAlerts.size
-
-    val step1Done: Boolean
-        get() = checklist.swingDailyDone
-
-    val step2Done: Boolean
-        get() = checklist.swingWeeklyDone
-
-    val step3Done: Boolean
-        get() = checklist.swingAiDone
-}
+)
 
 sealed class StockUiState {
     object Initial : StockUiState()
@@ -124,29 +102,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     val cashBalance: StateFlow<Double> = repository.cashBalance
         .map { it?.balance ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
-
-    private val _isAfternoonScanAvailable = MutableStateFlow(getAfternoonScanAvailable())
-    val isAfternoonScanAvailable: StateFlow<Boolean> = _isAfternoonScanAvailable
-
-    private fun getAfternoonScanAvailable(): Boolean {
-        val tz = java.util.TimeZone.getTimeZone("Asia/Bangkok")
-        val now = java.util.Calendar.getInstance(tz)
-        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
-        return alertPrefs.getBoolean("afternoon_scan_available_$todayStr", false)
-    }
-
-    fun refreshAfternoonScanFlag() {
-        _isAfternoonScanAvailable.value = getAfternoonScanAvailable()
-    }
-
-    fun clearAfternoonScanFlag() {
-        val tz = java.util.TimeZone.getTimeZone("Asia/Bangkok")
-        val now = java.util.Calendar.getInstance(tz)
-        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
-        alertPrefs.edit().remove("afternoon_scan_available_$todayStr").apply()
-        _isAfternoonScanAvailable.value = false
-    }
-
 
     fun exportBackup(
         contentResolver: android.content.ContentResolver,
@@ -366,9 +321,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
 
 
-    private val _checklist = MutableStateFlow(ChecklistEntity())
-    val checklist: StateFlow<ChecklistEntity> = _checklist
-
     // Dividend first: the only tested rule that beat TDEX lives there; Swing is technical context.
     private val _playbookMode = MutableStateFlow(PlaybookMode.DIVIDEND)
     val playbookMode: StateFlow<PlaybookMode> = _playbookMode
@@ -395,82 +347,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val alertRoutineState: StateFlow<AlertRoutineState> = 
-        combine(_playbookMode, watchlistInfo, _checklist, _marketRegime, _dividendCuts) { mode, watchlist, checklist, marketRegime, dividendCuts ->
+        combine(_playbookMode, watchlistInfo, _marketRegime, _dividendCuts) { mode, watchlist, marketRegime, dividendCuts ->
             val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
-
-            val isQual = StockDna::isQual
-            val isVal = StockDna::isVal
-            val isDiv = StockDna::isDiv
-            val isMom = StockDna::isMom
-            val isSup = StockDna::isSup
-            val isGapUp = StockDna::isGapUp
-            val isLiquid = StockDna::preFilter // liquidity + 52-week-low trap gate
-
-            val dividendPlays = watchlist.filter(StockDna::isDividendCandidate)
-                .sortedWith(
-                    compareBy<StockWatchlistInfo> {
-                        when (it.signal?.type) {
-                            IndicatorSignal.BUY -> 0
-                            IndicatorSignal.POTENTIAL -> 1
-                            IndicatorSignal.NEUTRAL -> 2
-                            else -> 3
-                        }
-                    }.thenByDescending {
-                        it.info.dividendYield ?: 0.0
-                    }
-                )
-
-            val isMarketBearish = marketRegime == TechnicalAnalysis.MarketRegime.BEARISH
-
-            val swingPlays = watchlist.filter { isLiquid(it) && isQual(it) && StockDna.isSwingCandidate(it, isMarketBearish) }
-                .sortedWith(
-                    compareBy<StockWatchlistInfo> {
-                        when (it.signal?.type) {
-                            IndicatorSignal.BUY -> 0
-                            IndicatorSignal.POTENTIAL -> 1
-                            else -> 2
-                        }
-                    }.thenBy {
-                        it.portfolio.rsi ?: 100.0
-                    }.thenByDescending {
-                        isQual(it)
-                    }
-                )
-
-            val gapPlays = watchlist.filter {
-                isLiquid(it) && isGapUp(it) && StockDna.isSwingCandidate(it, isMarketBearish)
-            }.sortedByDescending { it.info.percentChange }
-            // Speculative Watch: liquid but Quality-failing stocks with a live BUY/POTENTIAL
-            // signal. Includes early/unconfirmed setups (MACD histogram not yet positive) —
-            // these are sorted after MACD-confirmed ones since they carry extra risk.
-            val speculativePlays = watchlist.filter {
-                isLiquid(it) && !isQual(it) && isSup(it)
-            }.sortedWith(
-                compareBy<StockWatchlistInfo> {
-                    when (it.signal?.type) {
-                        IndicatorSignal.BUY -> 0
-                        IndicatorSignal.POTENTIAL -> 1
-                        else -> 2
-                    }
-                }.thenByDescending {
-                    // MACD-confirmed momentum ranks above unconfirmed (macdHist <= 0)
-                    (it.portfolio.macdHist ?: 0.0) > 0.0
-                }
-            )
-            val combinedSwingPlays = (swingPlays + gapPlays).distinctBy { it.info.symbol }
-                .sortedWith(
-                    compareBy<StockWatchlistInfo> {
-                        when (it.signal?.type) {
-                            IndicatorSignal.BUY -> 0
-                            IndicatorSignal.POTENTIAL -> 1
-                            else -> 2
-                        }
-                    }.thenByDescending {
-                        it.info.percentChange
-                    }.thenBy {
-                        it.portfolio.rsi ?: 100.0
-                    }
-                )
 
             val swingSellAlerts = mutableListOf<SellAlertData>()
             val dividendSellAlerts = mutableListOf<SellAlertData>()
@@ -493,7 +371,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         dividendCut = dividendCuts[stock.info.symbol.uppercase()]
                     ).takeIf { it.isNotEmpty() }?.let { notes ->
                         // One alert per holding (alerts are de-duplicated by symbol): exits first, then reviews.
-                        dividendSellAlerts.add(SellAlertData(stock, notes.joinToString("\n") { it.reason }))
+                        dividendSellAlerts.add(SellAlertData(stock, notes.joinToString("\n") { it.reason },
+                            notes.map { AlertLine(it.level, it.reason) }))
                     }
                 }
 
@@ -529,11 +408,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 playbookMode = mode,
                 swingSellAlerts = swingSellAlerts.distinctBy { it.stock.info.symbol },
                 dividendSellAlerts = dividendSellAlerts.distinctBy { it.stock.info.symbol },
-                combinedSwingPlays = combinedSwingPlays,
-                speculativePlays = speculativePlays,
-                dividendPlays = dividendPlays,
                 portfolioItems = portfolioItems,
-                checklist = checklist,
                 marketRegime = marketRegime
             )
         }.stateIn(
@@ -546,84 +421,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         _playbookMode.value = mode
     }
 
-    fun toggleAlertRoutineStep(step: Int) {
-        val current = alertRoutineState.value
-        when (step) {
-            1 -> updateChecklistState { it.copy(swingDailyDone = !current.checklist.swingDailyDone) }
-            2 -> updateChecklistState { it.copy(swingWeeklyDone = !current.checklist.swingWeeklyDone) }
-            3 -> updateChecklistState { it.copy(swingAiDone = !current.checklist.swingAiDone) }
-        }
-    }
-
-    fun markAlertRoutineStepDone(step: Int) {
-        when (step) {
-            1 -> updateChecklistState { it.copy(swingDailyDone = true) }
-            2 -> updateChecklistState { it.copy(swingWeeklyDone = true) }
-            3 -> updateChecklistState { it.copy(swingAiDone = true) }
-        }
-    }
-
-    fun updateChecklistState(update: (ChecklistEntity) -> ChecklistEntity) {
-        viewModelScope.launch {
-            val current = _checklist.value
-            val next = update(current)
-            repository.updateChecklist(next)
-        }
-    }
-
-    private fun checkAndResetChecklist(existing: ChecklistEntity): ChecklistEntity {
-        val zoneId = java.time.ZoneId.of("Asia/Bangkok")
-        val now = java.time.ZonedDateTime.now(zoneId)
-        // Treat the trading day as starting at 16:30 (market close)
-        val disciplineDateTime = if (now.toLocalTime().isBefore(java.time.LocalTime.of(16, 30))) {
-            now.minusDays(1)
-        } else {
-            now
-        }
-        val todayStr = disciplineDateTime.toLocalDate().toString()
-        // ISO week string (year + week number) for weekly boundary detection
-        val weekStr = disciplineDateTime.toLocalDate().let {
-            val week = it.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
-            val year = it.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR)
-            "$year-W$week"
-        }
-        val lastWeekStr = existing.lastResetDate?.let { dateStr ->
-            runCatching {
-                val date = java.time.LocalDate.parse(dateStr)
-                val week = date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
-                val year = date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR)
-                "$year-W$week"
-            }.getOrNull()
-        }
-
-        var updated = existing.copy(lastResetDate = todayStr)
-
-        if (existing.lastResetDate != todayStr) {
-            // Always reset daily items when date changes
-            updated = updated.copy(
-                swingDailyDone = false,
-                swingAiDone = false
-            )
-            // Only reset weekly item when the ISO week changes
-            if (lastWeekStr != weekStr) {
-                updated = updated.copy(swingWeeklyDone = false)
-            }
-        }
-        return updated
-    }
-
     init {
-        // Observe checklist and handle resets
-        viewModelScope.launch {
-            repository.checklist.collect { entity ->
-                val currentChecklist = entity ?: ChecklistEntity()
-                val targetChecklist = checkAndResetChecklist(currentChecklist)
-                if (targetChecklist != currentChecklist || entity == null) {
-                    repository.updateChecklist(targetChecklist)
-                }
-                _checklist.value = targetChecklist
-            }
-        }
         // Fetch SET index regime in background
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -635,8 +433,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
         // Trigger background refresh on start
         refreshWatchlistInfo()
-        // Refresh afternoon scan flag
-        refreshAfternoonScanFlag()
     }
 
     fun refreshWatchlistInfo() {
@@ -1101,51 +897,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun recordAiRecommendations(
-        result: apincer.mobile.tradings.domain.AiAnalysisResult,
-        plans: Map<String, apincer.mobile.tradings.domain.AiCandidatePlan>
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            result.recommendations.forEach { rec ->
-                val plan = plans[rec.symbol] ?: return@forEach
-                repository.recordAdviceEvent(apincer.mobile.tradings.data.AdviceEventEntity(
-                    symbol = plan.symbol, planId = plan.snapshotId, planVersion = 1,
-                    kind = "AI_RANKED", timeMillis = System.currentTimeMillis(),
-                    entryPrice = plan.entryPrice, stopPrice = plan.stopPrice,
-                    targetPrice = plan.targetPrice, quantity = plan.shares,
-                    source = "GEMINI", note = rec.reasoning.take(1000)
-                ))
-            }
-        }
-    }
-
-    private val _momentumList = MutableStateFlow(apincer.mobile.tradings.domain.MomentumList.fromJson(alertPrefs.getString(MOMENTUM_LIST_KEY, null)))
-    /** (ranking date, top 10) for the 6-month momentum list; ranked at most once a day. */
-    val momentumList: StateFlow<Pair<String, List<apincer.mobile.tradings.domain.MomentumList.Entry>>?> = _momentumList
-    private val _momentumLoading = MutableStateFlow(false)
-    val momentumLoading: StateFlow<Boolean> = _momentumLoading
-
-    /** Ranks current SET50 members by 126-session return from dividend-adjusted daily closes. */
-    fun refreshMomentumList(force: Boolean = false) {
-        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString()
-        if (_momentumLoading.value || (!force && _momentumList.value?.first == today)) return
-        _momentumLoading.value = true
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val closes = apincer.mobile.tradings.domain.MarketLists.set50().associateWith { symbol ->
-                    SetScraper.fetchHistoricalPrices(symbol, days = 220, dividendAdjusted = true).map { it.close }
-                }
-                val ranked = apincer.mobile.tradings.domain.MomentumList.rank(closes)
-                if (ranked.isNotEmpty()) {
-                    alertPrefs.edit().putString(MOMENTUM_LIST_KEY, apincer.mobile.tradings.domain.MomentumList.toJson(today, ranked)).apply()
-                    _momentumList.value = today to ranked
-                }
-            } finally {
-                _momentumLoading.value = false
-            }
-        }
-    }
-
     private val _highYieldList = MutableStateFlow(apincer.mobile.tradings.domain.MomentumList.fromJson(alertPrefs.getString(apincer.mobile.tradings.data.HighYieldRecorder.LIST_KEY, null)))
     /** (ranking date, top 10 by dividend yield) for the high dividend yield list; ranked at most once a day. */
     val highYieldList: StateFlow<Pair<String, List<apincer.mobile.tradings.domain.MomentumList.Entry>>?> = _highYieldList
@@ -1282,65 +1033,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
 
     
-    fun acceptAiPlan(rec: apincer.mobile.tradings.domain.AiRecommendation, showSnackbar: (String) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val symbol = rec.symbol.uppercase()
-                val targetPrice = rec.targetProfit.replace(Regex("[^0-9.]"), "").toDoubleOrNull() ?: 0.0
-                val stopLoss = rec.stopLoss.replace(Regex("[^0-9.]"), "").toDoubleOrNull() ?: 0.0
-                
-                if (targetPrice <= 0.0 || stopLoss <= 0.0) {
-                    withContext(Dispatchers.Main) {
-                        showSnackbar("AI plan missing valid numerical Target or Stop prices.")
-                    }
-                    return@launch
-                }
-                
-                val existing = repository.allStocks.first().find { it.portfolio.symbol == symbol }?.portfolio
-                val entity = existing?.copy(
-                    targetPrice = targetPrice,
-                    stopLoss = stopLoss,
-                    playbookNote = "[AI Plan] ${rec.playbookType}: ${rec.reasoning.take(150)}...",
-                    planSource = "GEMINI",
-                    planId = java.util.UUID.randomUUID().toString(),
-                    planVersion = 1,
-                    planCreatedAtMillis = System.currentTimeMillis(),
-                    exitPolicy = "FIXED_TARGET",
-                    tradePurpose = if (rec.playbookType.contains("Dividend", ignoreCase = true)) "DIVIDEND" else "SWING"
-                ) ?: apincer.mobile.tradings.data.PortfolioEntity(
-                    symbol = symbol,
-                    targetPrice = targetPrice,
-                    stopLoss = stopLoss,
-                    playbookNote = "[AI Plan] ${rec.playbookType}: ${rec.reasoning.take(150)}...",
-                    planSource = "GEMINI",
-                    planId = java.util.UUID.randomUUID().toString(),
-                    planVersion = 1,
-                    planCreatedAtMillis = System.currentTimeMillis(),
-                    exitPolicy = "FIXED_TARGET",
-                    tradePurpose = if (rec.playbookType.contains("Dividend", ignoreCase = true)) "DIVIDEND" else "SWING"
-                )
-                
-                repository.updatePortfolio(entity)
-                
-                repository.recordAdviceEvent(apincer.mobile.tradings.data.AdviceEventEntity(
-                    symbol = symbol, planId = entity.planId, planVersion = 1,
-                    kind = "AI_ACCEPTED", timeMillis = System.currentTimeMillis(),
-                    entryPrice = 0.0, stopPrice = stopLoss,
-                    targetPrice = targetPrice, quantity = 0,
-                    source = "GEMINI", note = "Accepted AI Plan: ${rec.playbookType}"
-                ))
-                
-                withContext(Dispatchers.Main) {
-                    showSnackbar("✅ AI Plan Saved for $symbol!")
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    showSnackbar("Failed to accept AI plan: ${e.message}")
-                }
-            }
-        }
-    }
-
     fun fetchStockData(symbol: String) {
         if (symbol.isBlank()) {
             resetToInitial()
@@ -1605,5 +1297,3 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
 /** SharedPreferences key prefix ("trading_mate_alerts") for a stop level the user chose to hold past. */
 const val STOP_ACK_PREFIX = "stop_ack_"
-
-private const val MOMENTUM_LIST_KEY = "momentum_list_cache"
