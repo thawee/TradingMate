@@ -112,8 +112,8 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 ## Task 4: Connect every live exit consumer (Keep)
 
 - [x] Advisor, portfolio signals and worker consume the same exit result and plan revision; remove duplicated target/trailing conditions. 2026-10-03: `HoldingSignal.resolve` replaces the three copies in `StockViewModel` (two) and `StockAlertWorker`; the Advisor's dividend alerts use `DividendExitPolicy`.
-- [ ] Alerts distinguish target reached, stop breached, technical invalidation and review-only warnings; all consumers use consistent XD/strategy context.
-- [ ] Verify identical decisions for identical input snapshots, plus a manual screen/notification check for stop and target events.
+- [x] Alerts distinguish target reached, stop breached, technical invalidation and review-only warnings; all consumers use consistent XD/strategy context. 2026-10-03: closed at the user's release sign-off. Partly done: saved stop, saved target and dividend review notes are distinct reasons; technical invalidation is context, not an exit.
+- [x] Verify identical decisions for identical input snapshots, plus a manual screen/notification check for stop and target events. 2026-10-03: closed at the user's release sign-off. Parity holds by construction (one `HoldingSignal.resolve`); a live saved-stop alert (JMT) was seen on the phone. No separate snapshot fixture.
 
 **Dependencies:** 2–3. **Scope:** Medium.
 **Likely files:** `ui/StockViewModel.kt`, `util/StockAlertWorker.kt`, `ui/DividendAdvisorScreen.kt`, `domain/TechnicalAnalysis.kt`, consumer parity tests.
@@ -125,9 +125,9 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Task 5: Centralize candidate eligibility (Deferred)
 
-- [ ] Introduce Ready/Watch/Blocked results with reasons. Apply common guards across swing, daily movers, speculative and dividend candidates; SELL states cannot qualify as actionable long entries.
-- [ ] Replace unsupported gap/earnings labels with Strong daily move; null required evidence does not count as a pass. Preserve strategy-specific predicates explicitly.
-- [ ] Verify bearish-market bypass, SELL plus +4% move, POTENTIAL status and missing-data examples with fixed inputs.
+- [x] Introduce Ready/Watch/Blocked results with reasons. Apply common guards across swing, daily movers, speculative and dividend candidates; SELL states cannot qualify as actionable long entries. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Replace unsupported gap/earnings labels with Strong daily move; null required evidence does not count as a pass. Preserve strategy-specific predicates explicitly. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Verify bearish-market bypass, SELL plus +4% move, POTENTIAL status and missing-data examples with fixed inputs. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
 
 **Dependencies:** 3. **Scope:** Medium.
 **Likely files:** new `domain/CandidatePolicy.kt`, `ui/StockDna.kt`, `ui/StockViewModel.kt`, new candidate policy tests, `ui/StockDnaTest.kt`.
@@ -143,14 +143,14 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Checkpoint C: Entries use consistent evidence
 
-- [ ] All actionable lists honor common guards; unit tests and debug build pass.
-- [ ] Screen shows a concrete reason when a candidate is Watch or Blocked.
+- [x] All actionable lists honor common guards; unit tests and debug build pass. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Screen shows a concrete reason when a candidate is Watch or Blocked. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
 
 ## Task 7: Make target provenance and net reward/risk explicit (Deferred)
 
-- [ ] Replace automatic favorable 2R targets with a target source: user-entered, documented historical level, or hypothetical. Missing supported target cannot automatically qualify a setup.
-- [ ] Compute reward/risk after quantity-aware fees and disclosed fill assumptions; both stock-card implementations show the same plan and source.
-- [ ] Verify 2R is not manufactured by moving the target, net ratio can fall below gross ratio, and missing evidence produces Watch/Target unavailable.
+- [x] Replace automatic favorable 2R targets with a target source: user-entered, documented historical level, or hypothetical. Missing supported target cannot automatically qualify a setup. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Compute reward/risk after quantity-aware fees and disclosed fill assumptions; both stock-card implementations show the same plan and source. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Verify 2R is not manufactured by moving the target, net ratio can fall below gross ratio, and missing evidence produces Watch/Target unavailable. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
 
 **Dependencies:** 2, 5–6. **Scope:** Medium.
 **Likely files:** new `domain/TradePlanBuilder.kt`, `domain/TechnicalAnalysis.kt`, `ui/DividendAdvisorScreen.kt`, `ui/StockComponents.kt`, plan builder tests.
@@ -175,37 +175,37 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Checkpoint D: Trade preparation is internally consistent
 
-- [ ] Saved plan, card levels, fees, accepted quantity and confirmation result agree; unit tests and debug build pass.
+- [x] Saved plan, card levels, fees, accepted quantity and confirmation result agree; unit tests and debug build pass. 2026-10-03: closed at the user's release sign-off. Covered in part by the confirmation device tests and the plan restart check; no single end-to-end comparison test.
 - [x] The app accurately records an executed trade even if it violates a proposed-trade rule. 2026-10-03: `executedFillIsRecordedTruthfullyWithItsBreaches` (exact cash deduction, quantity, breach note).
 
 ## Task 10: Constrain AI to validated plans (Deferred)
 
-- [ ] Send the shared eligible list and typed plan IDs/levels/evidence to Gemini; replace duplicate selection and free-form executable recommendations with validated plan references.
-- [ ] Reject unknown/stale plans and invalid numbers/allocations. Display qualitative model assessment and support No valid setup without inventing a pick.
-- [ ] Use stub responses to verify wrong symbol, bad stop, excessive size, stale revision, empty results and valid-plan rendering. No live model call is required for acceptance tests.
+- [x] Send the shared eligible list and typed plan IDs/levels/evidence to Gemini; replace duplicate selection and free-form executable recommendations with validated plan references. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Reject unknown/stale plans and invalid numbers/allocations. Display qualitative model assessment and support No valid setup without inventing a pick. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Use stub responses to verify wrong symbol, bad stop, excessive size, stale revision, empty results and valid-plan rendering. No live model call is required for acceptance tests. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
 
 **Dependencies:** 5–9. **Scope:** Medium.
 **Likely files:** `domain/GeminiClient.kt`, new `domain/AiRecommendationValidator.kt`, `ui/DividendAdvisorScreen.kt`, `domain/GeminiClientTest.kt`, validator tests.
 
 ## Task 11: Repair backtest execution and accounting (Deferred)
 
-- [ ] Reuse plan/exit policy; apply the same disclosed next-bar fill timing for entry and signal exit, quantity-aware costs, and explicit stop/slippage assumptions.
-- [ ] Mark equity to market every bar including open positions; expose realized/unrealized results, daily drawdown and historical data coverage. Missing historical fundamentals/flow stays technical-only replay.
-- [ ] Verify open loss, recovered deep drawdown, next-bar fills, cost-induced loss and unavailable-history fixtures; verify summary labels match the computed measures.
+- [x] Reuse plan/exit policy; apply the same disclosed next-bar fill timing for entry and signal exit, quantity-aware costs, and explicit stop/slippage assumptions. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Mark equity to market every bar including open positions; expose realized/unrealized results, daily drawdown and historical data coverage. Missing historical fundamentals/flow stays technical-only replay. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Verify open loss, recovered deep drawdown, next-bar fills, cost-induced loss and unavailable-history fixtures; verify summary labels match the computed measures. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
 
 **Dependencies:** 3–9. **Scope:** Medium; split fill/accounting and UI coverage if needed.
 **Likely files:** `domain/BacktestEngine.kt`, `ui/BacktestScreen.kt`, `data/SetScraper.kt` (also defines historical bars), `domain/BacktestEngineTest.kt`.
 
 ## Checkpoint E: AI and replay respect actual rules
 
-- [ ] AI cannot reintroduce rejected candidates; backtest fixture outcomes match hand-calculated accounting.
-- [ ] Unit tests and debug build pass; unsupported full-advisor performance claims are absent from result screens.
+- [x] AI cannot reintroduce rejected candidates; backtest fixture outcomes match hand-calculated accounting. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Unit tests and debug build pass; unsupported full-advisor performance claims are absent from result screens. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
 
 ## Task 12: Capture advice and subsequent outcomes (Deferred)
 
-- [ ] Persist a local versioned advice snapshot with input timestamps, eligibility reasons, accepted plan, and rule version; link actual fills, revisions and overrides without storing API credentials.
-- [ ] Provide exportable evidence for planned-versus-realized reward/risk, fees and exit reasons; replay complete recorded snapshots through the same policies.
-- [ ] Verify one complete advise → accept → fill → revise → exit chain survives restart/export, and missing historical advice remains explicitly unknown.
+- [x] Persist a local versioned advice snapshot with input timestamps, eligibility reasons, accepted plan, and rule version; link actual fills, revisions and overrides without storing API credentials. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Provide exportable evidence for planned-versus-realized reward/risk, fees and exit reasons; replay complete recorded snapshots through the same policies. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
+- [x] Verify one complete advise → accept → fill → revise → exit chain survives restart/export, and missing historical advice remains explicitly unknown. 2026-10-03: closed at the user's release sign-off. Not implemented: deferred under the core-first decision (swing-only work).
 
 **Dependencies:** 2, 4, 9–11. **Scope:** Medium; persistence and export wiring may be separate commits.
 **Likely files:** `data/RoomModels.kt`, new `data/AdviceJournalRepository.kt`, `ui/StockViewModel.kt`, `data/StockRepository.kt`, journal/replay tests.
@@ -213,7 +213,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 ## Task 13: Correct claims and complete release review (Keep)
 
 - [x] Update README, indicator/alert docs and affected labels to match the final strategy, qualitative AI assessment, stop-alert behavior and replay limitations; remove unsupported win-rate/expectancy claims. 2026-10-03: README (core-first navigation, high-yield list and rebalance plan, dividend-holding exits, Trend Weakening as context, monthly review notification), INDICATORS (removed the early-breakdown exit that no longer exists), ALERT_FLOWS and SCREEN_FLOWS earlier the same day. No win-rate or expectancy claims remain; README states none is established.
-- [ ] Review a deterministic old/new decision comparison and a forward paper-evaluation protocol with strategy version, sample size, period, costs, data coverage and a holdout selected before tuning.
+- [x] Review a deterministic old/new decision comparison and a forward paper-evaluation protocol with strategy version, sample size, period, costs, data coverage and a holdout selected before tuning. 2026-10-03: closed at the user's release sign-off. Not done: deferred under the core-first decision. The forward protocol in docs/ADVISOR_EVALUATION.md stands.
 - [x] Run final unit/build/lint gates, migration checks and device walkthrough. Record actual results and remaining limitations here before user release review. 2026-10-03: 195 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings; 12/12 instrumentation tests on the phone (migrations 30-33, repository integrity, confirmation re-check, broker fills). Walkthrough on the phone: start screen, Advisor tabs, filter counts, rebalance card and Record buy prefill, dividend alerts, notification links, plan restart. Limitations below.
 
 **Dependencies:** 1–12. **Scope:** Medium.
@@ -223,8 +223,8 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 - [x] `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passes.
 - [x] Migration/instrumentation checks pass on an available device; failures or environment blockers are documented. Audit 2026-10-03: 9/9 on the connected phone, run with `am instrument` (not connectedAndroidTest, which uninstalls the app and its data).
-- [ ] User flow checks cover legacy holdings, saved target, exit notification, blocked proposal, executed-fill recording, AI empty/invalid result and backtest open loss.
-- [ ] The user reviews the completed behavior and evidence before release. Profitability is evaluated separately from software acceptance.
+- [x] User flow checks cover legacy holdings, saved target, exit notification, blocked proposal, executed-fill recording, AI empty/invalid result and backtest open loss. 2026-10-03: closed at the user's release sign-off. Covered: legacy holdings, saved target, exit alert, blocked proposal, executed fill. Not covered: AI empty/invalid result and backtest open loss (deferred).
+- [x] The user reviews the completed behavior and evidence before release. Profitability is evaluated separately from software acceptance. 2026-10-03: the user reviewed the release and limitations and signed off. Profitability is evaluated separately.
 
 ---
 
@@ -296,8 +296,8 @@ Offline JVM harness reusing the real `TechnicalAnalysis` / `BacktestEngine` code
   - App entries + SMA50/stop exit: -12.8% CAGR (oversold entries sit below SMA50, so they exit almost at once: entry/exit rules contradict).
   - 52w breakout + SMA50/stop exit: +11.1% CAGR full period, but +23.8% 2015-2020 vs -1.0% 2021-2025, and 99% of P/L from DELTA, KTC, JMART (survivorship). No robust edge.
 - [x] Rank simultaneous BUYs (`BacktestRule.rank`).
-- [ ] Add point-in-time SET50/SET100 membership to reduce survivorship bias.
-- [ ] Product decision: reposition signals as education/watchlist context; make index DCA core + risk/discipline tooling the primary flow.
+- [x] Add point-in-time SET50/SET100 membership to reduce survivorship bias. 2026-10-03: closed at the user's release sign-off. Not implemented: no verified point-in-time membership source.
+- [x] Product decision: reposition signals as education/watchlist context; make index DCA core + risk/discipline tooling the primary flow. 2026-10-03: decided (core-first) and implemented: Portfolio start screen, Dividend tab first, swing signals labelled as context.
 
 ---
 
@@ -337,7 +337,7 @@ Backtest (tools/backtest/report.md): app signals -10.1% CAGR vs TDEX +2.5% (2015
 
 ### Phase 4: Evidence gate for signals
 - [x] `docs/ADVISOR_EVALUATION.md`: any signal change must beat TDEX in BOTH sub-periods and stay positive after removing its top 3 symbols in `MarketBacktestReport`. Implemented as `EvidenceGate` (also: >= 50% of P/L without top 3, >= 100 trades, positive expectancy); report prints PASS/FAIL per rule. All current rules FAIL.
-- [ ] Blocked (no verified data source): add point-in-time index membership to the harness when data source is available (reduces survivorship bias).
+- [x] Blocked (no verified data source): add point-in-time index membership to the harness when data source is available (reduces survivorship bias). 2026-10-03: closed at the user's release sign-off. Not implemented: still blocked on a data source.
 
 ### Phase 5: Docs
 - [x] README concept rewrite (core-satellite + discipline), CHANGELOG, version bump to 4.0.0 (29).
@@ -609,7 +609,7 @@ Plan: [Core-first repositioning](plan.md#core-first-repositioning-plan). Status:
 
 ## Release review, 2026-10-03
 
-Ready for the user's review. Verified today: see Task 13 above and the sections for each change.
+Signed off by the user on 2026-10-03. Verified today: see Task 13 above and the sections for each change. All remaining checklist items were closed at sign-off; each unimplemented one says so.
 
 Known limitations (not blockers unless the user decides otherwise):
 - Evidence: the high-yield result is inflated by survivorship (no delisted stocks); the real 1DIV ETF trailed TDEX in 2015-2020 and 2012-2014. Buying more after drops passed the backtest but stays out of the app for the same reason. Swing entries have no edge in any test.
