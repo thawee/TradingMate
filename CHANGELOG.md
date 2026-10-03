@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Build
+- Release signing reads `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD` from `local.properties`; without them the release APK stays unsigned. `local.properties` is no longer tracked (it held only the machine's SDK path), and keystore files are ignored.
+
 ## [4.1.0] - 2026-10-03
 
 Core-first: the app opens on the index core, the one tested stock rule (high dividend yield) gets a monthly order list, dividend holdings follow that rule's exits, and a data bug that emptied the Advisor lists is fixed.

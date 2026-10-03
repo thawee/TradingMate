@@ -190,6 +190,19 @@ TradingMate sends push notifications during specific time windows on weekdays (A
 > - Yield Opportunity: at most once per ISO week per stock
 > - Notifications are skipped on weekends. Stock-scan alerts are also skipped on public holidays (market closed).
 
+## 🔏 Building a Signed Release
+
+`./gradlew :app:assembleRelease` signs the APK when `local.properties` (not committed) contains:
+
+```properties
+KEYSTORE_FILE=/path/to/release.jks
+KEYSTORE_PASSWORD=...
+KEY_ALIAS=...
+KEY_PASSWORD=...
+```
+
+Without these keys it builds `app-release-unsigned.apk`. Keystore files (`*.jks`, `*.keystore`) are ignored by git.
+
 ## ⚠️ Disclaimer
 
 TradingMate is designed for **educational and informational purposes only**. It does not constitute financial advice, investment recommendation, or a solicitation to buy or sell any securities.

@@ -34,3 +34,8 @@ tmp/
 tools/backtest/data/
 tools/backtest/fundamentals/
 tools/backtest/data_holdout/
+
+# Machine-specific SDK path and release signing secrets
+local.properties
+*.jks
+*.keystore
