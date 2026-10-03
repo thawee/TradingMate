@@ -54,7 +54,7 @@ Address all identified ambiguous, panic-inducing, or misleading UI labels and ba
 
 # Advisor reliability repair
 
-**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 2 manual 100/95/110 restart check (needs a throwaway holding); Task 6 freshness parity tests; Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
+**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 6 freshness parity tests; Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
 
 **Re-scoped 2026-10-03 (core-first decision, [plan](plan.md#core-first-repositioning-plan)).** Kept: work that protects money in any flow (saved plans, exits and stop alerts on holdings, data freshness, cash/cap checks on every buy, accurate recording of executed fills, honest claims and release review). Deferred: work that only improves swing trade proposals (candidate eligibility, target provenance, Gemini swing plans, swing backtest repair, advice capture). Deferred tasks stay unchecked; reopen them only if swing entries show an edge in a pre-registered test. Unchecked items were not re-verified against current code.
 
@@ -90,7 +90,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 - [x] Pass the entered target through the view model and repository; editing/reopening/restarting displays the accepted plan, independently of focus targets. Audit 2026-10-03: `addToWatchlist(targetPrice)` -> `StockRepository` accepted target; edits keep the accepted plan.
 - [x] Export/import plan fields with old-backup defaults. Plan revision, partial sale and additional same-symbol buy behavior is explicit and preserves recorded holdings/fees. Audit 2026-10-03: `oldBackupDefaultsToLegacyPlan`, `acceptedPlanFieldsRoundTripThroughBackup`, `fullSaleUndoRestoresAcceptedPlanAndFees`, device undo tests.
-- [ ] Verify save/reload and old/new backup round-trips; manually enter 100/95/110 and confirm the target survives restart and export/import.
+- [x] Verify save/reload and old/new backup round-trips; manually enter 100/95/110 and confirm the target survives restart and export/import. 2026-10-03 on the phone, with the user's approval: database backed up; recorded PTT 100 @ 41.50, stop 39.50, target 45.50 (same 1:2 shape as 100/95/110, around the real price so no alert fired) as an executed fill; saved as FIXED_TARGET v1; after force-stop and relaunch the holding card showed Take Profit 45.50 / Stop Loss 39.50 and Edit Holding reloaded 45.5 / 39.5. Database restored: integrity ok, cash, holdings and every table back to the pre-test counts (the test's 1 cash transaction and 2 advice events gone). Export/import is covered by `acceptedPlanFieldsRoundTripThroughBackup`, not repeated manually.
 
 **Dependencies:** 1. **Scope:** Medium.
 **Likely files:** `ui/PortfolioScreen.kt`, `ui/StockViewModel.kt`, `data/RoomModels.kt`, `data/StockRepository.kt`, plan round-trip tests.

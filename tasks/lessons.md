@@ -20,3 +20,6 @@ Yahoo's `^SET.BK` returned one bar (today) instead of none, so an `ifEmpty` fall
 
 ## 7. A proxy series can lag one session through a null close
 Yahoo listed TDEX's 2026-10-02 session with a null close; skipping null bars left the benchmark on 10-01 while stocks were on 10-02, so the date-equality freshness gate blocked nearly every list. When a gate compares dates from two sources, check both latest dates on the device database, not only bar counts, and treat a mismatch as a reason to refetch rather than wait out a cache.
+
+## 8. Opening a WAL database copy with sqlite3 rewrites the copy
+Querying a pulled `stock_database` with `sqlite3` checkpointed its WAL into the main file and emptied the WAL, so the "backup" no longer matched its recorded hashes (same data, different bytes). Keep an untouched backup and query a second copy; after restoring, delete the stale `-shm`. Also run each `adb shell run-as` command separately: a `sh -c` loop failed on quoting and the restore silently did not happen until checked.
