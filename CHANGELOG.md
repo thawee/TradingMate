@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-03
+
+Core-first: the app opens on the index core, the one tested stock rule (high dividend yield) gets a monthly order list, dividend holdings follow that rule's exits, and a data bug that emptied the Advisor lists is fixed.
+
 ### Changed (dividend holding exits follow the tested rule)
 - Dividend-purpose holdings no longer get SELL signals or notifications from ROE below 15%, yield below 3% (the old switch to swing exits) or technical rules. In the Advisor, leaving the high dividend yield top 10 is listed as the exit, to act on at the monthly review; ROE, yield and a 20% drawdown appear as review notes. A stop you saved still alerts. Reason: the tested high-yield rule has no quality or price exits, quality filters failed, and selling after a 15% fall did worse.
 - One function now decides every holding's signal for the Advisor, Portfolio and notifications (before: three copies). The Advisor and notifications no longer disagree when a dividend stock's yield is missing.
