@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -138,6 +139,59 @@ class StockRepositoryIntegrityTest {
             assertEquals(0, repo.getAllDividendsSync().size)
             assertEquals(0, repo.getAllCashTransactionsSync().size)
             assertNull(repo.getCashSync())
+        } finally { db.close() }
+    }
+
+    private val limits = apincer.mobile.tradings.domain.TradeRiskLimits(1.0, 15.0, 30.0, 15.0, 2.0)
+
+    private suspend fun fundedWithPtt(db: StockDatabase) {
+        db.cashDao().updateCash(CashEntity(balance = 100_000.0))
+        db.stockDao().insertCache(StockCacheEntity(symbol = "PTT", sector = "Energy", lastPrice = 100.0))
+    }
+
+    @Test fun overLimitProposalIsBlockedAndLeavesLedgerUnchanged() = runBlocking {
+        val db = openDatabase()
+        try {
+            val repo = repository(db)
+            fundedWithPtt(db)
+            val error = runCatching {
+                repo.executeBuy("PTT", 100.0, 300, "SWING", 30.0, 95.0, "", 120.0, limits, true)
+            }.exceptionOrNull()
+            assertTrue(error?.message.orEmpty().contains("per-trade budget"))
+            assertEquals(100_000.0, db.cashDao().getCashSync()!!.balance, 0.0)
+            assertNull(db.stockDao().getPortfolioBySymbol("PTT"))
+            assertEquals(0, db.adviceEventDao().getAllSync().size)
+        } finally { db.close() }
+    }
+
+    @Test fun secondProposalIsRecheckedAgainstTheHoldingTheFirstCreated() = runBlocking {
+        val db = openDatabase()
+        try {
+            val repo = repository(db)
+            fundedWithPtt(db)
+            repo.executeBuy("PTT", 100.0, 100, "SWING", 15.0, 95.0, "", 120.0, limits, true)
+            val error = runCatching {
+                repo.executeBuy("PTT", 100.0, 100, "SWING", 15.0, 95.0, "", 120.0, limits, true)
+            }.exceptionOrNull()
+            assertTrue(error?.message.orEmpty().contains("single-stock allocation"))
+            assertEquals(100, db.stockDao().getPortfolioBySymbol("PTT")!!.quantity)
+            assertEquals(100_000.0 - 10_015.0, db.cashDao().getCashSync()!!.balance, 1e-9)
+        } finally { db.close() }
+    }
+
+    @Test fun executedFillIsRecordedTruthfullyWithItsBreaches() = runBlocking {
+        val db = openDatabase()
+        try {
+            val repo = repository(db)
+            fundedWithPtt(db)
+            repo.executeBuy("PTT", 100.0, 300, "SWING", 30.0, 95.0, "", 120.0, limits, true,
+                recordExecutedFill = true)
+            assertEquals(300, db.stockDao().getPortfolioBySymbol("PTT")!!.quantity)
+            assertEquals(100_000.0 - 30_030.0, db.cashDao().getCashSync()!!.balance, 1e-9)
+            val event = db.adviceEventDao().getAllSync().single { it.kind == "BUY_FILL" }
+            assertEquals("BROKER_RECORD", event.source)
+            assertTrue(event.note.contains("per-trade budget"))
+            assertTrue(event.note.contains("single-stock allocation"))
         } finally { db.close() }
     }
 }

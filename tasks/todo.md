@@ -54,7 +54,7 @@ Address all identified ambiguous, panic-inducing, or misleading UI labels and ba
 
 # Advisor reliability repair
 
-**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 2 manual 100/95/110 restart check (needs a throwaway holding); Task 3 legacy/dividend exit behavior and its fixtures (trailing, XD, dividend stops); Task 4 consumer parity beyond fixed plans; Task 6 freshness parity tests; Task 8 minimum-fee and changed-input tests; Task 9 confirmation revalidation and recorded breaches (not re-verified); Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
+**Audit 2026-10-03 (Keep tasks).** Ticked items cite their evidence. Still open: Task 2 manual 100/95/110 restart check (needs a throwaway holding); Task 3 legacy/dividend exit behavior and its fixtures (trailing, XD, dividend stops); Task 4 consumer parity beyond fixed plans; Task 6 freshness parity tests; Task 8 minimum-fee and changed-input tests; Task 13 docs and release review. Found and fixed during the audit: the TDEX index proxy dropped sessions with a null close, so the benchmark lagged stocks by one session and the freshness gate blocked nearly every list.
 
 **Re-scoped 2026-10-03 (core-first decision, [plan](plan.md#core-first-repositioning-plan)).** Kept: work that protects money in any flow (saved plans, exits and stop alerts on holdings, data freshness, cash/cap checks on every buy, accurate recording of executed fills, honest claims and release review). Deferred: work that only improves swing trade proposals (candidate eligibility, target provenance, Gemini swing plans, swing backtest repair, advice capture). Deferred tasks stay unchecked; reopen them only if swing entries show an edge in a pre-registered test. Unchecked items were not re-verified against current code.
 
@@ -166,9 +166,9 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 
 ## Task 9: Enforce risk at confirmation while preserving the ledger (Keep)
 
-- [ ] Proposal preview and confirmation share validation; revalidate current holdings/settings at the persistence boundary and show specific failure reasons.
-- [ ] Recording/importing a broker fill remains possible with truthful amounts and its rule breaches recorded; remove generic overrides that turn an invalid proposal into Ready.
-- [ ] Verify over-limit proposals are blocked, changed account state is rechecked, and actual-fill recording/reconciliation remains accurate.
+- [x] Proposal preview and confirmation share validation; revalidate current holdings/settings at the persistence boundary and show specific failure reasons. 2026-10-03: the Buy dialog and `StockRepository.executeBuy` both use `TradeRiskPolicy.evaluate`; `executeBuy` re-reads cash, holdings (cost basis), sector and the settings passed from `addToWatchlist` inside one transaction and throws the specific reasons, shown in the snackbar.
+- [x] Recording/importing a broker fill remains possible with truthful amounts and its rule breaches recorded; remove generic overrides that turn an invalid proposal into Ready. 2026-10-03: `recordExecutedFill` records the actual price, quantity and fees; breached rules and any cash shortfall go into the BUY_FILL advice event note with source BROKER_RECORD. No override that turns an invalid proposal into Ready remains (the old AI-accept override is gone).
+- [x] Verify over-limit proposals are blocked, changed account state is rechecked, and actual-fill recording/reconciliation remains accurate. 2026-10-03: device tests `overLimitProposalIsBlockedAndLeavesLedgerUnchanged`, `secondProposalIsRecheckedAgainstTheHoldingTheFirstCreated`, `executedFillIsRecordedTruthfullyWithItsBreaches`; 12/12 instrumentation tests pass via `am instrument`.
 
 **Dependencies:** 2, 8. **Scope:** Medium.
 **Likely files:** `ui/PortfolioScreen.kt`, `ui/StockViewModel.kt`, `data/StockRepository.kt`, new proposal service if needed, confirmation tests.
@@ -176,7 +176,7 @@ The checklist below is an acceptance checklist. Items stay open until all parts 
 ## Checkpoint D: Trade preparation is internally consistent
 
 - [ ] Saved plan, card levels, fees, accepted quantity and confirmation result agree; unit tests and debug build pass.
-- [ ] The app accurately records an executed trade even if it violates a proposed-trade rule.
+- [x] The app accurately records an executed trade even if it violates a proposed-trade rule. 2026-10-03: `executedFillIsRecordedTruthfullyWithItsBreaches` (exact cash deduction, quantity, breach note).
 
 ## Task 10: Constrain AI to validated plans (Deferred)
 
@@ -605,4 +605,4 @@ Plan: [Core-first repositioning](plan.md#core-first-repositioning-plan). Status:
 - [x] User decision: Dividend-purpose holdings follow the tested high-yield rule (exit on a saved stop or leaving the top 10; ROE, yield and drawdown are review notes).
 - [x] `HoldingSignal.resolve` shared by `StockViewModel` (two sites) and `StockAlertWorker`; `DividendExitPolicy` for the Advisor's dividend alerts; Buy dialog text and ALERT_FLOWS updated (also removed the stale early-breakdown wording).
 - [x] 192 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 127 warnings. Seven new tests: dividend hold ignores technical/quality sells, saved stop still alerts, swing and core unchanged, fixed plan before dividend hold, exit vs review notes, no notes when healthy or unranked.
-- [ ] Device check of the Advisor's dividend alerts for MBK and JMT: not done, the phone was locked. Installed build is current.
+- [x] Device check: Dividend tab shows 2 alerts: MBK "Left the high dividend yield top 10" (+21.8%) and JMT "Saved stop reached at ฿12.0" (฿10.10, -20.2%; one alert per symbol, highest priority first). No ROE or yield SELLs.
