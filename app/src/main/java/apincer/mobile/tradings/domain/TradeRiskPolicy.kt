@@ -26,6 +26,9 @@ data class TradeRiskResult(val reasons: List<String>) {
     val allowed: Boolean get() = reasons.isEmpty()
 }
 
+/** Largest permitted whole-lot [quantity] (0 when none) and the first limit the next lot breaks. */
+data class TradeRiskFit(val quantity: Int, val blockingReason: String?)
+
 object TradeRiskPolicy {
     fun evaluate(input: TradeRiskInput, limits: TradeRiskLimits): TradeRiskResult {
         val reasons = mutableListOf<String>()
@@ -68,6 +71,32 @@ object TradeRiskPolicy {
         if (input.cashBalance - purchase < input.accountEquity * limits.cashReservePercent / 100.0 - 0.01)
             reasons.add("Purchase would breach the cash reserve")
         return TradeRiskResult(reasons)
+    }
+
+    /**
+     * Largest whole-lot quantity at [entryPrice] that passes [evaluate] with buy fees, plus the first reason
+     * the next lot fails (or the minimum lot, when nothing fits). Every budget check only tightens as the
+     * quantity grows, so the passing quantities form a prefix that a binary search can bound; cash caps it.
+     * Reward:risk is not checked here and stays with the caller.
+     */
+    fun largestFit(entryPrice: Double, stopPrice: Double, accountEquity: Double, cashBalance: Double,
+                   existingStockValue: Double, existingSectorValue: Double?, atsEnabled: Boolean,
+                   limits: TradeRiskLimits): TradeRiskFit {
+        if (!cashBalance.isFinite() || !existingStockValue.isFinite() || existingSectorValue?.isFinite() == false)
+            return TradeRiskFit(0, "Cash or holding values are unavailable")
+        fun check(lots: Int) = evaluate(TradeRiskInput(entryPrice, stopPrice, lots * 100,
+            TechnicalAnalysis.calculateFees(entryPrice * lots * 100, false, atsEnabled),
+            accountEquity, cashBalance, existingStockValue, existingSectorValue, atsEnabled), limits)
+        val first = check(1)
+        if (!first.allowed) return TradeRiskFit(0, first.reasons.first())
+        // check(lo) passes; check(hi) fails because the purchase alone exceeds cash.
+        var lo = 1
+        var hi = (cashBalance / (entryPrice * 100)).toInt() + 2
+        while (hi - lo > 1) {
+            val mid = lo + (hi - lo) / 2
+            if (check(mid).allowed) lo = mid else hi = mid
+        }
+        return TradeRiskFit(lo * 100, check(lo + 1).reasons.firstOrNull())
     }
 
     /**

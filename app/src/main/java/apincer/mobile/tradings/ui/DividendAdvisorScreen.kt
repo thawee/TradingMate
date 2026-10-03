@@ -1159,38 +1159,36 @@ fun AiCopilotCard(
                 val gapUpPlaysFilter = swingPlaysFilter.filter { isGapUp(it) }
                 val speculativePromptPlays = emptyList<StockWatchlistInfo>()
                 val totalAssets = cashBalance + portfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
-                val spendable = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateSpendableCash(
-                    totalAssets, cashBalance, marketRegime).spendableCashBaht
+                // Symbol -> first budget limit that blocks even one lot, shown under the preview.
+                val budgetBlocks = mutableMapOf<String, String>()
                 val aiPlans = swingPlaysFilter.mapNotNull { stock ->
                     val entry = stock.info.lastPrice
                     val target = stock.portfolio.week52High?.takeIf { it > entry } ?: return@mapNotNull null
-                    val sector = stock.info.sector ?: return@mapNotNull null
+                    val sector = stock.info.sector
                     val stop = TechnicalAnalysis.calculateSuggestedStopLossPrice(
                         entry, stock.portfolio.atr,
                         apincer.mobile.tradings.domain.MarketLists.isSet50(stock.info.symbol.uppercase()), marketRegime = marketRegime)
-                    val sized = TechnicalAnalysis.calculateRecommendedPositionSize(
-                        totalAssets, entry, stop, maxRiskPerTrade, maxPortfolioAllocation).shares
-                    val affordable = ((spendable / entry / 100).toInt() * 100).coerceAtLeast(0)
-                    val shares = minOf(sized, affordable)
-                    if (shares <= 0) return@mapNotNull null
-                    val buyFees = TechnicalAnalysis.calculateFees(entry * shares, false, atsEnabled)
                     // Fix 4: Use cost basis (not market value) for concentration checks — market
                     // value fluctuates and would silently allow exceeding allocation limits on
                     // positions bought at lower prices, or falsely block entries after drawdowns.
                     val existingStock = portfolioItems.filter { it.info.symbol == stock.info.symbol }
                         .sumOf { it.portfolio.cost * it.portfolio.quantity }
-                    val existingSector = portfolioItems.filter { it.info.sector == sector }
-                        .sumOf { it.portfolio.cost * it.portfolio.quantity }
-                    val riskResult = apincer.mobile.tradings.domain.TradeRiskPolicy.evaluate(
-                        apincer.mobile.tradings.domain.TradeRiskInput(
-                            entry, stop, shares, buyFees, totalAssets, cashBalance,
-                            existingStock, existingSector, atsEnabled),
+                    val existingSector = sector?.let { s -> portfolioItems.filter { it.info.sector == s }
+                        .sumOf { it.portfolio.cost * it.portfolio.quantity } }
+                    // Largest whole lot that fits every budget limit with fees, rather than a gross
+                    // risk size that is dropped when fees or existing holdings push it over a limit.
+                    val fit = apincer.mobile.tradings.domain.TradeRiskPolicy.largestFit(
+                        entry, stop, totalAssets, cashBalance, existingStock, existingSector, atsEnabled,
                         apincer.mobile.tradings.domain.TradeRiskLimits(
                             maxRiskPerTrade, maxPortfolioAllocation, maxSectorAllocation,
                             TechnicalAnalysis.getRecommendedCashBufferPercent(marketRegime),
-                            minRiskRewardRatio)
-                    )
-                    if (!riskResult.allowed) return@mapNotNull null
+                            minRiskRewardRatio))
+                    if (fit.quantity <= 0) {
+                        budgetBlocks[stock.info.symbol.uppercase()] = fit.blockingReason ?: "No lot fits"
+                        return@mapNotNull null
+                    }
+                    val shares = fit.quantity
+                    val buyFees = TechnicalAnalysis.calculateFees(entry * shares, false, atsEnabled)
                     val netReward = (target - entry) * shares - buyFees -
                         TechnicalAnalysis.calculateFees(target * shares, true, atsEnabled)
                     val netRisk = (entry - stop) * shares + buyFees +
@@ -1215,7 +1213,9 @@ fun AiCopilotCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Data Preview: Sending ${actionableSwingFilter.size} locally validated swing plans, including ${actionableDailyMoves.size} strong daily movers, to AI.",
+                        text = "Data Preview: Sending ${actionableSwingFilter.size} locally validated swing plans, including ${actionableDailyMoves.size} strong daily movers, to AI." +
+                            if (budgetBlocks.isEmpty()) "" else "\n${budgetBlocks.size} blocked by budget, not even one lot fits: " +
+                                budgetBlocks.entries.joinToString("; ") { "${it.key} (${it.value})" },
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1273,7 +1273,7 @@ fun AiCopilotCard(
                            - Technical Alignment: Check trend and volume. Do not infer an overnight gap or earnings catalyst from the daily percentage change.
                         3. General Risk Constraints:
                            - Risk/Reward ratio MUST meet the configured minimum $minRiskRewardRatio:1 after fees. Stop loss must be placed below key technical support.
-                           - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Max $maxOpenExposure% total open risk. Max 15% capital allocation in any single stock.
+                           - RISK: Max Risk Per Trade = $maxRiskPerTrade% of account equity. Total open risk guideline $maxOpenExposure% (advisory; not enforced by the app). Max $maxPortfolioAllocation% capital allocation in any single stock (cost basis) and $maxSectorAllocation% per sector.
                            - CYCLICAL SHIELD: If recommending a cyclical/commodity stock, require volume catalyst and tighter stop loss.
                             
                         GUARDRAILS & NEGATIVE CONSTRAINTS:
@@ -1399,7 +1399,7 @@ fun AiCopilotCard(
                         - Yield Threshold: Starting Dividend Yield MUST be >= 5%.
                         - Hard rule: Never average down on a breaking technical trend.
                         - Hold and accumulate/compound indefinitely, unless fundamentals break (ROE < 15%) or yield drops below 3%.
-                        - RISK: Max 15% total portfolio allocation per asset (hard-capped).
+                        - RISK: Max $maxPortfolioAllocation% total portfolio allocation per asset (cost basis, hard-capped).
                         - CYCLICAL DIVIDEND SHIELD: Verify dividend is backed by operational cash flow, not cyclical commodity peaks or one-off asset sales.
                         
                         GUARDRAILS & NEGATIVE CONSTRAINTS:

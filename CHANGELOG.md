@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (Advisor swing sizing)
+- Swing plans are sized to the largest whole lot that passes every budget check with fees: risk per trade including buy and sell fees, cash reserve, and stock and sector caps counting existing holdings at cost. Before, a gross risk size was dropped whenever fees or existing holdings pushed it over a limit, even when a smaller lot fit. Candidates where not even one lot fits are listed under the AI data preview with the limit that blocks them.
+- The Gemini prompts use the configured single-stock (and sector) allocation instead of a fixed 15%, and describe the total open-risk setting as advisory, since the app does not enforce it.
+
 ### Added (Advisor filter explorer)
 - Always-visible filter badges let users combine liquidity, history freshness, distance from the 52-week low, no SELL signal and quality rules, plus weekly trend/market context/BUY for Swing or yield for Dividend. Selected badges show cumulative remaining counts; disabled badges preview their count if added at that stage.
 - Swing and Dividend keep separate selections across tab changes and configuration recreation. Reset restores the existing rules; Clear filters shows all tracked stocks. Research matches open stock details and do not change trade-plan, AI, sizing or exit eligibility. Existing opt-in lists and presets remain available.

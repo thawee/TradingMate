@@ -534,10 +534,11 @@ Status: planned; application implementation has not started.
 
 ## Part 1: Swing sizing fix
 
-- [ ] Pure helper beside `TradeRiskPolicy`: largest whole-lot quantity passing `evaluate`, plus the blocking limit (or minimum-lot block); explicit unavailable result for invalid input.
-- [ ] Advisor uses it instead of `minOf(sized, affordable)`; record the blocking reason for candidates that still do not fit.
-- [ ] AI prompt reads the actual stock allocation setting; describe `maxOpenExposure` as advisory.
-- [ ] Unit fixtures from the plan (Part 1); separate commit.
+- [x] Pure helper beside `TradeRiskPolicy`: largest whole-lot quantity passing `evaluate`, plus the blocking limit (or minimum-lot block); explicit unavailable result for invalid input.
+- [x] Advisor uses it instead of `minOf(sized, affordable)`; record the blocking reason for candidates that still do not fit.
+- [x] AI prompt reads the actual stock allocation setting; describe `maxOpenExposure` as advisory.
+- [x] Unit fixtures from the plan (Part 1); separate commit.
+- [x] Part 1 result: `TradeRiskPolicy.largestFit` (binary search over lots, checked against a linear scan). Example: 10.00 entry, 9.00 stop, 1% of 100k: the old helper gave 1,000 shares, which fails the budget once fees count, so the candidate was dropped; now 900. 175 unit tests (10 skipped), 0 failures; build passes; lint 0 errors, 126 warnings (unchanged). Device: Swing preview renders; 0 candidates reach sizing in today's bear regime, so the blocked line was not exercised live. Untested-lists setting was turned on for the check and restored off.
 
 ## Part 2: High Yield rebalance plan
 
