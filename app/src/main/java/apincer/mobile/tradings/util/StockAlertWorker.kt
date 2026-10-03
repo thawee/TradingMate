@@ -158,6 +158,11 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             }
         }
 
+        // Forward record of the high-yield list, kept whether or not its card is shown: this month's
+        // snapshot and due 30/91/365-day results, at most one attempt a day.
+        apincer.mobile.tradings.data.HighYieldRecorder.runIfDue(alertPrefs,
+            java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")))
+
         // Monthly review of the high-yield rebalance plan, only for users following it: untested lists on
         // and at least one Dividend-purpose satellite holding. First trading session of the month, once.
         run {

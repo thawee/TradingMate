@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added (high-yield forward record)
-- The High dividend yield card keeps a forward record: the first ranking each month saves the top 10 with their prices and TDEX's price, and after 30, 91 and 365 days the list's equal-weight total return (dividends included) is compared with TDEX's. Names are fixed when saved, so a later delisting cannot drop a loser, unlike the survivorship-biased backtest. Results measured more than 15 days late are left out of the summary. Idea adapted from tradermonty's signal-postmortem (MIT). The record updates only while the card is shown (untested lists on).
+- The High dividend yield card keeps a forward record: the first ranking each month saves the top 10 with their prices and TDEX's price, and after 30, 91 and 365 days the list's equal-weight total return (dividends included) is compared with TDEX's. Names are fixed when saved, so a later delisting cannot drop a loser, unlike the survivorship-biased backtest. Results measured more than 15 days late are left out of the summary. Idea adapted from tradermonty's signal-postmortem (MIT). The background worker keeps the record on trading days even when the card is hidden (at most one attempt a day, only when a snapshot or result is due).
 
 ### Added (swing cooldown warning)
 - The Buy dialog warns on a new Swing buy after the last 2 Swing trades closed at a loss (for 24 hours) or when this month's Swing losses reach 8% of equity. Dividend-purpose, core and already-executed broker trades are never warned, so the monthly high-yield rebalance and DCA continue. Advisory only; the thresholds (tradermonty's drawdown-circuit-breaker defaults, MIT) are untested.
