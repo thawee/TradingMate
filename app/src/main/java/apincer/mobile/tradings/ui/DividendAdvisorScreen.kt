@@ -438,6 +438,13 @@ fun DividendAdvisorScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            AdvisorFilterExplorer(
+                stocks = watchlist,
+                mode = playbookMode,
+                bearish = marketRegime == TechnicalAnalysis.MarketRegime.BEARISH,
+                onStockClick = { viewModel.fetchStockData(it) }
+            )
+
             if (showUntestedLists) {
                 val heldSymbols = portfolioItems.map { it.info.symbol.uppercase() }.toSet()
                 if (playbookMode == PlaybookMode.SWING) MomentumListCard(viewModel, heldSymbols)
@@ -1871,11 +1878,10 @@ fun UntestedListsHiddenCard(onShow: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Buy lists are hidden", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Ranked lists are hidden", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Setups, Dividend Stars and the AI ranking have not beaten holding TDEX in testing (2015-2025), so they are off by default. " +
-                    "Even when shown, setups are rare: about twice a month for SET50 stocks, most days none. " +
-                    "Your exit checks above still run. New money goes to your TDEX core on the Portfolio tab.",
+                "Additional ranked lists and the AI ranking are off by default. You can explore tracked stocks with the filters above. " +
+                    "Each ranked list includes its test results and limitations. Your exit checks still run.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

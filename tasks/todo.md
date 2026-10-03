@@ -475,3 +475,36 @@ F5 counts as confirmed only if D1-D4 each beat TDEX in both sub-periods and H be
 - [x] Advisor (Dividend tab, untested lists): top 10 current SET50 by dividend yield, ranked once a day from SET quotes, with the backtest and 1DIV real-world results beside it.
 - [x] Core as a mix: TDEX plus an optional second SET-listed ETF (e.g. 1DIV) with a split %. isCore covers both; the core card, DCA preview and reminder split the monthly amount by weight; buy buttons per fund. TDEX stays the scorecard benchmark.
 - [x] Tests, build, device check, changelog, commit.
+
+# Advisor empty-screen diagnosis, 2026-10-02
+
+- [x] Trace list visibility, candidate filters, data requirements and watchlist scope.
+- [x] Compare thresholds with existing SET research and run focused eligibility tests.
+- [x] Report verified causes and recommended changes; distinguish code findings from device state.
+
+Scope: diagnosis first; no trading-rule changes without evidence. Repository documentation lives in docs/ (root UI.md and USER_GUIDE.md are absent).
+
+## Diagnosis results
+
+- Connected app and source both report 4.0.0 (29); version equality alone does not prove identical code. Read-only device snapshot: `show_untested_lists=false`.
+- 101 tracked stocks; basic filters pass 89 (10 near the 52-week low, 2 below turnover threshold); quality leaves 30; bullish weekly trend leaves 14. Those 14 have cached signals POTENTIAL=11, NEUTRAL=3, BUY=0. The UI recomputes signals and applies holding-specific overrides, so these are cached-input funnel counts, not a captured live UI result.
+- 36 stocks yield >=5%; 32 survive basic filters and 11 survive quality, before the dividend SELL exclusion. Dividend candidates do not require BUY or bullish weekly trend. The default visibility setting hides this list too.
+- Data freshness is not the dominant blocker in this snapshot: stock and benchmark dates match for every row (100 dated Oct 2; one Sep 25, still within the current seven-day allowance).
+- Current quality threshold is ROE >10%, not the stale comment's >15%; nonfinancial D/E <1.5, margin >10% and growth >10% when present. Candidate scope is tracked stocks, not all SET listings; separate ranked SET50 lists have their own universe.
+- Recommendation: expose research/watch candidates and first-failure counts clearly, preserve strict actionable-plan checks, and evaluate dividend rules separately from swing timing. Existing SET studies do not demonstrate that merely relaxing BUY requirements improves returns.
+- Verification: 15 StockDnaTest tests passed; git diff against main inspected; git diff --check passed. No application rules/settings were changed. Pre-existing Gradle artifacts and untracked scripts were left alone.
+
+# Advisor filter explorer, 2026-10-02
+
+- [x] Add reusable filter stages with cumulative counts and independent Swing/Dividend combinations.
+- [x] Add always-visible selectable badges, reset/clear actions and exploratory stock results; preserve existing entry/AI policies.
+- [x] Test combinations and default-policy parity, build and lint, verify on device, and inspect diff.
+
+Design: existing Compose components are sufficient; no external Sleek project is needed. Enabled stages combine with AND. Disabled badges preview their count if added at that point in the funnel. Results are research matches, not accepted trade plans. Existing untested ranked lists remain opt-in.
+
+## Filter explorer verification
+
+- Added AdvisorFilters (research-only predicates and cumulative counts), AdvisorFilterExplorer (saveable independent tab selections, toggle badges, reset/clear, paged matching stocks), and six tests including exhaustive default-policy comparisons across signals, weekly trends, quality and market conditions.
+- Final `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug` passed: 169 tests reported, 9 skipped, zero failures/errors; lint has 126 warnings and zero errors, none pointing to the new explorer files.
+- Installed the final debug APK on the connected phone without clearing data. Verified live Swing defaults yield zero; disabling Confirmed BUY yields 11. Dividend defaults yield 11; disabling Quality yields 31; Swing retains its independent selection. Clear filters displayed all 101 tracked stocks. Visually inspected `/tmp/tradingmate-advisor-filters.png` at the phone's current font size.
+- Existing optional lists/presets and all trade-plan/AI/exit rules remain intact. Git diff against main inspected and whitespace check passed. No commit created.

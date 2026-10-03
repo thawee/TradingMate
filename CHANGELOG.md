@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Advisor filter explorer)
+- Always-visible filter badges let users combine liquidity, history freshness, distance from the 52-week low, no SELL signal and quality rules, plus weekly trend/market context/BUY for Swing or yield for Dividend. Selected badges show cumulative remaining counts; disabled badges preview their count if added at that stage.
+- Swing and Dividend keep separate selections across tab changes and configuration recreation. Reset restores the existing rules; Clear filters shows all tracked stocks. Research matches open stock details and do not change trade-plan, AI, sizing or exit eligibility. Existing opt-in lists and presets remain available.
+
 ### Added (dividend tilt and core mix)
 - **High dividend yield list (Advisor, Dividend tab):** the top 10 current SET50 members by dividend yield from SET quotes, ranked at most once a day, with held stocks marked. The card shows the backtest (+7.80% a year over 2015-2025, ahead in both halves and a 2011-2014 holdout, inflated by survivorship) next to the real 1DIV ETF (+3.86% vs TDEX +2.55% over 2015-2025; behind in 2015-2020 and 2012-2014), warns that very high yields can signal an expected cut, and suggests 1DIV for the same tilt without stock picking. Shown only with untested lists on. Shares its layout with the momentum list.
 - **Core as a mix:** Settings > Core Portfolio takes an optional second SET-listed ETF (e.g. 1DIV) and its share of the core; TDEX holds the rest. Both count as core everywhere (no stops or satellite caps, core signal, no sell reminders); the core card and DCA preview split the monthly amount by weight and offer a "Record … buy" button per fund; the monthly reminder lists lots for each fund (with one fund it still opens the prefilled Buy dialog). TDEX stays the scorecard benchmark.
