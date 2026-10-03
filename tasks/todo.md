@@ -529,8 +529,8 @@ Status: planned; application implementation has not started.
 
 ## Phase 0: Clean start
 
-- [ ] Commit the finished filter explorer (`AdvisorFilters.kt`, `AdvisorFilterExplorer.kt`, `AdvisorFiltersTest.kt`, `DividendAdvisorScreen.kt`, changelog).
-- [ ] Remove or ignore stray scripts (`append_changelog.py`, `append_readme.py`, `patch_ai_accept.py`, `update_tasks.py`) and tracked `.gradle/` churn.
+- [x] Commit the finished filter explorer (`AdvisorFilters.kt`, `AdvisorFilterExplorer.kt`, `AdvisorFiltersTest.kt`, `DividendAdvisorScreen.kt`, changelog): 741de68.
+- [x] Remove or ignore stray scripts (`append_changelog.py`, `append_readme.py`, `patch_ai_accept.py`, `update_tasks.py`) and tracked `.gradle/` churn: scripts moved out of the repo; `.gradle/` untracked in 9cc27c8.
 
 ## Part 1: Swing sizing fix
 
@@ -550,9 +550,9 @@ Status: planned; application implementation has not started.
 
 ## Verification
 
-- [ ] `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug` pass.
-- [ ] Device: Swing quantities and blocking reasons; High Yield plan with real holdings; buy dialog prefill; core funds absent from the plan.
-- [ ] Diff against main reviewed, `git diff --check` passes, changelog and user docs updated with actual results.
+- [x] `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug` pass (181 tests, 10 skipped, 0 failures; lint 0 errors, 126 warnings).
+- [x] Device: High Yield plan with real holdings, buy dialog prefill and core funds absent verified. Swing preview renders, but 0 candidates reached sizing (bear regime), so live quantities and blocking reasons are covered by unit tests only.
+- [x] Diff against main reviewed, `git diff --check` passes, changelog and user docs (SCREEN_FLOWS.md) updated with actual results.
 
 ## Deferred
 
