@@ -746,7 +746,7 @@ fun ExitReviewCard(current: apincer.mobile.tradings.domain.ExitReasonReview.Quar
                         (if (top.losses == 1) "trade" else "trades") + String.format(Locale.ENGLISH, ", ฿%,.0f)", top.lossBaht),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
+                    color = alertColor(apincer.mobile.tradings.domain.AlertLevel.MONTHLY)
                 )
             }
             listOf(current, previous).filter { it.trades > 0 }.forEach { q ->

@@ -1628,7 +1628,7 @@ fun CoreSatelliteCard(
     val coreSymbol = apincer.mobile.tradings.domain.CoreSatellite.label()
     val funds = apincer.mobile.tradings.domain.CoreSatellite.funds
     val isBelowTarget = allocation.investedValue > 0.0 && allocation.driftPercent < -5.0
-    val barColor = if (isBelowTarget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val barColor = if (isBelowTarget) alertColor(apincer.mobile.tradings.domain.AlertLevel.MONTHLY) else MaterialTheme.colorScheme.primary
     fun pct(v: Double) = String.format(java.util.Locale.ENGLISH, "%.0f%%", v)
     fun baht(v: Double) = String.format(java.util.Locale.ENGLISH, "฿%,.0f", v)
     /** One line per core fund: the lots its share of [budget] buys, or null while prices load. */
@@ -1783,14 +1783,14 @@ fun SectorBreakdownCard(
             if (hasWarning) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).background(MaterialTheme.colorScheme.errorContainer.copy(alpha=0.5f), RoundedCornerShape(8.dp)).padding(8.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                 ) {
-                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = alertColor(apincer.mobile.tradings.domain.AlertLevel.MONTHLY), modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Sector Cap Warning: Positions exceed ${String.format(java.util.Locale.ENGLISH, "%.0f", maxSectorPercent)}% concentration limit in a single sector.",
+                        text = "Above your ${String.format(java.util.Locale.ENGLISH, "%.0f", maxSectorPercent)}% sector cap. Spread new buys, or grow the TDEX core.",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1803,13 +1803,13 @@ fun SectorBreakdownCard(
                             String.format(java.util.Locale.ENGLISH, "%.1f%%", exposure.portfolioPercent),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (exposure.isOverexposed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                            color = if (exposure.isOverexposed) alertColor(apincer.mobile.tradings.domain.AlertLevel.MONTHLY) else MaterialTheme.colorScheme.onSurface
                         )
                     }
                     LinearProgressIndicator(
                         progress = { (exposure.portfolioPercent / 100.0).toFloat().coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().height(6.dp).padding(top = 4.dp),
-                        color = if (exposure.isOverexposed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        color = if (exposure.isOverexposed) alertColor(apincer.mobile.tradings.domain.AlertLevel.MONTHLY) else MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                     )

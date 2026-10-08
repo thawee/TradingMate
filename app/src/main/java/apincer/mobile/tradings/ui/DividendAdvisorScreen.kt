@@ -319,8 +319,9 @@ private fun alertIcon(level: apincer.mobile.tradings.domain.AlertLevel) = when (
     apincer.mobile.tradings.domain.AlertLevel.REVIEW -> "⚪"
 }
 
+/** Red only for act now; limits and plans to review use the monthly-review orange. */
 @Composable
-private fun alertColor(level: apincer.mobile.tradings.domain.AlertLevel): Color = when (level) {
+internal fun alertColor(level: apincer.mobile.tradings.domain.AlertLevel): Color = when (level) {
     apincer.mobile.tradings.domain.AlertLevel.ACT_NOW -> MaterialTheme.colorScheme.error
     apincer.mobile.tradings.domain.AlertLevel.MONTHLY -> Color(0xFFFFA726)
     apincer.mobile.tradings.domain.AlertLevel.REVIEW -> MaterialTheme.colorScheme.onSurface
@@ -658,7 +659,7 @@ fun HighYieldRebalanceCard(
                                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                             Text((if (row.baht > 0.0) baht(row.baht) + "  " else "") + (row.note ?: ""),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (row.note?.contains("cap") == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                                color = if (row.note?.contains("cap") == true) alertColor(apincer.mobile.tradings.domain.AlertLevel.MONTHLY) else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         val price = row.price
                         if (row.action == apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY && row.shares > 0 && price != null)
