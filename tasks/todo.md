@@ -705,3 +705,28 @@ Source: interview with a Thai trader (EIG channel): start small, add only after 
 - [x] `PyramidingReport` (PYRAMID=1) writes tools/backtest/pyramiding_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
 
 Result: only F5 P2 passes (8.64% vs 7.80% a year over 2015-2025, ahead in both halves and the holdout, drawdown +2 points, one name up to 23%). Averaging down (A1-A3, 2026-10-03) passed F5 by the same margin, so the gain most likely comes from deploying F5's idle cash, not from adding to winners. Starting at half size (P1) costs 1.9 points a year on F5 and 1.5 on MOM1 while cutting drawdown 9-11 points. MOM1 still trails TDEX in 2021-2025 in every variant. No app change.
+
+# Quarterly exit-reason review, 2026-10-08 (planned, not started)
+
+Source: interview with a Thai futures trader (EIG Ep.10): group losing trades by cause, count causes each quarter, fix the most frequent one next quarter. UI only; no trading rule changes, so no backtest gate.
+
+Data already exists: the Sell dialog requires a reason chip (Target Hit, Stop Hit, Trailing Stop, Boredom, Mistake, Fundamental; `ui/PortfolioScreen.kt:1540`) and a lesson for negative exits, saved as `TradeEntity.note = "[<reason>] <lesson>"` (`ui/PortfolioScreen.kt:1637`). Nothing summarizes it today.
+
+- [ ] Domain: pure `ExitReasonReview` that parses the `[reason]` prefix from `TradeEntity.note` (emoji-tolerant; no prefix or unknown text -> "Not recorded"), groups closed trades by calendar quarter of `dateMillis` and reason: trades, losing trades, net baht. Picks "most frequent losing reason" for the quarter (ties -> larger baht loss). No schema change or migration.
+- [ ] Unit tests: each chip label, custom/legacy notes, empty quarter, tie-break, quarter boundaries in Asia/Bangkok.
+- [ ] UI: a "Quarterly exit review" card on the Portfolio screen next to the Satellite Scorecard: current and previous quarter, rows per reason (trades, losses, net baht), one line "Most frequent losing reason last quarter: <reason> (n)". Hidden when there are no closed trades.
+- [ ] Decide before coding: include Dividend-purpose and core sells, or Swing only (default: all closed trades, with purpose shown); keep the app's six reasons (default) or map to the interview's four groups (self / method / tools / money).
+- [ ] Verify: unit tests, build, install on the test phone and compare the card against `trade_history` on a copied database (lessons.md #8); changelog; commit.
+
+# High yield plus 200-day trend, 2026-10-08
+
+Source: interview with a Thai trader (Money Chat Thailand, mid-2026): pick "early-cycle" stocks that hold above the 200-day average, yield above 5%, reasonable P/E. T1 (TDEX timed by its 200-day average) already failed; a per-stock filter on F5 is untested. P/E is left out (no P/E history in the fundamentals data). Same engine and pass rule as the averaging-down study. Fixed before the first run:
+
+- B0 F5 baseline.
+- T-F5a: F5 ranking, but a name is eligible at a month end only if its close is above its 200-session SMA. A held name below its SMA200 at a month end is therefore sold (it leaves the list).
+- T-F5b: T-F5a and yield >= 5%; fewer than 10 eligible names leaves the rest in cash.
+- Pass: CAGR above B0 in 2015-2020, 2021-2025 and the 2011-04 to 2014 holdout, full-period max drawdown no worse than B0 + 5 points.
+
+- [x] `YieldTrendReport` (YIELDTREND=1) writes tools/backtest/yield_trend_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
+
+Result: both FAIL. T-F5a 14.80% vs 8.36% in 2015-2020 but 0.32% vs 5.50% in 2021-2025 (turnover 6x a year, drawdown 33% vs 43%). T-F5b cuts drawdown to 12% but trails F5 in every period and TDEX in 2021-2025, mostly from sitting in cash. Selling a yield name when it dips below its 200-day average sells near lows in a sideways market. No app change.

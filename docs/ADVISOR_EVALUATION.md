@@ -88,6 +88,10 @@ These numbers are inflated by survivorship: the universe is today's SET50, so hi
 
 `tools/backtest/pyramiding_report.md` tests two pyramiding rules fixed on 2026-10-08, from an interview with a Thai trader who adds only after a position is in profit: P1 buys new names at half size and tops up to 10% once when 5% above cost; P2 buys at 10% and adds up to 15% once when 10% above cost. Bases: F5 and MOM1, month-end checks, no leverage. Only F5 P2 passes its baseline (8.64% vs 7.80% a year over 2015-2025, ahead in both halves and the 2011-2014 holdout, drawdown 2 points deeper). Averaging down passed F5 by the same margin, so the gain most likely comes from putting F5's idle cash to work rather than from the direction of the add. Starting at half size lowers drawdown by 9 to 11 points but costs 1.5 to 1.9 points a year. MOM1 trails TDEX in 2021-2025 in every variant. No app change.
 
+### High yield with a 200-day trend filter
+
+`tools/backtest/yield_trend_report.md` tests two filters on F5 fixed on 2026-10-08, from an interview recommending high-yield stocks that hold above their 200-day average: T-F5a keeps only names above their 200-session average at each month end; T-F5b also requires a yield of at least 5%. Neither passes. T-F5a beats F5 in 2015-2020 (14.80% vs 8.36%) and the holdout but makes 0.32% a year in 2021-2025 against F5's 5.50%, trading six times as much. T-F5b cuts the maximum drawdown from 43% to 12% but trails F5 in every period and TDEX in 2021-2025, mostly because it often holds cash. In a sideways market the filter sells yield names near their lows. No app change.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.
