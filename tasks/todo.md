@@ -826,3 +826,12 @@ Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (B
 - [x] 4. Rebalance plan: collapse the repeated "Buy 0 ... below one lot" rows into one line.
 - [x] Tests, build (commit gated on gradle), emulator screenshots, CHANGELOG, commits.
 (Item 1 measured from a new "Watchlist refresh finished in N ms" log line; the first uiautomator-based numbers were wrong, see lessons.md #10. Item 2: tab renamed All because it never filtered to Swing. Item 4: emulator shows 4 rows plus one "Not bought" line instead of 11 rows.)
+
+## Screen polish round 2 (2026-10-08)
+- [x] 3. Advisor: long caveat paragraphs become one line plus a "Why" expander (high-yield list, forward record, rebalance plan).
+- [x] 5. Red only for act-now: sector-cap warning neutral while the satellite is small, backtest note neutral.
+- [x] 6. History: Satellite vs TDEX first; tax-saving funds card collapsed.
+- [x] 7. Watchlist cards: drop chips and the BB range line; chips stay on stock detail.
+- [x] 8. Portfolio: drop the holdings table that repeats the stock cards.
+- [x] Build (commit gated on gradle), emulator screenshots, CHANGELOG, one commit per item.
+(Item 7 went further than planned: chips were removed everywhere, not kept on stock detail, since nothing else rendered them; follow-up commit deletes the score and archetype code. calculateSuggestedStopLossPrice kept for AdvisorEventStudy. Tests 232 -> 228.)

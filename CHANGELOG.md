@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (screen polish, round 2)
+- **Advisor** caveats are one line each with a "Why" toggle (high-yield list, forward records, rebalance plan); the red backtest box is gone.
+- **Red means act now.** Sector-cap breaches, the core-below-target bar, rebalance cap notes and the quarter's top losing reason use the monthly-review orange.
+- **History** opens with Satellite vs TDEX and the quarterly exit review; the tax-saving funds card is one line until set up.
+- **Stock cards** show symbol, name, price and change. The score and pattern chips and the hypothetical stop, R:R and range on non-held stocks are gone; held cards add baht P/L and share count.
+- **Portfolio** drops the holdings table that repeated the cards.
+
+### Removed
+- The 0-100 confluence score, its A+/A/B/C grades and the MOAT, SHIELD, WHALE and other chips, with the code behind them.
+
 ### Fixed
 - **Refresh spinner stuck for minutes when offline.** DNS failures are no longer retried with backoff. Emulator watchlist refresh: airplane mode 38.2 s to 4.9 s; link up with DNS broken 182 s to 30.6 s. When every symbol fails, the snackbar says the source is unreachable.
 
