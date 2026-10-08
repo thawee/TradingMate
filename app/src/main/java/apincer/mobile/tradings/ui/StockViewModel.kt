@@ -463,6 +463,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshWatchlistInfo() {
         viewModelScope.launch {
             if (!_isRefreshing.compareAndSet(false, true)) return@launch
+            val startedAt = System.currentTimeMillis()
             _refreshError.value = null
             try {
                 val isMarketOpen = TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED
@@ -673,17 +674,22 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     jobs.awaitAll()
                 }
-                if (failedSymbols.isNotEmpty()) {
-                    _refreshError.value = "Some quotes or indicators could not be refreshed: ${failedSymbols.sorted().joinToString()}. Check the last-sync time."
-                }
+                refreshFailureMessage(failedSymbols, stocks.size)?.let { _refreshError.value = it }
             } catch (e: Exception) {
                 android.util.Log.e("StockViewModel", "Error refreshing watchlist info", e)
                 _refreshError.value = e.localizedMessage ?: "Failed to refresh watchlist"
             } finally {
                 _isRefreshing.value = false
+                android.util.Log.i("StockViewModel", "Watchlist refresh finished in ${System.currentTimeMillis() - startedAt} ms")
                 apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
             }
         }
+    }
+
+    private fun refreshFailureMessage(failed: Set<String>, total: Int): String? = when {
+        failed.isEmpty() -> null
+        failed.size >= total -> "Can't reach the price source. Showing data from the last sync."
+        else -> "Some quotes or indicators could not be refreshed: ${failed.sorted().joinToString()}. Check the last-sync time."
     }
 
     fun refreshPortfolioOnly() {
@@ -850,9 +856,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     jobs.awaitAll()
                 }
-                if (failedSymbols.isNotEmpty()) {
-                    _refreshError.value = "Some quotes or indicators could not be refreshed: ${failedSymbols.sorted().joinToString()}. Check the last-sync time."
-                }
+                refreshFailureMessage(failedSymbols, portfolioStocks.size)?.let { _refreshError.value = it }
             } catch (e: Exception) {
                 _refreshError.value = e.localizedMessage ?: "Failed to refresh portfolio"
             } finally {

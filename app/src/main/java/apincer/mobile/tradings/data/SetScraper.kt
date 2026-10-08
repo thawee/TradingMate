@@ -141,6 +141,9 @@ object SetScraper {
         for (attempt in 1..maxRetries) {
             try {
                 return block()
+            } catch (e: java.net.UnknownHostException) {
+                // No DNS means no network; retrying with backoff only keeps the refresh spinner up for minutes.
+                throw e
             } catch (e: Exception) {
                 lastException = e
                 Log.w(TAG, "Network attempt $attempt failed, retrying in ${currentDelay}ms...", e)

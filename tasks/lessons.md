@@ -27,3 +27,7 @@ Querying a pulled `stock_database` with `sqlite3` checkpointed its WAL into the 
 ## 9. An apostrophe in an Android string breaks the build
 - Pattern: Python edited strings.xml to say "app's" and the build failed (aapt: Invalid unicode escape). The commit went in anyway because the build check was a grep inside a pipe that did not stop the chain.
 - Rule: in res/values strings, escape apostrophes as \' or rephrase. Gate commits on the gradle exit code (`./gradlew ... && git commit`), not on a grep of its output.
+
+## 10. uiautomator dump is not a timing probe
+- Pattern: I timed the refresh spinner by polling `uiautomator dump` for a ProgressBar and reported 193 s -> 4 s. The dump fails while an animation runs and leaves the previous /sdcard/u.xml in place, and the wide Core vs Satellite LinearProgressIndicator also counts as a ProgressBar. The real numbers were 182 s -> 31 s (broken DNS) and 38 s -> 5 s (airplane mode).
+- Rule: time app work from an app log line (start/finish with elapsed ms), or from screenshots. Check that a probe can see the change before trusting the number, and measure the baseline with the same probe.
