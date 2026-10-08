@@ -730,3 +730,17 @@ Source: interview with a Thai trader (Money Chat Thailand, mid-2026): pick "earl
 - [x] `YieldTrendReport` (YIELDTREND=1) writes tools/backtest/yield_trend_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
 
 Result: both FAIL. T-F5a 14.80% vs 8.36% in 2015-2020 but 0.32% vs 5.50% in 2021-2025 (turnover 6x a year, drawdown 33% vs 43%). T-F5b cuts drawdown to 12% but trails F5 in every period and TDEX in 2021-2025, mostly from sitting in cash. Selling a yield name when it dips below its 200-day average sells near lows in a sideways market. No app change.
+
+# F5 held longer, 2026-10-08
+
+Source: interview with a Thai dividend investor (SET Zoom In): hold dividend stocks and sell only when the long-term picture changes, not on rank. F5 sells any name that leaves the top 10 (turnover 1.7x a year). "Sell on a dividend cut" cannot be replayed: the quarterly yield field has gaps and moves with price (BBL shows missing quarters and 1% readings between 4% ones). Two hold rules the data supports instead, fixed before the first run:
+
+- B0 F5 baseline (must reproduce 7.80%).
+- H1 rank buffer: buy from the top 10; a held name is kept while it ranks in the top 30 by yield; free slots refill from the top of the list up to 10 names.
+- H2 yield floor: a held name is kept while its latest reported yield is at least 3%, or the yield is missing (unknown is not a cut); free slots refill as in H1.
+- Pass: CAGR above B0 in 2015-2020, 2021-2025 and the 2011-04 to 2014 holdout, full-period max drawdown no worse than B0 + 5 points.
+
+- [x] `RuleStudy.rankedPortfolio` gains an optional `keepHeld`; F5, averaging-down, pyramiding and yield-trend reports must reproduce unchanged. (reran; no diff).
+- [x] `F5HoldReport` (F5HOLD=1) writes tools/backtest/f5_hold_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
+
+Result: both FAIL. H1 almost never sells (turnover 0.25x a year, 18 positions in 11 years, one name up to 28%); it beats F5 in 2021-2025 (6.25% vs 5.50%) and the holdout but trails in 2015-2020 (6.56% vs 8.36%). H2 trails F5 in both halves. F5's monthly rotation into the highest yields earns more than it costs. No app change.

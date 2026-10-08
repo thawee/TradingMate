@@ -89,11 +89,13 @@ internal object RuleStudy {
      * Monthly ranked portfolio: at each month's last session, rank symbols by [score] (higher first,
      * null = not eligible), hold the top [topN] at 1/[topN] target each from the next close. Names that
      * stay are kept without resizing unless [heldRule] says otherwise; names that drop out are sold.
-     * Fees (ATS) and slippage per side.
+     * With [keepHeld], a held name it accepts (rank is 0-based, null when ineligible) is kept regardless
+     * of rank. Fees (ATS) and slippage per side.
      */
     fun rankedPortfolio(universe: Map<String, List<ScrapedHistoricalPrice>>, tdex: List<ScrapedHistoricalPrice>,
                         from: String, to: String, topN: Int = 10, slip: Double = 0.0015,
                         rebalanceMonths: Set<Int>? = null, heldRule: HeldRule? = null,
+                        keepHeld: ((symbol: String, rank: Int?, score: Double?) -> Boolean)? = null,
                         score: (String, List<ScrapedHistoricalPrice>, Int) -> Double?): Ranked {
         val dates = tdex.map { it.date }.filter { it in from..to }
         val idx = universe.mapValues { (_, bars) -> bars.withIndex().associate { it.value.date to it.index } }
@@ -190,7 +192,14 @@ internal object RuleStudy {
                     val i = idx.getValue(s)[d] ?: return@mapNotNull null
                     score(s, universe.getValue(s), i)?.let { s to it }
                 }
-                pending = scores.sortedByDescending { it.second }.take(topN).map { it.first }
+                val ranked = scores.sortedByDescending { it.second }
+                pending = if (keepHeld == null) ranked.take(topN).map { it.first } else {
+                    // Held names the rule keeps stay; free slots refill from the top of the ranking.
+                    val rankOf = ranked.withIndex().associate { (r, p) -> p.first to r }
+                    val scoreOf = scores.toMap()
+                    val kept = held.keys.filter { keepHeld(it, rankOf[it], scoreOf[it]) }
+                    kept + ranked.map { it.first }.filter { it !in kept }.take((topN - kept.size).coerceAtLeast(0))
+                }
                 if (heldRule != null) pendingTrigger = held.filter { (s, pos) ->
                     val avgCost = pos.cost / pos.shares
                     price(s, d)?.let {

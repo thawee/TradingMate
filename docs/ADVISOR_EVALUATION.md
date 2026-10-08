@@ -92,6 +92,10 @@ These numbers are inflated by survivorship: the universe is today's SET50, so hi
 
 `tools/backtest/yield_trend_report.md` tests two filters on F5 fixed on 2026-10-08, from an interview recommending high-yield stocks that hold above their 200-day average: T-F5a keeps only names above their 200-session average at each month end; T-F5b also requires a yield of at least 5%. Neither passes. T-F5a beats F5 in 2015-2020 (14.80% vs 8.36%) and the holdout but makes 0.32% a year in 2021-2025 against F5's 5.50%, trading six times as much. T-F5b cuts the maximum drawdown from 43% to 12% but trails F5 in every period and TDEX in 2021-2025, mostly because it often holds cash. In a sideways market the filter sells yield names near their lows. No app change.
 
+### High yield held longer
+
+`tools/backtest/f5_hold_report.md` tests two ways to hold F5 names longer, fixed on 2026-10-08 from an interview recommending that dividend stocks be held until the business changes: H1 keeps a held name while it stays in the top 30 by yield; H2 keeps it while its reported yield stays at least 3% (or is missing). Selling on an actual dividend cut cannot be replayed because the quarterly yield field has gaps and moves with price. Neither passes. H1 cuts turnover from 1.7 to 0.25 times a year and beats F5 in 2021-2025 (6.25% vs 5.50%) and the holdout, but trails it in 2015-2020 (6.56% vs 8.36%) and lets one name reach 28% of the portfolio. H2 trails F5 in both halves. Rotating monthly into the highest yields earns more than its trading costs. No app change.
+
 ### Known limits of the replay
 
 - **Survivorship bias.** The universe is the H1 2025 SET50 (frozen in `tools/backtest/universe.txt`) applied to 2015-2025; delisted and demoted stocks are missing, which flatters momentum and breakout rules most. A point-in-time membership source (historical SET50/SET100 constituents) is needed to fix this. The app's `fetchIndexComposition` returns only current members, and no verified historical source is wired in yet.
