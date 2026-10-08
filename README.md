@@ -21,9 +21,9 @@ It also covers the practical side of Thai investing:
 - **Core-first navigation:** The app opens on Portfolio (core allocation, DCA, scorecard); the Advisor opens on its Dividend tab. Swing signals are labelled "Context, not a buy call" on the Watchlist, the Swing tab and stock details.
 - **Monthly DCA Reminder:** On your chosen day (or the next trading session), a notification suggests whole TDEX board lots for your monthly amount, fees included.
 - **Satellite Scorecard:** Stats compares the satellite with a shadow TDEX position fed the same journaled buys, sells and dividends: end-value gap and money-weighted annual return since the first fill and over two trailing 12-month windows. Holdings without complete fill records are excluded and listed.
-- **Institutional Risk Management & CRO Suite:**
+- **Risk Tools:**
   - **63-Day Rolling Time-Series VaR (95%) & Conditional VaR (CVaR)**: Constructs a true weighted daily return time series across 63 trading days ($R_{p,t} = \sum_i w_i R_{i,t} / \sum_i w_i$) to evaluate empirical downside tail risk and expected shortfall in ฿ and %.
-  - **Dynamic Regime-Aware Cash Buffers & Spendable Cash Engine**: Mathematically mandates cash buffer reserves (**15% in Bull, 30% in Sideways, 50% in Bear**). Enforces real-time cash guards in `BuyStockDialog` and injects exact spendable capital limits into Gemini AI prompts.
+  - **Suggested Regime Cash Reserve**: Suggests keeping 15% (Bull), 30% (Sideways) or 50% (Bear) in cash. The Buy dialog warns when a satellite buy goes below it but does not block it: the reserve was never backtested, and market-regime filters reduced drawdown without improving returns in the tests (`docs/ADVISOR_EVALUATION.md`). Only buying more than the available cash is blocked.
   - **Mark-to-Market (MTM) Daily NAV Trajectory & Peak Drawdown**: Tracks real daily portfolio equity snapshots with interactive toggle between **MTM NAV (Daily)** and **Realized PnL (Monthly)**, computing true peak-to-trough mark-to-market Max Drawdown (MDD).
   - **Anti-Ruin Fixed Fractional Position Sizing**: Automatically computes exact share size per trade based on account risk budget ($1.0\%-2.0\%$) and stop-loss distance, rounded down to SET 100-share board lots.
   - **Concentration Shields**: Strictly enforces a **15% Single-Stock Allocation Limit** and **30% Sector Allocation Cap** (user-configurable in Settings).
@@ -39,7 +39,7 @@ It also covers the practical side of Thai investing:
 - **Consolidated Portfolio:** Professional financial dashboard grouping stock holdings, cash balance, net profit, fee tracking, and sector risk meters in one unified view.
 - **Trend State Chip:** Each stock shows a descriptive state (Uptrend, Downtrend, Overextended, Near Support, Range) from RSI, MACD, SMA 50 and Bollinger Bands. It describes price and never recommends; observed price levels and accepted plans provide stop and target alerts.
 - **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled.
-- **10/10 FinTech Design System:** Ambient radial gradient glows, adaptive glassmorphic contrast borders, OpenType `tnum` tabular numbers for zero decimal jitter, Catmull-Rom $C^1$ smooth spline charts, and live directional price tick pulses.
+- **Design:** Ambient radial gradient glows, adaptive glassmorphic contrast borders, OpenType `tnum` tabular numbers for zero decimal jitter, Catmull-Rom $C^1$ smooth spline charts, and live directional price tick pulses.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
 ## 🧅 The 6-Layer Filter & Quant Confluence Scoring (Stock DNA)
@@ -66,15 +66,15 @@ TradingMate evaluates a company using a six-factor screening heuristic and a **0
 - **🐋 Foreign Whale Inflow (`WHALE`):** Heavy NVDR net foreign buying paired with positive Relative Strength ($\text{RS} \ge 0.0$).
 - **⚡ Oversold Spring (`SPRING`):** Extreme oversold mean-reversion ($RSI \le 35$) with fundamental quality protection.
 
-**Conviction Grading:**
-- **`A+` (80–100):** *Prime Alpha Setup* (Mint Green)
-- **`A` (65–79):** *High Conviction* (Pro Blue)
-- **`B` (50–64):** *Watchlist / Developing* (Gold)
-- **`C` (< 50):** *Neutral / Below Threshold* (Slate)
+**Score grades** (how many checks a stock meets; descriptive, never backtested):
+- **`A+` (80–100)** (mint green)
+- **`A` (65–79)** (blue)
+- **`B` (50–64)** (gold)
+- **`C` (< 50)** (slate)
 
 ## 📊 Technical Indicators Used
 
-TradingMate uses a suite of indicators to generate high-conviction signals. For a deep dive into the formulas and thresholds, see **[INDICATORS.md](docs/INDICATORS.md)**.
+TradingMate computes these indicators to describe each stock; in the 2015-2025 backtest its signals built on them trailed holding TDEX. For a deep dive into the formulas and thresholds, see **[INDICATORS.md](docs/INDICATORS.md)**.
 
 1. **RSI (14 Days) - The Speedometer**
    - **Oversold (< 35):** Target BUY zone.
@@ -99,8 +99,8 @@ TradingMate uses a suite of indicators to generate high-conviction signals. For 
    - Oversold buys require %K to cross above %D — no entries while price is still falling.
 11. **MFI (14) - The Smart Money Gauge**
    - Volume-weighted RSI: ≥ 80 triggers Distribution SELL on profits; ≤ 20 confirms capitulation buys.
-12. **Market Regime Gate & Dynamic Cash Buffer Enforcement**
-   - Evaluates SET Index vs. SMA 50 and MACD. Enforces 50% defensive sizing in Bear markets and dynamic cash reserve buffers (**15% Bull, 30% Sideways, 50% Bear**). Integrates spendable cash limits into Gemini AI prompts and live liquidity breach warnings into the Buy Order dialog.
+12. **Market Regime and Suggested Cash Reserve**
+   - Evaluates SET Index vs. SMA 50 and MACD. Suggests smaller Swing sizes in Bear markets and a cash reserve (**15% Bull, 30% Sideways, 50% Bear**), shown as warnings in the Buy dialog, not blocks. Untested: regime filters lowered drawdown but not returns in the backtests.
 13. **Pre-Trade Risk:Reward & Invalidation Display**
    - Shows an estimated stop. A target and reward/risk appear only when an observed price level or saved target exists; levels are alert prices, not guaranteed fills.
 14. **False Breakout Guard**
