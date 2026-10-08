@@ -57,6 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -525,8 +526,9 @@ fun HighYieldListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
     LaunchedEffect(Unit) { viewModel.refreshHighYieldList() }
     RankedListCard(
         title = "High dividend yield list",
-        rule = "Top 10 SET50 stocks by current dividend yield. Rule: review monthly or quarterly, hold about 10% each, and replace names that drop out.",
-        result = "Backtest 2015-2025: +7.80% a year vs TDEX +2.52%, ahead in both halves and in a 2011-2014 holdout, but inflated by survivorship. " +
+        summary = "Top 10 SET50 by yield, reviewed monthly. Backtest +7.80% a year vs TDEX +2.52% (2015-2025).",
+        detail = "Rule: review monthly or quarterly, hold about 10% each, and replace names that drop out. " +
+            "The backtest was ahead in both halves of 2015-2025 and in a 2011-2014 holdout, but is inflated by survivorship. " +
             "The real 1DIV high-dividend ETF: +3.86% a year vs TDEX +2.55% over 2015-2025, ahead in 2021-2025, behind in 2015-2020 and 2012-2014. " +
             "Buying 1DIV gets the same tilt without picking stocks.",
         loadingText = "Fetching dividend yields for SET50…",
@@ -549,21 +551,19 @@ private fun HighYieldForwardRecord(viewModel: StockViewModel) {
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Forward record", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("Each month's list is saved with its prices and checked against TDEX after 1, 3 and 12 months, " +
-                "dividends included. Names are fixed when saved, so a later delisting stays in the record. " +
-                "Saved: ${track.size} month(s)" + (track.firstOrNull()?.let { " since ${it.month}" } ?: "") + ".",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            WhyNote("Each month's list against TDEX after 1, 3 and 12 months. Saved: ${track.size} month(s)" +
+                (track.firstOrNull()?.let { " since ${it.month}" } ?: "") + ".",
+                "Prices are saved with each list and dividends are included. Names are fixed when saved, so a later delisting stays in the record.")
             ForwardRecordLines(summary)
             if (summary.isNotEmpty()) Text("A fair read needs a year or more of months.", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             val tr2 by viewModel.tr2Track.collectAsState()
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             Text("Without commodity names (comparison)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            Text("The same list without " + apincer.mobile.tradings.domain.HighYieldList.COMMODITY.sorted().joinToString(", ") +
-                ". It beat the list in the 2015-2025 backtest with a smaller drawdown but trailed in 2021-2025 and was chosen " +
-                "with hindsight, so it is recorded here only. Saved: ${tr2.size} month(s)" +
+            WhyNote("Recorded only, never traded. Saved: ${tr2.size} month(s)" +
                 (tr2.firstOrNull()?.let { " since ${it.month}" } ?: "") + ".",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                "The same list without " + apincer.mobile.tradings.domain.HighYieldList.COMMODITY.sorted().joinToString(", ") +
+                ". It beat the list in the 2015-2025 backtest with a smaller drawdown but trailed in 2021-2025, and the names were chosen with hindsight.")
             ForwardRecordLines(apincer.mobile.tradings.domain.HighYieldTracker.summary(tr2))
         }
     }
@@ -613,10 +613,9 @@ fun HighYieldRebalanceCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Monthly rebalance plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("Follows the tested rule once a month: sell names that left the list, keep held names as they are, " +
-                "and buy each new name with up to a tenth of the budget. It manages holdings recorded with the Dividend purpose; " +
-                "others are never sold. Nothing is executed: place orders at your broker, then use Record buy to log each fill.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            WhyNote("Review only. Place orders at your broker, then Record buy.",
+                "Follows the tested rule once a month: sell names that left the list, keep held names as they are, " +
+                "and buy each new name with up to a tenth of the budget. It manages holdings recorded with the Dividend purpose; others are never sold.")
             OutlinedTextField(
                 value = budgetText,
                 onValueChange = { budgetText = it },
@@ -679,9 +678,22 @@ fun HighYieldRebalanceCard(
     }
 }
 
+/** One line always visible; the reasoning behind it opens on demand. */
+@Composable
+private fun WhyNote(summary: String, detail: String) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.Top) {
+        Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f))
+        Text(if (open) "Less" else "Why", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 8.dp).clickable { open = !open })
+    }
+    if (open) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
 @Composable
 private fun RankedListCard(
-    title: String, rule: String, result: String, loadingText: String, rankedNote: String,
+    title: String, summary: String, detail: String, loadingText: String, rankedNote: String,
     list: Pair<String, List<apincer.mobile.tradings.domain.MomentumList.Entry>>?, loading: Boolean,
     heldSymbols: Set<String>, onRefresh: () -> Unit, signed: Boolean = true
 ) {
@@ -691,10 +703,7 @@ private fun RankedListCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(rule, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Surface(color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f), shape = RoundedCornerShape(10.dp)) {
-                Text(result, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(10.dp))
-            }
+            WhyNote(summary, detail)
             when {
                 list == null && loading -> Text(loadingText, style = MaterialTheme.typography.bodySmall)
                 list == null -> Text("Could not load data. Try again when online.", style = MaterialTheme.typography.bodySmall)
