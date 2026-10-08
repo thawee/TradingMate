@@ -77,10 +77,13 @@ internal object RuleStudy {
      * "down" when its month-end close is at least [downPercent] below its average cost per share including
      * fees. [topUpTo] buys a down name back up to that fraction of equity, at most [maxAdds] times per
      * position; [resizeAll] resizes every kept name to 1/topN of equity; [sellDown] sells down names even
-     * if still ranked (not re-bought in the same rebalance).
+     * if still ranked (not re-bought in the same rebalance). With [upPercent], the trigger is a close at least
+     * that far above average cost instead (pyramiding study, tasks/todo.md 2026-10-08), and new names are
+     * bought at [entryFraction] of their 1/topN target.
      */
     data class HeldRule(val downPercent: Double = 15.0, val topUpTo: Double? = null, val maxAdds: Int = 1,
-                        val resizeAll: Boolean = false, val sellDown: Boolean = false)
+                        val resizeAll: Boolean = false, val sellDown: Boolean = false,
+                        val upPercent: Double? = null, val entryFraction: Double = 1.0)
 
     /**
      * Monthly ranked portfolio: at each month's last session, rank symbols by [score] (higher first,
@@ -103,7 +106,7 @@ internal object RuleStudy {
         var resizeOrders = 0
         var maxWeight = 0.0
         var pending: List<String>? = null
-        var pendingDown: Set<String> = emptySet()
+        var pendingTrigger: Set<String> = emptySet()
         val curve = mutableListOf<Pair<String, Double>>()
         fun price(s: String, d: String) = idx.getValue(s)[d]?.let { universe.getValue(s)[it].close }
         fun sell(s: String, shares: Int, p: Double, d: String) {
@@ -136,7 +139,7 @@ internal object RuleStudy {
                     sell(s, held.getValue(s).shares, p, d)
                 }
                 val stopped = mutableSetOf<String>()
-                if (heldRule?.sellDown == true) for (s in held.keys.filter { it in pendingDown }) {
+                if (heldRule?.sellDown == true) for (s in held.keys.filter { it in pendingTrigger }) {
                     val p = price(s, d) ?: continue
                     sell(s, held.getValue(s).shares, p, d); stopped += s
                 }
@@ -153,7 +156,7 @@ internal object RuleStudy {
                 for (s in target.filter { it !in held && it !in stopped }) {
                     val p = price(s, d) ?: continue
                     val fill = p * (1 + slip)
-                    val lots = lotsFor(minOf(equity / topN, cash), fill)
+                    val lots = lotsFor(minOf(equity / topN * (heldRule?.entryFraction ?: 1.0), cash), fill)
                     if (lots <= 0) continue
                     val gross = lots * 100 * fill
                     val cost = gross + TechnicalAnalysis.calculateFees(gross, false, true)
@@ -165,7 +168,7 @@ internal object RuleStudy {
                     val pos = held[s] ?: continue
                     val goal = when {
                         heldRule.resizeAll -> equity / topN
-                        heldRule.topUpTo != null && s in pendingDown && pos.adds < heldRule.maxAdds -> equity * heldRule.topUpTo
+                        heldRule.topUpTo != null && s in pendingTrigger && pos.adds < heldRule.maxAdds -> equity * heldRule.topUpTo
                         else -> continue
                     }
                     val p = price(s, d) ?: continue
@@ -179,7 +182,7 @@ internal object RuleStudy {
                         adds = if (heldRule.resizeAll) pos.adds else pos.adds + 1)
                 }
                 pending = null
-                pendingDown = emptySet()
+                pendingTrigger = emptySet()
             }
             if (di in monthEnds && di + 1 < dates.size &&
                 (rebalanceMonths == null || d.substring(5, 7).toInt() in rebalanceMonths)) {
@@ -188,8 +191,12 @@ internal object RuleStudy {
                     score(s, universe.getValue(s), i)?.let { s to it }
                 }
                 pending = scores.sortedByDescending { it.second }.take(topN).map { it.first }
-                if (heldRule != null) pendingDown = held.filter { (s, pos) ->
-                    price(s, d)?.let { it <= pos.cost / pos.shares * (1 - heldRule.downPercent / 100) } == true
+                if (heldRule != null) pendingTrigger = held.filter { (s, pos) ->
+                    val avgCost = pos.cost / pos.shares
+                    price(s, d)?.let {
+                        if (heldRule.upPercent != null) it >= avgCost * (1 + heldRule.upPercent / 100)
+                        else it <= avgCost * (1 - heldRule.downPercent / 100)
+                    } == true
                 }.keys
             }
             val values = held.entries.map { (s, pos) -> pos.shares * (price(s, d) ?: (pos.cost / pos.shares)) }

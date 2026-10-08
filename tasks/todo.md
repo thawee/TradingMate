@@ -691,3 +691,17 @@ Source: a community comment (buy SET50 big caps after a run of falls, sell about
 - [x] Run, record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
 
 Result: both FAIL. R5a -3.15% a year in 2021-2025 and -3.26% in 2015-2020 (TDEX 3.19% / 1.75%), expectancy -0.07R; R5b -6.74% / -0.94%, -0.02R. Win rate 54-57%, but +3% targets average +0.6R while stops average -1.3R. The SET filter cut max drawdown (32% vs 45%) and the 2021-2025 loss, but did not make the rule profitable. No app change.
+
+# Pyramiding: add only to winners, 2026-10-08
+
+Source: interview with a Thai trader (EIG channel): start small, add only after the previous position is in profit, never average down, no leverage here (cash account). Tested on two monthly ranked lists: F5 (high dividend yield, the app's live list) and MOM1 (6-1 month momentum, the trend list). Same engine as the averaging-down study (`RuleStudy.rankedPortfolio`), month-end checks only; a name still leaves when it drops out of the top 10. Fixed before the first run:
+
+- B0 baseline: new names at 10% of equity (reproduces F5 / MOM1).
+- P1 half then add: new names at 5%; top up once to 10% at a month end when the close is at least 5% above average cost (fees included) and the name is still listed.
+- P2 add to winners: new names at 10%; add once up to 15% when the close is at least 10% above average cost.
+- Pass (per base): CAGR above its own B0 in 2015-2020, 2021-2025 and the 2011-04 to 2014 holdout, full-period max drawdown no worse than B0 + 5 points. A MOM pass still needs the TDEX evidence gate before it reaches the app.
+
+- [x] Add `upPercent` and `entryFraction` to `RuleStudy.HeldRule`; averaging-down and momentum reports must not change (reran both; no diff).
+- [x] `PyramidingReport` (PYRAMID=1) writes tools/backtest/pyramiding_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
+
+Result: only F5 P2 passes (8.64% vs 7.80% a year over 2015-2025, ahead in both halves and the holdout, drawdown +2 points, one name up to 23%). Averaging down (A1-A3, 2026-10-03) passed F5 by the same margin, so the gain most likely comes from deploying F5's idle cash, not from adding to winners. Starting at half size (P1) costs 1.9 points a year on F5 and 1.5 on MOM1 while cutting drawdown 9-11 points. MOM1 still trails TDEX in 2021-2025 in every variant. No app change.
