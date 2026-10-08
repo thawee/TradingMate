@@ -216,9 +216,11 @@ fun PortfolioScreen(
 
     val targetMonthlyDividend by settingsViewModel.targetMonthlyDividend.collectAsState()
     val targetYearlyDividend = targetMonthlyDividend * 12
-    val dividendProgress = if (targetYearlyDividend > 0) (totalYearlyDividend / targetYearlyDividend).toFloat().coerceIn(0f, 1f) else 0f
+    // The target is spendable money, so compare it with dividends after withholding tax.
+    val netYearlyDividend = totalYearlyDividend * (1 - apincer.mobile.tradings.domain.TradingConstants.THAI_DIVIDEND_WHT_RATE / 100.0)
+    val dividendProgress = if (targetYearlyDividend > 0) (netYearlyDividend / targetYearlyDividend).toFloat().coerceIn(0f, 1f) else 0f
     val dividendGoalCapital = apincer.mobile.tradings.domain.DividendGoal.capital(
-        targetYearlyDividend, totalYearlyDividend, dividendItems.sumOf { it.info.lastPrice * it.portfolio.quantity })
+        targetYearlyDividend, netYearlyDividend, dividendItems.sumOf { it.info.lastPrice * it.portfolio.quantity })
 
     val listState = rememberLazyListState()
     LaunchedEffect(scrollSymbol, portfolioItems) {
@@ -417,7 +419,7 @@ fun PortfolioScreen(
                                     Column {
                                         Text("Dividend Snowball Goal", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         Text(
-                                            "฿${String.format(java.util.Locale.ENGLISH, "%,.0f", totalYearlyDividend)} / ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", targetYearlyDividend)}",
+                                            "฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netYearlyDividend)} / ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", targetYearlyDividend)} after tax",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Black,
                                             color = MaterialTheme.colorScheme.tertiary
@@ -451,7 +453,7 @@ fun PortfolioScreen(
                                     fun baht(v: Double) = "฿" + String.format(java.util.Locale.ENGLISH, "%,.0f", v)
                                     Spacer(Modifier.height(8.dp))
                                     Text(
-                                        "At your current ${String.format(java.util.Locale.ENGLISH, "%.1f", c.yieldPercent)}% yield the goal needs ${baht(c.needed)} invested. " +
+                                        "At your current ${String.format(java.util.Locale.ENGLISH, "%.1f", c.yieldPercent)}% yield after tax the goal needs ${baht(c.needed)} invested. " +
                                             if (c.shortfall > 0) "You hold ${baht(c.invested)}; ${baht(c.shortfall)} to go." else "You hold ${baht(c.invested)}; the goal is covered.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
