@@ -1382,7 +1382,7 @@ fun BuyStockDialog(
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Text(
-                                        text = "${marketRegime.name} TARGET: ${recommendedBufferPercent.toInt()}%",
+                                        text = "${marketRegime.name} GUIDE: ${recommendedBufferPercent.toInt()}%",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Black,
                                         color = statusColor,
@@ -1412,7 +1412,7 @@ fun BuyStockDialog(
                                     )
                                 }
                                 if (!isCoreBuy) Column(horizontalAlignment = Alignment.End) {
-                                    Text("Mandated Buffer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Suggested reserve (untested)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(
                                         "฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}",
                                         fontSize = 14.sp,
@@ -1440,7 +1440,7 @@ fun BuyStockDialog(
                                 recordExecutedFill && isInsufficientCash -> "The recorded fill will leave negative cash. Reconcile deposits or earlier trades in the ledger."
                                 isInsufficientCash -> "Insufficient cash: Trade cost (฿${String.format(Locale.ENGLISH, "%,.0f", incrementalCost)}) exceeds available cash (฿${String.format(Locale.ENGLISH, "%,.0f", cashBalance)})."
                                 isCoreBuy -> "Core buy: no regime cash buffer applies, only available cash."
-                                isBufferDeficit -> "Buffer Breach: Post-trade cash (${String.format(Locale.ENGLISH, "%.1f", projectedBufferPercent)}%) falls below ${recommendedBufferPercent.toInt()}% regime target. Deficit: ฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve - projectedCashRemaining)}."
+                                isBufferDeficit -> "Below the suggested reserve (untested guide): post-trade cash ${String.format(Locale.ENGLISH, "%.1f", projectedBufferPercent)}% vs ${recommendedBufferPercent.toInt()}%. Short by ฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve - projectedCashRemaining)}."
                                 else -> "Healthy liquidity: Preserves ${recommendedBufferPercent.toInt()}% cash buffer (฿${String.format(Locale.ENGLISH, "%,.0f", targetCashReserve)}) required for ${marketRegime.name.lowercase().replaceFirstChar { it.uppercase() }} conditions."
                             }
                             Text(
@@ -1505,6 +1505,10 @@ fun BuyStockDialog(
                     Text(riskResult.reasons.joinToString("; "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)
+                } else if (riskResult.warnings.isNotEmpty()) {
+                    Text(riskResult.warnings.joinToString("; "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary)
                 }
             }
             if (initialStock != null && amount == 0) {

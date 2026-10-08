@@ -20,10 +20,14 @@ class TradeRiskPolicyTest {
         assertFalse(TradeRiskPolicy.evaluate(input, limits).allowed)
     }
 
-    @Test fun feesAndReserveCanBlock() {
+    @Test fun reserveWarnsButCashBlocks() {
         val input = TradeRiskInput(100.0, 95.0, 100, 15.0, 100_000.0, 15_000.0,
             0.0, 0.0, true)
-        assertFalse(TradeRiskPolicy.evaluate(input, limits).allowed)
+        val result = TradeRiskPolicy.evaluate(input, limits)
+        assertTrue(result.allowed)
+        assertEquals(listOf("Leaves less than the 15% regime cash reserve (a guide, not a tested rule)"), result.warnings)
+        val short = TradeRiskPolicy.evaluate(input.copy(cashBalance = 10_000.0), limits)
+        assertEquals(listOf("Purchase exceeds available cash"), short.reasons)
     }
 
     @Test fun missingSectorIsUnverified() {
@@ -91,10 +95,10 @@ class TradeRiskPolicyTest {
             fit(stop = 9.5, sector = 28_000.0))
     }
 
-    @Test fun cashReserveCapsTheQuantity() {
-        val f = fit(stop = 9.5, cash = 20_000.0)
+    @Test fun cashCapsTheQuantityButTheReserveDoesNot() {
+        val f = fit(stop = 9.5, cash = 5_000.0)
         assertEquals(400, f.quantity)
-        assertEquals("Purchase would breach the cash reserve", f.blockingReason)
+        assertEquals("Purchase exceeds available cash", f.blockingReason)
     }
 
     @Test fun minimumLotBlockedOrInvalidInputGivesZeroWithReason() {

@@ -22,7 +22,8 @@ data class TradeRiskInput(
     val requireMinimumNetReward: Boolean = false
 )
 
-data class TradeRiskResult(val reasons: List<String>) {
+/** [reasons] block the buy; [warnings] are shown but do not block. */
+data class TradeRiskResult(val reasons: List<String>, val warnings: List<String> = emptyList()) {
     val allowed: Boolean get() = reasons.isEmpty()
 }
 
@@ -68,9 +69,13 @@ object TradeRiskPolicy {
         else if (sectorValue + input.entryPrice * input.quantity >
             input.accountEquity * limits.sectorAllocationPercent / 100.0 + 0.01)
             reasons.add("Sector allocation exceeds the configured limit")
-        if (input.cashBalance - purchase < input.accountEquity * limits.cashReservePercent / 100.0 - 0.01)
-            reasons.add("Purchase would breach the cash reserve")
-        return TradeRiskResult(reasons)
+        val warnings = mutableListOf<String>()
+        if (input.cashBalance - purchase < -0.01) reasons.add("Purchase exceeds available cash")
+        // The regime reserve was never backtested; regime filters cut drawdown but not returns in the tests.
+        else if (input.cashBalance - purchase < input.accountEquity * limits.cashReservePercent / 100.0 - 0.01)
+            warnings.add(String.format(java.util.Locale.ENGLISH,
+                "Leaves less than the %.0f%% regime cash reserve (a guide, not a tested rule)", limits.cashReservePercent))
+        return TradeRiskResult(reasons, warnings)
     }
 
     /**

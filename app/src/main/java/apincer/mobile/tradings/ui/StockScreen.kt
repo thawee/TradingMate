@@ -174,8 +174,8 @@ fun StockScreen(
                                 PORTFOLIO CAPITAL & REGIME:
                                 - Total Account Equity: $totalAssetsFormatted (Stock Holdings: ฿${String.format(Locale.ENGLISH, "%,.2f", totalStockEquity)} | Cash: $cashBalanceFormatted)
                                 - SET Market Regime: ${spendableInfo.regime.label} (${spendableInfo.regime.name})
-                                - Regime-Mandated Cash Buffer: $bufferPercentStr% (Target Reserve: $targetReserveFormatted)
-                                - Maximum Spendable Cash: $spendableCashFormatted ${if (spendableInfo.isDeficit) "⚠️ DEFICIT: Cash balance is below required buffer!" else ""}
+                                - Suggested regime cash reserve (untested guide, not a rule): $bufferPercentStr% (Reserve: $targetReserveFormatted)
+                                - Cash above that reserve: $spendableCashFormatted ${if (spendableInfo.isDeficit) "(cash is below the suggested reserve)" else ""}
                                 
                                 ANALYSIS RULES:
                                 - Explain only supplied evidence and state when data is missing or stale.
