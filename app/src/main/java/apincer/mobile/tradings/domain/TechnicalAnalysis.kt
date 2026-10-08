@@ -850,34 +850,6 @@ object TechnicalAnalysis {
         return 100.0 - (100.0 / (1.0 + rs))
     }
 
-    fun estimatePriceForRSI(prices: List<Double>, targetRsi: Double, period: Int = 14): Double? {
-        if (prices.size < period) return null
-        
-        val changes = prices.zipWithNext { a, b -> b - a }
-        var avgGain = changes.take(period).filter { it > 0 }.sum() / period
-        var avgLoss = abs(changes.take(period).filter { it < 0 }.sum()) / period
-
-        for (i in period until changes.size) {
-            val change = changes[i]
-            val gain = if (change > 0) change else 0.0
-            val loss = if (change < 0) abs(change) else 0.0
-            
-            avgGain = (avgGain * (period - 1) + gain) / period
-            avgLoss = (avgLoss * (period - 1) + loss) / period
-        }
-
-        val targetRS = if (targetRsi >= 100.0) 999.0 else targetRsi / (100.0 - targetRsi)
-        val lastPrice = prices.last()
-
-        val gainNeeded = (targetRS * avgLoss * (period - 1)) - (avgGain * (period - 1))
-        if (gainNeeded > 0) return lastPrice + gainNeeded
-
-        val lossNeeded = (avgGain * (period - 1) / targetRS) - (avgLoss * (period - 1))
-        if (lossNeeded > 0) return lastPrice - lossNeeded
-
-        return lastPrice
-    }
-
     fun calculateEMA(prices: List<Double>, period: Int): List<Double> {
         if (prices.isEmpty()) return emptyList()
         val ema = mutableListOf<Double>()
@@ -1185,52 +1157,6 @@ object TechnicalAnalysis {
     }
 
     // ==========================================
-    // Portfolio & Single Stock Beta vs SET Index
-    // ==========================================
-
-    /**
-     * Beta of stock vs benchmark index over N trading days:
-     * Beta = Cov(R_stock, R_index) / Var(R_index)
-     */
-    fun calculateBeta(
-        stockPrices: List<Double>,
-        indexPrices: List<Double>,
-        days: Int = 63
-    ): Double? {
-        if (stockPrices.size < days + 1 || indexPrices.size < days + 1) return null
-        val stockSub = stockPrices.takeLast(days + 1)
-        val indexSub = indexPrices.takeLast(days + 1)
-
-        val stockReturns = stockSub.zipWithNext { a, b -> if (a > 0.0) (b - a) / a else 0.0 }
-        val indexReturns = indexSub.zipWithNext { a, b -> if (a > 0.0) (b - a) / a else 0.0 }
-
-        val meanStock = stockReturns.average()
-        val meanIndex = indexReturns.average()
-
-        var covariance = 0.0
-        var varianceIndex = 0.0
-        for (i in stockReturns.indices) {
-            val diffStock = stockReturns[i] - meanStock
-            val diffIndex = indexReturns[i] - meanIndex
-            covariance += diffStock * diffIndex
-            varianceIndex += diffIndex * diffIndex
-        }
-
-        if (varianceIndex <= 1e-12) return null
-        return covariance / varianceIndex
-    }
-
-    /**
-     * Weighted Portfolio Beta: sum(weight_i * beta_i) / sum(weight_i)
-     */
-    fun calculatePortfolioBeta(weightedBetas: List<Pair<Double, Double>>): Double {
-        val totalWeight = weightedBetas.sumOf { it.first }
-        if (totalWeight <= 0.0) return 1.0
-        val weightedSum = weightedBetas.sumOf { (weight, beta) -> weight * beta }
-        return weightedSum / totalWeight
-    }
-
-    // ==========================================
     // Quantitative Risk Management & CRO Models
     // ==========================================
 
@@ -1328,72 +1254,5 @@ object TechnicalAnalysis {
             currentDrawdownPercent = currentDd,
             highWaterMark = hwm
         )
-    }
-
-    /**
-     * Constructs a rolling daily return time series for the portfolio across N trading days (default 63).
-     * For each trading day t, the portfolio return is the weighted average of individual holding daily returns:
-     * R_p,t = sum_i (w_i * R_i,t) / sum_i(w_i)
-     * This forms the empirical return distribution for Historical Value at Risk (VaR).
-     */
-    fun calculatePortfolioHistoricalReturns(
-        holdingsWithPrices: List<Pair<Double, List<Double>>>, // Pair(marketValueBaht, historicalClosePrices)
-        days: Int = 63
-    ): List<Double> {
-        if (holdingsWithPrices.isEmpty()) return emptyList()
-        val validHoldings = holdingsWithPrices.filter { it.first > 0.0 && it.second.size >= 2 }
-        if (validHoldings.isEmpty()) return emptyList()
-
-        val totalWeight = validHoldings.sumOf { it.first }
-        if (totalWeight <= 0.0) return emptyList()
-
-        val availableReturnLengths = validHoldings.map { it.second.size - 1 }
-        val effectiveDays = minOf(days, availableReturnLengths.minOrNull() ?: 0)
-        if (effectiveDays <= 0) return emptyList()
-
-        val portfolioReturns = mutableListOf<Double>()
-        for (step in 0 until effectiveDays) {
-            var weightedReturnSum = 0.0
-            for ((weight, prices) in validHoldings) {
-                val endIdx = prices.size - effectiveDays + step
-                val startIdx = endIdx - 1
-                if (startIdx >= 0 && endIdx < prices.size) {
-                    val prevPrice = prices[startIdx]
-                    val currPrice = prices[endIdx]
-                    if (prevPrice > 0.0) {
-                        val stockReturn = (currPrice - prevPrice) / prevPrice
-                        weightedReturnSum += weight * stockReturn
-                    }
-                }
-            }
-            portfolioReturns.add(weightedReturnSum / totalWeight)
-        }
-        return portfolioReturns
-    }
-
-    /**
-     * Historical 1-day Value at Risk (VaR):
-     * Return at the (1 - confidenceLevel) percentile of the empirical return distribution.
-     * Returned as a positive percentage loss (e.g. 2.45%).
-     */
-    fun calculateHistoricalVaR(returns: List<Double>, confidenceLevel: Double = 0.95): Double {
-        if (returns.isEmpty()) return 0.0
-        val sorted = returns.sorted()
-        val index = ((1.0 - confidenceLevel) * (sorted.size - 1)).toInt().coerceIn(0, sorted.size - 1)
-        val varReturn = sorted[index]
-        return if (varReturn < 0.0) -varReturn * 100.0 else 0.0
-    }
-
-    /**
-     * Conditional Value at Risk (CVaR / Expected Shortfall):
-     * The average loss in the worst (1 - confidenceLevel) tail beyond the VaR threshold.
-     */
-    fun calculateConditionalVaR(returns: List<Double>, confidenceLevel: Double = 0.95): Double {
-        if (returns.isEmpty()) return 0.0
-        val sorted = returns.sorted()
-        val cutoffIndex = ((1.0 - confidenceLevel) * sorted.size).toInt().coerceIn(1, sorted.size)
-        val tailReturns = sorted.subList(0, cutoffIndex)
-        val avgTailReturn = tailReturns.average()
-        return if (avgTailReturn < 0.0) -avgTailReturn * 100.0 else 0.0
     }
 }

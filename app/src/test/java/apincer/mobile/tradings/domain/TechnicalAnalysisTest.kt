@@ -674,31 +674,6 @@ class TechnicalAnalysisTest {
     }
 
     @Test
-    fun testBetaAndPortfolioBeta() {
-        val index = List(70) { 1000.0 + (it % 5) * 10.0 + it * 2.0 }
-        val stockDouble = List(70) { 10.0 + (it % 5) * 0.2 + it * 0.04 }
-        val beta = TechnicalAnalysis.calculateBeta(stockDouble, index, 63)
-        assertTrue(beta != null && beta > 0)
-
-        val portfolioBeta = TechnicalAnalysis.calculatePortfolioBeta(
-            listOf(Pair(60.0, 1.2), Pair(40.0, 0.8))
-        )
-        assertEquals(1.04, portfolioBeta, 0.01)
-    }
-
-    @Test
-    fun testHistoricalVaRAndCVaR() {
-        // Return distribution: 95 positive (1%), 5 negative losses (-1%, -2%, -3%, -4%, -5%)
-        val returns = List(95) { 0.01 } + listOf(-0.01, -0.02, -0.03, -0.04, -0.05)
-        val var95 = TechnicalAnalysis.calculateHistoricalVaR(returns, 0.95)
-        assertTrue("VaR 95% should be positive loss percentage >= 1.0%", var95 >= 1.0)
-
-        val cvar95 = TechnicalAnalysis.calculateConditionalVaR(returns, 0.95)
-        assertTrue("CVaR 95% should exceed or equal VaR", cvar95 >= var95)
-        assertEquals(3.0, cvar95, 0.01)
-    }
-
-    @Test
     fun testCalculateRecommendedPositionSize() {
         // Total assets: ฿1,000,000. Risk 1.5% = ฿15,000 max risk.
         // Entry: ฿50.0, StopLoss: ฿45.0 -> Risk/share: ฿5.0
@@ -803,43 +778,6 @@ class TechnicalAnalysisTest {
         assertEquals(0.0, bearDeficit.spendableCashBaht, 0.01)
         assertEquals(200_000.0, bearDeficit.cashBalance, 0.01)
         assertTrue(bearDeficit.isDeficit)
-    }
-
-    @Test
-    fun testPortfolioHistoricalReturnsAndTimeSeriesVaR() {
-        // Holding A: Value 60,000, prices: [100.0, 105.0, 102.0] (returns: +5.0%, -2.857%)
-        // Holding B: Value 40,000, prices: [50.0, 50.0, 48.0] (returns: 0.0%, -4.0%)
-        // Total weight = 100,000 (Weight A = 0.6, Weight B = 0.4)
-        val holdings = listOf(
-            Pair(60_000.0, listOf(100.0, 105.0, 102.0)),
-            Pair(40_000.0, listOf(50.0, 50.0, 48.0))
-        )
-
-        val portfolioReturns = TechnicalAnalysis.calculatePortfolioHistoricalReturns(holdings, 2)
-        assertEquals(2, portfolioReturns.size)
-
-        // Day 1 return: 0.6 * (+5.0%) + 0.4 * (0.0%) = +3.0% (0.03)
-        assertEquals(0.03, portfolioReturns[0], 0.001)
-
-        // Day 2 return: 0.6 * (-3.0 / 105.0) + 0.4 * (-2.0 / 50.0)
-        // = 0.6 * (-0.028571) + 0.4 * (-0.04) = -0.017143 - 0.016 = -0.033143
-        assertEquals(-0.03314, portfolioReturns[1], 0.001)
-
-        // VaR and CVaR on a known 20-element return series
-        // Worst losses: -5.0%, -4.0%, -3.0%, -2.0% ...
-        val returnSeries = listOf(
-            -0.05, -0.04, -0.03, -0.02, -0.01,
-            0.00, 0.01, 0.01, 0.015, 0.02,
-            0.02, 0.025, 0.03, 0.03, 0.035,
-            0.04, 0.045, 0.05, 0.055, 0.06
-        )
-        val var95 = TechnicalAnalysis.calculateHistoricalVaR(returnSeries, 0.95)
-        val cvar95 = TechnicalAnalysis.calculateConditionalVaR(returnSeries, 0.95)
-
-        // 95% VaR should reflect the severe tail boundary (at or beyond -5%)
-        assertTrue("VaR 95% should be positive percentage loss", var95 >= 4.0)
-        // CVaR is expected shortfall in the worst 5% tail, which must be >= VaR
-        assertTrue("CVaR should be at least as severe as VaR", cvar95 >= var95)
     }
 
     @Test

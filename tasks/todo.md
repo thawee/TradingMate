@@ -808,3 +808,14 @@ Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (B
 - [x] G. Swing tab in Advisor behind a Settings switch, off by default; Swing holding alerts unaffected.
 - [x] Tests, build (gate commit on gradle exit code), emulator, README/CHANGELOG, commit.
 (Emulator: Academy shows the new page; Advisor shows no tab toggle and MBK under Your holdings; switch on shows Dividend / Swing (context), switched back off; History has no Backtest button or monthly bars; Watchlist sorts Symbol / Change %; stock detail shows 30D only, no RSI Zones.)
+
+## Dead code after the display audits (Refactoring playbook, 2026-10-08)
+- [x] 1. Pin the behavior contract first. (Pin: scripts/dead_symbols.sh shows zero main-source callers; app build plus remaining unit tests stay green.)
+- [x] 2. Name the structure the code is missing. skip: pure deletion, no new structure.
+- [x] 3. Name the target shape. skip: target is the same modules minus the dead functions.
+- [x] 4. Subtract before you add. Delete the dead helpers and the tests that only exercise them.
+- [x] 5. Move in small behavior-preserving steps, each keeping the pin green.
+- [x] 6. Prove behavior is unchanged on the real artifact.
+- [x] 7. Confirm the change is worth keeping.
+- [x] 8. Rebase into small ordered commits. (Opening a PR: skip, the user commits to main and has not asked to push.)
+(Two commits: StockDna predicates, then TechnicalAnalysis helpers. Unit tests 235 -> 232, the 3 removed tests only exercised deleted helpers. Mutation check: re-adding an MTF chip fails both absence assertions. Emulator smoke run over all tabs, no FATAL EXCEPTION.)
