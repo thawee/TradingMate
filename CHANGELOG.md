@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (dividend goal capital)
+- **Dividend Snowball Goal** (Portfolio, Dividend view) now says how much must be invested to reach the monthly dividend target at the holdings' current yield (target ÷ yield), how much is held and the gap, e.g. "At your current 5.0% yield the goal needs ฿2,400,000 invested. You hold ฿500,000; ฿1,900,000 to go." Hidden when there is no target or no yield.
+
 ### Changed (Advisor screen clarity)
 - **Today card** at the top of the Advisor: holdings at a saved exit first ("JMT: saved stop reached... Sell, or open it to hold anyway"), then the monthly high-yield review date and the names to sell, then the core DCA date, or "No holding needs action today". Dates skip weekends and SET holidays.
 - **Your holdings** grouped Act now (red), At the monthly review (amber) and Review only; each card lists all of its notes, most urgent first. Strategy badges were removed from these cards (still on stock details).

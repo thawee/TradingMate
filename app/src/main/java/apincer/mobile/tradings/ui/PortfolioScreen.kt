@@ -217,6 +217,8 @@ fun PortfolioScreen(
     val targetMonthlyDividend by settingsViewModel.targetMonthlyDividend.collectAsState()
     val targetYearlyDividend = targetMonthlyDividend * 12
     val dividendProgress = if (targetYearlyDividend > 0) (totalYearlyDividend / targetYearlyDividend).toFloat().coerceIn(0f, 1f) else 0f
+    val dividendGoalCapital = apincer.mobile.tradings.domain.DividendGoal.capital(
+        targetYearlyDividend, totalYearlyDividend, dividendItems.sumOf { it.info.lastPrice * it.portfolio.quantity })
 
     val listState = rememberLazyListState()
     LaunchedEffect(scrollSymbol, portfolioItems) {
@@ -444,6 +446,17 @@ fun PortfolioScreen(
                                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                     strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                                 )
+
+                                dividendGoalCapital?.let { c ->
+                                    fun baht(v: Double) = "฿" + String.format(java.util.Locale.ENGLISH, "%,.0f", v)
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        "At your current ${String.format(java.util.Locale.ENGLISH, "%.1f", c.yieldPercent)}% yield the goal needs ${baht(c.needed)} invested. " +
+                                            if (c.shortfall > 0) "You hold ${baht(c.invested)}; ${baht(c.shortfall)} to go." else "You hold ${baht(c.invested)}; the goal is covered.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
