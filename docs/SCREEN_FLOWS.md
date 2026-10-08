@@ -19,8 +19,8 @@ The bottom navigation bar provides instant access to the five main functional ar
     *   **Focus:** Broad market monitoring.
     *   **Features:** A comprehensive list of saved stocks with technical signals (shown as context under the same notice as the Swing tab), fundamental overview, search filter, and dynamic sorting.
 4.  **📈 History & Stats (CRO Dashboard)**
-    *   **Focus:** Performance review & Quantitative Risk Matrix.
-    *   **Features:** Closed trade records, cumulative profit trajectory with Catmull-Rom splines, 1-Day 95% Historical Value-at-Risk (VaR), Conditional VaR (Expected Shortfall), Max Drawdown (MDD), and 63-day rolling Portfolio Beta ($\beta$).
+    *   **Focus:** Performance review and drawdown.
+    *   **Features:** Closed trade records, cumulative profit trajectory with Catmull-Rom splines, Max Drawdown (MDD) and the current drop from peak.
 5.  **⚙️ Settings (App Configuration)**
     *   **Focus:** Core application preferences.
     *   **Features:** Real-time Risk Management limits (Max Risk Per Trade, Exposure, Portfolio Allocation) driving the AI prompts.

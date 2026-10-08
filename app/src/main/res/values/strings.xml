@@ -130,7 +130,7 @@
     <string name="label_expected_boundaries_title">Recent Price Range</string>
     <string name="label_expected_floor">Low band (-2σ, else 52w low)</string>
     <string name="label_expected_ceiling">High band (+2σ, else 52w high)</string>
-    <string name="label_expected_boundaries_desc">The 20-day Bollinger Bands (±2σ), or the 52-week low and high when bands are unavailable. A volatility range, not support or resistance: the app signals that buy near the low band were tested and did not beat TDEX.</string>
+    <string name="label_expected_boundaries_desc">The 20-day Bollinger Bands (±2σ), or the 52-week low and high when bands are unavailable. A volatility range, not support or resistance: the buy signals of the app, which include the low band, were backtested and did not beat TDEX.</string>
     <string name="label_rsi_zones_title">RSI Zones</string>
     <string name="label_price_return_history_title">Price Return History</string>
     <string name="label_volume_surge">VOLUME SURGE</string>

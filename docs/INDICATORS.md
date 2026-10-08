@@ -38,7 +38,7 @@ SMAs smooth out price data to identify the direction of the trend.
 A "volatility tube" that wraps around the price.
 
 - **Configuration:** 20-day SMA with 2.0 Standard Deviations.
-- **Lower Band:** Price is low relative to its recent volatility. This is not support; the app signals that buy near it were backtested and did not beat TDEX (`docs/ADVISOR_EVALUATION.md`).
+- **Lower Band:** Price is low relative to its recent volatility. This is not support; the app's buy signals, which include it, were backtested and did not beat TDEX (`docs/ADVISOR_EVALUATION.md`).
 - **Upper Band:** Price is high relative to its recent volatility. Not a tested sell level.
 
 ### 5. OBV (On-Balance Volume) - The Lie Detector
@@ -118,23 +118,10 @@ To avoid counter-trend "knife-catching" in larger macro downtrends:
 - **Resampling:** Dated daily history is grouped into completed calendar weeks. The current unfinished week is excluded from the weekly EMA.
 - **Weekly 20-EMA:** Computes the 20-period Exponential Moving Average on weekly closes.
 - **Macro Alignment Guard:** When the current price is below the EMA of completed weekly closes, daily momentum `BUY` signals are downgraded to `POTENTIAL` (*Macro Weekly Bearish*). Missing weekly history leaves the guard unknown.
-- **Confluence Tag (`MTF`):** Stocks that are simultaneously bullish on the daily chart (Price $\ge$ SMA 50 $\ge$ SMA 200) AND weekly chart (Weekly Close $\ge$ Weekly 20-EMA) receive the `MTF` confluence tag.
+- The `MTF` chip was removed on 2026-10-08: untested, and the tested trend filters did not beat TDEX.
 
-### 17. 63-Day Rolling Covariance Portfolio Beta ($\beta$)
-Measures systemic volatility relative to the SET Index (`^SET.BK`) over 63 trading days (approx. 3 calendar months):
-$$\beta = \frac{\text{Cov}(R_{\text{stock}}, R_{\text{SET}})}{\text{Var}(R_{\text{SET}})}$$
-$$\text{Portfolio } \beta = \frac{\sum (w_i \times \beta_i)}{\sum w_i} \times \frac{\text{Stock Value}}{\text{Total Assets}}$$
-- **Defensive Low-Vol ($\beta < 0.85$):** Insulates portfolio from broader market selloffs.
-- **Balanced Index Track ($0.85 \le \beta \le 1.15$):** Moves in tandem with the SET Index.
-- **Aggressive High-Beta ($\beta > 1.15$):** Outperforms in bull markets but requires strict risk buffers.
-
-### 18. Historical Value-at-Risk ($\text{VaR}_{95\%}$) & Conditional VaR (CVaR)
-Quantitative downside tail-risk modeling on empirical daily returns:
-- Uses 63 daily returns from 64 shared dates across all current holdings. Missing or stale observations show the metric as unavailable; these are historical loss estimates, not future loss limits.
-- **1-Day 95% Historical VaR:** The 5th percentile worst daily loss:
-  $$\text{VaR}_{95\%} = -\text{Percentile}_{5\%}(R_{\text{daily}}) \times \text{Total Assets}$$
-- **Conditional VaR (CVaR / Expected Shortfall):** The expected average loss given that the market drops beyond the 95% VaR threshold:
-  $$\text{CVaR}_{95\%} = -\mathbb{E}[R \mid R \le \text{Percentile}_{5\%}(R)] \times \text{Total Assets}$$
+### 17-18. Beta, VaR and CVaR (removed)
+Removed from the app on 2026-10-08: 63 days of returns is too noisy to act on, and none of them changed a decision. The Stats screen keeps max drawdown (below). The helpers remain in `TechnicalAnalysis` with their unit tests.
 
 ### 19. Maximum Drawdown (MDD) & High-Water Mark (HWM)
 Tracks cumulative equity trajectory to measure downside capital preservation:

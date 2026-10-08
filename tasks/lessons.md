@@ -23,3 +23,7 @@ Yahoo listed TDEX's 2026-10-02 session with a null close; skipping null bars lef
 
 ## 8. Opening a WAL database copy with sqlite3 rewrites the copy
 Querying a pulled `stock_database` with `sqlite3` checkpointed its WAL into the main file and emptied the WAL, so the "backup" no longer matched its recorded hashes (same data, different bytes). Keep an untouched backup and query a second copy; after restoring, delete the stale `-shm`. Also run each `adb shell run-as` command separately: a `sh -c` loop failed on quoting and the restore silently did not happen until checked.
+
+## 9. An apostrophe in an Android string breaks the build
+- Pattern: Python edited strings.xml to say "app's" and the build failed (aapt: Invalid unicode escape). The commit went in anyway because the build check was a grep inside a pipe that did not stop the chain.
+- Rule: in res/values strings, escape apostrophes as \' or rephrase. Gate commits on the gradle exit code (`./gradlew ... && git commit`), not on a grep of its output.
