@@ -13,6 +13,12 @@ Rules fixed before the first run (tasks/todo.md, 2026-10-02). Universe: 48 SET50
 | R3 deeper dip (RSI(2) < 5, > SMA200 and SMA50, exit > SMA5) | Full 2015-2025 | -1.71 | 2.52 | -4.23 | 27.64 | 36.53 | 633 | 57.63 | 48.03 | -0.06 | 5.36 | 12.14 |
 | R3 deeper dip (RSI(2) < 5, > SMA200 and SMA50, exit > SMA5) | 2015-2020 | 0.95 | 1.75 | -0.80 | 7.98 | 36.53 | 322 | 53.80 | 53.73 | 0.00 | 4.93 | 10.31 |
 | R3 deeper dip (RSI(2) < 5, > SMA200 and SMA50, exit > SMA5) | 2021-2025 | -4.84 | 3.19 | -8.02 | 25.58 | 26.55 | 310 | 62.18 | 41.94 | -0.14 | 5.83 | 14.29 |
+| R5a R1 entry if SET not bearish, exit +3% or 10 days | Full 2015-2025 | -3.06 | 2.52 | -5.58 | 32.07 | 36.53 | 544 | 49.53 | 53.86 | -0.07 | 9.75 | 19.19 |
+| R5a R1 entry if SET not bearish, exit +3% or 10 days | 2015-2020 | -3.26 | 1.75 | -5.01 | 28.37 | 36.53 | 232 | 38.76 | 54.74 | -0.08 | 9.74 | 15.20 |
+| R5a R1 entry if SET not bearish, exit +3% or 10 days | 2021-2025 | -3.15 | 3.19 | -6.33 | 23.39 | 26.55 | 302 | 60.57 | 52.98 | -0.07 | 9.76 | 23.79 |
+| R5b R1 entry, exit +3% or 10 days (no SET filter) | Full 2015-2025 | -2.95 | 2.52 | -5.47 | 44.51 | 36.53 | 1319 | 120.08 | 57.01 | -0.02 | 9.11 | 41.73 |
+| R5b R1 entry, exit +3% or 10 days (no SET filter) | 2015-2020 | -0.94 | 1.75 | -2.69 | 34.79 | 36.53 | 664 | 110.95 | 57.98 | -0.01 | 8.62 | 37.21 |
+| R5b R1 entry, exit +3% or 10 days (no SET filter) | 2021-2025 | -6.74 | 3.19 | -9.92 | 46.85 | 26.55 | 645 | 129.37 | 55.35 | -0.05 | 9.63 | 46.91 |
 
 ## Exit reasons: R1 weekly reversal (5-day return <= -5%, hold 5 days) (full period)
 
@@ -37,6 +43,22 @@ Rules fixed before the first run (tasks/todo.md, 2026-10-02). Universe: 48 SET50
 | Stop | 47 | -1.29 | -60.74 |
 | Time (10 days) | 4 | -0.79 | -3.16 |
 
+## Exit reasons: R5a R1 entry if SET not bearish, exit +3% or 10 days (full period)
+
+| Exit reason | Trades | Avg R | Total R |
+|---|---|---|---|
+| Target (+3%) | 264 | 0.64 | 168.76 |
+| Time (10 days) | 165 | -0.37 | -60.60 |
+| Stop | 115 | -1.27 | -146.55 |
+
+## Exit reasons: R5b R1 entry, exit +3% or 10 days (no SET filter) (full period)
+
+| Exit reason | Trades | Avg R | Total R |
+|---|---|---|---|
+| Target (+3%) | 716 | 0.61 | 440.21 |
+| Time (10 days) | 338 | -0.36 | -121.92 |
+| Stop | 265 | -1.31 | -348.25 |
+
 ## Concentration and evidence gate (full period)
 
 | Rule | Total ฿ | Top 3 symbols | Excl. top 3 ฿ | Verdict | Reasons |
@@ -44,6 +66,8 @@ Rules fixed before the first run (tasks/todo.md, 2026-10-02). Universe: 48 SET50
 | R1 weekly reversal (5-day return <= -5%, hold 5 days) | -191,645 | CPN 56,642, IVL 53,889, TU 50,457 | -352,633 | FAIL | Trails benchmark in 2021-2025 (-6.97% vs 3.19%); Without its top 3 symbols, P/L is ฿-352,633 of ฿-191,645 (need positive and ≥ 50%); Expectancy -0.02R is not positive |
 | R2 dip in uptrend (RSI(2) < 10, > SMA200, exit > SMA5) | -635,288 | KTC 55,153, SAWAD 39,626, MEGA 13,229 | -743,296 | FAIL | Trails benchmark in 2015-2020 (-3.90% vs 1.75%); Trails benchmark in 2021-2025 (-14.80% vs 3.19%); Without its top 3 symbols, P/L is ฿-743,296 of ฿-635,288 (need positive and ≥ 50%); Expectancy -0.07R is not positive |
 | R3 deeper dip (RSI(2) < 5, > SMA200 and SMA50, exit > SMA5) | -175,883 | KTC 22,519, SPRC 17,265, DELTA 16,950 | -232,618 | FAIL | Trails benchmark in 2015-2020 (0.95% vs 1.75%); Trails benchmark in 2021-2025 (-4.84% vs 3.19%); Without its top 3 symbols, P/L is ฿-232,618 of ฿-175,883 (need positive and ≥ 50%); Expectancy -0.06R is not positive |
+| R5a R1 entry if SET not bearish, exit +3% or 10 days | -286,758 | DELTA 59,000, IVL 32,161, SCGP 21,812 | -399,731 | FAIL | Trails benchmark in 2015-2020 (-3.26% vs 1.75%); Trails benchmark in 2021-2025 (-3.15% vs 3.19%); Without its top 3 symbols, P/L is ฿-399,731 of ฿-286,758 (need positive and ≥ 50%); Expectancy -0.07R is not positive |
+| R5b R1 entry, exit +3% or 10 days (no SET filter) | -261,585 | IVL 63,334, WHA 53,815, DELTA 53,171 | -431,905 | FAIL | Trails benchmark in 2015-2020 (-0.94% vs 1.75%); Trails benchmark in 2021-2025 (-6.74% vs 3.19%); Without its top 3 symbols, P/L is ฿-431,905 of ฿-261,585 (need positive and ≥ 50%); Expectancy -0.02R is not positive |
 
 ## R4 Turn of month on TDEX
 
@@ -60,3 +84,4 @@ Hold TDEX from the close of the 4th-last session of each month to the close of t
 - Survivorship bias: today's SET50 applied to 2015-2025.
 - The literature on short-term reversal used older data (Asian markets including Thailand, 1990s-2000s) and often ignored costs; these tests include Thai costs.
 - Daily closes only; fills at the next close.
+- R5 replays only the price part of the community method; its news check (why the stock fell) cannot be replayed.

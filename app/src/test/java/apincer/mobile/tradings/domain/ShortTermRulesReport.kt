@@ -34,6 +34,32 @@ object WeeklyReversalRule : BacktestRule {
     override fun rank(bars: List<ScrapedHistoricalPrice>, i: Int) = -(bars[i].close / bars[i - 5].close - 1)
 }
 
+/**
+ * R5a/R5b: R1 entry with a fixed +3% target and a 10-session limit (tasks/todo.md, 2026-10-08). With
+ * [setProxy], entries are skipped while the SET regime on that proxy (TDEX) is BEARISH as of the bar's date.
+ */
+class BigCapDipRule(override val name: String, setProxy: List<ScrapedHistoricalPrice>?) : BacktestRule {
+    private val bearishByDate: java.util.TreeMap<String, Boolean>? = setProxy?.let { bars ->
+        val closes = bars.map { it.close }
+        java.util.TreeMap(bars.indices.associate { j ->
+            bars[j].date to (TechnicalAnalysis.getMarketRegime(closes.subList(0, j + 1)) == TechnicalAnalysis.MarketRegime.BEARISH)
+        })
+    }
+
+    override fun signal(bars: List<ScrapedHistoricalPrice>, i: Int, held: HeldPosition?, isSet50: Boolean, lookback: Int): TradeSignal {
+        if (held != null) {
+            val close = bars[i].close
+            if (close <= atrStop(bars, i, held, isSet50, lookback)) return TradeSignal(IndicatorSignal.SELL, "Stop", "")
+            if (close >= held.entryFill * 1.03) return TradeSignal(IndicatorSignal.SELL, "Target (+3%)", "")
+            return if (held.barsHeld >= 10) TradeSignal(IndicatorSignal.SELL, "Time (10 days)", "") else HOLD
+        }
+        // Unknown regime (no proxy bar on or before this date) counts as BEARISH.
+        if (bearishByDate != null && bearishByDate.floorEntry(bars[i].date)?.value != false) return HOLD
+        return WeeklyReversalRule.signal(bars, i, null, isSet50, lookback)
+    }
+    override fun rank(bars: List<ScrapedHistoricalPrice>, i: Int) = WeeklyReversalRule.rank(bars, i)
+}
+
 /** R2/R3: buy a sharp 2-day dip (RSI(2)) inside a long uptrend; sell on the bounce above SMA5. */
 class DipInUptrendRule(override val name: String, private val rsiMax: Double, private val requireSma50: Boolean) : BacktestRule {
     override fun signal(bars: List<ScrapedHistoricalPrice>, i: Int, held: HeldPosition?, isSet50: Boolean, lookback: Int): TradeSignal {
@@ -74,7 +100,9 @@ class ShortTermRulesReport {
         val rules = listOf(
             WeeklyReversalRule,
             DipInUptrendRule("R2 dip in uptrend (RSI(2) < 10, > SMA200, exit > SMA5)", 10.0, false),
-            DipInUptrendRule("R3 deeper dip (RSI(2) < 5, > SMA200 and SMA50, exit > SMA5)", 5.0, true)
+            DipInUptrendRule("R3 deeper dip (RSI(2) < 5, > SMA200 and SMA50, exit > SMA5)", 5.0, true),
+            BigCapDipRule("R5a R1 entry if SET not bearish, exit +3% or 10 days", benchmark),
+            BigCapDipRule("R5b R1 entry, exit +3% or 10 days (no SET filter)", null)
         )
         val sb = StringBuilder("# Short-Term Rules From the Literature\n\nRules fixed before the first run (tasks/todo.md, 2026-10-02). ")
         RuleStudy.portfolioSections(rules, universe, benchmark, sb)
@@ -93,6 +121,7 @@ class ShortTermRulesReport {
         sb.appendLine("- Survivorship bias: today's SET50 applied to 2015-2025.")
         sb.appendLine("- The literature on short-term reversal used older data (Asian markets including Thailand, 1990s-2000s) and often ignored costs; these tests include Thai costs.")
         sb.appendLine("- Daily closes only; fills at the next close.")
+        sb.appendLine("- R5 replays only the price part of the community method; its news check (why the stock fell) cannot be replayed.")
         File(RuleStudy.root, "tools/backtest/shortterm_report.md").writeText(sb.toString())
         println(sb)
     }

@@ -677,3 +677,17 @@ Plan: [Advisor screen clarity](plan.md#advisor-screen-clarity-plan). Status: don
 ## Verification
 
 - [x] Tests, build, lint; before/after screenshots; Today card with real holdings; notification links; docs and changelog. 213 unit tests (10 skipped), 0 failures; lint 0 errors, 122 warnings (was 126). Device: Today lists CPALL and JMT (saved stops), the 2 Nov review (sell MBK) and Core DCA 5 Oct; holdings grouped Act now / At the monthly review; high-yield list, forward record, rebalance plan and Upcoming dividends (latest ex-dates) show by default; Research expands; Swing tab shows the context notice, the Swing-only regime banner and CPALL. START_SCREEN=ADVISOR link opens the Advisor.
+
+# Big-cap dip with SET filter and fixed target, 2026-10-08
+
+Source: a community comment (buy SET50 big caps after a run of falls, sell about +3% later, e.g. BJC 44.75 -> 46), plus an earlier comment (no long trades while SET is in a downtrend). R1 already covers the entry and fails; only the SET filter and the fixed target are untested. Both variants are fixed before the first run and change R1 only in the listed parts.
+
+- R5a: R1 entry (5-day return <= -5% at the week's last session) only when the SET regime is not BEARISH (`TechnicalAnalysis.getMarketRegime` on TDEX closes up to that date, the app's SET proxy). Exit: close >= entry fill +3%, the R1 ATR stop, or 10 sessions.
+- R5b: R5a without the regime filter.
+- Pass criterion: the same evidence gate as R1-R3 (beats TDEX in 2015-2020 and 2021-2025, >= 100 trades, positive expectancy, P/L survives removing the top 3 symbols). Report both whatever the outcome. No app change unless a variant passes.
+- The news check in the comment cannot be replayed; list it as a caveat.
+
+- [x] Add R5a/R5b to `ShortTermRulesReport`; R1-R4 rows must not change (diff is additions only).
+- [x] Run, record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
+
+Result: both FAIL. R5a -3.15% a year in 2021-2025 and -3.26% in 2015-2020 (TDEX 3.19% / 1.75%), expectancy -0.07R; R5b -6.74% / -0.94%, -0.02R. Win rate 54-57%, but +3% targets average +0.6R while stops average -1.3R. The SET filter cut max drawdown (32% vs 45%) and the 2021-2025 loss, but did not make the rule profitable. No app change.
