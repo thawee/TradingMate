@@ -42,16 +42,17 @@ object DividendExitPolicy {
 
     /**
      * [inHighYieldList] is null when no ranking is available; [savedStop] 0 when none (or a fixed plan owns it);
-     * [dividendCut] is a [DividendCut] reason, shown as a review note.
+     * [dividendCut] is a [DividendCut] reason and [accountingFlags] are [AccountingFlags] lines, all shown as review notes.
      */
     fun notes(price: Double, costPerShare: Double, savedStop: Double, yieldPercent: Double?, roe: Double?,
-              inHighYieldList: Boolean?, dividendCut: String? = null): List<Note> {
+              inHighYieldList: Boolean?, dividendCut: String? = null, accountingFlags: List<String> = emptyList()): List<Note> {
         val notes = mutableListOf<Note>()
         if (savedStop > 0.0 && price > 0.0 && price <= savedStop)
             notes += Note(AlertLevel.ACT_NOW, "Saved stop reached at ฿$savedStop")
         if (inHighYieldList == false)
             notes += Note(AlertLevel.MONTHLY, "Left the high dividend yield top 10: sell at the monthly review (tested rule)")
         dividendCut?.let { notes += Note(AlertLevel.REVIEW, "Review: $it") }
+        accountingFlags.forEach { notes += Note(AlertLevel.REVIEW, "Review: $it") }
         if (roe != null && roe < TradingConstants.ROE_MIN_THRESHOLD)
             notes += Note(AlertLevel.REVIEW, "Review: ROE below ${TradingConstants.ROE_MIN_THRESHOLD.toInt()}% (not part of the tested rule)")
         if (yieldPercent != null && yieldPercent < TradingConstants.DIVIDEND_YIELD_PROTECTION)

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (accounting red flags)
+- **Review notes for accounting red flags** on every holding in the Advisor (never an exit): "Profit without cash" when the latest fiscal year shows a net profit, negative operating cash flow and a financing inflow (seen before STARK and EA; skipped for banks and lenders, with a land-bank caveat for property developers), and "Capital raise" for a rights offering (XR) or warrants (XW) in the last 12 months. Data comes from SET company highlights and corporate actions, refreshed once a day. On current SET50 non-financials the cash-flow note fires on about 1 company-year in 40.
+
 ### Added (dividend goal capital)
 - **Dividend Snowball Goal** (Portfolio, Dividend view) now says how much must be invested to reach the monthly dividend target at the holdings' current yield after 10% withholding tax (target ÷ net yield), how much is held and the gap, e.g. "At your current 4.5% yield after tax the goal needs ฿2,666,667 invested. You hold ฿500,000; ฿2,166,667 to go." The progress figure is now after tax too (it compared gross dividends with a spendable target). Hidden when there is no target or no yield.
 

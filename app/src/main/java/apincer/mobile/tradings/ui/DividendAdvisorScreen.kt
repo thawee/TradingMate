@@ -122,6 +122,8 @@ fun DividendAdvisorScreen(
     val dividendSymbols = portfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
         .map { it.info.symbol.uppercase() }.toSet()
     LaunchedEffect(dividendSymbols) { viewModel.refreshDividendCuts(dividendSymbols) }
+    val heldSymbols = portfolioItems.map { it.info.symbol.uppercase() }.toSet()
+    LaunchedEffect(heldSymbols) { viewModel.refreshAccountingFlags(heldSymbols) }
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val scrollState = rememberScrollState()

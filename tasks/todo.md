@@ -757,3 +757,23 @@ Source: interview with the Thai Investors Association president (SET Zoom In): a
 - [x] `DividendTrapReport` (DIVTRAP=1) writes tools/backtest/dividend_trap_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
 
 Result: both FAIL the pre-registered gate. TR1 wins 2015-2020 (12.59% vs 8.36%) and the holdout but trails in 2021-2025 (4.36% vs 5.50%) with twice the turnover. TR2 is a near miss: 11.44% vs 7.80% over 2015-2025, drawdown 28% vs 43%, ahead in 2015-2020 (16.23% vs 8.36%) and the holdout (38.69% vs 24.95%), but 5.31% vs 5.50% in 2021-2025. Not wired: it fails the rule fixed before the run, the symbol list was written with hindsight of the 2015-2020 oil and petrochemical slump, and the holdout puts up to 41% in one name. Candidate for a forward record next to F5 rather than an app change.
+
+# Accounting red-flag review notes, 2026-10-08
+
+Source: interview with a broker MD (Money Chat): companies that later failed showed profits that did not turn into cash, funded by raising more money than needed. A review note on holdings, like `DividendCut`; never a sell signal. Cannot be backtested (no delisted companies in the data), so it ships as a note only.
+
+Findings from probing SET (same session-cookie API the app already uses):
+- `/api/set/stock/{sym}/company-highlight/financial-data` (already fetched in `SetScraper.tryFetchFromSetApi`) returns the last 4-5 fiscal years (`quarter` = "Q9") with `netProfit`, `netOperating`, `netFinancing`, `deRatio`, `paidupCapital`.
+- `/api/set/stock/{sym}/corporate-action/historical` without `caType` returns XR (rights offering: ratio, price) and XW (warrants) as well as XD and XM.
+- Profit without cash (net profit > 0, operating cash flow < 0, financing inflow > 0) caught STARK FY2021 (+2.78bn profit, -1.23bn operating, +1.56bn financing; collapsed 2023) and EA FY2023 (+7.6bn, -0.46bn, +7.6bn; collapsed 2024). Both were chosen with hindsight.
+- Across current SET50 names it fires on 11 of 195 company-years; 7 are banks and lenders (lending is an operating outflow). Non-financial hits: JMART 2022, BEM 2024-2025, LH 2024. BEM (concessions) and LH (land as inventory) look like business-model false positives.
+- D/E was considered and dropped: ADVANC shows 6.67 for 6M 2026, which would flag a healthy company.
+
+Plan:
+- [x] Domain: pure `AccountingFlags.check(years, actions, sector, today)` returning review lines:
+  - R1 profit without cash: latest fiscal year net profit > 0, operating cash flow < 0, financing cash flow > 0. Skipped for Financials (banking, finance & securities, insurance). Property Development gets "(common for land banking; check inventory)" appended.
+  - R2 capital raise: an XR or XW with x-date in the last 12 months, quoting ratio and price.
+- [x] Unit tests from the real STARK 2021, EA 2023, CPALL and ADVANC rows and a BTS 2024 XR.
+- [x] Data: parse fiscal-year rows from the existing highlight call; widen the corporate-action call (or add one call) for XR/XW. Cache like the XD data; no new screens.
+- [x] UI: show the lines with the existing holding review notes (where `DividendCut` appears) for held symbols only.
+- [x] Verify: unit tests, build, emulator check on a held symbol with a known XR, changelog, commit. (Checked with BEM held as Swing: its FY2025 line shows on the holding card, HMPRO shows nothing; no current XR case was held, so R2 is covered by unit tests only. Emulator database restored afterwards.)

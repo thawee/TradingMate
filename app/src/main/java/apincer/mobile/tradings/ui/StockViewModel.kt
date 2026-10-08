@@ -346,8 +346,28 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Accounting red flags for every holding (symbol -> review lines), refreshed once a day.
+    private val _accountingFlags = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+    private var accountingFlagsCheckedFor: Pair<String, Set<String>>? = null
+
+    /** Fetches SET highlights and corporate actions for [symbols] at most once a day per symbol set. */
+    fun refreshAccountingFlags(symbols: Set<String>) {
+        val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok"))
+        val key = today.toString() to symbols
+        if (symbols.isEmpty() || accountingFlagsCheckedFor == key) return
+        accountingFlagsCheckedFor = key
+        viewModelScope.launch(Dispatchers.IO) {
+            _accountingFlags.value = symbols.mapNotNull { symbol ->
+                SetScraper.fetchAccountingInputs(symbol)?.let { inputs ->
+                    apincer.mobile.tradings.domain.AccountingFlags.check(
+                        inputs.years, inputs.actions, inputs.industry, inputs.sector, today)
+                }?.takeIf { it.isNotEmpty() }?.let { symbol to it }
+            }.toMap()
+        }
+    }
+
     val alertRoutineState: StateFlow<AlertRoutineState> = 
-        combine(_playbookMode, watchlistInfo, _marketRegime, _dividendCuts) { mode, watchlist, marketRegime, dividendCuts ->
+        combine(_playbookMode, watchlistInfo, _marketRegime, _dividendCuts, _accountingFlags) { mode, watchlist, marketRegime, dividendCuts, accountingFlags ->
             val portfolioItems = watchlist.filter { it.portfolio.quantity > 0 }
 
             val swingSellAlerts = mutableListOf<SellAlertData>()
@@ -368,7 +388,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         savedStop = if (fixedPlan) 0.0 else stock.portfolio.stopLoss,
                         yieldPercent = stock.info.dividendYield, roe = stock.info.roe,
                         inHighYieldList = ranked?.let { stock.info.symbol.uppercase() in it },
-                        dividendCut = dividendCuts[stock.info.symbol.uppercase()]
+                        dividendCut = dividendCuts[stock.info.symbol.uppercase()],
+                        accountingFlags = accountingFlags[stock.info.symbol.uppercase()].orEmpty()
                     ).takeIf { it.isNotEmpty() }?.let { notes ->
                         // One alert per holding (alerts are de-duplicated by symbol): exits first, then reviews.
                         dividendSellAlerts.add(SellAlertData(stock, notes.joinToString("\n") { it.reason },
@@ -397,6 +418,14 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         // Engine exits, including the volatility trailing stop once a trade has gained 1R.
                         targetAlerts.add(SellAlertData(stock, stock.signal.reason))
                     }
+                }
+
+                // Dividend holdings carry the flags in their notes; other holdings get them as review lines.
+                if (tradePurpose != "DIVIDEND") accountingFlags[stock.info.symbol.uppercase()]?.let { flags ->
+                    val review = flags.map { AlertLine(apincer.mobile.tradings.domain.AlertLevel.REVIEW, "Review: $it") }
+                    val i = swingSellAlerts.indexOfFirst { it.stock.info.symbol == stock.info.symbol }
+                    if (i >= 0) swingSellAlerts[i] = swingSellAlerts[i].let { it.copy(lines = it.lines + review) }
+                    else swingSellAlerts.add(SellAlertData(stock, review.first().text, review))
                 }
             }
 

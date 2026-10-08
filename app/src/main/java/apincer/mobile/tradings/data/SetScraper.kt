@@ -467,6 +467,52 @@ object SetScraper {
         }.sortedBy { it.first }.toList()
     }
 
+    /** Inputs for [apincer.mobile.tradings.domain.AccountingFlags]: SET industry and sector codes, fiscal years, XR/XW. */
+    data class AccountingInputs(val industry: String?, val sector: String?,
+                                val years: List<apincer.mobile.tradings.domain.AccountingFlags.FiscalYear>,
+                                val actions: List<apincer.mobile.tradings.domain.AccountingFlags.CapitalAction>)
+
+    /** Null when SET returns no company highlights (ETFs, unknown symbols) or the session fails. */
+    fun fetchAccountingInputs(symbol: String): AccountingInputs? = try {
+        val s = symbol.uppercase()
+        ensureSession("$SET_BASE_URL/th/market/product/stock/quote/$s/overview")
+        val overview = fetchJson("$SET_BASE_URL/api/set/stock/$s/overview?lang=en", s) as? JSONObject
+        val highlights = fetchJson("$SET_BASE_URL/api/set/stock/$s/company-highlight/financial-data?lang=en", s,
+            "$SET_BASE_URL/th/market/product/stock/quote/$s/financial-statement/company-highlights") as? JSONArray
+        val actions = fetchJson("$SET_BASE_URL/api/set/stock/$s/corporate-action/historical?lang=en", s,
+            "$SET_BASE_URL/th/market/product/stock/quote/$s/rights-benefits") as? JSONArray
+        highlights?.let {
+            AccountingInputs(overview?.optString("industry")?.takeIf { it.isNotBlank() },
+                overview?.optString("sector")?.takeIf { it.isNotBlank() },
+                parseFiscalYears(it), actions?.let(::parseCapitalActions).orEmpty())
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Accounting inputs error for $symbol", e)
+        null
+    }
+
+    /** Full fiscal years only (SET labels them "Q9"); interim rows such as "6M" are skipped. */
+    internal fun parseFiscalYears(rows: JSONArray): List<apincer.mobile.tradings.domain.AccountingFlags.FiscalYear> =
+        (0 until rows.length()).mapNotNull { i ->
+            val r = rows.optJSONObject(i) ?: return@mapNotNull null
+            if (r.optString("quarter") != "Q9") return@mapNotNull null
+            fun d(k: String) = if (r.isNull(k)) null else r.optDouble(k, Double.NaN).takeIf { it.isFinite() }
+            apincer.mobile.tradings.domain.AccountingFlags.FiscalYear(
+                r.optInt("year"), d("netProfit"), d("netOperating"), d("netFinancing"))
+        }
+
+    internal fun parseCapitalActions(rows: JSONArray): List<apincer.mobile.tradings.domain.AccountingFlags.CapitalAction> =
+        (0 until rows.length()).mapNotNull { i ->
+            val r = rows.optJSONObject(i) ?: return@mapNotNull null
+            val type = r.optString("caType")
+            if (type != "XR" && type != "XW") return@mapNotNull null
+            val date = r.optString("xdate").take(10).let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+                ?: return@mapNotNull null
+            apincer.mobile.tradings.domain.AccountingFlags.CapitalAction(type, date,
+                r.optString("ratio").takeIf { it.isNotBlank() && it != "null" },
+                if (r.isNull("price")) null else r.optDouble("price", Double.NaN).takeIf { it.isFinite() && it > 0 })
+        }
+
     internal fun parseSparkQuotes(json: JSONObject, timestamp: String): List<ScrapedStockInfo> {
         val results = json.getJSONObject("spark").optJSONArray("result") ?: return emptyList()
         val infoList = mutableListOf<ScrapedStockInfo>()
