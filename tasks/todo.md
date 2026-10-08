@@ -777,3 +777,14 @@ Plan:
 - [x] Data: parse fiscal-year rows from the existing highlight call; widen the corporate-action call (or add one call) for XR/XW. Cache like the XD data; no new screens.
 - [x] UI: show the lines with the existing holding review notes (where `DividendCut` appears) for held symbols only.
 - [x] Verify: unit tests, build, emulator check on a held symbol with a known XR, changelog, commit. (Checked with BEM held as Swing: its FY2025 line shows on the holding card, HMPRO shows nothing; no current XR case was held, so R2 is covered by unit tests only. Emulator database restored afterwards.)
+
+# Changes from the video review round, 2026-10-08
+
+- [x] 1. Forward record for TR2 (F5 without PTT, PTTEP, BCP, SPRC, OR, IVL, PTTGC, SCC) saved next to the F5 record; no change to what the app recommends.
+- [x] 2. Survey SET-listed global index ETFs/DRs usable as the second core fund; report options to the user, no code.
+- [x] 3. Regime cash buffer: warn instead of block on satellite buys, and say it is untested (never backtested; regime filters cut drawdown but not returns in R5a, T1 and the momentum filter).
+- [x] 4. Confluence grade: replace "Prime Quant Grade / Highest-conviction" wording with descriptive text that says the score is untested.
+- [x] 5. README: remove claims that overstate evidence ("Institutional ... CRO Suite", "Mathematically mandates", "10/10 FinTech Design System").
+- [x] Unit tests, build, emulator check of the forward-record card and Buy dialog warning, changelog, commit per item. (Both records saved a 10-name snapshot on the emulator, TR2 without PTTEP. The Buy dialog warning could not be reached on the emulator because its test account has negative equity; covered by TradeRiskPolicyTest.)
+
+Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (BLS, on a Hang Seng S&P 500 ETF), confirmed through SET's stock overview API. Not yet confirmed: whether the app's Yahoo price feed carries them (Yahoo rate-limited this machine during the check), their spread and liquidity, and fees. No code change until the user picks one.

@@ -17,28 +17,31 @@ import java.time.LocalDate
 object HighYieldRecorder {
     const val LIST_KEY = "high_yield_list_cache"
     const val TRACK_KEY = "high_yield_forward_record"
+    /** Forward record of the same list without commodity names (variant TR2), for comparison only. */
+    const val TR2_TRACK_KEY = "high_yield_tr2_forward_record"
     private const val ATTEMPT_KEY = "high_yield_record_attempt"
     private const val TAG = "HighYieldRecorder"
 
-    /** Current SET50 members ranked by dividend yield from SET quotes. */
-    fun rank(): List<MomentumList.Entry> = HighYieldList.rank(MarketLists.set50().associateWith { symbol ->
+    /** All current SET50 members with a yield, ranked by dividend yield from SET quotes. */
+    fun rankAll(): List<MomentumList.Entry> = HighYieldList.rank(MarketLists.set50().associateWith { symbol ->
         runCatching { SetScraper.fetchStockInfo(symbol).dividendYield }.getOrNull()
-    })
+    }, topN = Int.MAX_VALUE)
 
     fun saveList(prefs: SharedPreferences, today: LocalDate, ranked: List<MomentumList.Entry>) {
         prefs.edit { putString(LIST_KEY, MomentumList.toJson(today.toString(), ranked)) }
     }
 
-    fun loadTrack(prefs: SharedPreferences): List<HighYieldTracker.Snapshot> =
-        HighYieldTracker.fromJson(prefs.getString(TRACK_KEY, null))
+    fun loadTrack(prefs: SharedPreferences, key: String = TRACK_KEY): List<HighYieldTracker.Snapshot> =
+        HighYieldTracker.fromJson(prefs.getString(key, null))
 
     /**
      * Saves this month's snapshot of [top] (when given and none exists) and measures due horizons.
      * Returns the updated record, unchanged when nothing was due or TDEX has no price.
      */
-    fun updateTrack(prefs: SharedPreferences, top: List<String>?, today: LocalDate): List<HighYieldTracker.Snapshot> {
+    fun updateTrack(prefs: SharedPreferences, top: List<String>?, today: LocalDate,
+                    key: String = TRACK_KEY): List<HighYieldTracker.Snapshot> {
         val core = CoreSatellite.CORE_SYMBOL
-        var track = loadTrack(prefs)
+        var track = loadTrack(prefs, key)
         val needSnapshot = top != null && HighYieldTracker.needsSnapshot(track, today)
         val due = track.filter { HighYieldTracker.dueHorizons(it, today).isNotEmpty() }
         if (!needSnapshot && due.isEmpty()) return track
@@ -58,7 +61,7 @@ object HighYieldRecorder {
                 if (result == null) snap else snap.copy(checkpoints = snap.checkpoints + horizons.associateWith { result })
             }
         }
-        prefs.edit { putString(TRACK_KEY, HighYieldTracker.toJson(track)) }
+        prefs.edit { putString(key, HighYieldTracker.toJson(track)) }
         return track
     }
 
@@ -68,15 +71,24 @@ object HighYieldRecorder {
      */
     fun runIfDue(prefs: SharedPreferences, today: LocalDate): Boolean {
         if (prefs.getString(ATTEMPT_KEY, null) == today.toString()) return false
-        val track = loadTrack(prefs)
-        val needSnapshot = HighYieldTracker.needsSnapshot(track, today)
-        if (!needSnapshot && track.none { HighYieldTracker.dueHorizons(it, today).isNotEmpty() }) return false
+        val keys = listOf(TRACK_KEY, TR2_TRACK_KEY)
+        val needSnapshot = keys.any { HighYieldTracker.needsSnapshot(loadTrack(prefs, it), today) }
+        val anyDue = keys.any { k -> loadTrack(prefs, k).any { HighYieldTracker.dueHorizons(it, today).isNotEmpty() } }
+        if (!needSnapshot && !anyDue) return false
         prefs.edit { putString(ATTEMPT_KEY, today.toString()) }
         return runCatching {
-            val top = if (needSnapshot) rank().also { if (it.isNotEmpty()) saveList(prefs, today, it) }
-                .map { it.symbol.uppercase() }.takeIf { it.isNotEmpty() } else null
-            updateTrack(prefs, top, today)
+            val all = if (needSnapshot) rankAll() else emptyList()
+            if (all.isNotEmpty()) saveList(prefs, today, all.take(HighYieldList.TOP_N))
+            updateTracks(prefs, all, today)
             true
         }.onFailure { Log.w(TAG, "Forward record update failed", it) }.getOrDefault(false)
+    }
+
+    /** Updates the F5 record and the TR2 comparison record from one full ranking (empty when not re-ranked). */
+    fun updateTracks(prefs: SharedPreferences, all: List<MomentumList.Entry>, today: LocalDate): List<HighYieldTracker.Snapshot> {
+        fun symbols(list: List<MomentumList.Entry>) = list.map { it.symbol.uppercase() }.takeIf { it.isNotEmpty() }
+        runCatching { updateTrack(prefs, symbols(HighYieldList.withoutCommodities(all)), today, TR2_TRACK_KEY) }
+            .onFailure { Log.w(TAG, "TR2 forward record update failed", it) }
+        return updateTrack(prefs, symbols(all.take(HighYieldList.TOP_N)), today)
     }
 }

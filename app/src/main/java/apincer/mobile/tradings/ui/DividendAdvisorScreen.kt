@@ -426,12 +426,12 @@ fun ArchetypeLegendDialog(
     if (selectedTag == null) return
 
     val descriptions = mapOf(
-        "A+" to "Prime Quant Grade (Score 80–100): Highest-conviction confluence across quality, value, momentum, flow, and safety.",
-        "A" to "Strong Quant Grade (Score 65–79): Solid confluence of fundamental quality, trend, and setup support.",
+        "A+" to "Score 80–100: the stock meets most of the quality, value, momentum, foreign-flow and safety checks at once. Descriptive only: this score was never backtested, and tested quality and trend filters did not beat TDEX.",
+        "A" to "Score 65–79: meets many of the same checks. Descriptive only, not a tested buy signal.",
         "VCP" to "Minervini VCP: Volatility Contraction Pattern — tightening price action preceding a potential Stage-2 breakout.",
-        "MOAT" to "Compounder Aristocrat: High ROE (≥12%), low debt (D/E ≤1.2), healthy margins, and durable competitive moat.",
-        "SHIELD" to "High-Yield Shield: High dividend yield (≥5%) with robust safety buffer well above 52-week low.",
-        "WHALE" to "Foreign Smart Money: Institutional accumulation via positive foreign NVDR net buying and relative strength.",
+        "MOAT" to "Profitability: ROE ≥12%, D/E ≤1.2 and healthy margins. These ratios do not show whether a competitive moat exists.",
+        "SHIELD" to "High yield: dividend yield ≥5% and price well above its 52-week low. A high trailing yield can still be cut.",
+        "WHALE" to "Foreign buying: positive foreign NVDR net buying and relative strength. Shows recent flow, not who is buying or why.",
         "SPRING" to "Wyckoff Oversold Spring: Profitable company (ROE ≥8%) experiencing extreme oversold mean-reversion (RSI ≤35).",
         "MTF" to "Multi-Timeframe Trend: Macro trend alignment across SMA 200/50 and positive MACD histogram.",
         "QUAL" to "Quality: ROE above 10%, net margin above 10%, and debt-to-equity below 1.5 (not applied to banks, finance and insurers).",
@@ -541,7 +541,6 @@ fun HighYieldListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
 private fun HighYieldForwardRecord(viewModel: StockViewModel) {
     val track by viewModel.highYieldTrack.collectAsState()
     val summary = apincer.mobile.tradings.domain.HighYieldTracker.summary(track)
-    fun pct(v: Double) = String.format(Locale.ENGLISH, "%+.1f%%", v)
     GlassCard(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
@@ -552,19 +551,32 @@ private fun HighYieldForwardRecord(viewModel: StockViewModel) {
                 "dividends included. Names are fixed when saved, so a later delisting stays in the record. " +
                 "Saved: ${track.size} month(s)" + (track.firstOrNull()?.let { " since ${it.month}" } ?: "") + ".",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (summary.isEmpty()) {
-                Text("No results yet: the first one is due 30 days after the first saved list.",
-                    style = MaterialTheme.typography.bodySmall)
-            } else {
-                summary.forEach { h ->
-                    val label = when (h.days) { 30 -> "1 month"; 91 -> "3 months"; else -> "12 months" }
-                    Text("$label: ${h.measured} list(s) · list ${pct(h.avgListPercent)} vs TDEX ${pct(h.avgTdexPercent)} · " +
-                        "ahead in ${h.ahead} of ${h.measured}", style = MaterialTheme.typography.bodyMedium)
-                }
-                Text("A fair read needs a year or more of months.", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            ForwardRecordLines(summary)
+            if (summary.isNotEmpty()) Text("A fair read needs a year or more of months.", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val tr2 by viewModel.tr2Track.collectAsState()
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text("Without commodity names (comparison)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text("The same list without " + apincer.mobile.tradings.domain.HighYieldList.COMMODITY.sorted().joinToString(", ") +
+                ". It beat the list in the 2015-2025 backtest with a smaller drawdown but trailed in 2021-2025 and was chosen " +
+                "with hindsight, so it is recorded here only. Saved: ${tr2.size} month(s)" +
+                (tr2.firstOrNull()?.let { " since ${it.month}" } ?: "") + ".",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ForwardRecordLines(apincer.mobile.tradings.domain.HighYieldTracker.summary(tr2))
         }
+    }
+}
+
+@Composable
+private fun ForwardRecordLines(summary: List<apincer.mobile.tradings.domain.HighYieldTracker.HorizonSummary>) {
+    fun pct(v: Double) = String.format(Locale.ENGLISH, "%+.1f%%", v)
+    if (summary.isEmpty()) {
+        Text("No results yet: the first one is due 30 days after the first saved list.",
+            style = MaterialTheme.typography.bodySmall)
+    } else summary.forEach { h ->
+        val label = when (h.days) { 30 -> "1 month"; 91 -> "3 months"; else -> "12 months" }
+        Text("$label: ${h.measured} list(s) · list ${pct(h.avgListPercent)} vs TDEX ${pct(h.avgTdexPercent)} · " +
+            "ahead in ${h.ahead} of ${h.measured}", style = MaterialTheme.typography.bodyMedium)
     }
 }
 

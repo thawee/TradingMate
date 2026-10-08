@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (TR2 forward record)
+- **Forward record of the list without commodity names** (Advisor, Dividend tab, under the high-yield record): each month the top 10 by yield without PTT, PTTEP, BCP, SPRC, OR, IVL, PTTGC and SCC is saved and measured against TDEX like the main list. Backtest variant TR2 beat F5 over 2015-2025 with a smaller drawdown but trailed in 2021-2025 and its names were chosen with hindsight, so it is recorded only and never changes the list or the rebalance plan.
+
+### Changed (claims matched to evidence)
+- **Regime cash reserve warns instead of blocking** satellite buys ("Leaves less than the 50% regime cash reserve (a guide, not a tested rule)"); only spending more than the available cash is blocked. The reserve was never backtested, and market-regime filters reduced drawdown without improving returns in the tests. The Buy dialog card now says "GUIDE" and "Suggested reserve (untested)"; the AI prompt calls it a suggested reserve.
+- **Grade and tag descriptions** no longer say "Prime Quant Grade", "Highest-conviction", "durable competitive moat" or "robust safety buffer"; A+/A now say how many checks a stock meets and that the score was never backtested.
+- **README** drops "Institutional Risk Management & CRO Suite", "Mathematically mandates" and "10/10 FinTech Design System" wording.
+
 ### Added (quarterly exit review)
 - **Quarterly exit review** (History, under Satellite vs TDEX): closed trades for this quarter and last, grouped by the reason chosen in the Sell dialog (Target Hit, Stop Hit, Trailing Stop, Boredom, Mistake, Fundamental, or Not recorded), with trades, losing trades and net baht per reason, the Swing/Dividend split, and "Most frequent losing reason" for last quarter (ties go to the larger loss). Quarters follow Bangkok time. Hidden when neither quarter has a closed trade.
 

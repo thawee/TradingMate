@@ -5,13 +5,13 @@ import apincer.mobile.tradings.domain.IndicatorSignal
 import apincer.mobile.tradings.domain.TradingConstants
 
 /**
- * Confluence Grade for Quant Screening (0-100 score).
+ * Confluence grade (0-100): how many screening checks a stock meets. Descriptive; never backtested.
  */
 enum class ConfluenceGrade(val label: String, val colorHex: Long) {
-    PRIME_A_PLUS("A+", 0xFF6EE7B7), // Mint Green - Institutional Setup
-    STRONG_A("A", 0xFF60A5FA),      // Pro Blue - High Conviction
-    WATCH_B("B", 0xFFFCD34D),       // Gold - Setup in Progress
-    NEUTRAL_C("C", 0xFF94A3B8)      // Slate Grey - Below Threshold
+    PRIME_A_PLUS("A+", 0xFF6EE7B7), // Mint green
+    STRONG_A("A", 0xFF60A5FA),      // Blue
+    WATCH_B("B", 0xFFFCD34D),       // Gold
+    NEUTRAL_C("C", 0xFF94A3B8)      // Slate grey
 }
 
 data class ConfluenceScore(

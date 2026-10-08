@@ -935,6 +935,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val _highYieldTrack = MutableStateFlow(apincer.mobile.tradings.data.HighYieldRecorder.loadTrack(alertPrefs))
     /** Monthly snapshots of the high-yield list and their 30/91/365-day results against TDEX. */
     val highYieldTrack: StateFlow<List<apincer.mobile.tradings.domain.HighYieldTracker.Snapshot>> = _highYieldTrack
+    private val _tr2Track = MutableStateFlow(apincer.mobile.tradings.data.HighYieldRecorder.loadTrack(
+        alertPrefs, apincer.mobile.tradings.data.HighYieldRecorder.TR2_TRACK_KEY))
+    /** The same record for the list without commodity names (backtest variant TR2), for comparison only. */
+    val tr2Track: StateFlow<List<apincer.mobile.tradings.domain.HighYieldTracker.Snapshot>> = _tr2Track
 
     fun refreshHighYieldList(force: Boolean = false) {
         val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).toString()
@@ -943,13 +947,15 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val recorder = apincer.mobile.tradings.data.HighYieldRecorder
-                val ranked = recorder.rank()
+                val all = recorder.rankAll()
+                val ranked = all.take(apincer.mobile.tradings.domain.HighYieldList.TOP_N)
                 if (ranked.isNotEmpty()) {
                     val day = java.time.LocalDate.parse(today)
                     recorder.saveList(alertPrefs, day, ranked)
                     _highYieldList.value = today to ranked
-                    runCatching { _highYieldTrack.value = recorder.updateTrack(alertPrefs, ranked.map { it.symbol.uppercase() }, day) }
+                    runCatching { _highYieldTrack.value = recorder.updateTracks(alertPrefs, all, day) }
                         .onFailure { android.util.Log.w("StockViewModel", "High-yield forward record update failed", it) }
+                    _tr2Track.value = recorder.loadTrack(alertPrefs, apincer.mobile.tradings.data.HighYieldRecorder.TR2_TRACK_KEY)
                 }
             } finally {
                 _highYieldLoading.value = false
