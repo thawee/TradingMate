@@ -744,3 +744,16 @@ Source: interview with a Thai dividend investor (SET Zoom In): hold dividend sto
 - [x] `F5HoldReport` (F5HOLD=1) writes tools/backtest/f5_hold_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
 
 Result: both FAIL. H1 almost never sells (turnover 0.25x a year, 18 positions in 11 years, one name up to 28%); it beats F5 in 2021-2025 (6.25% vs 5.50%) and the holdout but trails in 2015-2020 (6.56% vs 8.36%). H2 trails F5 in both halves. F5's monthly rotation into the highest yields earns more than it costs. No app change.
+
+# Dividend-trap filters on F5, 2026-10-08
+
+Source: interview with the Thai Investors Association president (SET Zoom In): a high trailing yield after a price fall is often a trap (100 -> 70 baht with last year's 8-baht dividend looks like 11%, but next year's dividend may be 4 baht); avoid commodity and cyclical dividend payers. F5 ranks by trailing yield, so it is exposed to exactly this. Fixed before the first run:
+
+- B0 F5 baseline (must reproduce 7.80%).
+- TR1 falling-price filter: a name is ineligible at a month end if its close is at least 20% below the close 252 sessions earlier (or has less than 252 sessions of history).
+- TR2 commodity filter: these names are never eligible: PTT, PTTEP, BCP, SPRC, OR (oil and gas), IVL, PTTGC (petrochemicals), SCC (construction materials). Power utilities (EGCO, RATCH, GPSC, BGRIM, GULF) stay eligible: they sit in the same SET sector but sell under long contracts.
+- Pass: CAGR above B0 in 2015-2020, 2021-2025 and the 2011-04 to 2014 holdout, full-period max drawdown no worse than B0 + 5 points.
+
+- [x] `DividendTrapReport` (DIVTRAP=1) writes tools/backtest/dividend_trap_report.md; record the verdict here and in docs/ADVISOR_EVALUATION.md; commit.
+
+Result: both FAIL the pre-registered gate. TR1 wins 2015-2020 (12.59% vs 8.36%) and the holdout but trails in 2021-2025 (4.36% vs 5.50%) with twice the turnover. TR2 is a near miss: 11.44% vs 7.80% over 2015-2025, drawdown 28% vs 43%, ahead in 2015-2020 (16.23% vs 8.36%) and the holdout (38.69% vs 24.95%), but 5.31% vs 5.50% in 2021-2025. Not wired: it fails the rule fixed before the run, the symbol list was written with hindsight of the 2015-2020 oil and petrochemical slump, and the holdout puts up to 41% in one name. Candidate for a forward record next to F5 rather than an app change.
