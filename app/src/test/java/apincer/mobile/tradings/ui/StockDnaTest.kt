@@ -11,9 +11,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StockDnaTest {
-    // Chips removed on 2026-10-08: never tested, and the tested breakout, oversold and trend rules trailed TDEX.
-    private val untestedPatterns = setOf("VCP", "SPRING", "MTF")
-
 
     private fun createStock(nvdrNetVolume: Double?): StockWatchlistInfo {
         val portfolio = PortfolioEntity(
@@ -66,7 +63,6 @@ class StockDnaTest {
     fun testMissingFlowDoesNotPass() {
         val stock = createStock(nvdrNetVolume = null)
         assertFalse("Missing NVDR cannot confirm positive flow", StockDna.isFlow(stock))
-        assertFalse("FLOW tag should not be added when NVDR is null", StockDna.tags(stock).contains("FLOW"))
     }
 
     @Test
@@ -130,14 +126,12 @@ class StockDnaTest {
     fun testIsFlowPositiveNetVolume() {
         val stock = createStock(nvdrNetVolume = 500_000.0)
         assertTrue(StockDna.isFlow(stock))
-        assertTrue("FLOW tag should be present on net buying", StockDna.tags(stock).contains("FLOW"))
     }
 
     @Test
     fun testIsFlowNegativeNetVolume() {
         val stock = createStock(nvdrNetVolume = -100_000.0)
         assertFalse("Negative NVDR volume should return false for isFlow", StockDna.isFlow(stock))
-        assertFalse("FLOW tag should not be present on net selling", StockDna.tags(stock).contains("FLOW"))
     }
 
     @Test
@@ -207,93 +201,6 @@ class StockDnaTest {
     }
 
     @Test
-    fun testCalculateScoreAndGrade() {
-        val eliteStock = createStock(nvdrNetVolume = 1_000_000.0).let { s ->
-            val cache = s.portfolio.cache!!.copy(
-                roe = 20.0,
-                debtToEquity = 0.8,
-                netProfitMargin = 18.0,
-                profitGrowth3Y = 15.0,
-                pe = 12.0,
-                pbv = 1.0,
-                dividendYield = 5.5,
-                volume = 2_000_000L
-            )
-            val signal = s.portfolio.signal!!.copy(
-                macdHist = 1.2,
-                rsi = 52.0,
-                relativeStrength = 4.5,
-                sma50 = 9.0,
-                sma200 = 8.0,
-                week52Low = 7.0,
-                week52High = 12.0
-            )
-            s.copy(
-                info = s.info.copy(
-                    roe = 20.0,
-                    debtToEquity = 0.8,
-                    netProfitMargin = 18.0,
-                    profitGrowth3Y = 15.0,
-                    pe = 12.0,
-                    pbv = 1.0,
-                    dividendYield = 5.5,
-                    volume = 2_000_000L
-                ),
-                portfolio = s.portfolio.copy(cache = cache, signal = signal)
-            )
-        }
-
-        val score = StockDna.calculateScore(eliteStock)
-        assertTrue("Elite stock should score >= 80, got ${score.totalScore}", score.totalScore >= 80)
-        org.junit.Assert.assertEquals(ConfluenceGrade.PRIME_A_PLUS, score.grade)
-        assertTrue("Tags should contain A+", StockDna.tags(eliteStock).contains("A+"))
-    }
-
-    @Test
-    fun testStrategyArchetypes() {
-        val stock = createStock(nvdrNetVolume = 500_000.0).let { s ->
-            val cache = s.portfolio.cache!!.copy(
-                roe = 16.0,
-                debtToEquity = 0.9,
-                netProfitMargin = 14.0,
-                profitGrowth3Y = 12.0,
-                dividendYield = 5.2,
-                volume = 1_000_000L
-            )
-            val signal = s.portfolio.signal!!.copy(
-                macdHist = 0.5,
-                rsi = 55.0,
-                relativeStrength = 3.0,
-                sma50 = 8.5,
-                sma200 = 8.0,
-                week52Low = 6.0,
-                week52High = 11.0
-            )
-            s.copy(
-                info = s.info.copy(
-                    roe = 16.0,
-                    debtToEquity = 0.9,
-                    netProfitMargin = 14.0,
-                    profitGrowth3Y = 12.0,
-                    dividendYield = 5.2,
-                    volume = 1_000_000L
-                ),
-                portfolio = s.portfolio.copy(cache = cache, signal = signal)
-            )
-        }
-
-        assertTrue("Should be Compounder Aristocrat", StockDna.isCompounderAristocrat(stock))
-        assertTrue("Should be High Yield Shield", StockDna.isHighYieldShield(stock))
-        assertTrue("Should be Foreign Whale Inflow", StockDna.isForeignWhale(stock))
-
-        val oversoldStock = stock.let { s ->
-            val signal = s.portfolio.signal!!.copy(rsi = 28.0)
-            s.copy(portfolio = s.portfolio.copy(signal = signal))
-        }
-        assertEquals(emptyList<String>(), (StockDna.tags(stock) + StockDna.tags(oversoldStock)).filter { it in untestedPatterns })
-    }
-
-    @Test
     fun testIsFlowDualConfirmationLaggingSet() {
         // Stock has positive NVDR, but is severely lagging the market (RS = -3.5)
         val deadCatStock = createStock(nvdrNetVolume = 500_000.0).let { s ->
@@ -301,49 +208,6 @@ class StockDnaTest {
             s.copy(portfolio = s.portfolio.copy(signal = signal))
         }
         assertFalse("Positive NVDR on severely lagging stock should fail isFlow dual confirmation", StockDna.isFlow(deadCatStock))
-        assertFalse("Foreign whale requires RS >= 0", StockDna.isForeignWhale(deadCatStock))
-    }
-
-    @Test
-    fun testCyclicalSectorShieldPenaltyAndTag() {
-        val cyclicalStock = createStock(nvdrNetVolume = 100_000.0).let { s ->
-            val cache = s.portfolio.cache!!.copy(
-                sector = "Petrochemicals & Chemicals",
-                roe = 16.0,
-                debtToEquity = 0.9,
-                profitGrowth3Y = 4.0, // Low profit growth
-                netProfitMargin = 6.0 // Low net profit margin
-            )
-            s.copy(
-                info = s.info.copy(
-                    sector = "Petrochemicals & Chemicals",
-                    roe = 16.0,
-                    debtToEquity = 0.9,
-                    profitGrowth3Y = 4.0,
-                    netProfitMargin = 6.0
-                ),
-                portfolio = s.portfolio.copy(cache = cache)
-            )
-        }
-
-        assertTrue("Should identify cyclical sector", StockDna.isCyclical(cyclicalStock.info.sector))
-        assertTrue("Tags should contain CYC", StockDna.tags(cyclicalStock).contains("CYC"))
-        assertFalse("Cyclical stock with low profit growth should not be a compounder aristocrat", StockDna.isCompounderAristocrat(cyclicalStock))
-        val score = StockDna.calculateScore(cyclicalStock)
-        assertTrue("Highlights should warn of cyclical volatility", score.highlights.contains("Cyclical Volatility"))
-    }
-
-    @Test
-    fun weeklyTrendStockGetsNoUntestedPatternChip() {
-        val mtfStock = createStock(nvdrNetVolume = 100_000.0).let { s ->
-            val signal = s.portfolio.signal!!.copy(sma50 = 9.0, sma200 = 8.0,
-                macdHist = 0.4, weeklyTrendBullish = true)
-            s.copy(
-                info = s.info.copy(lastPrice = 10.0),
-                portfolio = s.portfolio.copy(signal = signal)
-            )
-        }
-        assertEquals(emptyList<String>(), StockDna.tags(mtfStock).filter { it in untestedPatterns })
     }
 
     @Test

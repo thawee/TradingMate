@@ -40,33 +40,15 @@ It also covers the practical side of Thai investing:
 - **Design:** Ambient radial gradient glows, adaptive glassmorphic contrast borders, OpenType `tnum` tabular numbers for zero decimal jitter, Catmull-Rom $C^1$ smooth spline charts, and live directional price tick pulses.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
-## 🧅 The 6-Layer Filter & Quant Confluence Scoring (Stock DNA)
+## 🧅 Screening Filters (Research and Swing candidates)
 
-TradingMate evaluates a company using a six-factor screening heuristic and a **0–100 Composite Confluence Score**. These scores are descriptive filters, not calibrated probabilities or evidence of future returns.
+The Research explorer and the Swing candidate check use a few descriptive filters. None is a tested edge; the 0-100 score, its grades and the archetype chips (MOAT, SHIELD, WHALE and others) were removed on 2026-10-08 because they were never backtested.
 
-0. **Pre-Filter (Gate):** Every candidate must be liquid (daily turnover > ฿5M) and **not within 5% of its 52-week low** (avoids "cheap-looking" structural decliners).
-1. **Qual (Quality - Max 25 pts):** Evaluates management efficiency and profitability.
-   - *Metrics:* Tiered ROE (>15%, >10%), Net Profit Margin (>15%, >8%), D/E Ratio (≤1.0, ≤1.5). Three-year profit growth is shown as unavailable until the source periods can be verified.
-2. **Val (Value - Max 20 pts):** Identifies underpriced or fair-value stocks.
-   - *Metrics:* P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.2).
-3. **Mom (Momentum & Trend - Max 25 pts):** Detects early trend shifts and positive price momentum.
-   - *Metrics:* Price above 50-day SMA, Price above 200-day SMA, positive MACD histogram, RSI in healthy zone (40–65).
-4. **Flow (Foreign Smart Money - Max 15 pts):** Tracks foreign institution support with **Dual-Confirmation Flow**.
-   - *Metrics:* NVDR net accumulation coupled with non-lagging Relative Strength ($\text{RS} \ge -1.0$) to eliminate false smart money signals caused by foreign short-covering in downtrends.
-5. **Div & Safety (Yield & Solvency - Max 15 pts):** High passive income and margin of safety.
-   - *Metrics:* Dividend Yield ≥ 5.0% and 52-week low trap avoidance.
-6. **Cyclical Sector Quality Shield (`CYC`):** Detects commodity/cyclical names (Energy, Petrochem, Agribusiness, Shipping, Steel). Missing verified growth data is treated conservatively rather than inferred from adjacent rows.
-
-### 🎯 Strategy Archetypes (One-Tap Presets)
-- **💎 Compounder Aristocrat (`MOAT`):** High ROE ($\ge 12\%$), low debt ($D/E \le 1.2$), and sustainable dividend track record (excluding cyclical peak traps).
-- **🛡️ High-Yield Shield (`SHIELD`):** Safe high-yield ($\ge 5\%$) protected by profitability gates.
-- **🐋 Foreign Whale Inflow (`WHALE`):** Heavy NVDR net foreign buying paired with positive Relative Strength ($\text{RS} \ge 0.0$). Untested as a buy signal.
-
-**Score grades** (how many checks a stock meets; descriptive, never backtested):
-- **`A+` (80–100)** (mint green)
-- **`A` (65–79)** (blue)
-- **`B` (50–64)** (gold)
-- **`C` (< 50)** (slate)
+- **Pre-filter:** liquid (daily turnover above the minimum) and **not within 5% of the 52-week low**.
+- **Quality:** ROE, net margin and debt-to-equity thresholds (debt-to-equity is not applied to banks, finance and insurers).
+- **Dividend:** yield of at least 5%.
+- **Foreign flow:** NVDR net buying with relative strength not badly lagging the SET.
+- **Swing candidate:** passes the pre-filter and quality, has no sell signal, a completed weekly trend that is not bearish, momentum, support or a strong daily move, and a confirmed BUY; in a bearish market it also needs positive foreign flow or relative strength.
 
 ## 📊 Technical Indicators Used
 
@@ -84,7 +66,7 @@ TradingMate computes these indicators to describe each stock; in the 2015-2025 b
 5. **OBV (On-Balance Volume) - The Lie Detector**
    - Rising OBV confirms that volume backs the rally (used to confirm "Early Recovery" buys).
 6. **Relative Strength vs SET - The Race**
-   - 3-month return vs the SET index; positive RS stocks earn the "RS" DNA tag.
+   - 3-month return vs the SET index.
 7. **52-Week Low Guard - The Trap Detector**
    - Blocks actionable swing candidates within 5% of their 52-week low; risky signals can still appear separately for review.
 8. **ATR (14) - The Breathing Room**

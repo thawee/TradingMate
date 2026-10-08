@@ -53,7 +53,8 @@ class AdvisorFiltersTest {
                 val s = stock(type, weekly, roe)
                 val result = filterAdvisorStocks(listOf(s), PlaybookMode.DIVIDEND,
                     AdvisorFilter.defaultMask(PlaybookMode.DIVIDEND), true)
-                assertEquals(StockDna.isDividendCandidate(s), result.stocks.isNotEmpty())
+                val eligible = StockDna.preFilter(s) && StockDna.isDiv(s) && StockDna.isQual(s) && s.signal?.type != IndicatorSignal.SELL
+                assertEquals(eligible, result.stocks.isNotEmpty())
             }
         }
     }

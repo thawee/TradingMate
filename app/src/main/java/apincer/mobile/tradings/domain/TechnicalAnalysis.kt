@@ -931,32 +931,6 @@ object TechnicalAnalysis {
         return SetTick.ceil(lastPrice * (1.0 + stopPercent / 100.0))
     }
 
-    fun calculateSuggestedTargetPrice(
-        lastPrice: Double, 
-        stopLossPrice: Double? = null,
-        minTargetPercent: Double = 10.0
-    ): Double {
-        if (lastPrice <= 0.0) return 0.0
-        if (stopLossPrice != null && stopLossPrice < lastPrice) {
-            val risk = lastPrice - stopLossPrice
-            val minReward = lastPrice * (minTargetPercent / 100.0)
-            val reward = maxOf(minReward, risk * 2.0)
-            return SetTick.floor(lastPrice + reward)
-        }
-        return SetTick.floor(lastPrice * (1.0 + minTargetPercent / 100.0))
-    }
-
-    fun calculateRiskRewardRatio(
-        entryPrice: Double, 
-        targetPrice: Double, 
-        stopLossPrice: Double
-    ): Double? {
-        val reward = targetPrice - entryPrice
-        val risk = entryPrice - stopLossPrice
-        if (risk <= 0.0 || reward <= 0.0) return null
-        return reward / risk
-    }
-
     fun getMarketRegime(setIndexCloses: List<Double>): MarketRegime {
         if (setIndexCloses.size < 50) return MarketRegime.NEUTRAL
         val sma50 = calculateSMA(setIndexCloses, 50) ?: return MarketRegime.NEUTRAL

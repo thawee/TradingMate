@@ -24,7 +24,7 @@ MACD tracks the relationship between two moving averages of a stock’s price.
 - **MACD Histogram:**
   - **Meaningfully Positive (> 0.1% of last price):** Bullish momentum. The price-relative threshold prevents noise-level crossover flicker around zero.
   - **Negative (< 0):** Bearish momentum. Suggests the trend is moving DOWN.
-- **Role:** Acts as a "gear shift" to confirm RSI signals. For DNA tagging (MOM), also requires RSI in 40–70 to exclude overbought stocks.
+- **Role:** Acts as a "gear shift" to confirm RSI signals. The momentum filter also requires RSI in 40–70 to exclude overbought stocks.
 
 ### 3. SMA (Simple Moving Average) - The Trend Guards
 SMAs smooth out price data to identify the direction of the trend.
@@ -53,7 +53,6 @@ Relative strength compares the stock's return with the SET index over aligned en
 - **RS > 0:** The stock is outperforming the market. Winners tend to keep winning.
 - **RS < 0:** A market laggard — even if it looks cheap, money is flowing elsewhere. An actively negative RS disqualifies a stock from the MOM DNA gate.
 - **RS = null (< 63 bars of history):** Treated as "data not yet available" — the stock is **not disqualified** from the MOM gate. Only a confirmed negative RS blocks momentum status.
-- Stocks with positive RS earn the **"RS"** DNA tag.
 
 ### 7. 52-Week Low Guard - The Trap Detector
 Structural decliners "look cheap" on RSI and P/E while continually making new lows.
