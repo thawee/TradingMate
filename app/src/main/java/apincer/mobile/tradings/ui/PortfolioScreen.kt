@@ -97,6 +97,9 @@ import java.util.Locale
 data class BuyPrefill(val symbol: String, val price: Double, val shares: Int,
                       val purpose: String? = null, val executedFill: Boolean = false)
 
+/** What the holdings list covers. Swing has no tab of its own; All shows every holding. */
+enum class PortfolioScope(val label: String) { ALL("All"), DIVIDEND("Dividend") }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioScreen(
@@ -153,7 +156,7 @@ fun PortfolioScreen(
         }
     }
     var isSubmitting by remember { mutableStateOf(false) }
-    var selectedPlaybook by remember { mutableStateOf("SWING") }
+    var scope by remember { mutableStateOf(PortfolioScope.ALL) }
 
     val dividendHistory by portfolioViewModel.dividendHistory.collectAsState()
     val totalDividendEarned = dividendHistory.sumOf { it.totalReceived }
@@ -164,10 +167,9 @@ fun PortfolioScreen(
     LaunchedEffect(heldKey) { if (heldKey.isNotEmpty()) portfolioViewModel.refreshPendingDividends(allPortfolioItems) }
     // Account equity for position sizing = cash on hand + current market value of holdings.
     val accountEquity = cashBalance + allPortfolioItems.sumOf { it.info.lastPrice * it.portfolio.quantity }
-    val portfolioItems = when (selectedPlaybook) {
-       // "SWING" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "SWING" }
-        "DIVIDEND" -> allPortfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
-        else -> allPortfolioItems
+    val portfolioItems = when (scope) {
+        PortfolioScope.ALL -> allPortfolioItems
+        PortfolioScope.DIVIDEND -> allPortfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
     }
 
     // Always compute total asset value from ALL holdings — not the filtered tab view
@@ -197,7 +199,7 @@ fun PortfolioScreen(
     val totalNetProfitPercent = if (totalCost > 0) (netProfitValue / (totalCost + buyFees)) * 100 else 0.0
 
     // Only show yield on DIVIDEND tab — meaningless average across swing stocks
-    val avgYieldOnCost = if (selectedPlaybook == "DIVIDEND" && totalCost > 0) {
+    val avgYieldOnCost = if (scope == PortfolioScope.DIVIDEND && totalCost > 0) {
         portfolioItems.sumOf { item ->
             val dps = item.portfolio.dividendPerShare ?: if (item.info.dividendYield != null && item.info.lastPrice != 0.0) {
                 item.info.lastPrice * (item.info.dividendYield / 100.0)
@@ -268,10 +270,10 @@ fun PortfolioScreen(
         }
 
         GlassSegmentedControl(
-            items = listOf("SWING", "DIVIDEND"),
-            selectedItem = selectedPlaybook,
-            onItemSelect = { selectedPlaybook = it },
-            labelExtractor = { it },
+            items = PortfolioScope.entries.toList(),
+            selectedItem = scope,
+            onItemSelect = { scope = it },
+            labelExtractor = { it.label },
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
         )
         
@@ -291,6 +293,27 @@ fun PortfolioScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
             item {
+                CoreSatelliteCard(
+                    portfolioItems = allPortfolioItems,
+                    targetCorePercent = targetCorePercent,
+                    monthlyDcaAmount = monthlyDcaAmount,
+                    dcaDay = dcaDay,
+                    corePrices = corePrices,
+                    atsEnabled = isAtsEnabled,
+                    onSetupCore = { amount, day ->
+                        settingsViewModel.updateMonthlyDcaAmount(amount)
+                        settingsViewModel.updateDcaDayOfMonth(day)
+                        showSnackbar("Monthly core DCA set: ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", amount)} on day $day")
+                    },
+                    onBuyCore = { symbol, price, shares ->
+                        selectedStockForEdit = null
+                        buyPrefill = BuyPrefill(symbol, price, shares)
+                        showBuyDialog = true
+                    }
+                )
+            }
+
+            item {
                 PortfolioSummaryCard(
                     totalAssetValue = totalAssetValue,
                     stockValue = stockValue,
@@ -301,169 +324,70 @@ fun PortfolioScreen(
                     netPercent = totalNetProfitPercent,
                     yieldOnCost = avgYieldOnCost,
                     totalDividendEarned = totalDividendEarned,
-                    profitScopeLabel = if (selectedPlaybook == "SWING") null else selectedPlaybook,
+                    profitScopeLabel = if (scope == PortfolioScope.ALL) null else scope.name,
                     onEditCash = { showCashDialog = true },
                     onLogDividend = { showDividendDialog = true }
                 )
             }
 
-            if (portfolioItems.isNotEmpty()) {
+            if (scope == PortfolioScope.DIVIDEND && targetYearlyDividend > 0) {
                 item {
-                    GlassCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
-                    ) {
+                    GlassCard(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Portfolio Snapshot",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
-
-                            val chartColors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.tertiary,
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                MaterialTheme.colorScheme.secondary,
-                                MaterialTheme.colorScheme.error,
-                                androidx.compose.ui.graphics.Color(0xFFFFA000),
-                                androidx.compose.ui.graphics.Color(0xFF00B0FF),
-                                androidx.compose.ui.graphics.Color(0xFFE040FB),
-                                androidx.compose.ui.graphics.Color(0xFF1DE9B6)
-                            )
-                            val isMacro = selectedPlaybook == "SWING"
-                            val chartValues = if (isMacro) {
-                                val swingVal = allPortfolioItems.filter { it.portfolio.tradePurpose == "SWING" }.sumOf { it.info.lastPrice * it.portfolio.quantity }.toFloat()
-                                val divVal = allPortfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }.sumOf { it.info.lastPrice * it.portfolio.quantity }.toFloat()
-                                listOf(swingVal, divVal, cashBalance.toFloat())
-                            } else {
-                                portfolioItems.map { (it.info.lastPrice * it.portfolio.quantity).toFloat() }
-                            }
-                            val centerAmount = if (isMacro) totalAssetValue else stockValue
-                            val centerTextStr = "฿${String.format(java.util.Locale.ENGLISH, "%,.0f", centerAmount)}"
-
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                // Donut chart
-                                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                    DonutChart(
-                                        values = chartValues,
-                                        colors = chartColors,
-                                        centerText = centerTextStr,
-                                        centerSubText = if (isMacro) "Total Assets" else "Portfolio"
-                                    )
-                                }
-
-                                Spacer(Modifier.width(16.dp))
-
-                                // Legend + key metrics
-                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    if (isMacro) {
-                                        val total = chartValues.sum()
-                                        listOf("Swing", "Dividend", "Cash").forEachIndexed { i, label ->
-                                            val pct = if (total > 0f) (chartValues[i] / total) * 100.0 else 0.0
-                                            if (pct > 0.1) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(8.dp)
-                                                            .background(chartColors[i], CircleShape)
-                                                    )
-                                                    Spacer(Modifier.width(6.dp))
-                                                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                                    Text(
-                                                        text = String.format(java.util.Locale.ENGLISH, "%.1f%%", pct),
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Black,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        portfolioItems.forEachIndexed { i, item ->
-                                            val pct = if (stockValue > 0) (item.info.lastPrice * item.portfolio.quantity / stockValue) * 100 else 0.0
-                                            if (pct > 0.1) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(8.dp)
-                                                            .background(chartColors[i % chartColors.size], CircleShape)
-                                                    )
-                                                    Spacer(Modifier.width(6.dp))
-                                                    Text(item.info.symbol, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                                    Text(
-                                                        text = String.format(java.util.Locale.ENGLISH, "%.1f%%", pct),
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Black,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (targetYearlyDividend > 0 && selectedPlaybook != "SWING") {
-                                Spacer(Modifier.height(24.dp))
-                                HorizontalDivider(modifier = Modifier.alpha(0.1f))
-                                Spacer(Modifier.height(16.dp))
-                                
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text("Dividend Snowball Goal", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(
-                                            "฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netYearlyDividend)} / ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", targetYearlyDividend)} after tax",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Black,
-                                            color = MaterialTheme.colorScheme.tertiary
-                                        )
-                                    }
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.tertiary,
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Text(
-                                            "${String.format(java.util.Locale.ENGLISH, "%.1f", dividendProgress * 100)}%",
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onTertiary
-                                        )
-                                    }
-                                }
-
-                                Spacer(Modifier.height(12.dp))
-
-                                LinearProgressIndicator(
-                                    progress = { dividendProgress },
-                                    modifier = Modifier.fillMaxWidth().height(8.dp),
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                                )
-
-                                dividendGoalCapital?.let { c ->
-                                    fun baht(v: Double) = "฿" + String.format(java.util.Locale.ENGLISH, "%,.0f", v)
-                                    Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Dividend Snowball Goal", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(
-                                        "At your current ${String.format(java.util.Locale.ENGLISH, "%.1f", c.yieldPercent)}% yield after tax the goal needs ${baht(c.needed)} invested. " +
-                                            if (c.shortfall > 0) "You hold ${baht(c.invested)}; ${baht(c.shortfall)} to go." else "You hold ${baht(c.invested)}; the goal is covered.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        "฿${String.format(java.util.Locale.ENGLISH, "%,.0f", netYearlyDividend)} / ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", targetYearlyDividend)} after tax",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.tertiary
                                     )
                                 }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        "${String.format(java.util.Locale.ENGLISH, "%.1f", dividendProgress * 100)}%",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiary
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+
+                            LinearProgressIndicator(
+                                progress = { dividendProgress },
+                                modifier = Modifier.fillMaxWidth().height(8.dp),
+                                color = MaterialTheme.colorScheme.tertiary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+
+                            dividendGoalCapital?.let { c ->
+                                fun baht(v: Double) = "฿" + String.format(java.util.Locale.ENGLISH, "%,.0f", v)
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "At your current ${String.format(java.util.Locale.ENGLISH, "%.1f", c.yieldPercent)}% yield after tax the goal needs ${baht(c.needed)} invested. " +
+                                        if (c.shortfall > 0) "You hold ${baht(c.invested)}; ${baht(c.shortfall)} to go." else "You hold ${baht(c.invested)}; the goal is covered.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
                 }
+            }
 
+            if (portfolioItems.isNotEmpty()) {
                 if (pendingDividends.isNotEmpty()) item {
                     PendingDividendsCard(
                         pending = pendingDividends,
@@ -479,27 +403,6 @@ fun PortfolioScreen(
                 }
 
                 item {
-                    CoreSatelliteCard(
-                        portfolioItems = allPortfolioItems,
-                        targetCorePercent = targetCorePercent,
-                        monthlyDcaAmount = monthlyDcaAmount,
-                        dcaDay = dcaDay,
-                        corePrices = corePrices,
-                        atsEnabled = isAtsEnabled,
-                        onSetupCore = { amount, day ->
-                            settingsViewModel.updateMonthlyDcaAmount(amount)
-                            settingsViewModel.updateDcaDayOfMonth(day)
-                            showSnackbar("Monthly core DCA set: ฿${String.format(java.util.Locale.ENGLISH, "%,.0f", amount)} on day $day")
-                        },
-                        onBuyCore = { symbol, price, shares ->
-                            selectedStockForEdit = null
-                            buyPrefill = BuyPrefill(symbol, price, shares)
-                            showBuyDialog = true
-                        }
-                    )
-                }
-
-                item {
                     SectorBreakdownCard(
                         portfolioItems = allPortfolioItems,
                         cashBalance = cashBalance,
@@ -507,7 +410,7 @@ fun PortfolioScreen(
                     )
                 }
 
-                if (selectedPlaybook == "DIVIDEND" && dividendHistory.isNotEmpty()) {
+                if (scope == PortfolioScope.DIVIDEND && dividendHistory.isNotEmpty()) {
                     item {
                         DividendTaxShieldCard(
                             dividendHistory = dividendHistory,
