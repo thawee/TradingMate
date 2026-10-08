@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed (displayed but unsupported)
+- **VCP, SPRING and MTF chips** on stock cards and in the Advisor legend: never tested directly, and the tested breakout, oversold and trend-filter rules did not beat TDEX. WHALE stays, marked untested.
+- **VaR, CVaR and beta** on History: the card now shows max drawdown and the current drop from peak. The Portfolio sector card loses its beta chip, which was estimated from relative strength rather than price history. The hourly price-history fetch that fed them is gone.
+
+### Changed
+- **Buy dialog Swing text** no longer says the app "enforces" trailing stops and a 2x take-profit; the stop and target are the user's own plan, and the tested swing exits did not beat TDEX.
+- **Stock detail price range**: "Floor (Support)" and "Ceiling (Resistance)" are now low and high bands, described as a volatility range rather than support or resistance. `docs/INDICATORS.md` Bollinger wording matched.
+
 ### Added (TR2 forward record)
 - **Forward record of the list without commodity names** (Advisor, Dividend tab, under the high-yield record): each month the top 10 by yield without PTT, PTTEP, BCP, SPRC, OR, IVL, PTTGC and SCC is saved and measured against TDEX like the main list. Backtest variant TR2 beat F5 over 2015-2025 with a smaller drawdown but trailed in 2021-2025 and its names were chosen with hindsight, so it is recorded only and never changes the list or the rebalance plan.
 

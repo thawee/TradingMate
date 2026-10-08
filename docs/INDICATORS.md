@@ -38,8 +38,8 @@ SMAs smooth out price data to identify the direction of the trend.
 A "volatility tube" that wraps around the price.
 
 - **Configuration:** 20-day SMA with 2.0 Standard Deviations.
-- **Lower Band (Value):** Prices hitting this band are statistically undervalued for their current volatility. Good for entry.
-- **Upper Band (Resistance):** Prices hitting this band are stretched too far. High risk of a pullback.
+- **Lower Band:** Price is low relative to its recent volatility. This is not support; the app signals that buy near it were backtested and did not beat TDEX (`docs/ADVISOR_EVALUATION.md`).
+- **Upper Band:** Price is high relative to its recent volatility. Not a tested sell level.
 
 ### 5. OBV (On-Balance Volume) - The Lie Detector
 OBV cumulatively adds volume on up days and subtracts it on down days, revealing whether volume backs the price move.

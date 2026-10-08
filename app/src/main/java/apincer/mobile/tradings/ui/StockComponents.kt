@@ -696,10 +696,10 @@ fun StockItemCard(
                                 val (bgAlpha, borderAlpha, tagColor) = when (tag) {
                                     "A+" -> Triple(0.18f, 0.4f, Color(0xFF6EE7B7))
                                     "A" -> Triple(0.18f, 0.4f, Color(0xFF60A5FA))
-                                    "VCP", "GAP" -> Triple(0.18f, 0.35f, Color(0xFFA78BFA))
+                                    "GAP" -> Triple(0.18f, 0.35f, Color(0xFFA78BFA))
                                     "MOAT", "SHIELD" -> Triple(0.18f, 0.35f, Color(0xFF34D399))
                                     "WHALE" -> Triple(0.18f, 0.35f, Color(0xFF38BDF8))
-                                    "SPRING", "OS" -> Triple(0.18f, 0.35f, Color(0xFFFBBF24))
+                                    "OS" -> Triple(0.18f, 0.35f, Color(0xFFFBBF24))
                                     else -> Triple(0.10f, 0.0f, MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Surface(

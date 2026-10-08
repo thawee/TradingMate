@@ -428,12 +428,9 @@ fun ArchetypeLegendDialog(
     val descriptions = mapOf(
         "A+" to "Score 80–100: the stock meets most of the quality, value, momentum, foreign-flow and safety checks at once. Descriptive only: this score was never backtested, and tested quality and trend filters did not beat TDEX.",
         "A" to "Score 65–79: meets many of the same checks. Descriptive only, not a tested buy signal.",
-        "VCP" to "Minervini VCP: Volatility Contraction Pattern — tightening price action preceding a potential Stage-2 breakout.",
         "MOAT" to "Profitability: ROE ≥12%, D/E ≤1.2 and healthy margins. These ratios do not show whether a competitive moat exists.",
         "SHIELD" to "High yield: dividend yield ≥5% and price well above its 52-week low. A high trailing yield can still be cut.",
-        "WHALE" to "Foreign buying: positive foreign NVDR net buying and relative strength. Shows recent flow, not who is buying or why.",
-        "SPRING" to "Wyckoff Oversold Spring: Profitable company (ROE ≥8%) experiencing extreme oversold mean-reversion (RSI ≤35).",
-        "MTF" to "Multi-Timeframe Trend: Macro trend alignment across SMA 200/50 and positive MACD histogram.",
+        "WHALE" to "Foreign buying: positive foreign NVDR net buying and relative strength. Shows recent flow, not who is buying or why. Untested as a buy signal.",
         "QUAL" to "Quality: ROE above 10%, net margin above 10%, and debt-to-equity below 1.5 (not applied to banks, finance and insurers).",
         "VAL" to "Value Pricing: Undervalued multiples (P/E 0.1–15.0 and P/BV 0.1–1.0).",
         "DIV" to "Dividend: High current dividend yield (≥ 5.0%).",

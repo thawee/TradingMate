@@ -14,9 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.ConcurrentHashMap
 
 class PortfolioViewModel(application: Application) : AndroidViewModel(application) {
     private val repository get() = getApplication<apincer.mobile.tradings.TradingMateApp>().repository
@@ -51,12 +48,6 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
             initialValue = emptyList()
         )
 
-    private val historicalClosesCache = ConcurrentHashMap<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>()
-    private val historyFetchMutex = Mutex()
-    private var lastHistoryFetchedAt = 0L
-    private val historyRefreshIntervalMillis = 60L * 60L * 1000L
-    private val _portfolioHistoricalCloses = MutableStateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>>(emptyMap())
-    val portfolioHistoricalCloses: StateFlow<Map<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>> = _portfolioHistoricalCloses.asStateFlow()
     private val _corePrices = MutableStateFlow<Map<String, Double>>(emptyMap())
     /** Latest prices of the core funds for the core card and one-tap DCA; empty until fetched or if offline. */
     val corePrices: StateFlow<Map<String, Double>> = _corePrices.asStateFlow()
@@ -67,37 +58,6 @@ class PortfolioViewModel(application: Application) : AndroidViewModel(applicatio
                 apincer.mobile.tradings.domain.CoreSatellite.funds.map { it.first }
             ).filter { it.lastPrice > 0.0 }.associate { it.symbol.uppercase() to it.lastPrice }
             if (quotes.isNotEmpty()) _corePrices.value = _corePrices.value + quotes
-        }
-    }
-
-    private val _indexHistory = MutableStateFlow<List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>(emptyList())
-    val indexHistory: StateFlow<List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>> = _indexHistory.asStateFlow()
-
-    fun loadHistoricalClosesForHoldings(symbols: List<String>) {
-        if (symbols.isEmpty()) return
-        viewModelScope.launch(Dispatchers.IO) {
-            historyFetchMutex.withLock {
-                val now = System.currentTimeMillis()
-                val expired = now - lastHistoryFetchedAt >= historyRefreshIntervalMillis
-                val resultMap = HashMap<String, List<apincer.mobile.tradings.data.ScrapedHistoricalPrice>>(historicalClosesCache)
-                for (sym in symbols) {
-                    val upper = sym.uppercase()
-                    if (expired || !resultMap.containsKey(upper)) {
-                        val prices = apincer.mobile.tradings.data.SetScraper.fetchHistoricalPrices(upper)
-                        if (prices.isNotEmpty()) {
-                            resultMap[upper] = prices
-                            historicalClosesCache[upper] = prices
-                        }
-                    }
-                }
-                _portfolioHistoricalCloses.value = resultMap
-                if (expired || _indexHistory.value.isEmpty()) {
-                    _indexHistory.value = apincer.mobile.tradings.data.SetScraper.fetchSetIndexHistory()
-                }
-                if (_indexHistory.value.isNotEmpty() && symbols.all { resultMap.containsKey(it.uppercase()) }) {
-                    lastHistoryFetchedAt = now
-                }
-            }
         }
     }
 

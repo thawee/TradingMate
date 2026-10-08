@@ -343,7 +343,7 @@ class StockDnaTest {
             )
         }
         assertTrue("Stock above SMA50/200 with positive MACD hist is MTF aligned", StockDna.isMtfAligned(mtfStock))
-        assertTrue("Tags should contain MTF chip", StockDna.tags(mtfStock).contains("MTF"))
+        assertFalse("Untested MTF chip is no longer shown", StockDna.tags(mtfStock).contains("MTF"))
     }
 
     @Test

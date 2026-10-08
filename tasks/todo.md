@@ -788,3 +788,12 @@ Plan:
 - [x] Unit tests, build, emulator check of the forward-record card and Buy dialog warning, changelog, commit per item. (Both records saved a 10-name snapshot on the emulator, TR2 without PTTEP. The Buy dialog warning could not be reached on the emulator because its test account has negative equity; covered by TradeRiskPolicyTest.)
 
 Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (BLS, on a Hang Seng S&P 500 ETF), confirmed through SET's stock overview API. Not yet confirmed: whether the app's Yahoo price feed carries them (Yahoo rate-limited this machine during the check), their spread and liquidity, and fees. No code change until the user picks one.
+
+## Displayed but unsupported (audit, 2026-10-08)
+- [x] 1. Buy dialog Swing text: drop "Enforces daily trailing stops, take-profit at 2x"; say the stop and target are the user's own plan, untested.
+- [x] 2. Remove VCP, SPRING, MTF chips from StockDna.tags and the legend (untested; tested proxies failed). Keep the predicate functions.
+- [x] 3. Rename Floor/Ceiling (Support/Resistance) to a 20-day +/-2 sigma normal range.
+- [x] 5. Stats risk card: drop VaR/CVaR and beta (63 days, no action); keep max and current drawdown.
+- [x] 6. WHALE legend: mark untested.
+- [x] Tests, build, emulator check, README/CHANGELOG, commit.
+(Emulator: History shows the Drawdown card, Portfolio shows "Sectors" without beta, stock detail shows the new band labels, no VCP/SPRING/MTF chips on the Watchlist. The Swing dialog text is a string change checked by build only.)

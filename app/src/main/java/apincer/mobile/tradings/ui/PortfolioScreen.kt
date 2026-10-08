@@ -1147,7 +1147,7 @@ fun BuyStockDialog(
                         }
                         Text(
                             text = if (tradePurpose == "SWING") {
-                                "⚡ Swing: Active trade management. Enforces daily trailing stops, take-profit at 2× the stop distance, and technical exits."
+                                "⚡ Swing: Your own stop and target, saved as alerts. The app's tested swing exits did not beat TDEX, so this is your plan, not a tested rule."
                             } else {
                                 "💰 Dividend: Held under the tested high-yield rule. No trailing, quality or price exits; it is reviewed at the monthly rebalance and sold when it leaves the top 10. Only a stop you save sends an alert."
                             },
@@ -1862,51 +1862,18 @@ fun SectorBreakdownCard(
 
     val hasWarning = sectorExposures.any { it.isOverexposed }
 
-    // Beta calculation
-    val betaWeights = portfolioItems.mapNotNull { item ->
-        val weight = (item.info.lastPrice * item.portfolio.quantity)
-        val beta = (item.portfolio.relativeStrength ?: 0.0).let { rs ->
-            // Beta estimation: 1.0 + (RS / 100) clamped 0.4 to 2.0
-            (1.0 + rs / 100.0).coerceIn(0.4, 2.0)
-        }
-        if (weight > 0) Pair(weight, beta) else null
-    }
-    val portfolioBeta = if (betaWeights.isNotEmpty()) TechnicalAnalysis.calculatePortfolioBeta(betaWeights) else 1.0
-    val betaProfile = when {
-        portfolioBeta < 0.85 -> Pair("Defensive Low-Vol", Color(0xFF6EE7B7))
-        portfolioBeta <= 1.15 -> Pair("Balanced Index Track", Color(0xFF60A5FA))
-        else -> Pair("Aggressive High-Beta", Color(0xFFFCD34D))
-    }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Risk Matrix & Sectors",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Surface(
-                    color = betaProfile.second.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "Beta ${String.format(java.util.Locale.ENGLISH, "%.2f", portfolioBeta)} · ${betaProfile.first}",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = betaProfile.second
-                    )
-                }
-            }
+            Text(
+                text = "Sectors",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             
             Spacer(Modifier.height(12.dp))
 

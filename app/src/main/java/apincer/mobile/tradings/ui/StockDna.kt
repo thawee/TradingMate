@@ -357,12 +357,9 @@ object StockDna {
         if (score.grade == ConfluenceGrade.PRIME_A_PLUS) add("A+")
         else if (score.grade == ConfluenceGrade.STRONG_A) add("A")
 
-        if (isVcpBreakout(s)) add("VCP")
         if (isCompounderAristocrat(s)) add("MOAT")
         if (isHighYieldShield(s)) add("SHIELD")
         if (isForeignWhale(s)) add("WHALE")
-        if (isOversoldRebound(s)) add("SPRING")
-        if (isMtfAligned(s)) add("MTF")
 
         if (isQual(s)) add("QUAL")
         if (isVal(s)) add("VAL")
