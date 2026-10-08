@@ -397,12 +397,6 @@ fun PortfolioScreen(
                 }
 
                 item {
-                    HoldingsSummaryTable(
-                        items = portfolioItems
-                    )
-                }
-
-                item {
                     SectorBreakdownCard(
                         portfolioItems = allPortfolioItems,
                         cashBalance = cashBalance,
