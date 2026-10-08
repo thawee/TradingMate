@@ -819,3 +819,10 @@ Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (B
 - [x] 7. Confirm the change is worth keeping.
 - [x] 8. Rebase into small ordered commits. (Opening a PR: skip, the user commits to main and has not asked to push.)
 (Two commits: StockDna predicates, then TechnicalAnalysis helpers. Unit tests 235 -> 232, the 3 removed tests only exercised deleted helpers. Mutation check: re-adding an MTF chip fails both absence assertions. Emulator smoke run over all tabs, no FATAL EXCEPTION.)
+
+## Screen polish round 1 (2026-10-08)
+- [x] 1. Refresh spinner stuck over content: find why isRefreshing stays true, fix at the root, show an offline note.
+- [x] 2. Portfolio: Core vs Satellite first, drop the donut, open on the Dividend tab.
+- [x] 4. Rebalance plan: collapse the repeated "Buy 0 ... below one lot" rows into one line.
+- [x] Tests, build (commit gated on gradle), emulator screenshots, CHANGELOG, commits.
+(Item 1 measured from a new "Watchlist refresh finished in N ms" log line; the first uiautomator-based numbers were wrong, see lessons.md #10. Item 2: tab renamed All because it never filtered to Swing. Item 4: emulator shows 4 rows plus one "Not bought" line instead of 11 rows.)

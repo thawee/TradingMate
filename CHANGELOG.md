@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Refresh spinner stuck for minutes when offline.** DNS failures are no longer retried with backoff. Emulator watchlist refresh: airplane mode 38.2 s to 4.9 s; link up with DNS broken 182 s to 30.6 s. When every symbol fails, the snackbar says the source is unreachable.
+
+### Changed (screen polish)
+- **Portfolio** opens with Core vs Satellite, shown even before the first holding. The donut is gone; the Dividend tab keeps the snowball goal in its own card. The first tab is "All" (it never filtered to Swing holdings).
+- **Rebalance plan** lists names a tenth of the budget cannot buy in one line instead of a "Buy 0" row each.
+
 ### Removed (displayed but not useful)
 - **Backtest (Beta) screen** and its History button. It replayed technical signals one stock at a time; the market-wide test of the same signals trailed TDEX, and per-stock replays invite picking the lucky names. `BacktestEngine` stays for the JVM reports.
 - **RSI Zones** (prices where RSI would reach 35 or 65) on stock detail: untested entry and exit levels.

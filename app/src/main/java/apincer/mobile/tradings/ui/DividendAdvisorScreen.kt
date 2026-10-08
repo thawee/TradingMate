@@ -642,9 +642,12 @@ fun HighYieldRebalanceCard(
                     watchlist.mapNotNull { w -> w.info.sector?.let { w.info.symbol.uppercase() to it } }.toMap(),
                     cashBalance, cashBalance + holdings.sumOf { it.shares * (it.price ?: it.costPerShare) },
                     stockCap, sectorCap, atsEnabled)
-                plan.rows.forEach { row ->
+                val (belowOneLot, shown) = plan.rows.partition {
+                    it.action == apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY && it.shares == 0
+                }
+                shown.forEach { row ->
                     val action = when (row.action) {
-                        apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY -> if (row.shares > 0) "Buy ${row.shares}" else "Buy 0"
+                        apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY -> "Buy ${row.shares}"
                         apincer.mobile.tradings.domain.HighYieldRebalance.Action.KEEP -> "Keep ${row.shares}"
                         apincer.mobile.tradings.domain.HighYieldRebalance.Action.SELL -> "Sell ${row.shares}"
                         apincer.mobile.tradings.domain.HighYieldRebalance.Action.UNAVAILABLE -> "No price"
@@ -665,11 +668,12 @@ fun HighYieldRebalanceCard(
                 }
                 Text("Sells ${baht(plan.sellProceeds)} · Buys ${baht(plan.buyCost)} · Fees ${baht(plan.fees)} · Cash left ${baht(plan.leftoverCash)}",
                     style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                val full = plan.fullListBudget
-                if (full != null && budget < full && plan.rows.any { it.action == apincer.mobile.tradings.domain.HighYieldRebalance.Action.BUY && it.shares == 0 })
-                    Text("A tenth of this budget is below one lot of some names. Holding all ten at a tenth each needs about ${baht(full)}; " +
-                        "below that, the 1DIV ETF gives the same tilt in small amounts.",
-                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                if (belowOneLot.isNotEmpty()) {
+                    val full = plan.fullListBudget
+                    Text("Not bought, a tenth of the budget is below one lot: ${belowOneLot.joinToString { it.symbol }}." +
+                        (if (full != null && budget < full) " All ten need about ${baht(full)}; below that, the 1DIV ETF gives the same tilt in small amounts." else ""),
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }
