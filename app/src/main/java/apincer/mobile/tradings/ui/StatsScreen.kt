@@ -306,6 +306,15 @@ fun StatsScreen(
                     satelliteScorecard,
                     onStartTracking = if (satelliteScorecard?.coverage?.excluded?.isNotEmpty() == true) ({ confirmTracking = true }) else null
                 )
+                val exitReview = remember(history) {
+                    apincer.mobile.tradings.domain.ExitReasonReview.review(
+                        history.map { apincer.mobile.tradings.domain.ExitReasonReview.Trade(it.dateMillis, it.note, it.netProfitBaht, it.tradePurpose) },
+                        java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")))
+                }
+                if (exitReview.first.trades + exitReview.second.trades > 0) {
+                    Spacer(Modifier.height(16.dp))
+                    ExitReviewCard(exitReview.first, exitReview.second)
+                }
             }
 
             // profit graph for 12 month period
@@ -919,6 +928,54 @@ fun InstitutionalRiskCard(
                     Text("Max Drawdown (MDD)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     Text("-${String.format(Locale.ENGLISH, "%.2f", mddResult.maxDrawdownPercent)}%", fontSize = 15.sp, fontWeight = FontWeight.Black, color = if (mddResult.maxDrawdownPercent > 15.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                     Text(if (snapshots.size >= 2) "MTM Daily NAV" else "Current: -${String.format(Locale.ENGLISH, "%.1f", mddResult.currentDrawdownPercent)}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+/** Exit reasons per quarter; the most frequent losing reason is the one to work on next. */
+@Composable
+fun ExitReviewCard(current: apincer.mobile.tradings.domain.ExitReasonReview.Quarter,
+                   previous: apincer.mobile.tradings.domain.ExitReasonReview.Quarter) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Quarterly exit review", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Closed trades by the reason chosen when selling. Fix the most frequent losing reason next quarter.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            previous.topLosingReason?.let { top ->
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Most frequent losing reason in ${previous.label}: ${top.reason} (${top.losses} " +
+                        (if (top.losses == 1) "trade" else "trades") + String.format(Locale.ENGLISH, ", ฿%,.0f)", top.lossBaht),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            listOf(current, previous).filter { it.trades > 0 }.forEach { q ->
+                Spacer(Modifier.height(12.dp))
+                val purposes = q.byPurpose.entries.sortedByDescending { it.value }
+                    .joinToString(", ") { (p, n) -> "$n ${p.lowercase().replaceFirstChar { it.uppercase() }}" }
+                Text("${q.label} · ${q.trades} " + (if (q.trades == 1) "trade" else "trades") + " ($purposes)",
+                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                q.rows.forEach { r ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("${r.reason} · ${r.trades}" + if (r.losses > 0) " (${r.losses} lost)" else "",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(String.format(Locale.ENGLISH, "%s฿%,.0f", if (r.netBaht >= 0) "+" else "-", kotlin.math.abs(r.netBaht)),
+                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+                            color = if (r.netBaht >= 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (quarterly exit review)
+- **Quarterly exit review** (History, under Satellite vs TDEX): closed trades for this quarter and last, grouped by the reason chosen in the Sell dialog (Target Hit, Stop Hit, Trailing Stop, Boredom, Mistake, Fundamental, or Not recorded), with trades, losing trades and net baht per reason, the Swing/Dividend split, and "Most frequent losing reason" for last quarter (ties go to the larger loss). Quarters follow Bangkok time. Hidden when neither quarter has a closed trade.
+
 ### Added (accounting red flags)
 - **Review notes for accounting red flags** on every holding in the Advisor (never an exit): "Profit without cash" when the latest fiscal year shows a net profit, negative operating cash flow and a financing inflow (seen before STARK and EA; skipped for banks and lenders, with a land-bank caveat for property developers), and "Capital raise" for a rights offering (XR) or warrants (XW) in the last 12 months. Data comes from SET company highlights and corporate actions, refreshed once a day. On current SET50 non-financials the cash-flow note fires on about 1 company-year in 40.
 

@@ -706,17 +706,17 @@ Source: interview with a Thai trader (EIG channel): start small, add only after 
 
 Result: only F5 P2 passes (8.64% vs 7.80% a year over 2015-2025, ahead in both halves and the holdout, drawdown +2 points, one name up to 23%). Averaging down (A1-A3, 2026-10-03) passed F5 by the same margin, so the gain most likely comes from deploying F5's idle cash, not from adding to winners. Starting at half size (P1) costs 1.9 points a year on F5 and 1.5 on MOM1 while cutting drawdown 9-11 points. MOM1 still trails TDEX in 2021-2025 in every variant. No app change.
 
-# Quarterly exit-reason review, 2026-10-08 (planned, not started)
+# Quarterly exit-reason review, 2026-10-08
 
 Source: interview with a Thai futures trader (EIG Ep.10): group losing trades by cause, count causes each quarter, fix the most frequent one next quarter. UI only; no trading rule changes, so no backtest gate.
 
 Data already exists: the Sell dialog requires a reason chip (Target Hit, Stop Hit, Trailing Stop, Boredom, Mistake, Fundamental; `ui/PortfolioScreen.kt:1540`) and a lesson for negative exits, saved as `TradeEntity.note = "[<reason>] <lesson>"` (`ui/PortfolioScreen.kt:1637`). Nothing summarizes it today.
 
-- [ ] Domain: pure `ExitReasonReview` that parses the `[reason]` prefix from `TradeEntity.note` (emoji-tolerant; no prefix or unknown text -> "Not recorded"), groups closed trades by calendar quarter of `dateMillis` and reason: trades, losing trades, net baht. Picks "most frequent losing reason" for the quarter (ties -> larger baht loss). No schema change or migration.
-- [ ] Unit tests: each chip label, custom/legacy notes, empty quarter, tie-break, quarter boundaries in Asia/Bangkok.
-- [ ] UI: a "Quarterly exit review" card on the Portfolio screen next to the Satellite Scorecard: current and previous quarter, rows per reason (trades, losses, net baht), one line "Most frequent losing reason last quarter: <reason> (n)". Hidden when there are no closed trades.
-- [ ] Decide before coding: include Dividend-purpose and core sells, or Swing only (default: all closed trades, with purpose shown); keep the app's six reasons (default) or map to the interview's four groups (self / method / tools / money).
-- [ ] Verify: unit tests, build, install on the test phone and compare the card against `trade_history` on a copied database (lessons.md #8); changelog; commit.
+- [x] Domain: pure `ExitReasonReview` that parses the `[reason]` prefix from `TradeEntity.note` (emoji-tolerant; no prefix or unknown text -> "Not recorded"), groups closed trades by calendar quarter of `dateMillis` and reason: trades, losing trades, net baht. Picks "most frequent losing reason" for the quarter (ties -> larger baht loss). No schema change or migration.
+- [x] Unit tests: each chip label, custom/legacy notes, empty quarter, tie-break, quarter boundaries in Asia/Bangkok.
+- [x] UI: a "Quarterly exit review" card next to the Satellite Scorecard (it lives on the History screen, not Portfolio): current and previous quarter, rows per reason (trades, losses, net baht), one line "Most frequent losing reason last quarter: <reason> (n)". Hidden when there are no closed trades.
+- [x] Decide before coding: include Dividend-purpose and core sells, or Swing only (default: all closed trades, with purpose shown); keep the app's six reasons (default) or map to the interview's four groups (self / method / tools / money).
+- [x] Verify: unit tests, build, install on the test phone and compare the card against `trade_history` on a copied database (lessons.md #8); changelog; commit. (Checked on the emulator with 5 seeded trades, then the original database was restored; not yet on the phone. Defaults taken: all closed trades with purpose shown; the app's six reasons.)
 
 # High yield plus 200-day trend, 2026-10-08
 
