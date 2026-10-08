@@ -11,6 +11,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StockDnaTest {
+    // Chips removed on 2026-10-08: never tested, and the tested breakout, oversold and trend rules trailed TDEX.
+    private val untestedPatterns = setOf("VCP", "SPRING", "MTF")
+
 
     private fun createStock(nvdrNetVolume: Double?): StockWatchlistInfo {
         val portfolio = PortfolioEntity(
@@ -280,16 +283,14 @@ class StockDnaTest {
         }
 
         assertTrue("Should be Compounder Aristocrat", StockDna.isCompounderAristocrat(stock))
-        assertTrue("Should be VCP Breakout", StockDna.isVcpBreakout(stock))
         assertTrue("Should be High Yield Shield", StockDna.isHighYieldShield(stock))
         assertTrue("Should be Foreign Whale Inflow", StockDna.isForeignWhale(stock))
-        assertFalse("Should not be Oversold Rebound (RSI=55)", StockDna.isOversoldRebound(stock))
 
         val oversoldStock = stock.let { s ->
             val signal = s.portfolio.signal!!.copy(rsi = 28.0)
             s.copy(portfolio = s.portfolio.copy(signal = signal))
         }
-        assertTrue("Should be Oversold Rebound (RSI=28)", StockDna.isOversoldRebound(oversoldStock))
+        assertEquals(emptyList<String>(), (StockDna.tags(stock) + StockDna.tags(oversoldStock)).filter { it in untestedPatterns })
     }
 
     @Test
@@ -333,7 +334,7 @@ class StockDnaTest {
     }
 
     @Test
-    fun testIsMtfAlignedAndMtfTag() {
+    fun weeklyTrendStockGetsNoUntestedPatternChip() {
         val mtfStock = createStock(nvdrNetVolume = 100_000.0).let { s ->
             val signal = s.portfolio.signal!!.copy(sma50 = 9.0, sma200 = 8.0,
                 macdHist = 0.4, weeklyTrendBullish = true)
@@ -342,8 +343,7 @@ class StockDnaTest {
                 portfolio = s.portfolio.copy(signal = signal)
             )
         }
-        assertTrue("Stock above SMA50/200 with positive MACD hist is MTF aligned", StockDna.isMtfAligned(mtfStock))
-        assertFalse("Untested MTF chip is no longer shown", StockDna.tags(mtfStock).contains("MTF"))
+        assertEquals(emptyList<String>(), StockDna.tags(mtfStock).filter { it in untestedPatterns })
     }
 
     @Test

@@ -215,34 +215,17 @@ object StockDna {
         return roe >= 12.0 && de <= 1.2 && divYield >= 3.0 && (info.netProfitMargin ?: 0.0) >= 8.0
     }
 
-    /** Archetype 2: Minervini VCP / Stage-2 Momentum Breakout */
-    fun isVcpBreakout(s: StockWatchlistInfo): Boolean {
-        if (!preFilter(s)) return false
-        val price = s.info.lastPrice
-        val sma50 = s.portfolio.sma50 ?: 0.0
-        val sma200 = s.portfolio.sma200 ?: 0.0
-        val isAboveTrend = price >= sma50 && (sma200 == 0.0 || sma50 >= sma200 || price >= sma200)
-        return isAboveTrend && isMom(s) && ((s.info.roe ?: 0.0) >= 8.0)
-    }
-
-    /** Archetype 3: High-Yield Shield (Safe Dividend + Value Protection) */
+    /** Archetype 2: High-Yield Shield (Safe Dividend + Value Protection) */
     fun isHighYieldShield(s: StockWatchlistInfo): Boolean {
         return preFilter(s) && isDiv(s) && isQual(s) && isNotNear52wLow(s)
     }
 
-    /** Archetype 4: Foreign Whale Smart Money Accumulation */
+    /** Archetype 3: Foreign Whale Smart Money Accumulation */
     fun isForeignWhale(s: StockWatchlistInfo): Boolean {
         if (!preFilter(s)) return false
         val nvdr = s.portfolio.nvdrNetVolume ?: 0.0
         val rs = s.portfolio.relativeStrength ?: 0.0
         return nvdr > 0.0 && rs >= 0.0
-    }
-
-    /** Archetype 5: Oversold Mean-Reversion Spring */
-    fun isOversoldRebound(s: StockWatchlistInfo): Boolean {
-        if (!preFilter(s)) return false
-        val rsi = s.portfolio.rsi ?: 50.0
-        return rsi <= 35.0 && ((s.info.roe ?: 0.0) >= 8.0)
     }
 
     // ==========================================
@@ -338,17 +321,6 @@ object StockDna {
             safetyScore = safetyPts,
             highlights = highlights
         )
-    }
-
-    /** Daily trend with confirmed completed-week uptrend. */
-    fun isMtfAligned(s: StockWatchlistInfo): Boolean {
-        val price = s.info.lastPrice
-        val sma50 = s.portfolio.sma50 ?: 0.0
-        val sma200 = s.portfolio.sma200 ?: 0.0
-        val hist = s.portfolio.macdHist ?: 0.0
-        if (price <= 0.0) return false
-        val isTrendBullish = (sma200 > 0 && price >= sma200) || (sma50 > 0 && price >= sma50)
-        return isTrendBullish && hist > 0.0 && s.portfolio.weeklyTrendBullish == true
     }
 
     /** DNA tag chips displayed on stock cards. */
