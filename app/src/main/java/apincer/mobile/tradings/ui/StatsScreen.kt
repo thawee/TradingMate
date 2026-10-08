@@ -227,6 +227,40 @@ fun StatsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            item {
+                var confirmTracking by remember { mutableStateOf(false) }
+                if (confirmTracking) {
+                    GlassDialog(
+                        onDismissRequest = { confirmTracking = false },
+                        title = "Start tracking from today?",
+                        confirmButton = {
+                            Button(onClick = {
+                                confirmTracking = false
+                                portfolioViewModel.startScorecardTracking(watchlist.filter { it.portfolio.quantity > 0 }) { n ->
+                                    showSnackbar(if (n > 0) "Tracking $n holding(s) from today's prices" else "Nothing could be added; see the excluded list")
+                                }
+                            }, shape = RoundedCornerShape(12.dp)) { Text("Start tracking") }
+                        },
+                        dismissButton = { TextButton(onClick = { confirmTracking = false }) { Text(stringResource(R.string.action_cancel)) } }
+                    ) {
+                        Text("Each excluded holding's untracked shares are journaled as bought today at the current price. This cannot be undone from the app.")
+                    }
+                }
+                SatelliteScorecardCard(
+                    satelliteScorecard,
+                    onStartTracking = if (satelliteScorecard?.coverage?.excluded?.isNotEmpty() == true) ({ confirmTracking = true }) else null
+                )
+                val exitReview = remember(history) {
+                    apincer.mobile.tradings.domain.ExitReasonReview.review(
+                        history.map { apincer.mobile.tradings.domain.ExitReasonReview.Trade(it.dateMillis, it.note, it.netProfitBaht, it.tradePurpose) },
+                        java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")))
+                }
+                if (exitReview.first.trades + exitReview.second.trades > 0) {
+                    Spacer(Modifier.height(16.dp))
+                    ExitReviewCard(exitReview.first, exitReview.second)
+                }
+            }
+
             // Performance Summary Card
             item {
                 GlassCard(
@@ -262,41 +296,7 @@ fun StatsScreen(
                 }
             }
 
-            item {
-                var confirmTracking by remember { mutableStateOf(false) }
-                if (confirmTracking) {
-                    GlassDialog(
-                        onDismissRequest = { confirmTracking = false },
-                        title = "Start tracking from today?",
-                        confirmButton = {
-                            Button(onClick = {
-                                confirmTracking = false
-                                portfolioViewModel.startScorecardTracking(watchlist.filter { it.portfolio.quantity > 0 }) { n ->
-                                    showSnackbar(if (n > 0) "Tracking $n holding(s) from today's prices" else "Nothing could be added; see the excluded list")
-                                }
-                            }, shape = RoundedCornerShape(12.dp)) { Text("Start tracking") }
-                        },
-                        dismissButton = { TextButton(onClick = { confirmTracking = false }) { Text(stringResource(R.string.action_cancel)) } }
-                    ) {
-                        Text("Each excluded holding's untracked shares are journaled as bought today at the current price. This cannot be undone from the app.")
-                    }
-                }
-                TaxFundsCard(settingsViewModel)
-                Spacer(Modifier.height(16.dp))
-                SatelliteScorecardCard(
-                    satelliteScorecard,
-                    onStartTracking = if (satelliteScorecard?.coverage?.excluded?.isNotEmpty() == true) ({ confirmTracking = true }) else null
-                )
-                val exitReview = remember(history) {
-                    apincer.mobile.tradings.domain.ExitReasonReview.review(
-                        history.map { apincer.mobile.tradings.domain.ExitReasonReview.Trade(it.dateMillis, it.note, it.netProfitBaht, it.tradePurpose) },
-                        java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")))
-                }
-                if (exitReview.first.trades + exitReview.second.trades > 0) {
-                    Spacer(Modifier.height(16.dp))
-                    ExitReviewCard(exitReview.first, exitReview.second)
-                }
-            }
+            item { TaxFundsCard(settingsViewModel) }
 
             item {
                 SectionHeader(
@@ -882,6 +882,7 @@ fun TaxFundsCard(settingsViewModel: SettingsViewModel) {
     val bracket by settingsViewModel.personalTaxRate.collectAsState()
     val year = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok")).year
     var editingProfile by remember { mutableStateOf(false) }
+    var settingUp by remember { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<apincer.mobile.tradings.domain.TaxFunds.Purchase?>(null) }
     fun baht(v: Double) = String.format(Locale.ENGLISH, "฿%,.0f", v)
@@ -890,7 +891,14 @@ fun TaxFundsCard(settingsViewModel: SettingsViewModel) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Tax-saving funds $year", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             val inc = income
-            if (inc == null || editingProfile) {
+            if (inc == null && !settingUp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("How much ThaiESG and RMF you can still deduct this year.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f))
+                    TextButton(onClick = { settingUp = true }) { Text("Set up") }
+                }
+            } else if (inc == null || editingProfile) {
                 var incomeText by remember { mutableStateOf(inc?.toLong()?.toString() ?: "") }
                 var otherText by remember { mutableStateOf(if (other > 0) other.toLong().toString() else "") }
                 Text("Enter this year's assessable income to see how much ThaiESG and RMF you can still deduct.",
