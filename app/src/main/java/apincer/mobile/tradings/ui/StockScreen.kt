@@ -62,8 +62,7 @@ enum class Screen(val labelResId: Int, val icon: ImageVector, val inBottomBar: B
     STATS(R.string.title_history, Icons.Default.History),
     SETTINGS(R.string.title_settings, Icons.Default.Settings),
     EDUCATION(R.string.title_academy, Icons.Default.School, false),
-    ABOUT(R.string.title_about, Icons.Default.Info, false),
-    BACKTEST(R.string.title_backtest, Icons.Default.Insights, false)
+    ABOUT(R.string.title_about, Icons.Default.Info, false)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -367,11 +366,10 @@ fun StockScreen(
                                             currentScreen = Screen.PORTFOLIO
                                         }
                                     )
-                                    Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar, onNavigateToBacktest = { currentScreen = Screen.BACKTEST })
+                                    Screen.STATS -> StatsScreen(viewModel, showSnackbar = showSnackbar)
                                     Screen.SETTINGS -> SettingsScreen(viewModel, settingsViewModel, showSnackbar = showSnackbar)
                                     Screen.EDUCATION -> TradingEducationScreen(onBack = { currentScreen = Screen.ADVISOR })
                                     Screen.ABOUT -> AboutScreen(onBack = { currentScreen = Screen.ADVISOR })
-                                    Screen.BACKTEST -> BacktestScreen(viewModel, onBack = { currentScreen = Screen.STATS }, showSnackbar = showSnackbar)
                                 }
                             }
                         }
@@ -654,40 +652,11 @@ fun StockDashboard(state: StockUiState.Success, scrollState: androidx.compose.fo
                 )
             }
             
-            Text(text = stringResource(R.string.label_rsi_zones_title), fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                TargetPriceBadge(
-                    label = stringResource(R.string.label_buy_below),
-                    price = state.buyingPrice,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                TargetPriceBadge(
-                    label = stringResource(R.string.label_sell_above),
-                    price = state.sellingPrice,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            
-            Text(
-                text = stringResource(R.string.label_rsi_zone_desc),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
-                fontWeight = FontWeight.Medium
-            )
-
-            
             Text(text = stringResource(R.string.label_price_return_history_title), fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                PeriodReturnBadge("3D", state.returns[3])
-                PeriodReturnBadge("7D", state.returns[7])
-                PeriodReturnBadge("15D", state.returns[15])
                 PeriodReturnBadge("30D", state.returns[30])
             }
         }

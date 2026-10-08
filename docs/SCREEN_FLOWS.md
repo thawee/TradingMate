@@ -17,7 +17,7 @@ The bottom navigation bar provides instant access to the five main functional ar
     *   **High dividend yield list and monthly rebalance plan (Dividend tab, always shown):** the top 10 SET50 names by yield, and an order list for the tested rule: sell satellite names that left the list, keep held names without resizing, buy each new name with up to a tenth of the budget. It manages only Dividend-purpose holdings (default budget: their value); other holdings are never sold. Cap breaches are warnings. Place the order at the broker first; "Record buy" then opens the Portfolio Buy dialog prefilled, with the Dividend purpose and "Record an already executed broker trade" preset. A monthly notification reminds users who follow the plan (untested lists on and a Dividend-purpose holding). When a tenth of the budget is below one lot, the card shows the budget needed to hold all ten and points to 1DIV.
 3.  **📊 Watchlist (Data Center)**
     *   **Focus:** Broad market monitoring.
-    *   **Features:** A comprehensive list of saved stocks with technical signals (shown as context under the same notice as the Swing tab), fundamental overview, search filter, and dynamic sorting.
+    *   **Features:** A comprehensive list of saved stocks with technical signals (shown as context under the same notice as the Swing tab), fundamental overview, search filter, and sorting by symbol or daily change.
 4.  **📈 History & Stats (CRO Dashboard)**
     *   **Focus:** Performance review and drawdown.
     *   **Features:** Closed trade records, cumulative profit trajectory with Catmull-Rom splines, Max Drawdown (MDD) and the current drop from peak.
@@ -51,7 +51,7 @@ Access to the app's philosophy and workflow is integrated into the Home screen:
     *   **Content:** The "Why" behind the app, the concept of discipline, and the creator/AI collaboration details.
 2.  **Trading Academy (`EducationScreen`)**
     *   **Path:** `Home` -> `Academy` card (or via `Home` -> `Open Education` callback).
-    *   **Content:** A structured 3-step success path, risk management techniques (Cut Loss), and indicator tutorials.
+    *   **Content:** One page, "What the evidence says": core first, the one rule that passed, what did not beat TDEX, swing trades as your own plan, plain indicator definitions, and keeping score.
 
 ---
 

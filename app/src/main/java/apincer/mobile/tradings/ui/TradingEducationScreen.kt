@@ -17,32 +17,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.CompareArrows
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.AssignmentTurnedIn
-import androidx.compose.material.icons.filled.BlurOn
-import androidx.compose.material.icons.filled.ContentCut
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Equalizer
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.Report
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Traffic
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Waves
-import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,6 +41,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import apincer.mobile.tradings.R
+
+/** One page: what passed, what failed, and how the app turns that into rules. Figures from docs/ADVISOR_EVALUATION.md. */
+private val lessons = listOf(
+    Triple("Core first",
+        "TDEX is the core, 80% of invested value by default, bought by monthly DCA. Everything else is satellite: at most 15% in one stock and 30% in one sector.",
+        Icons.Default.AccountBalance),
+    Triple("The one rule that passed",
+        "The top 10 SET50 stocks by dividend yield, reviewed monthly and sold when they leave the list: +7.80% a year against TDEX +2.52% over 2015-2025, ahead in both halves. It has no trailing, quality or price exits. A high trailing yield can still be cut.",
+        Icons.Default.Savings),
+    Triple("What did not beat TDEX",
+        "Technical buy signals (RSI, MACD, Bollinger, breakouts), buying after a 5% weekly fall, an SMA 200 trend filter, holding the yield list longer, skipping names down 20%, and market-regime cash rules. Regime rules cut drawdown but also cut return.",
+        Icons.Default.Block),
+    Triple("Swing trades are your plan",
+        "The stop and target on a Swing buy are yours, saved as alerts. Size each trade so a stop loses about 1% of the account, rounded down to 100-share lots, and skip trades under 2:1 net reward to risk.",
+        Icons.AutoMirrored.Filled.TrendingUp),
+    Triple("Indicators, plainly",
+        "RSI: 14-day gains against losses, 0 to 100. MACD: the gap between 12- and 26-day averages and its 9-day signal. SMA 50/200: average closes. Bollinger: 20-day average plus or minus 2 standard deviations. ATR: the average daily range, used for stop distance. They describe price; none was a tested edge here.",
+        Icons.Default.QueryStats),
+    Triple("Keep score",
+        "Record the reason for each exit. History compares the satellite with the same money in TDEX and shows which exit reason lost most each quarter.",
+        Icons.Default.History)
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,222 +90,21 @@ fun TradingEducationScreen(onBack: () -> Unit) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    Text(
-                        text = stringResource(R.string.edu_workflow_title),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = (-1).sp
-                    )
-                    Text(
-                        text = stringResource(R.string.edu_workflow_subtitle),
-                        fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // --- SECTION 1: THE BASICS (Trading Psychology) ---
-                SectionHeader("The Basics", Icons.Default.Shield, color = MaterialTheme.colorScheme.error)
-                
-                GlassCard(
-                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Default.Warning, 
-                            contentDescription = null, 
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                stringResource(R.string.edu_golden_rule_title), 
-                                fontWeight = FontWeight.Black, 
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 16.sp
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                stringResource(R.string.edu_golden_rule_content),
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_risk_mgmt_title),
-                    content = stringResource(R.string.edu_risk_mgmt_content),
-                    color = MaterialTheme.colorScheme.error,
-                    icon = Icons.Default.ContentCut
-                )
-
-                // --- SECTION 2: THE 6-LAYER FILTER SYSTEM ---
-                SectionHeader(stringResource(R.string.title_education_concept), Icons.Default.Layers, color = MaterialTheme.colorScheme.tertiary)
-                
                 Text(
-                    text = stringResource(R.string.edu_5_layers_intro),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 20.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    text = "What the evidence says",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-1).sp,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_layer_1_title),
-                    content = stringResource(R.string.edu_layer_1_content),
-                    color = Color(0xFF4CAF50),
-                    icon = Icons.Default.Verified
-                )
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_layer_2_title),
-                    content = stringResource(R.string.edu_layer_2_content),
-                    color = Color(0xFF2196F3),
-                    icon = Icons.Default.AccountBalanceWallet
-                )
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_layer_3_title),
-                    content = stringResource(R.string.edu_layer_3_content),
-                    color = Color(0xFFFF9800),
-                    icon = Icons.Default.Savings
-                )
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_layer_4_title),
-                    content = stringResource(R.string.edu_layer_4_content),
-                    color = Color(0xFF9C27B0),
-                    icon = Icons.AutoMirrored.Filled.TrendingUp
-                )
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_layer_5_title),
-                    content = stringResource(R.string.edu_layer_5_content),
-                    color = Color(0xFFF44336),
-                    icon = Icons.AutoMirrored.Filled.ShowChart
-                )
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_layer_6_title),
-                    content = stringResource(R.string.edu_layer_6_content),
-                    color = Color(0xFF009688), // Teal color for FLOW
-                    icon = Icons.Default.AccountBalance
-                )
-
-                // --- SECTION 3: THE SENSORS ---
-                SectionHeader(stringResource(R.string.section_the_sensors), Icons.Default.Lightbulb, color = MaterialTheme.colorScheme.secondary)
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_rsi_title),
-                    content = stringResource(R.string.edu_rsi_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.Speed
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_macd_title),
-                    content = stringResource(R.string.edu_macd_content),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.AutoMirrored.Filled.CompareArrows
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_sma_title),
-                    content = stringResource(R.string.edu_sma_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.AutoMirrored.Filled.TrendingUp
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_bollinger_title),
-                    content = stringResource(R.string.edu_bollinger_content),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    icon = Icons.Default.BlurOn
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_obv_title),
-                    content = stringResource(R.string.edu_obv_content),
-                    color = MaterialTheme.colorScheme.secondary,
-                    icon = Icons.Default.Equalizer
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_rs_title),
-                    content = stringResource(R.string.edu_rs_content),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.EmojiEvents
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_52w_title),
-                    content = stringResource(R.string.edu_52w_content),
-                    color = MaterialTheme.colorScheme.error,
-                    icon = Icons.Default.Report
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_atr_title),
-                    content = stringResource(R.string.edu_atr_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.Straighten
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_adx_title),
-                    content = stringResource(R.string.edu_adx_content),
-                    color = MaterialTheme.colorScheme.secondary,
-                    icon = Icons.Default.Waves
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_stoch_title),
-                    content = stringResource(R.string.edu_stoch_content),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.Timer
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_mfi_title),
-                    content = stringResource(R.string.edu_mfi_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.Paid
-                )
-
-                // --- SECTION 4: THE WORKFLOW ---
-                SectionHeader(stringResource(R.string.section_success_path), Icons.AutoMirrored.Filled.MenuBook, color = MaterialTheme.colorScheme.primary)
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_step1_title),
-                    content = stringResource(R.string.edu_step1_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.Search
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_step2_title),
-                    content = stringResource(R.string.edu_step2_content),
-                    color = MaterialTheme.colorScheme.secondary,
-                    icon = Icons.Default.Traffic
-                )
-
-                EducationGlassCard(
-                    title = stringResource(R.string.edu_step3_title),
-                    content = stringResource(R.string.edu_step3_content),
-                    color = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.AssignmentTurnedIn
-                )
-
-                Button(
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 8.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(stringResource(R.string.action_ready_to_trade), fontWeight = FontWeight.Black, fontSize = 16.sp)
+                lessons.forEach { (title, content, icon) ->
+                    EducationGlassCard(title, content, MaterialTheme.colorScheme.primary, icon)
                 }
-                
+                Text(
+                    text = "Backtests use today's SET50 members, so results are biased upward. Details: docs/ADVISOR_EVALUATION.md.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }

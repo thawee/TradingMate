@@ -79,7 +79,6 @@ fun StatsScreen(
     portfolioViewModel: PortfolioViewModel = viewModel(),
     settingsViewModel: SettingsViewModel = viewModel(),
     showSnackbar: (String) -> Unit,
-    onNavigateToBacktest: () -> Unit = {}
 ) {
     val history by portfolioViewModel.tradeHistory.collectAsState()
     val cashBalance by portfolioViewModel.cashBalance.collectAsState()
@@ -209,14 +208,6 @@ fun StatsScreen(
             title = { Text(stringResource(R.string.title_history), fontWeight = FontWeight.Black) },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             actions = {
-                IconButton(onClick = onNavigateToBacktest) {
-                    Icon(
-                        imageVector = Icons.Default.Insights,
-                        contentDescription = stringResource(R.string.title_backtest),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
                 if (history.isNotEmpty()) {
                     IconButton(onClick = { showConfirmDialog = true }) {
                         Icon(
@@ -305,19 +296,6 @@ fun StatsScreen(
                     Spacer(Modifier.height(16.dp))
                     ExitReviewCard(exitReview.first, exitReview.second)
                 }
-            }
-
-            // profit graph for 12 month period
-            item {
-                SectionHeader(
-                    title = "12-Month Profit History",
-                    icon = Icons.Default.History,
-                    subtitle = "Monthly realized profit/loss"
-                )
-            }
-            
-            item {
-                ProfitHistoryChart(last12Months = last12Months)
             }
 
             item {
@@ -592,92 +570,6 @@ fun TradeHistoryCard(trade: TradeEntity, onUndo: (() -> Unit)? = null) {
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfitHistoryChart(last12Months: List<Pair<String, Double>>) {
-    val maxProfit = last12Months.maxOfOrNull { it.second }?.coerceAtLeast(1.0) ?: 1.0
-    val minProfit = last12Months.minOfOrNull { it.second }?.coerceAtMost(-1.0) ?: -1.0
-    val maxAbsValue = maxOf(Math.abs(maxProfit), Math.abs(minProfit))
-    
-    val positiveColor = MaterialTheme.colorScheme.tertiary
-    val negativeColor = MaterialTheme.colorScheme.error
-    val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-    val textColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-
-    GlassCard(
-        modifier = Modifier.fillMaxWidth().height(200.dp),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 32.dp)) {
-            val width = size.width
-            val height = size.height
-            val rightMargin = 32.dp.toPx()
-            val chartWidth = width - rightMargin
-            
-            // Draw zero line
-            val zeroY = height - (height * (0.0 - (-maxAbsValue)) / (2 * maxAbsValue)).toFloat()
-            drawLine(
-                color = gridColor,
-                start = Offset(0f, zeroY),
-                end = Offset(chartWidth, zeroY),
-                strokeWidth = 1.dp.toPx()
-            )
-            
-            // Draw Y-axis labels
-            val labelPaint = android.graphics.Paint().apply {
-                this.color = textColor
-                this.textSize = 10.sp.toPx()
-                this.textAlign = android.graphics.Paint.Align.LEFT
-            }
-            
-            fun formatCompact(v: Double): String {
-                val a = Math.abs(v)
-                val s = if (v < 0) "-" else ""
-                return when {
-                    a >= 1_000_000 -> "$s${String.format(Locale.ENGLISH, "%.1f", a / 1_000_000)}M"
-                    a >= 1_000 -> "$s${String.format(Locale.ENGLISH, "%.1f", a / 1_000)}k"
-                    else -> "$s${String.format(Locale.ENGLISH, "%.0f", a)}"
-                }
-            }
-            
-            drawContext.canvas.nativeCanvas.drawText(formatCompact(maxAbsValue), chartWidth + 4.dp.toPx(), 10.sp.toPx() / 2, labelPaint)
-            drawContext.canvas.nativeCanvas.drawText("0", chartWidth + 4.dp.toPx(), zeroY + 10.sp.toPx() / 2, labelPaint)
-            drawContext.canvas.nativeCanvas.drawText(formatCompact(-maxAbsValue), chartWidth + 4.dp.toPx(), height + 10.sp.toPx() / 2, labelPaint)
-            
-            val barWidth = chartWidth / (last12Months.size * 1.5f)
-            
-            // Draw bars
-            last12Months.forEachIndexed { index, (month, profit) ->
-                val x = (chartWidth / last12Months.size) * index + (chartWidth / last12Months.size) / 2f - barWidth / 2f
-                val profitRatio = Math.abs(profit) / maxAbsValue
-                val barHeight = (height / 2f) * profitRatio.toFloat()
-                val y = if (profit >= 0) zeroY - barHeight else zeroY
-                
-                val color = if (profit >= 0) positiveColor else negativeColor
-                
-                drawRect(
-                    color = color,
-                    topLeft = Offset(x, y),
-                    size = Size(barWidth, barHeight)
-                )
-                
-                // Draw month label
-                val paint = android.graphics.Paint().apply {
-                    this.color = textColor
-                    this.textSize = 10.sp.toPx()
-                    this.textAlign = android.graphics.Paint.Align.CENTER
-                }
-                
-                drawContext.canvas.nativeCanvas.drawText(
-                    month,
-                    x + barWidth / 2f,
-                    height + 20.dp.toPx(),
-                    paint
-                )
             }
         }
     }

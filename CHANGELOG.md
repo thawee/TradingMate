@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed (displayed but not useful)
+- **Backtest (Beta) screen** and its History button. It replayed technical signals one stock at a time; the market-wide test of the same signals trailed TDEX, and per-stock replays invite picking the lucky names. `BacktestEngine` stays for the JVM reports.
+- **RSI Zones** (prices where RSI would reach 35 or 65) on stock detail: untested entry and exit levels.
+- **Watchlist "Signal" sort**: it ranked stocks by untested signals. Symbol and Change % remain.
+- **12-month profit bar chart** on History: it repeated the Realized mode of the cumulative chart.
+- **3D, 7D and 15D returns** on stock detail; 30D stays.
+
+### Changed
+- **Academy** is one page, "What the evidence says": core first, the one rule that passed, what did not beat TDEX, swing trades as your own plan, plain indicator definitions and keeping score. The swing workflow, the 6-layer filter and the indicator nicknames are gone.
+- **Advisor Swing tab** is off by default (Settings > Swing tab in Advisor). While it is off, Swing holding alerts show on the Dividend view.
+
 ### Removed (displayed but unsupported)
 - **VCP, SPRING and MTF chips** on stock cards and in the Advisor legend: never tested directly, and the tested breakout, oversold and trend-filter rules did not beat TDEX. WHALE stays, marked untested.
 - **VaR, CVaR and beta** on History: the card now shows max drawdown and the current drop from peak. The Portfolio sector card loses its beta chip, which was estimated from relative strength rather than price history. The hourly price-history fetch that fed them is gone.

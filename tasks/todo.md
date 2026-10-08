@@ -797,3 +797,14 @@ Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (B
 - [x] 6. WHALE legend: mark untested.
 - [x] Tests, build, emulator check, README/CHANGELOG, commit.
 (Emulator: History shows the Drawdown card, Portfolio shows "Sectors" without beta, stock detail shows the new band labels, no VCP/SPRING/MTF chips on the Watchlist. The Swing dialog text is a string change checked by build only.)
+
+## Displayed but not useful (audit 2, 2026-10-08)
+- [x] A. Education screen: rewrite as one short page (core-satellite, F5, what failed, plain indicator definitions); drop the swing workflow and nicknames.
+- [x] B. Remove the Backtest (Beta) screen and its History entry point.
+- [x] C. Remove RSI Zones (Oversold/Overbought prices) from stock detail.
+- [x] D. Remove the Watchlist "Signal" sort.
+- [x] E. Remove the 12-month bar chart on History (duplicates Realized mode).
+- [x] F. Stock detail period returns: keep 30D only.
+- [x] G. Swing tab in Advisor behind a Settings switch, off by default; Swing holding alerts unaffected.
+- [x] Tests, build (gate commit on gradle exit code), emulator, README/CHANGELOG, commit.
+(Emulator: Academy shows the new page; Advisor shows no tab toggle and MBK under Your holdings; switch on shows Dividend / Swing (context), switched back off; History has no Backtest button or monthly bars; Watchlist sorts Symbol / Change %; stock detail shows 30D only, no RSI Zones.)

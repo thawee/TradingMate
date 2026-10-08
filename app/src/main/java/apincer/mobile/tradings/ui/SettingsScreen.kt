@@ -386,6 +386,23 @@ fun SettingsScreen(
                     }
                     Switch(checked = isEntryAlertsEnabled, onCheckedChange = { settingsViewModel.toggleEntryAlertsEnabled() })
                 }
+
+                val showSwingTab by settingsViewModel.showSwingTab.collectAsState()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Swing tab in Advisor", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Swing setups and filters. The tested swing rules trailed TDEX. Alerts for Swing holdings show on the Dividend view either way.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = showSwingTab, onCheckedChange = { settingsViewModel.toggleShowSwingTab() })
+                }
             }
 
             SectionContent(title = "App Environment", icon = Icons.Default.Settings) {

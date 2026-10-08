@@ -78,8 +78,7 @@ import java.util.Locale
 
 enum class WatchlistSortOrder(val label: String) {
     SYMBOL("Symbol"),
-    CHANGE("Change %"),
-    SIGNAL("Signal")
+    CHANGE("Change %")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,21 +120,10 @@ fun WatchlistScreen(
             }
         }
 
-        // Helper priority rank for Signal sort: BUY (1) > POTENTIAL (2) > SELL (3) > MONITOR (4)
-        fun signalPriority(item: StockWatchlistInfo): Int {
-            return when (item.signal?.type) {
-                apincer.mobile.tradings.domain.IndicatorSignal.BUY -> 1
-                apincer.mobile.tradings.domain.IndicatorSignal.POTENTIAL -> 2
-                apincer.mobile.tradings.domain.IndicatorSignal.SELL -> 3
-                else -> 4
-            }
-        }
-
         // Apply Sorting
         when (sortOrder) {
             WatchlistSortOrder.SYMBOL -> if (isSortAscending) list.sortedBy { it.info.symbol } else list.sortedByDescending { it.info.symbol }
             WatchlistSortOrder.CHANGE -> if (isSortAscending) list.sortedBy { it.info.percentChange } else list.sortedByDescending { it.info.percentChange }
-            WatchlistSortOrder.SIGNAL -> if (isSortAscending) list.sortedByDescending { signalPriority(it) } else list.sortedBy { signalPriority(it) }
         }
     }
 
@@ -266,7 +254,6 @@ fun WatchlistScreen(
                 when (sortOrder) {
                     WatchlistSortOrder.SYMBOL -> item.info.symbol.take(1).uppercase()
                     WatchlistSortOrder.CHANGE -> "${if (item.info.percentChange >= 0) "+" else ""}${item.info.percentChange.toInt()}%"
-                    WatchlistSortOrder.SIGNAL -> item.signal?.type?.badgeLabel ?: "MONITOR"
                 }
             }
         }

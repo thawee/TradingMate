@@ -22,6 +22,7 @@ class PreferenceRepository(private val context: Context) {
     private val IS_PRIVACY_MODE = booleanPreferencesKey("is_privacy_mode")
     private val IS_ATS_ENABLED = booleanPreferencesKey("is_ats_enabled")
     private val IS_ENTRY_ALERTS_ENABLED = booleanPreferencesKey("is_entry_alerts_enabled")
+    private val SHOW_SWING_TAB = booleanPreferencesKey("show_swing_tab")
     private val TARGET_CORE_PERCENT = doublePreferencesKey("target_core_percent")
     private val MONTHLY_DCA_AMOUNT = doublePreferencesKey("monthly_dca_amount")
     private val DCA_DAY_OF_MONTH = intPreferencesKey("dca_day_of_month")
@@ -107,6 +108,15 @@ class PreferenceRepository(private val context: Context) {
         context.settingsDataStore.edit { preferences ->
             preferences[IS_ENTRY_ALERTS_ENABLED] = enabled
         }
+    }
+
+    // Advisor Swing tab. Off by default: the tested swing rules trailed TDEX. Swing holdings
+    // still get their alerts on the Dividend view.
+    val showSwingTab: Flow<Boolean> = context.settingsDataStore.data
+        .map { preferences -> preferences[SHOW_SWING_TAB] ?: false }
+
+    suspend fun setShowSwingTab(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences -> preferences[SHOW_SWING_TAB] = enabled }
     }
 
     // Core-satellite: TDEX core target (% of invested value) and monthly DCA reminder.

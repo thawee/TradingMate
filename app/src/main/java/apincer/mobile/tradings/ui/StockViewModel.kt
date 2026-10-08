@@ -58,8 +58,6 @@ sealed class StockUiState {
         val netProfitPercent: Double? = null,
         val returns: Map<Int, Double> = emptyMap(),
         val zone: TradingZone,
-        val buyingPrice: Double? = null,
-        val sellingPrice: Double? = null,
         val isFocused: Boolean = false,
         val focusStartPrice: Double = 0.0,
         val focusTargetPrice: Double = 0.0,
@@ -76,9 +74,7 @@ data class StockWatchlistInfo(
     val isFocused: Boolean = false,
     val focusStartPrice: Double? = null,
     val focusTargetPrice: Double? = null,
-    val focusMovementPercent: Double? = null,
-    val buyPriceTarget: Double? = null,
-    val sellPriceTarget: Double? = null
+    val focusMovementPercent: Double? = null
 )
 
 data class StockFocusInfo(
@@ -1191,8 +1187,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
                     val zone = TechnicalAnalysis.getTradingZone(rsi, macd.third, updatedInfo.lastPrice, sma50, bb)
 
-                    val buyPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 35.0)
-                    val sellPriceTarget = TechnicalAnalysis.estimatePriceForRSI(prices, 65.0)
 
                     val focusEntry = repository.getFocusStock(symbol)
                     val isFocused = focusEntry != null
@@ -1273,8 +1267,6 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         netProfit, 
                         returns, 
                         zone,
-                        buyPriceTarget,
-                        sellPriceTarget,
                         isFocused,
                         focusStart,
                         focusTarget,

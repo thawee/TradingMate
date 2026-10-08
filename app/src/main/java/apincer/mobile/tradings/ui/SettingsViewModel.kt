@@ -130,6 +130,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    val showSwingTab: StateFlow<Boolean> =
+        preferenceRepository.showSwingTab.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun toggleShowSwingTab() {
+        viewModelScope.launch {
+            preferenceRepository.setShowSwingTab(!showSwingTab.value)
+        }
+    }
+
     val maxRiskPerTrade: StateFlow<Double> = 
         preferenceRepository.maxRiskPerTrade.stateIn(
             scope = viewModelScope,

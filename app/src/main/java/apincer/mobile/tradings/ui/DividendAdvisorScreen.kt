@@ -114,7 +114,8 @@ fun DividendAdvisorScreen(
     val dcaDay by settingsViewModel.dcaDayOfMonth.collectAsState()
     val lastSync = watchlist.mapNotNull { it.info.lastUpdated.takeIf { it.isNotBlank() } }.maxOrNull() ?: "---"
 
-    val playbookMode = alertRoutineState.playbookMode
+    val showSwingTab by settingsViewModel.showSwingTab.collectAsState()
+    val playbookMode = if (showSwingTab) alertRoutineState.playbookMode else PlaybookMode.DIVIDEND
     val swingSellAlerts = alertRoutineState.swingSellAlerts
     val dividendSellAlerts = alertRoutineState.dividendSellAlerts
     val portfolioItems = alertRoutineState.portfolioItems
@@ -152,8 +153,8 @@ fun DividendAdvisorScreen(
                 )
             }
 
-            // Custom segmented glass control selector
-            Surface(
+            // Custom segmented glass control selector, only when the Swing tab is enabled in Settings
+            if (showSwingTab) Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -239,7 +240,11 @@ fun DividendAdvisorScreen(
                     }
 
                     // 2. This tab's holdings, grouped by how soon they need the user.
-                    val tabAlerts = if (playbookMode == PlaybookMode.SWING) swingSellAlerts else dividendSellAlerts
+                    val tabAlerts = when {
+                        playbookMode == PlaybookMode.SWING -> swingSellAlerts
+                        showSwingTab -> dividendSellAlerts
+                        else -> swingSellAlerts + dividendSellAlerts
+                    }
                     HoldingAlertsSection(tabAlerts, onOpen = { viewModel.fetchStockData(it) })
 
                     // 3. The one tested rule: high dividend yield list, forward record and rebalance plan.
