@@ -835,3 +835,19 @@ Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (B
 - [x] 8. Portfolio: drop the holdings table that repeats the stock cards.
 - [x] Build (commit gated on gradle), emulator screenshots, CHANGELOG, one commit per item.
 (Item 7 went further than planned: chips were removed everywhere, not kept on stock detail, since nothing else rendered them; follow-up commit deletes the score and archetype code. calculateSuggestedStopLossPrice kept for AdvisorEventStudy. Tests 232 -> 228.)
+
+## Phone UI/UX review (2026-10-14)
+- [x] Connect to the supplied Android phone and record device/app state (SM-S931B, 1080×2340, 480 dpi, font scale 1.0).
+- [x] Inspect the primary tabs and representative detail/settings flows on the installed app.
+- [x] Check observed issues against Compose code and relevant mobile UI guidance.
+- [x] Report prioritized findings with screen evidence and review limitations.
+
+## Phone UI/UX fixes (2026-10-14)
+- [x] Settings: stage core portfolio edits, validate them, and save with clear feedback.
+- [x] Navigation: show every bottom tab label.
+- [x] Advisor: make Today a compact action summary without repeating holding alert text.
+- [x] Watchlist: shorten the notice and expose its explanation on demand.
+- [x] Portfolio: provide an in-place path to change a monthly plan that buys no board lot.
+- [x] Run unit tests, build, diff checks, and verify the changed flows on the phone.
+
+Verification: `:app:testDebugUnitTest :app:assembleDebug` passed. Installed the final debug APK on SM-S931B. Checked all tab labels, Portfolio edit and cancel, Advisor Today to TRUE detail, Watchlist collapsed and expanded notice, Settings unsaved draft discarded on navigation, and invalid day error. No live investment value was saved during verification.

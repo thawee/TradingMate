@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (phone usability)
+- Settings saves a validated Core Portfolio draft with one action instead of changing values while you type.
+- All five bottom navigation labels stay visible.
+- Advisor Today summarizes holding actions and opens the relevant stock; the full alert remains in Your holdings.
+- Watchlist keeps the technical-signal caveat visible in one line and expands its explanation on request.
+- Portfolio offers Edit monthly amount when the plan cannot buy a board lot of any core fund.
+
 ### Changed (screen polish, round 2)
 - **Advisor** caveats are one line each with a "Why" toggle (high-yield list, forward records, rebalance plan); the red backtest box is gone.
 - **Red means act now.** Sector-cap breaches, the core-below-target bar, rebalance cap notes and the quarter's top losing reason use the monthly-review orange.
