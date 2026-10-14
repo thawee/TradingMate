@@ -25,15 +25,32 @@ class AdvisorTodayTest {
 
     @Test fun itemsOrderActNowThenMonthlyThenCore() {
         val alerts = listOf(
-            HoldingAlert("JMT", AlertLevel.ACT_NOW, "Saved stop reached at ฿12.0"),
-            HoldingAlert("CPALL", AlertLevel.ACT_NOW, "Saved stop ฿45.68 reached"),
-            HoldingAlert("MBK", AlertLevel.MONTHLY, "Left the list"),
-            HoldingAlert("ICHI", AlertLevel.REVIEW, "Review: ROE"))
+            HoldingAlert("JMT", AlertLevel.ACT_NOW),
+            HoldingAlert("CPALL", AlertLevel.ACT_NOW),
+            HoldingAlert("MBK", AlertLevel.MONTHLY),
+            HoldingAlert("ICHI", AlertLevel.REVIEW))
         val items = AdvisorToday.items(alerts, hasDividendHoldings = true, dcaAmount = 5_000.0, dcaDay = 4, today = saturday)
         assertEquals(listOf(AlertLevel.ACT_NOW, AlertLevel.ACT_NOW, AlertLevel.MONTHLY, AlertLevel.MONTHLY), items.map { it.level })
-        assertEquals("JMT: Saved stop reached at ฿12.0. Sell, or open it to hold anyway.", items[0].text)
-        assertEquals("Monthly high-yield review on 2 Nov: sell MBK under the tested rule.", items[2].text)
+        assertEquals("JMT: review exit now.", items[0].text)
+        assertEquals("CPALL: review exit now.", items[1].text)
+        assertEquals("MBK: monthly review on 2 Nov.", items[2].text)
         assertEquals("Core DCA: ฿5,000 into TDEX on 5 Oct.", items[3].text)
+        assertEquals(listOf("JMT", "CPALL", "MBK", null), items.map { it.holdingSymbol })
+    }
+
+    @Test fun eachMonthlyHoldingHasItsOwnActionAndDuplicateAlertsAreCollapsed() {
+        val items = AdvisorToday.items(listOf(
+            HoldingAlert("MBK", AlertLevel.MONTHLY),
+            HoldingAlert("ICHI", AlertLevel.MONTHLY),
+            HoldingAlert("MBK", AlertLevel.MONTHLY),
+            HoldingAlert("JMT", AlertLevel.ACT_NOW),
+            HoldingAlert("JMT", AlertLevel.ACT_NOW)
+        ), hasDividendHoldings = true, dcaAmount = 0.0, dcaDay = 1, today = d("2026-11-02"))
+
+        assertEquals(listOf("JMT", "MBK", "ICHI"), items.map { it.holdingSymbol })
+        assertEquals(listOf(AlertLevel.ACT_NOW, AlertLevel.MONTHLY, AlertLevel.MONTHLY), items.map { it.level })
+        assertEquals(listOf("JMT: review exit now.", "MBK: monthly review today.", "ICHI: monthly review today."),
+            items.map { it.text })
     }
 
     @Test fun quietDaySaysSoAndSkipsWhatDoesNotApply() {

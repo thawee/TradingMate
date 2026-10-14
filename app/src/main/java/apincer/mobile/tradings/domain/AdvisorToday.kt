@@ -10,10 +10,10 @@ import java.util.Locale
  * first, then the monthly high-yield review, then the core DCA date; when no holding needs action it says so.
  */
 object AdvisorToday {
-    data class Item(val level: AlertLevel, val text: String)
+    data class Item(val level: AlertLevel, val text: String, val holdingSymbol: String? = null)
 
     /** A holding alert reduced to what the summary needs. */
-    data class HoldingAlert(val symbol: String, val level: AlertLevel, val firstLine: String)
+    data class HoldingAlert(val symbol: String, val level: AlertLevel)
 
     private val dayMonth = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
 
@@ -46,13 +46,18 @@ object AdvisorToday {
               today: LocalDate): List<Item> {
         val items = mutableListOf<Item>()
         val actNow = alerts.filter { it.level == AlertLevel.ACT_NOW }.distinctBy { it.symbol }
-        actNow.forEach { items += Item(AlertLevel.ACT_NOW, "${it.symbol}: ${it.firstLine}. Sell, or open it to hold anyway.") }
+        actNow.forEach { items += Item(AlertLevel.ACT_NOW, "${it.symbol}: review exit now.", it.symbol) }
         if (actNow.isEmpty()) items += Item(AlertLevel.REVIEW, "No holding needs action today.")
         val monthlySells = alerts.filter { it.level == AlertLevel.MONTHLY }.map { it.symbol }.distinct()
         if (hasDividendHoldings || monthlySells.isNotEmpty()) {
             val review = nextMonthlyReview(today)
-            items += Item(AlertLevel.MONTHLY, "Monthly high-yield review ${on(review, today)}" +
-                (if (monthlySells.isEmpty()) "." else ": sell ${monthlySells.joinToString(", ")} under the tested rule."))
+            if (monthlySells.isEmpty()) {
+                items += Item(AlertLevel.MONTHLY, "Monthly high-yield review ${on(review, today)}.")
+            } else {
+                monthlySells.forEach { symbol ->
+                    items += Item(AlertLevel.MONTHLY, "$symbol: monthly review ${on(review, today)}.", symbol)
+                }
+            }
         }
         if (dcaAmount > 0.0) {
             items += Item(AlertLevel.MONTHLY, String.format(Locale.ENGLISH, "Core DCA: ฿%,.0f into %s %s.",

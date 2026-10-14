@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DoorFront
@@ -66,6 +67,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -229,11 +231,13 @@ fun DividendAdvisorScreen(
                 ) {
                     // 1. Today: what needs the user, most urgent first, across both tabs.
                     val allAlerts = (swingSellAlerts + dividendSellAlerts).map { alert ->
-                        val first = alert.lines.filter { it.level == alert.level }.firstOrNull()?.text ?: alert.reason
-                        apincer.mobile.tradings.domain.AdvisorToday.HoldingAlert(alert.stock.info.symbol.uppercase(), alert.level, first)
+                        apincer.mobile.tradings.domain.AdvisorToday.HoldingAlert(alert.stock.info.symbol.uppercase(), alert.level)
                     }
-                    TodayCard(apincer.mobile.tradings.domain.AdvisorToday.items(
-                        allAlerts, dividendSymbols.isNotEmpty(), dcaAmount, dcaDay, today))
+                    TodayCard(
+                        items = apincer.mobile.tradings.domain.AdvisorToday.items(
+                            allAlerts, dividendSymbols.isNotEmpty(), dcaAmount, dcaDay, today),
+                        onOpen = { viewModel.fetchStockData(it) }
+                    )
 
                     if (playbookMode == PlaybookMode.SWING) {
                         UntestedEdgeNotice()
@@ -295,7 +299,7 @@ fun DividendAdvisorScreen(
 
 /** Most urgent first; when nothing needs action it says so. */
 @Composable
-private fun TodayCard(items: List<apincer.mobile.tradings.domain.AdvisorToday.Item>) {
+private fun TodayCard(items: List<apincer.mobile.tradings.domain.AdvisorToday.Item>, onOpen: (String) -> Unit) {
     GlassCard(
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
@@ -303,10 +307,23 @@ private fun TodayCard(items: List<apincer.mobile.tradings.domain.AdvisorToday.It
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Today", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             items.forEach { item ->
-                Row(verticalAlignment = Alignment.Top) {
+                val actionModifier = item.holdingSymbol?.let { symbol ->
+                    Modifier.heightIn(min = 48.dp).clickable(
+                        role = Role.Button,
+                        onClickLabel = "Open $symbol holding",
+                        onClick = { onOpen(symbol) }
+                    )
+                } ?: Modifier
+                Row(modifier = Modifier.fillMaxWidth().then(actionModifier), verticalAlignment = Alignment.CenterVertically) {
                     Text(alertIcon(item.level), style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.width(8.dp))
-                    Text(item.text, style = MaterialTheme.typography.bodyMedium, color = alertColor(item.level))
+                    Text(item.text, style = MaterialTheme.typography.bodyMedium, color = alertColor(item.level),
+                        modifier = Modifier.weight(1f))
+                    if (item.holdingSymbol != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null,
+                            tint = alertColor(item.level), modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }
