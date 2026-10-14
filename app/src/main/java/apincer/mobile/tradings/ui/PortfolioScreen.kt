@@ -57,6 +57,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -1615,6 +1616,7 @@ fun CoreSatelliteCard(
     onSetupCore: (amount: Double, day: Int) -> Unit = { _, _ -> },
     onBuyCore: (symbol: String, price: Double, shares: Int) -> Unit = { _, _, _ -> }
 ) {
+    var isEditingPlan by rememberSaveable { mutableStateOf(false) }
     val allocation = apincer.mobile.tradings.domain.CoreSatellite.allocation(
         portfolioItems.map { it.info.symbol to it.info.lastPrice * it.portfolio.quantity },
         targetCorePercent
@@ -1678,14 +1680,17 @@ fun CoreSatelliteCard(
             }
 
             Spacer(Modifier.height(12.dp))
-            if (monthlyDcaAmount <= 0.0) {
+            if (monthlyDcaAmount <= 0.0 || isEditingPlan) {
                 // First-run setup: the core is the plan the backtest supports, so it is set up here, not in Settings.
-                var amountText by remember { mutableStateOf("") }
-                var dayText by remember { mutableStateOf(dcaDay.toString()) }
+                var amountText by remember(monthlyDcaAmount, isEditingPlan) {
+                    mutableStateOf(if (monthlyDcaAmount > 0.0) monthlyDcaAmount.toString() else "")
+                }
+                var dayText by remember(dcaDay, isEditingPlan) { mutableStateOf(dcaDay.toString()) }
                 val amount = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }
                 val day = dayText.toIntOrNull()?.takeIf { it in 1..28 }
                 Text(
-                    "Start your index core: put a fixed amount into $coreSymbol every month.",
+                    if (isEditingPlan) "Change the monthly amount for your index core."
+                    else "Start your index core: put a fixed amount into $coreSymbol every month.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -1709,11 +1714,19 @@ fun CoreSatelliteCard(
                 } }
                 Spacer(Modifier.height(8.dp))
                 Button(
-                    onClick = { if (amount != null && day != null) onSetupCore(amount, day) },
+                    onClick = {
+                        if (amount != null && day != null) {
+                            onSetupCore(amount, day)
+                            isEditingPlan = false
+                        }
+                    },
                     enabled = amount != null && day != null,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) { Text("Save monthly plan") }
+                if (isEditingPlan) {
+                    TextButton(onClick = { isEditingPlan = false }) { Text("Cancel") }
+                }
             } else {
                 Text(
                     "Monthly plan: ${baht(monthlyDcaAmount)} on day $dcaDay" + (lotsText(monthlyDcaAmount)?.let { " $it" } ?: ""),
@@ -1724,14 +1737,24 @@ fun CoreSatelliteCard(
                 Spacer(Modifier.height(8.dp))
                 if (plan.size < funds.size) {
                     Text("Loading $coreSymbol prices…", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    plan.forEach { (sym, sug) ->
+                } else {
+                    if (plan.all { (_, suggestion) -> suggestion.shares == 0 }) {
                         Button(
-                            onClick = { onBuyCore(sym, corePrices.getValue(sym), sug.shares) },
-                            enabled = sug.shares > 0,
-                            modifier = Modifier.weight(1f),
+                            onClick = { isEditingPlan = true },
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
-                        ) { Text("Record $sym buy") }
+                        ) { Text("Edit monthly amount") }
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            plan.forEach { (sym, sug) ->
+                                Button(
+                                    onClick = { onBuyCore(sym, corePrices.getValue(sym), sug.shares) },
+                                    enabled = sug.shares > 0,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) { Text("Record $sym buy") }
+                            }
+                        }
                     }
                 }
             }
