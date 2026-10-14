@@ -231,7 +231,7 @@ fun StockScreen(
                                 icon = { Icon(screen.icon, contentDescription = label, modifier = Modifier.size(24.dp)) },
                                 label = { Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp) },
                                 selected = currentScreen == screen,
-                                alwaysShowLabel = false,
+                                alwaysShowLabel = true,
                                 onClick = { 
                                     currentScreen = screen 
                                     viewModel.resetToInitial()
