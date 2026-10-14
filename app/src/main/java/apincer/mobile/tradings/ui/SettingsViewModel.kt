@@ -9,6 +9,24 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.IOException
+
+internal data class CorePortfolioDraft(
+    val corePercent: String,
+    val dcaAmount: String,
+    val dcaDay: String,
+    val secondEtf: String,
+    val secondPercent: String
+) {
+    val corePercentValue = corePercent.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..100.0 }
+    val dcaAmountValue = if (dcaAmount.isBlank()) 0.0 else
+        dcaAmount.toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 }
+    val dcaDayValue = dcaDay.toIntOrNull()?.takeIf { it in 1..31 }
+    val secondEtfValue = secondEtf.trim().uppercase().ifBlank { null }
+    val secondPercentValue = secondPercent.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..100.0 }
+    val isValid = corePercentValue != null && dcaAmountValue != null &&
+        dcaDayValue != null && secondPercentValue != null
+}
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val preferenceRepository = PreferenceRepository(application)
@@ -207,6 +225,21 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateCoreMix(symbol: String?, percent: Double) {
         viewModelScope.launch { preferenceRepository.setCoreMix(symbol, percent) }
+    }
+
+    internal fun saveCorePortfolio(draft: CorePortfolioDraft, onSaved: () -> Unit, onError: () -> Unit) {
+        val corePercent = draft.corePercentValue ?: return
+        val dcaAmount = draft.dcaAmountValue ?: return
+        val dcaDay = draft.dcaDayValue ?: return
+        val secondPercent = draft.secondPercentValue ?: return
+        viewModelScope.launch {
+            try {
+                preferenceRepository.setCorePortfolio(corePercent, dcaAmount, dcaDay, draft.secondEtfValue, secondPercent)
+                onSaved()
+            } catch (_: IOException) {
+                onError()
+            }
+        }
     }
 
     val assessableIncome: StateFlow<Double?> =

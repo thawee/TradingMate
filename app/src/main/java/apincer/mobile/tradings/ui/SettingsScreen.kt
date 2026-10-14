@@ -53,6 +53,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -135,19 +136,31 @@ fun SettingsScreen(
                 val targetCore by settingsViewModel.targetCorePercent.collectAsState()
                 val dcaAmount by settingsViewModel.monthlyDcaAmount.collectAsState()
                 val dcaDay by settingsViewModel.dcaDayOfMonth.collectAsState()
-                var editingCore by remember(targetCore) { mutableStateOf(targetCore.toInt().toString()) }
-                var editingDca by remember(dcaAmount) { mutableStateOf(if (dcaAmount > 0) dcaAmount.toLong().toString() else "") }
-                var editingDay by remember(dcaDay) { mutableStateOf(dcaDay.toString()) }
+                val coreMix by settingsViewModel.coreMix.collectAsState()
+                var editingCore by rememberSaveable(targetCore) { mutableStateOf(targetCore.toString()) }
+                var editingDca by rememberSaveable(dcaAmount) { mutableStateOf(if (dcaAmount > 0) dcaAmount.toString() else "") }
+                var editingDay by rememberSaveable(dcaDay) { mutableStateOf(dcaDay.toString()) }
+                var editingSecond by rememberSaveable(coreMix) { mutableStateOf(coreMix.first ?: "") }
+                var editingSecondPct by rememberSaveable(coreMix) { mutableStateOf(coreMix.second.toString()) }
+                var savingCore by remember { mutableStateOf(false) }
+                var coreSaved by remember { mutableStateOf(false) }
+                val draft = CorePortfolioDraft(editingCore, editingDca, editingDay, editingSecond, editingSecondPct)
+                val coreChanged = draft.corePercentValue != targetCore || draft.dcaAmountValue != dcaAmount ||
+                    draft.dcaDayValue != dcaDay || draft.secondEtfValue != coreMix.first ||
+                    draft.secondPercentValue != coreMix.second
 
                 OutlinedTextField(
                     value = editingCore,
                     onValueChange = {
                         editingCore = it
-                        it.toDoubleOrNull()?.let { percent -> settingsViewModel.updateTargetCorePercent(percent) }
+                        coreSaved = false
                     },
+                    enabled = !savingCore,
+                    isError = draft.corePercentValue == null,
+                    supportingText = if (draft.corePercentValue == null) ({ Text("Enter a percentage from 0 to 100.") }) else null,
                     label = { Text("Target Core Allocation") },
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     suffix = { Text("%") },
                     shape = RoundedCornerShape(14.dp)
                 )
@@ -164,11 +177,14 @@ fun SettingsScreen(
                     value = editingDca,
                     onValueChange = {
                         editingDca = it
-                        settingsViewModel.updateMonthlyDcaAmount(it.toDoubleOrNull() ?: 0.0)
+                        coreSaved = false
                     },
+                    enabled = !savingCore,
+                    isError = draft.dcaAmountValue == null,
+                    supportingText = if (draft.dcaAmountValue == null) ({ Text("Enter a nonnegative amount or leave blank to turn reminders off.") }) else null,
                     label = { Text("Monthly DCA Amount") },
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     prefix = { Text("฿") },
                     shape = RoundedCornerShape(14.dp)
                 )
@@ -179,30 +195,33 @@ fun SettingsScreen(
                     value = editingDay,
                     onValueChange = {
                         editingDay = it
-                        it.toIntOrNull()?.let { day -> settingsViewModel.updateDcaDayOfMonth(day) }
+                        coreSaved = false
                     },
+                    enabled = !savingCore,
+                    isError = draft.dcaDayValue == null,
+                    supportingText = if (draft.dcaDayValue == null) ({ Text("Enter a day from 1 to 31.") }) else null,
                     label = { Text("DCA Day of Month") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(14.dp)
                 )
                 Text(
-                    text = "On this day (or the next trading day) you get a reminder with the board lots your amount buys for each core fund, fees included. Leave the amount empty to turn the reminder off.",
+                    text = "On this day (or the next trading day) you get a reminder with the board lots your amount buys for each core fund, fees included. Leave the amount empty and save to turn the reminder off.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                 )
 
                 // Optional second core ETF, e.g. 1DIV (SET High Dividend 30): the core becomes a mix with TDEX.
-                val coreMix by settingsViewModel.coreMix.collectAsState()
-                var editingSecond by remember(coreMix) { mutableStateOf(coreMix.first ?: "") }
-                var editingSecondPct by remember(coreMix) { mutableStateOf(coreMix.second.toInt().toString()) }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = editingSecond,
-                        // Saved with the button below: saving per keystroke re-keyed this field and scrambled typing.
-                        onValueChange = { editingSecond = it.uppercase() },
+                        onValueChange = {
+                            editingSecond = it.uppercase()
+                            coreSaved = false
+                        },
+                        enabled = !savingCore,
                         label = { Text("Second core ETF (optional)") },
                         placeholder = { Text("e.g. 1DIV") },
                         singleLine = true,
@@ -211,23 +230,47 @@ fun SettingsScreen(
                     )
                     OutlinedTextField(
                         value = editingSecondPct,
-                        onValueChange = { editingSecondPct = it },
+                        onValueChange = {
+                            editingSecondPct = it
+                            coreSaved = false
+                        },
+                        enabled = !savingCore,
+                        isError = draft.secondPercentValue == null,
+                        supportingText = if (draft.secondPercentValue == null) ({ Text("Use 0 to 100%.") }) else null,
                         label = { Text("Share") },
                         suffix = { Text("%") },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
                     )
                 }
-                val pctValue = editingSecondPct.toDoubleOrNull()?.takeIf { it in 0.0..100.0 }
-                val changed = editingSecond.ifBlank { null } != coreMix.first || pctValue != coreMix.second
-                if (changed) {
-                    TextButton(
-                        onClick = { settingsViewModel.updateCoreMix(editingSecond.ifBlank { null }, pctValue ?: 50.0) },
-                        enabled = pctValue != null
-                    ) { Text("Save core mix") }
-                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        savingCore = true
+                        settingsViewModel.saveCorePortfolio(
+                            draft,
+                            onSaved = {
+                                savingCore = false
+                                coreSaved = true
+                                showSnackbar("Core portfolio saved.")
+                            },
+                            onError = {
+                                savingCore = false
+                                showSnackbar("Could not save core portfolio. Please try again.")
+                            }
+                        )
+                    },
+                    enabled = coreChanged && draft.isValid && !savingCore,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (savingCore) "Saving…" else "Save core portfolio") }
+                Text(
+                    text = if (coreSaved) "Core portfolio saved." else "Changes apply when you save core portfolio.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                )
                 Text(
                     text = "TDEX holds the rest of the core. 1DIV (SET High Dividend 30 ETF) returned 3.86% a year vs TDEX 2.55% over 2015-2025, ahead in 2021-2025 but behind in 2015-2020 and 2012-2014. Leave blank for TDEX only.",
                     style = MaterialTheme.typography.bodySmall,

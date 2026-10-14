@@ -220,6 +220,17 @@ class PreferenceRepository(private val context: Context) {
         }
     }
 
+    suspend fun setCorePortfolio(corePercent: Double, dcaAmount: Double, dcaDay: Int, secondEtf: String?, secondPercent: Double) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[TARGET_CORE_PERCENT] = corePercent
+            preferences[MONTHLY_DCA_AMOUNT] = dcaAmount
+            preferences[DCA_DAY_OF_MONTH] = dcaDay
+            if (secondEtf == null) preferences.remove(SECOND_CORE_SYMBOL)
+            else preferences[SECOND_CORE_SYMBOL] = secondEtf
+            preferences[SECOND_CORE_PERCENT] = secondPercent
+        }
+    }
+
     /** This year's assessable income for the 30% tax-fund caps; null until set. */
     val assessableIncome: Flow<Double?> = context.settingsDataStore.data
         .map { it[ASSESSABLE_INCOME]?.takeIf { v -> v.isFinite() && v > 0.0 } }
