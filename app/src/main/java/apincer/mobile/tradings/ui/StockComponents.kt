@@ -49,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +60,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1158,32 +1161,55 @@ fun MiniSparkline(
  * small text (see tasks/lessons.md #5). Source: tools/backtest/report.md.
  */
 @Composable
-fun UntestedEdgeNotice(modifier: Modifier = Modifier) {
+fun UntestedEdgeNotice(modifier: Modifier = Modifier, compact: Boolean = false) {
+    var showExplanation by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = if (compact) 0.dp else 12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
             Icon(
                 Icons.Default.Info, contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.padding(top = if (compact) 15.dp else 0.dp).size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    "Context, not a buy call",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Text(
-                    "In a 2015-2025 backtest across SET50 stocks, these technical entry signals " +
-                        "trailed simply holding TDEX. Use them to study a stock; build wealth with your index core.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (compact) "Signals trailed TDEX" else "Context, not a buy call",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    if (compact) {
+                        TextButton(
+                            onClick = { showExplanation = !showExplanation },
+                            modifier = Modifier.semantics {
+                                stateDescription = if (showExplanation) "Expanded" else "Collapsed"
+                            },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Text(if (showExplanation) "Hide" else "Why?")
+                        }
+                    }
+                }
+                if (!compact || showExplanation) {
+                    Text(
+                        "In a 2015-2025 backtest across SET50 stocks, these technical entry signals " +
+                            "trailed simply holding TDEX. Use them to study a stock; build wealth with your index core.",
+                        modifier = if (compact) Modifier.padding(bottom = 12.dp) else Modifier,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
             }
         }
     }
