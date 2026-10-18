@@ -369,12 +369,12 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
             val swingSellAlerts = mutableListOf<SellAlertData>()
             val dividendSellAlerts = mutableListOf<SellAlertData>()
 
-            portfolioItems.forEach { stock ->
+            portfolioItems.filter { it.portfolio.quantity >= apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES }.forEach { stock ->
                 val tradePurpose = stock.portfolio.tradePurpose
 
                 var applySwingLogic = true
 
-                if (tradePurpose == "DIVIDEND") {
+                if (tradePurpose == "DIVIDEND" && !apincer.mobile.tradings.domain.CoreSatellite.isCore(stock.info.symbol)) {
                     // Tested high-yield rule: exits are a saved stop or leaving the ranked list; the rest are review notes.
                     applySwingLogic = false
                     val fixedPlan = stock.portfolio.portfolio.exitPolicy == "FIXED_TARGET"
@@ -390,6 +390,13 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         // One alert per holding (alerts are de-duplicated by symbol): exits first, then reviews.
                         dividendSellAlerts.add(SellAlertData(stock, notes.joinToString("\n") { it.reason },
                             notes.map { AlertLine(it.level, it.reason) }))
+                    }
+                } else if (apincer.mobile.tradings.domain.CoreSatellite.isCore(stock.info.symbol)) {
+                    applySwingLogic = false
+                    if (stock.portfolio.portfolio.exitPolicy != "FIXED_TARGET" &&
+                        stock.portfolio.stopLoss > 0 && stock.info.lastPrice <= stock.portfolio.stopLoss) {
+                        val targetAlerts = if (tradePurpose == "DIVIDEND") dividendSellAlerts else swingSellAlerts
+                        targetAlerts.add(SellAlertData(stock, "Saved stop ฿${String.format(java.util.Locale.ENGLISH, "%.2f", stock.portfolio.stopLoss)} reached"))
                     }
                 }
 
@@ -417,7 +424,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 // Dividend holdings carry the flags in their notes; other holdings get them as review lines.
-                if (tradePurpose != "DIVIDEND") accountingFlags[stock.info.symbol.uppercase()]?.let { flags ->
+                if (tradePurpose != "DIVIDEND" && !apincer.mobile.tradings.domain.CoreSatellite.isCore(stock.info.symbol)) accountingFlags[stock.info.symbol.uppercase()]?.let { flags ->
                     val review = flags.map { AlertLine(apincer.mobile.tradings.domain.AlertLevel.REVIEW, "Review: $it") }
                     val i = swingSellAlerts.indexOfFirst { it.stock.info.symbol == stock.info.symbol }
                     if (i >= 0) swingSellAlerts[i] = swingSellAlerts[i].let { it.copy(lines = it.lines + review) }
@@ -564,7 +571,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                             throw IllegalStateException("No valid technical history returned")
                                         }
 
-                                        val signal = if (needsIndicators) {
+                                        val rawSignal = if (needsIndicators) {
+                                            val held = latestStock.portfolio
+                                            val userStopLoss = if (held.stopLoss > 0.0 && held.cost > 0.0 && held.stopLoss < held.cost)
+                                                (held.stopLoss - held.cost) / held.cost * 100.0 else null
                                             TechnicalAnalysis.getDetailedSignal(
                                                 rsi = indicators.rsi, 
                                                 macdHist = indicators.histogram, 
@@ -579,12 +589,19 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 stochK = indicators.stochK,
                                                 stochD = indicators.stochD,
                                                 mfi = indicators.mfi,
-                                                userCost = if (stock.cost > 0) stock.cost else null,
-                                                userQuantity = if (stock.quantity > 0) stock.quantity else null,
+                                                userCost = if (held.quantity > 0) held.cost else null,
+                                                userQuantity = if (held.quantity > 0) held.quantity else null,
                                                 isFundamentalGood = info.isFundamentalGood,
-                                                tradePurpose = stock.tradePurpose,
+                                                tradePurpose = held.tradePurpose,
                                                 dividendYield = info.dividendYield,
                                                 roe = info.roe,
+                                                peakPrice = held.peakPrice.takeIf { it > 0.0 },
+                                                isSet50 = apincer.mobile.tradings.domain.MarketLists.isSet50(stock.symbol.uppercase()),
+                                                userStopLoss = userStopLoss,
+                                                relativeStrength = indicators.relativeStrength,
+                                                nvdrNetVolume = info.nvdrNetVolume ?: latestStock.signal?.nvdrNetVolume,
+                                                nvdrNetValue = info.nvdrNetValue ?: latestStock.signal?.nvdrNetValue,
+                                                isNearXdDate = TechnicalAnalysis.isNearExDividendDate(info.dividendDate),
                                                 isWeeklyTrendBullish = indicators.weeklyTrendBullish,
                                                 userBuyFees = latestStock.buyFees,
                                                 atsEnabled = isAtsEnabled.value
@@ -596,6 +613,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 description = latestStock.signalDescription ?: ""
                                             )
                                         }
+                                        val held = latestStock.portfolio
+                                        val signal = apincer.mobile.tradings.domain.HoldingSignal.resolve(
+                                            held.symbol, held.quantity, held.tradePurpose, held.stopLoss,
+                                            info.lastPrice, held.exitPolicy, { held.toTradePlan() }, rawSignal
+                                        ) ?: rawSignal
 
                                         val cache = latestStock.cache ?: apincer.mobile.tradings.data.StockCacheEntity(latestStock.symbol)
                                         repository.updateStockCache(
@@ -770,7 +792,10 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                         if (needsIndicators && (indicators.rsi == null || indicators.histogram == null)) {
                                             throw IllegalStateException("No valid technical history returned")
                                         }
-                                        val signal = if (needsIndicators) {
+                                        val rawSignal = if (needsIndicators) {
+                                            val held = latestStock.portfolio
+                                            val userStopLoss = if (held.stopLoss > 0.0 && held.cost > 0.0 && held.stopLoss < held.cost)
+                                                (held.stopLoss - held.cost) / held.cost * 100.0 else null
                                             TechnicalAnalysis.getDetailedSignal(
                                                 rsi = indicators.rsi, macdHist = indicators.histogram,
                                                 lastPrice = info.lastPrice, sma50 = indicators.sma50,
@@ -782,11 +807,18 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 stochK = indicators.stochK,
                                                 stochD = indicators.stochD,
                                                 mfi = indicators.mfi,
-                                                userCost = if (stock.cost > 0) stock.cost else null,
-                                                userQuantity = if (stock.quantity > 0) stock.quantity else null,
+                                                userCost = if (held.quantity > 0) held.cost else null,
+                                                userQuantity = if (held.quantity > 0) held.quantity else null,
                                                 isFundamentalGood = info.isFundamentalGood,
-                                                tradePurpose = stock.tradePurpose,
+                                                tradePurpose = held.tradePurpose,
                                                 dividendYield = info.dividendYield, roe = info.roe,
+                                                peakPrice = held.peakPrice.takeIf { it > 0.0 },
+                                                isSet50 = apincer.mobile.tradings.domain.MarketLists.isSet50(stock.symbol.uppercase()),
+                                                userStopLoss = userStopLoss,
+                                                relativeStrength = indicators.relativeStrength,
+                                                nvdrNetVolume = info.nvdrNetVolume ?: latestStock.signal?.nvdrNetVolume,
+                                                nvdrNetValue = info.nvdrNetValue ?: latestStock.signal?.nvdrNetValue,
+                                                isNearXdDate = TechnicalAnalysis.isNearExDividendDate(info.dividendDate),
                                                 isWeeklyTrendBullish = indicators.weeklyTrendBullish,
                                                 userBuyFees = latestStock.buyFees,
                                                 atsEnabled = isAtsEnabled.value
@@ -798,6 +830,11 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                                                 description = latestStock.signalDescription ?: ""
                                             )
                                         }
+                                        val held = latestStock.portfolio
+                                        val signal = apincer.mobile.tradings.domain.HoldingSignal.resolve(
+                                            held.symbol, held.quantity, held.tradePurpose, held.stopLoss,
+                                            info.lastPrice, held.exitPolicy, { held.toTradePlan() }, rawSignal
+                                        ) ?: rawSignal
                                         val cache = latestStock.cache ?: apincer.mobile.tradings.data.StockCacheEntity(latestStock.symbol)
                                         repository.updateStockCache(cache.copy(
                                             name = info.name ?: cache.name, sector = info.sector ?: cache.sector,
@@ -912,7 +949,8 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
                         preferenceRepository.maxPortfolioAllocation.first(),
                         preferenceRepository.maxSectorAllocation.first(),
                         TechnicalAnalysis.getRecommendedCashBufferPercent(_marketRegime.value),
-                        preferenceRepository.minRiskRewardRatio.first()
+                        preferenceRepository.minRiskRewardRatio.first(),
+                        preferenceRepository.maxOpenExposure.first()
                     )
                     repository.executeBuy(symbol, cost, quantity, tradePurpose, fees, stopLoss,
                         playbookNote, targetPrice, riskLimits, isAtsEnabled.value, recordExecutedFill)

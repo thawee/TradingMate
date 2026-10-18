@@ -50,10 +50,11 @@ data class ScrapedStockInfo(
         } else null
 
     val isFundamentalGood: Boolean
-        get() = (roe ?: 0.0) > 15.0 && 
-                (debtToEquity ?: 100.0) < 1.5 && 
-                (netProfitMargin ?: 0.0) > 10.0 &&
-                (profitGrowth3Y ?: 0.0) > 10.0
+        get() = (roe ?: 0.0) > apincer.mobile.tradings.domain.TradingConstants.QUALITY_ROE_MIN &&
+                (apincer.mobile.tradings.ui.StockDna.isFinancialSector(sector) ||
+                    debtToEquity?.let { it >= apincer.mobile.tradings.domain.TradingConstants.QUALITY_DE_MAX } != true) &&
+                netProfitMargin?.let { it <= apincer.mobile.tradings.domain.TradingConstants.QUALITY_NPM_MIN } != true &&
+                profitGrowth3Y?.let { it < apincer.mobile.tradings.domain.TradingConstants.QUALITY_PROFIT_GROWTH_3Y_MIN } != true
 
     val isPartialData: Boolean
         get() = (name.isNullOrBlank() && nameTH.isNullOrBlank()) || lastPrice == 0.0 || (pe == null && pbv == null)

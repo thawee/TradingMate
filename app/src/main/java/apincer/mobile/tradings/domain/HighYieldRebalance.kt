@@ -33,7 +33,7 @@ object HighYieldRebalance {
              stockCapPercent: Double, sectorCapPercent: Double, atsEnabled: Boolean,
              topN: Int = HighYieldList.TOP_N): Plan {
         val top = ranked.map { it.uppercase() }.distinct().take(topN)
-        val satellite = holdings.filter { it.shares > 0 && !CoreSatellite.isCore(it.symbol) }
+        val satellite = holdings.filter { it.shares >= HoldingSignal.BOARD_LOT_SHARES && !CoreSatellite.isCore(it.symbol) }
         val managed = satellite.filter { it.managed }
         fun value(h: Holding) = h.shares * (h.price?.takeIf { it > 0.0 } ?: h.costPerShare)
         val managedValue = managed.sumOf { value(it) }

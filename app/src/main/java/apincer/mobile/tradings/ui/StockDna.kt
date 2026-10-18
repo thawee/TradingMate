@@ -16,8 +16,8 @@ data class CandidateAssessment(val status: CandidateStatus, val reasons: List<St
 object StockDna {
 
     /**
-     * Layer 1 — Quality: management efficiency and profitability.
-     * ROE > 15% (mandatory), NPM > 10%, D/E < 1.5, 3Y profit growth > 10%.
+     * Layer 1 — Quality: management efficiency and profitability calibrated for SET.
+     * ROE > 10% (mandatory), NPM > 5%, non-financial D/E < 2.0, 3Y profit growth >= 0%.
      * NPM / D/E / growth are null-tolerant: missing data does not disqualify,
      * only a value that actively fails the threshold does.
      */
@@ -25,9 +25,9 @@ object StockDna {
         val info = s.info
         if ((info.roe ?: 0.0) <= TradingConstants.QUALITY_ROE_MIN) return false
         // Banks, finance and insurers run on leverage, so debt-to-equity says nothing about their quality.
-        if (!isFinancialSector(info.sector) && info.debtToEquity?.let { it >= 1.5 } == true) return false
-        if (info.netProfitMargin?.let { it <= 10.0 } == true) return false
-        if (info.profitGrowth3Y?.let { it <= 10.0 } == true) return false
+        if (!isFinancialSector(info.sector) && info.debtToEquity?.let { it >= TradingConstants.QUALITY_DE_MAX } == true) return false
+        if (info.netProfitMargin?.let { it <= TradingConstants.QUALITY_NPM_MIN } == true) return false
+        if (info.profitGrowth3Y?.let { it < TradingConstants.QUALITY_PROFIT_GROWTH_3Y_MIN } == true) return false
         return true
     }
 

@@ -5,7 +5,8 @@ data class TradeRiskLimits(
     val stockAllocationPercent: Double,
     val sectorAllocationPercent: Double,
     val cashReservePercent: Double,
-    val minNetRewardRiskRatio: Double = 2.0
+    val minNetRewardRiskRatio: Double = 2.0,
+    val maxOpenRiskPercent: Double = Double.POSITIVE_INFINITY
 )
 
 data class TradeRiskInput(
@@ -19,7 +20,8 @@ data class TradeRiskInput(
     val existingSectorValue: Double?,
     val atsEnabled: Boolean,
     val targetPrice: Double? = null,
-    val requireMinimumNetReward: Boolean = false
+    val requireMinimumNetReward: Boolean = false,
+    val existingOpenRisk: Double = 0.0
 )
 
 /** [reasons] block the buy; [warnings] are shown but do not block. */
@@ -37,7 +39,8 @@ object TradeRiskPolicy {
             !limits.stockAllocationPercent.isFinite() || limits.stockAllocationPercent <= 0.0 ||
             !limits.sectorAllocationPercent.isFinite() || limits.sectorAllocationPercent <= 0.0 ||
             !limits.cashReservePercent.isFinite() || limits.cashReservePercent < 0.0 ||
-            !limits.minNetRewardRiskRatio.isFinite() || limits.minNetRewardRiskRatio < 1.0) {
+            !limits.minNetRewardRiskRatio.isFinite() || limits.minNetRewardRiskRatio < 1.0 ||
+            (!limits.maxOpenRiskPercent.isInfinite() && (!limits.maxOpenRiskPercent.isFinite() || limits.maxOpenRiskPercent <= 0.0))) {
             return TradeRiskResult(listOf("Risk settings are invalid; review them in Settings"))
         }
         if (!input.entryPrice.isFinite() || !input.stopPrice.isFinite() ||
@@ -61,6 +64,9 @@ object TradeRiskPolicy {
         }
         if (lossAtStop > input.accountEquity * limits.riskPercent / 100.0 + 0.01)
             reasons.add("Stop-loss risk exceeds the configured per-trade budget")
+        if (limits.maxOpenRiskPercent.isFinite() &&
+            input.existingOpenRisk + lossAtStop > input.accountEquity * limits.maxOpenRiskPercent / 100.0 + 0.01)
+            reasons.add("Total open stop-loss risk exceeds the configured max open risk exposure")
         if (input.existingStockValue + input.entryPrice * input.quantity >
             input.accountEquity * limits.stockAllocationPercent / 100.0 + 0.01)
             reasons.add("Combined holding exceeds the single-stock allocation limit")
@@ -86,12 +92,13 @@ object TradeRiskPolicy {
      */
     fun largestFit(entryPrice: Double, stopPrice: Double, accountEquity: Double, cashBalance: Double,
                    existingStockValue: Double, existingSectorValue: Double?, atsEnabled: Boolean,
-                   limits: TradeRiskLimits): TradeRiskFit {
+                   limits: TradeRiskLimits, existingOpenRisk: Double = 0.0): TradeRiskFit {
         if (!cashBalance.isFinite() || !existingStockValue.isFinite() || existingSectorValue?.isFinite() == false)
             return TradeRiskFit(0, "Cash or holding values are unavailable")
         fun check(lots: Int) = evaluate(TradeRiskInput(entryPrice, stopPrice, lots * 100,
             TechnicalAnalysis.calculateFees(entryPrice * lots * 100, false, atsEnabled),
-            accountEquity, cashBalance, existingStockValue, existingSectorValue, atsEnabled), limits)
+            accountEquity, cashBalance, existingStockValue, existingSectorValue, atsEnabled,
+            existingOpenRisk = existingOpenRisk), limits)
         val first = check(1)
         if (!first.allowed) return TradeRiskFit(0, first.reasons.first())
         // check(lo) passes; check(hi) fails because the purchase alone exceeds cash.

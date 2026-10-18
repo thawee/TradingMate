@@ -121,6 +121,22 @@ class TradeRiskPolicyTest {
         assertTrue(TradeRiskPolicy.largestFit(10.0, 9.7, 10_000.0, 10_000.0, 0.0, 0.0, true, limits).quantity >= 100)
     }
 
+    @Test fun maxOpenRiskExposureBlocksWhenCombinedStopRiskExceedsCap() {
+        val cappedLimits = limits.copy(maxOpenRiskPercent = 2.0) // 2,000 baht on 100,000 equity
+        // New trade risks ~530 baht at stop (100 shares @ 100 -> stop 95 + fees).
+        val baseInput = TradeRiskInput(100.0, 95.0, 100, 15.0, 100_000.0, 50_000.0,
+            0.0, 0.0, true, existingOpenRisk = 1_400.0)
+        assertTrue(TradeRiskPolicy.evaluate(baseInput, cappedLimits).allowed)
+
+        val overInput = baseInput.copy(existingOpenRisk = 1_600.0)
+        val result = TradeRiskPolicy.evaluate(overInput, cappedLimits)
+        assertFalse(result.allowed)
+        assertEquals(listOf("Total open stop-loss risk exceeds the configured max open risk exposure"), result.reasons)
+
+        assertFalse(TradeRiskPolicy.evaluate(baseInput, limits.copy(maxOpenRiskPercent = Double.NaN)).allowed)
+        assertFalse(TradeRiskPolicy.evaluate(baseInput, limits.copy(maxOpenRiskPercent = -1.0)).allowed)
+    }
+
     @Test fun largestFitMatchesALinearScan() {
         for (entry in listOf(1.5, 4.2, 10.0, 37.25, 120.0, 480.0))
             for (stopFraction in listOf(0.8, 0.93, 0.98))

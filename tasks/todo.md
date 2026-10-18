@@ -851,3 +851,26 @@ Survey (item 2): SET lists S&P 500 DRs SP500US19 (Yuanta, on SPY) and SP50001 (B
 - [x] Run unit tests, build, diff checks, and verify the changed flows on the phone.
 
 Verification: `:app:testDebugUnitTest :app:assembleDebug` passed. Installed the final debug APK on SM-S931B. Checked all tab labels, Portfolio edit and cancel, Advisor Today to TRUE detail, Watchlist collapsed and expanded notice, Settings unsaved draft discarded on navigation, and invalid day error. No live investment value was saved during verification.
+
+## Phone widget UI/UX follow-up (2026-10-14)
+- [x] Inspect the widget provider, data, sizing, accessibility, and its actual state on the supplied phone.
+- [x] Fix the widget issues found, keeping the change focused and matching the app's visual language.
+- [ ] Run relevant tests/build, inspect the diff, install, and verify the widget on the phone.
+
+## Functional audit & bug fixes (2026-10-18)
+- [x] 1. Foreground refresh (`refreshWatchlistInfo` & `refreshPortfolioOnly` in `StockViewModel.kt`): pass full parameters (`peakPrice`, `isSet50`, `userStopLoss`, `relativeStrength`, `nvdrNetVolume`, `nvdrNetValue`, `isNearXdDate`) and resolve via `HoldingSignal.resolve` before saving `stock_signal` to Room.
+- [x] 2. Home-screen widget (`TradingMateWidget.kt`): align `alertCount` with `HoldingSignal.resolve`, `DividendExitPolicy` (`highYieldList` top-10 membership & saved stop), `ExitPolicyEvaluator` (`FIXED_TARGET`), and `stop_ack_` ("Hold anyway" acknowledgement, including swing `STOP` signals); sum `sellFees` per position instead of a single lump-sum order.
+- [x] 3. Core ETF filter (`StockViewModel.kt` & `DividendAdvisorScreen.kt`): exclude `CoreSatellite.isCore(symbol)` from `DividendExitPolicy.notes` and `dividendSymbols` so Core ETFs (`TDEX`/`1DIV`) recorded with `DIVIDEND` purpose never trigger *"Left the high dividend yield top 10: sell at the monthly review"*.
+- [x] 4. Gemini OCR & AI Settings (`PortfolioScreen.kt`, `GeminiClient.kt`, `SettingsScreen.kt`): pass user-selected `geminiModel` from DataStore to `GeminiClient.extractTradeScreenshot`, update `GeminiModel` enum & defaults to valid multimodal Gemini model IDs (`gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-2.5-pro`), update stale AI copy in `SettingsScreen.kt`, and remove unused `GeminiClient.analyze`.
+- [x] 5. Orphaned Settings (`SettingsScreen.kt`, `StockAlertWorker.kt`, `TradeRiskPolicy.kt`, `StockRepository.kt`, `PortfolioScreen.kt`, `StockViewModel.kt`):
+  - Wire `dividendAlertWindow` and `isDividendAlertEndYear` in `StockAlertWorker` XD alert checks.
+  - Wire `maxOpenExposure` in `TradeRiskPolicy`, `PortfolioScreen`, `StockViewModel`, and `StockRepository.executeBuy` to enforce aggregate open stop-loss risk across holdings.
+  - Remove dead `priceAlertThreshold` UI field from `SettingsScreen.kt` (target/stop alerts are evaluated directly by `ExitPolicyEvaluator` and `HoldingSignal`).
+- [x] 6. Aggregate portfolio sell fees (`PortfolioScreen.kt`): sum `TechnicalAnalysis.calculateFees` per position rather than on the combined `stockValue` so non-ATS ฿50 minimum commissions match individual position cards.
+- [x] 7. Background worker market regime (`StockAlertWorker.kt`): compute `isMarketBearish` once from `SetScraper.fetchSetIndexHistory()` + `TechnicalAnalysis.getMarketRegime(...)` and pass it into `shouldNotifyEntrySignal`.
+- [x] 8. Snapshot retention (`StockAlertWorker.kt`): retain 365 days (1 year) of `portfolio_snapshot` rows instead of pruning after 30 days so the MTM NAV chart and Peak-to-Trough Max Drawdown card in `StatsScreen.kt` preserve multi-month/annual history.
+- [x] 9. Watchlist default sort order (`WatchlistScreen.kt`): initialize `isSortAscending = true` so `WatchlistSortOrder.SYMBOL` sorts `A → Z` on launch.
+- [x] 10. Add/update unit tests, run `:app:testDebugUnitTest` and `:app:assembleDebug`, and invoke `reviewer` subagent to verify the diff.
+- [x] 11. Calibrate Advisor / Stock DNA / Signal rules for Thai SET (`TradingConstants.kt`, `TechnicalAnalysis.kt`, `StockDna.kt`, `SetScraper.kt`, `AdvisorFilters.kt`) and update [`docs/INDICATORS.md`](file:///Users/thawee.p/Workspaces/github/tradingMate/docs/INDICATORS.md) & [`docs/REQUIREMENTS.md`](file:///Users/thawee.p/Workspaces/github/tradingMate/docs/REQUIREMENTS.md).
+- [x] 12. Simplify Advisor into a 3-step guided flow (`DividendAdvisorScreen.kt`, `AdvisorFilterExplorer.kt`) and add plain-language `TDEX` / Core vs. Satellite explanation in `PortfolioScreen.kt`.
+- [x] 13. Ignore odd-lot holdings (`< 100` shares, e.g. `2 MBK`) for sell/rebalance alerts across `HoldingSignal`, `HighYieldRebalance`, `StockViewModel`, `DividendAdvisorScreen`, `TradingMateWidget`, and `StockAlertWorker`; avoid ฿50 minimum fee distortion on odd lots; add 1-tap `Odd Lot / Clear 🧹` in `SellStockDialog`; bump version to `4.2.0` (`versionCode = 31`), update docs/changelog, commit, push to `main`, and install on phone (`192.168.1.54:42841`).

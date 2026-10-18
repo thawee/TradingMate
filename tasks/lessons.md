@@ -31,3 +31,8 @@ Querying a pulled `stock_database` with `sqlite3` checkpointed its WAL into the 
 ## 10. uiautomator dump is not a timing probe
 - Pattern: I timed the refresh spinner by polling `uiautomator dump` for a ProgressBar and reported 193 s -> 4 s. The dump fails while an animation runs and leaves the previous /sdcard/u.xml in place, and the wide Core vs Satellite LinearProgressIndicator also counts as a ProgressBar. The real numbers were 182 s -> 31 s (broken DNS) and 38 s -> 5 s (airplane mode).
 - Rule: time app work from an app log line (start/finish with elapsed ms), or from screenshots. Check that a probe can see the change before trusting the number, and measure the baseline with the same probe.
+## 11. Include Android widgets in app UI reviews
+
+Pattern: I reviewed the in-app screens and declared the UI pass complete without checking the installed home-screen widget.
+
+Rule: Inventory user-facing surfaces in the manifest, including widget providers, and inspect applicable surfaces on the device before closing a UI review.

@@ -70,7 +70,14 @@ class TradingMateWidget : GlanceAppWidget() {
         val prefRepo = PreferenceRepository(context)
 
         val widgetData = withContext(Dispatchers.IO) {
-            val cashBalance = database.cashDao().getCashSync()?.balance ?: 0.0
+            val isAtsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
+            prefRepo.coreMix.firstOrNull()?.let { (symbol, pct) ->
+                apincer.mobile.tradings.domain.CoreSatellite.configure(symbol, pct)
+            }
+            val alertPrefs = context.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
+            val highYieldRanked = apincer.mobile.tradings.domain.MomentumList
+                .fromJson(alertPrefs.getString(apincer.mobile.tradings.data.HighYieldRecorder.LIST_KEY, null))
+                ?.second?.map { it.symbol.uppercase() }?.toSet()
             val stocks = database.stockDao().getAllStocksSync()
 
             val portfolioItems = stocks.filter { it.portfolio.quantity > 0 }
@@ -84,10 +91,15 @@ class TradingMateWidget : GlanceAppWidget() {
                 if (item.portfolio.buyFees > 0.0) {
                     item.portfolio.buyFees
                 } else {
-                    TechnicalAnalysis.calculateFees(item.portfolio.cost * item.portfolio.quantity, false)
+                    val isOddLot = item.portfolio.quantity < apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+                    TechnicalAnalysis.calculateFees(item.portfolio.cost * item.portfolio.quantity, false, isAtsEnabled || isOddLot)
                 }
             }
-            val sellFees = TechnicalAnalysis.calculateFees(stockValue, true)
+            val sellFees = portfolioItems.sumOf { item ->
+                val currentPrice = item.cache?.lastPrice?.takeIf { it > 0.0 } ?: item.portfolio.cost
+                val isOddLot = item.portfolio.quantity < apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+                TechnicalAnalysis.calculateFees(currentPrice * item.portfolio.quantity, true, isAtsEnabled || isOddLot)
+            }
             val totalFees = buyFees + sellFees
 
             val grossProfit = stockValue - totalCost
@@ -95,23 +107,34 @@ class TradingMateWidget : GlanceAppWidget() {
             val netProfitPercent = if (totalCost > 0) (netProfitValue / (totalCost + buyFees)) * 100 else 0.0
 
             val snapshots = database.portfolioSnapshotDao().getAllSnapshotsSync().sortedBy { it.date }
-            val explicitStopLossMap = portfolioItems.associate { it.portfolio.symbol to it.portfolio.stopLoss }
             
             var alertCount = 0
-            portfolioItems.forEach { item ->
-                val symbol = item.portfolio.symbol
-                val lastPrice = item.cache?.lastPrice?.takeIf { it > 0.0 } ?: item.portfolio.cost
-                val stopLoss = explicitStopLossMap[symbol] ?: 0.0
+            portfolioItems.filter { it.portfolio.quantity >= apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES }.forEach { item ->
+                val p = item.portfolio
+                val symbol = p.symbol.uppercase()
+                val lastPrice = item.cache?.lastPrice?.takeIf { it > 0.0 } ?: p.cost
+                val stopLoss = p.stopLoss
+                val heldPastStop = stopLoss > 0.0 &&
+                    alertPrefs.getString(apincer.mobile.tradings.ui.STOP_ACK_PREFIX + symbol, null)
+                        ?.toDoubleOrNull() == stopLoss
 
-                // Same exit model as the app: saved stop, or the engine's cached SELL (volatility trailing etc.).
-                val isEngineExit = item.signalType == "SELL"
-                val isStopLossBreached = stopLoss > 0 && lastPrice <= stopLoss
+                val isStopBreached = stopLoss > 0.0 && lastPrice <= stopLoss && !heldPastStop
+                val isCore = apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol)
 
-                val isSwingHold = item.portfolio.tradePurpose == "SWING"
-                val isDividendYieldLow = (item.cache?.dividendYield ?: 0.0) < TradingConstants.DIVIDEND_YIELD_PROTECTION
+                val needsReview = when {
+                    p.exitPolicy == "FIXED_TARGET" -> {
+                        val decision = apincer.mobile.tradings.domain.ExitPolicyEvaluator.evaluate(p.toTradePlan(), lastPrice)
+                        decision != null && !(decision.reason == apincer.mobile.tradings.domain.ExitReason.STOP && heldPastStop)
+                    }
+                    isCore -> isStopBreached
+                    p.tradePurpose == "DIVIDEND" -> {
+                        val leftRankedList = highYieldRanked != null && symbol !in highYieldRanked
+                        isStopBreached || leftRankedList
+                    }
+                    else -> isStopBreached || (item.signalType == "SELL" && !(item.signalReason == "STOP" && heldPastStop))
+                }
 
-                if ((isEngineExit || isStopLossBreached) && (isSwingHold || isDividendYieldLow) &&
-                    !apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol)) {
+                if (needsReview) {
                     alertCount++
                 }
             }
@@ -154,6 +177,13 @@ class TradingMateWidget : GlanceAppWidget() {
                     onSurfaceVariant = Color(0xFF94A3B8)
                 )
             )
+            val portfolioAction = actionStartActivity(
+                android.content.Intent(context, MainActivity::class.java).apply {
+                    action = "apincer.mobile.tradings.widget.OPEN_PORTFOLIO"
+                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("START_SCREEN", "PORTFOLIO")
+                }
+            )
 
             GlanceTheme(colors = lightColors) {
                 Column(
@@ -161,16 +191,13 @@ class TradingMateWidget : GlanceAppWidget() {
                         .fillMaxSize()
                         .background(GlanceTheme.colors.surface)
                         .cornerRadius(24.dp)
-                        .padding(14.dp)
-                        .clickable(actionStartActivity(
-                            android.content.Intent(context, MainActivity::class.java).apply {
-                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                putExtra("START_SCREEN", "PORTFOLIO")
-                            }
-                        )),
+                        .padding(14.dp),
                     verticalAlignment = Alignment.Top,
                     horizontalAlignment = Alignment.Start
                 ) {
+                    Column(
+                        modifier = GlanceModifier.fillMaxWidth().defaultWeight().clickable(portfolioAction)
+                    ) {
                     // Header Bar with Brand Lockup & Position Pill
                     Row(
                         modifier = GlanceModifier.fillMaxWidth(),
@@ -210,47 +237,54 @@ class TradingMateWidget : GlanceAppWidget() {
                     val formattedPercent = String.format(Locale.ENGLISH, "%.2f", abs(totalNetProfitPercent))
                     
                     // Return Section
-                    Text(
-                        text = "TOTAL RETURN",
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurfaceVariant,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
+                        Text(
+                            text = "TOTAL RETURN",
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
-                    Spacer(modifier = GlanceModifier.height(2.dp))
-                    Text(
-                        text = "$profitArrow$formattedPercent%",
-                        style = TextStyle(
-                            color = androidx.glance.unit.ColorProvider(profitColor),
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.Bold
+                        Spacer(modifier = GlanceModifier.height(2.dp))
+                        Text(
+                            text = "$profitArrow$formattedPercent%",
+                            style = TextStyle(
+                                color = androidx.glance.unit.ColorProvider(profitColor),
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
 
-                    if (graphBitmap != null) {
-                        Spacer(modifier = GlanceModifier.height(4.dp))
-                        Image(
-                            provider = ImageProvider(graphBitmap),
-                            contentDescription = "Portfolio Trend",
-                            modifier = GlanceModifier.fillMaxWidth().height(42.dp)
-                        )
+                        if (graphBitmap != null) {
+                            Spacer(modifier = GlanceModifier.height(4.dp))
+                            Image(
+                                provider = ImageProvider(graphBitmap),
+                                contentDescription = "Portfolio value trend",
+                                modifier = GlanceModifier.fillMaxWidth().height(42.dp)
+                            )
+                        }
                     }
 
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-
-                    // Executive Risk / Alert Status Pill
+                    // Open the Advisor for holdings with exit signals.
                     if (alertCount > 0) {
                         Row(
                             modifier = GlanceModifier
                                 .fillMaxWidth()
+                                .height(48.dp)
                                 .background(androidx.glance.unit.ColorProvider(Color(0xFFFF5252).copy(alpha = 0.15f)))
                                 .cornerRadius(8.dp)
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .clickable(actionStartActivity(
+                                    android.content.Intent(context, MainActivity::class.java).apply {
+                                        action = "apincer.mobile.tradings.widget.OPEN_ADVISOR"
+                                        flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                        putExtra("START_SCREEN", "ADVISOR")
+                                    }
+                                )),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "⚠️ $alertCount Sell Alert${if (alertCount > 1) "s" else ""} Active",
+                                text = "⚠️ $alertCount holding${if (alertCount == 1) "" else "s"} to review ›",
                                 style = TextStyle(
                                     color = androidx.glance.unit.ColorProvider(Color(0xFFFCA5A5)),
                                     fontSize = 11.sp,
@@ -262,15 +296,17 @@ class TradingMateWidget : GlanceAppWidget() {
                         Row(
                             modifier = GlanceModifier
                                 .fillMaxWidth()
-                                .background(androidx.glance.unit.ColorProvider(Color(0xFF10B981).copy(alpha = 0.12f)))
+                                .height(48.dp)
+                                .background(GlanceTheme.colors.surfaceVariant)
                                 .cornerRadius(8.dp)
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .clickable(portfolioAction),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "🛡️ Positions Protected",
+                                text = "Open Portfolio ›",
                                 style = TextStyle(
-                                    color = androidx.glance.unit.ColorProvider(Color(0xFF6EE7B7)),
+                                    color = GlanceTheme.colors.onSurfaceVariant,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )

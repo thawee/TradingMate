@@ -34,25 +34,33 @@ class AdvisorFiltersTest {
         )
     }
 
-    @Test fun swingDefaultsMatchExistingEligibilityAcrossSignalsAndRegimes() {
+    @Test fun swingFullMaskMatchesExistingEligibilityAcrossSignalsAndRegimes() {
         for (type in IndicatorSignal.entries) for (weekly in listOf(true, false, null)) {
             for (roe in listOf(12.0, 10.0, null)) for (rs in listOf(2.0, -2.0, null)) {
                 val s = stock(type, weekly, roe, rs)
                 for (bearish in listOf(true, false)) {
                     val result = filterAdvisorStocks(listOf(s), PlaybookMode.SWING,
-                        AdvisorFilter.defaultMask(PlaybookMode.SWING), bearish)
+                        AdvisorFilter.fullMask(PlaybookMode.SWING), bearish)
                     assertEquals(StockDna.isSwingCandidate(s, bearish), result.stocks.isNotEmpty())
                 }
             }
         }
     }
 
-    @Test fun dividendDefaultsMatchExistingEligibilityWithoutSwingTiming() {
+    @Test fun defaultMaskLeavesQualityAndWeeklyOptIn() {
+        val s = stock(type = IndicatorSignal.BUY, weekly = false, roe = 8.0)
+        assertTrue(filterAdvisorStocks(listOf(s), PlaybookMode.SWING,
+            AdvisorFilter.defaultMask(PlaybookMode.SWING), false).stocks.isNotEmpty())
+        assertTrue(filterAdvisorStocks(listOf(s), PlaybookMode.DIVIDEND,
+            AdvisorFilter.defaultMask(PlaybookMode.DIVIDEND), false).stocks.isNotEmpty())
+    }
+
+    @Test fun dividendFullMaskMatchesExistingEligibilityWithoutSwingTiming() {
         for (type in IndicatorSignal.entries) for (weekly in listOf(true, false, null)) {
             for (roe in listOf(12.0, 10.0, null)) {
                 val s = stock(type, weekly, roe)
                 val result = filterAdvisorStocks(listOf(s), PlaybookMode.DIVIDEND,
-                    AdvisorFilter.defaultMask(PlaybookMode.DIVIDEND), true)
+                    AdvisorFilter.fullMask(PlaybookMode.DIVIDEND), true)
                 val eligible = StockDna.preFilter(s) && StockDna.isDiv(s) && StockDna.isQual(s) && s.signal?.type != IndicatorSignal.SELL
                 assertEquals(eligible, result.stocks.isNotEmpty())
             }

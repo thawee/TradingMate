@@ -103,4 +103,15 @@ class HighYieldRebalanceTest {
         assertEquals(0.0, p.sellProceeds, 0.0)
         assertEquals(0, p.rows.single { it.symbol == "SA" }.shares)
     }
+
+    @Test fun oddLotHoldingsBelowOneBoardLotAreIgnored() {
+        val p = plan(
+            budget = 10_000.0,
+            ranked = listOf("SA"),
+            holdings = listOf(Holding("MBK", 2, 19.0, 18.0, "PROP")),
+            cash = 10_000.0
+        )
+        assertEquals(0.0, p.managedValue, 1e-9)
+        assertTrue(p.rows.none { it.symbol == "MBK" })
+    }
 }

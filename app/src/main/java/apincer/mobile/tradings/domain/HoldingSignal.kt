@@ -5,6 +5,18 @@ package apincer.mobile.tradings.domain
  * Order: saved stop, saved fixed plan, core fund, Dividend-purpose hold, then the technical signal.
  */
 object HoldingSignal {
+    const val BOARD_LOT_SHARES = 100
+
+    /**
+     * Odd-lot leftover shares (< 100 shares, e.g. from a stock dividend) cannot be sold on the SET
+     * main board and are below practical minimum order value, so they do not trigger sell alerts.
+     */
+    val ODD_LOT_HOLD = TradeSignal(
+        IndicatorSignal.NEUTRAL,
+        "Odd lot (< 100 shares)",
+        "Below 1 SET board lot (100 shares); ignored for sell and rebalance alerts."
+    )
+
     /**
      * Dividend-purpose holdings follow the tested high-yield rule (F5): no price, quality or yield exits;
      * names are replaced at the monthly review when they leave the list. Only a stop the user saved alerts.
@@ -14,6 +26,7 @@ object HoldingSignal {
 
     fun resolve(symbol: String, quantity: Int, tradePurpose: String?, savedStop: Double, price: Double,
                 exitPolicy: String?, plan: () -> TradePlan, technical: TradeSignal?): TradeSignal? {
+        if (quantity in 1 until BOARD_LOT_SHARES) return ODD_LOT_HOLD
         if (quantity > 0 && savedStop > 0.0 && price > 0.0 && price <= savedStop)
             return TradeSignal(IndicatorSignal.SELL, "STOP", "Saved stop reached at ฿$savedStop")
         if (quantity > 0 && exitPolicy == ExitPolicy.FIXED_TARGET.name) {

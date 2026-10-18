@@ -101,7 +101,7 @@ fun WatchlistScreen(
     var sortOrder by rememberSaveable { mutableStateOf(WatchlistSortOrder.SYMBOL) }
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var isSortAscending by rememberSaveable { mutableStateOf(false) }
+    var isSortAscending by rememberSaveable { mutableStateOf(true) }
 
     var debouncedSearchQuery by remember { mutableStateOf(searchQuery) }
 

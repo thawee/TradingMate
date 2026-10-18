@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-18
+
+Thai SET calibration, a plain-language 3-step Advisor flow, odd-lot (`< 100` share) handling, and nine functional & risk-engine fixes across foreground refresh, the home-screen widget, background notifications, and settings.
+
+### Added (odd-lot `< 100` share handling)
+- **Odd-lot holdings (`1..99` shares, below 1 SET board lot of 100 shares)**—such as leftover shares from a stock dividend or warrant conversion—now resolve to `ODD_LOT_HOLD` (`NEUTRAL`, *"Odd lot (< 100 shares)"*) in `HoldingSignal.resolve` instead of triggering `SELL` signals.
+- **Advisor Step 1, Today's Checklist, Monthly Buy/Sell Calculator (`HighYieldRebalance.plan`), Home-Screen Widget, and Background Worker** ignore holdings below 100 shares so unsellable odd-lot dust (e.g. `2 MBK`) never nags you to sell or counts as a managed slot.
+- **Proportional fee calculation on odd lots:** Portfolio P/L, the widget, and `StockRepository.executeSell` do not apply a ฿50 non-ATS minimum commission to `< 100` share positions.
+- **1-tap odd-lot clear in `SellStockDialog`:** Added **`Odd Lot / Clear 🧹`** exit reason (auto-selected when holding `< 100` shares) with no 10-character lesson requirement so leftover odd lots can be cleared easily.
+
+### Changed (3-step guided Advisor & plain-language Portfolio UI)
+- **Advisor reorganized into 3 clear steps:**
+  1. **Today's Checklist** (green when nothing needs action, orange when a holding needs review) + **Step 1 · Check Your Holdings** (`🔴 Sell / Stop Reached`, `🟠 Monthly Switch`, `🔵 FYI Notes`).
+  2. **Step 2 · Monthly Dividend Plan (Top 10 SET50)** with the backtest/forward track record collapsed behind a clean `📊 View Track Record vs TDEX (Backtest & Live)` toggle and the order table titled **Monthly Buy / Sell Calculator**.
+  3. **Step 3 · Find Stock Ideas (Watchlist Screener)** open by default with 1-tap **Quick Presets** (`💰 High Yield ≥5%` / `🟢 Ready to Buy`, `⭐ Strict (+Quality)`, `📋 All Watchlist`).
+- **Plain-language Core vs. Satellite card in Portfolio:** Renamed to **80% / 20% Split: Index ETF vs. Individual Stocks** with an inline explanation of `TDEX` (*"ThaiDEX SET50 ETF — 1 share = top 50 Thai companies, traded like a normal stock in Settrade Streaming"*).
+
+### Changed (Thai SET signal & Stock DNA calibration)
+- **Healthy Momentum entry RSI ceiling raised from `< 55` to `< 62`** (`TradingConstants.RSI_HEALTHY_MOMENTUM_MAX = 62.0`) so steady SET dividend/trend breakouts are not missed.
+- **Holding overbought exit after `+1R` relaxed:** requires `RSI > 72` (`RSI_HOLDING_OVERBOUGHT = 72.0`) or Upper Bollinger Band + `RSI > 65` so `+1R` winners can run toward `+2R` or the volatility trailing stop.
+- **Stock DNA Quality calibrated for SET sectors:** `NPM > 5%` (was `> 10%`, including Thai retail/commerce/hospitality blue chips), non-financial `D/E < 2.0` (was `< 1.5`, accommodating Thai telecom/utility/infrastructure leaders), and null-tolerant 3Y profit growth (`≥ 0%` when available). `SetScraper.compute3YCagr` now uses `abs(first)` in the denominator when the base year is negative.
+- **Research screener default filter (`AdvisorFilters.defaultMask`)** keeps `Liquid`, `Fresh`, `Not near 52w low`, and `No SELL` active by default and leaves `Quality` and `Weekly uptrend` as opt-in chips (`fullMask` retains the full preset).
+
+### Fixed (functional & risk-engine audit)
+- **Foreground refresh parity (`StockViewModel`):** `refreshWatchlistInfo` and `refreshPortfolioOnly` now pass full context (`peakPrice`, `isSet50`, `userStopLoss`, `relativeStrength`, `nvdrNetVolume`, `nvdrNetValue`, `isNearXdDate`) into `TechnicalAnalysis.getDetailedSignal` and wrap with `HoldingSignal.resolve` before persisting to Room.
+- **Home-screen widget parity (`TradingMateWidget`):** aligns `alertCount` with `ExitPolicyEvaluator` (`FIXED_TARGET`), `DividendExitPolicy` (top-10 `highYieldRanked` + saved stop), `CoreSatellite.isCore`, and `STOP_ACK_PREFIX` ("Hold anyway" acknowledgement), and sums `sellFees` per position with a cost fallback when `lastPrice` is zero.
+- **Core ETFs (`TDEX`, `1DIV`) excluded from satellite dividend alerts** in `StockViewModel.alertRoutineState` and `DividendAdvisorScreen` unless a user explicitly sets a saved stop loss.
+- **Gemini screenshot import (`GeminiClient`, `PortfolioScreen`, `SettingsScreen`):** respects the user's selected `geminiModel` from DataStore, updates `GeminiModel` IDs to `gemini-2.5-flash` (default), `gemini-2.5-flash-lite`, and `gemini-2.5-pro` (migrating legacy `gemini-3.*` preferences), and removes unused `GeminiClient.analyze`.
+- **Settings wiring:** wired `dividendAlertWindow` and `isDividendAlertEndYear` in `StockAlertWorker` XD alerts; wired `maxOpenExposure` (`maxOpenRiskPercent` / `existingOpenRisk`) into `TradeRiskPolicy`, `PortfolioScreen`, `StockViewModel`, and `StockRepository.executeBuy`; removed dead `priceAlertThreshold` UI field.
+- **Aggregate portfolio sell fees (`PortfolioScreen`):** sums `TechnicalAnalysis.calculateFees` per position instead of on the combined `stockValue`.
+- **Background worker market regime & snapshot retention (`StockAlertWorker`):** passes live `isMarketBearish` from SET Index history into `shouldNotifyEntrySignal` and retains 365 days of `portfolio_snapshot` rows (was 30 days).
+- **Watchlist default sort (`WatchlistScreen`):** defaults to `A → Z` (`isSortAscending = true`) when sorted by Symbol.
+
+### Changed (home-screen widget)
+- The widget uses the same ATS fee setting as Portfolio for its return, and refreshes when that setting changes.
+- Holdings with exit signals lead directly to Advisor. The widget describes them as holdings to review; its quiet state offers a neutral Portfolio shortcut.
+
 ### Changed (phone usability)
 - Settings saves a validated Core Portfolio draft with one action instead of changing values while you type.
 - All five bottom navigation labels stay visible.

@@ -16,7 +16,6 @@ val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class PreferenceRepository(private val context: Context) {
     private val TARGET_MONTHLY_DIVIDEND = doublePreferencesKey("target_monthly_dividend")
-    private val PRICE_ALERT_THRESHOLD = doublePreferencesKey("price_alert_threshold")
     private val DIVIDEND_ALERT_WINDOW = intPreferencesKey("dividend_alert_window")
     private val IS_DIVIDEND_ALERT_END_YEAR = booleanPreferencesKey("is_dividend_alert_end_year")
     private val IS_PRIVACY_MODE = booleanPreferencesKey("is_privacy_mode")
@@ -49,17 +48,6 @@ class PreferenceRepository(private val context: Context) {
     suspend fun setTargetMonthlyDividend(amount: Double) {
         context.settingsDataStore.edit { preferences ->
             preferences[TARGET_MONTHLY_DIVIDEND] = amount
-        }
-    }
-
-    val priceAlertThreshold: Flow<Double> = context.settingsDataStore.data
-        .map { preferences ->
-            preferences[PRICE_ALERT_THRESHOLD] ?: 10.0
-        }
-
-    suspend fun setPriceAlertThreshold(percent: Double) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[PRICE_ALERT_THRESHOLD] = percent
         }
     }
 
@@ -286,10 +274,15 @@ class PreferenceRepository(private val context: Context) {
         }
     }
 
-    /** Selected free-tier Gemini model id, e.g. "gemini-3.6-flash". Defaults to the balanced Flash model. */
+    /** Selected free-tier Gemini model id, e.g. "gemini-2.5-flash". Defaults to the balanced Flash model. */
     val geminiModel: Flow<String> = context.settingsDataStore.data
         .map { preferences ->
-            preferences[GEMINI_MODEL] ?: "gemini-3.6-flash"
+            val stored = preferences[GEMINI_MODEL]
+            if (stored.isNullOrBlank() || stored.startsWith("gemini-3.")) {
+                apincer.mobile.tradings.domain.GeminiClient.DEFAULT_MODEL_ID
+            } else {
+                stored
+            }
         }
 
     suspend fun setGeminiModel(modelId: String) {

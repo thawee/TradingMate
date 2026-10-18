@@ -44,18 +44,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    val priceAlertThreshold: StateFlow<Double> = 
-        preferenceRepository.priceAlertThreshold.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 10.0
-        )
-
-    fun updatePriceAlertThreshold(percent: Double) {
-        viewModelScope.launch {
-            preferenceRepository.setPriceAlertThreshold(percent.coerceIn(1.0, 50.0))
-        }
-    }
 
     val dividendAlertWindow: StateFlow<Int> = 
         preferenceRepository.dividendAlertWindow.stateIn(
@@ -93,6 +81,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun toggleAtsEnabled() {
         viewModelScope.launch {
             preferenceRepository.setAtsEnabled(!isAtsEnabled.value)
+            apincer.mobile.tradings.widget.notifyWidgetDataChanged(getApplication())
         }
     }
 
@@ -312,7 +301,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         preferenceRepository.geminiModel.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = "gemini-3.6-flash"
+            initialValue = apincer.mobile.tradings.domain.GeminiClient.DEFAULT_MODEL_ID
         )
 
     fun updateGeminiModel(modelId: String) {

@@ -38,11 +38,30 @@ fun AdvisorFilterExplorer(
 
     GlassCard(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Explore filters", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Quick Presets", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            val recMask = AdvisorFilter.defaultMask(mode)
+            val strictMask = AdvisorFilter.fullMask(mode)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = mask == recMask,
+                    onClick = { updateMask(recMask); detail = null },
+                    label = { Text(if (mode == PlaybookMode.DIVIDEND) "💰 High Yield ≥5%" else "🟢 Ready to Buy") }
+                )
+                FilterChip(
+                    selected = mask == strictMask,
+                    onClick = { updateMask(strictMask); detail = null },
+                    label = { Text("⭐ Strict (+Quality)") }
+                )
+                FilterChip(
+                    selected = mask == 0,
+                    onClick = { updateMask(0); detail = null },
+                    label = { Text("📋 All Watchlist") }
+                )
+            }
             Text("${result.stocks.size} of ${stocks.size} tracked stocks match",
                 style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-            Text("Tap badges to combine rules. Counts run left to right, row by row. Selected = remaining; off = count if added at that stage.",
-                style = MaterialTheme.typography.bodySmall)
+            Text("Tap any rule badge below to toggle it on/off:",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 result.stages.forEach { stage ->
                     FilterChip(
@@ -56,14 +75,8 @@ fun AdvisorFilterExplorer(
                 }
             }
             detail?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { updateMask(AdvisorFilter.defaultMask(mode)); detail = null }) { Text("Reset rules") }
-                TextButton(onClick = { updateMask(0); detail = null }) { Text("Clear filters") }
-            }
-            Text("Research matches only. Entry checks still apply when creating a trade plan.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (result.stocks.isEmpty()) {
-                Text("No matches. Turn off a selected badge or clear filters to explore your tracked stocks.",
+                Text("No matches for this combination. Tap '📋 All Watchlist' or turn off a badge above.",
                     style = MaterialTheme.typography.bodyMedium)
             }
             result.stocks.take(visibleCount).forEach { stock ->

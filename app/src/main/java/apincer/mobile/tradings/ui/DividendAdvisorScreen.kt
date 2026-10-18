@@ -123,10 +123,14 @@ fun DividendAdvisorScreen(
     val dividendSellAlerts = alertRoutineState.dividendSellAlerts
     val portfolioItems = alertRoutineState.portfolioItems
     val marketRegime = alertRoutineState.marketRegime
-    val dividendSymbols = portfolioItems.filter { it.portfolio.tradePurpose == "DIVIDEND" }
-        .map { it.info.symbol.uppercase() }.toSet()
+    val dividendSymbols = portfolioItems.filter {
+        it.portfolio.quantity >= apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES &&
+            it.portfolio.tradePurpose == "DIVIDEND" && !apincer.mobile.tradings.domain.CoreSatellite.isCore(it.info.symbol)
+    }.map { it.info.symbol.uppercase() }.toSet()
     LaunchedEffect(dividendSymbols) { viewModel.refreshDividendCuts(dividendSymbols) }
-    val heldSymbols = portfolioItems.map { it.info.symbol.uppercase() }.toSet()
+    val heldSymbols = portfolioItems.filter {
+        it.portfolio.quantity >= apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+    }.map { it.info.symbol.uppercase() }.toSet()
     LaunchedEffect(heldSymbols) { viewModel.refreshAccountingFlags(heldSymbols) }
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -244,7 +248,7 @@ fun DividendAdvisorScreen(
                         RegimeBanner(marketRegime)
                     }
 
-                    // 2. This tab's holdings, grouped by how soon they need the user.
+                    // 2. Step 1: This tab's holdings, grouped by how soon they need the user.
                     val tabAlerts = when {
                         playbookMode == PlaybookMode.SWING -> swingSellAlerts
                         showSwingTab -> dividendSellAlerts
@@ -252,15 +256,27 @@ fun DividendAdvisorScreen(
                     }
                     HoldingAlertsSection(tabAlerts, onOpen = { viewModel.fetchStockData(it) })
 
-                    // 3. The one tested rule: high dividend yield list, forward record and rebalance plan.
+                    // 3. Step 2: The one tested rule: high dividend yield list, rebalance plan, and collapsed track record.
                     if (playbookMode == PlaybookMode.DIVIDEND) {
+                        Text(
+                            text = "Step 2 · Monthly Dividend Plan (Top 10 SET50)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                         val heldSymbols = portfolioItems.map { it.info.symbol.uppercase() }.toSet()
                         HighYieldListCard(viewModel, heldSymbols)
                         HighYieldRebalanceCard(viewModel, settingsViewModel, portfolioItems, watchlist, cashBalance, onRecordBuy)
                         UpcomingDividendsCard(portfolioItems, today)
                     }
 
-                    // 4. Research, collapsed: filters over all tracked stocks.
+                    // 4. Step 3: Find Stock Ideas (Watchlist Screener).
+                    Text(
+                        text = "Step 3 · Find Stock Ideas (Watchlist Screener)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                     GlassCard(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { researchOpen = !researchOpen },
@@ -268,11 +284,11 @@ fun DividendAdvisorScreen(
                     ) {
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Research", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Text("Filter all tracked stocks. Matches are for study, not buy calls.",
+                                Text("Watchlist Screener", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text("Screen your watchlist for Ready-to-Buy setups, High Yield (≥5%), or Quality stocks.",
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text(if (researchOpen) "Hide" else "Show", style = MaterialTheme.typography.labelLarge,
+                            Text(if (researchOpen) "Hide" else "Open", style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.primary)
                         }
                     }
@@ -305,7 +321,9 @@ private fun TodayCard(items: List<apincer.mobile.tradings.domain.AdvisorToday.It
         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Today", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Today's Checklist", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🔴 Act now (Sell/Stop)  ·  🟠 Monthly schedule  ·  ⚪ Info / No action needed",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             items.forEach { item ->
                 val actionModifier = item.holdingSymbol?.let { symbol ->
                     Modifier.heightIn(min = 48.dp).clickable(
@@ -347,17 +365,17 @@ internal fun alertColor(level: apincer.mobile.tradings.domain.AlertLevel): Color
 /** Holding alerts grouped Act now / At the monthly review / Review; each card lists all of its lines. */
 @Composable
 private fun HoldingAlertsSection(alerts: List<SellAlertData>, onOpen: (String) -> Unit) {
-    Text("Your holdings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+    Text("Step 1 · Check Your Holdings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(top = 4.dp))
     if (alerts.isEmpty()) {
-        Text("Nothing to act on or review.", style = MaterialTheme.typography.bodyMedium,
+        Text("✅ All holdings look healthy. Nothing to sell or review today.", style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
     val titles = mapOf(
-        apincer.mobile.tradings.domain.AlertLevel.ACT_NOW to "Act now",
-        apincer.mobile.tradings.domain.AlertLevel.MONTHLY to "At the monthly review",
-        apincer.mobile.tradings.domain.AlertLevel.REVIEW to "Review only")
+        apincer.mobile.tradings.domain.AlertLevel.ACT_NOW to "🔴 Act now (Stop or Target reached)",
+        apincer.mobile.tradings.domain.AlertLevel.MONTHLY to "🟠 At the monthly review (1st trading day)",
+        apincer.mobile.tradings.domain.AlertLevel.REVIEW to "⚪ Review notes (Hold unless thesis broke)")
     alerts.groupBy { it.level }.toSortedMap().forEach { (level, group) ->
         Text(titles.getValue(level), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
             color = alertColor(level))
@@ -447,21 +465,28 @@ private fun UpcomingDividendsCard(holdings: List<StockWatchlistInfo>, today: jav
 fun HighYieldListCard(viewModel: StockViewModel, heldSymbols: Set<String>) {
     val list by viewModel.highYieldList.collectAsState()
     val loading by viewModel.highYieldLoading.collectAsState()
+    var showTrackRecord by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { viewModel.refreshHighYieldList() }
     RankedListCard(
-        title = "High dividend yield list",
-        summary = "Top 10 SET50 by yield, reviewed monthly. Backtest +7.80% a year vs TDEX +2.52% (2015-2025).",
-        detail = "Rule: review monthly or quarterly, hold about 10% each, and replace names that drop out. " +
-            "The backtest was ahead in both halves of 2015-2025 and in a 2011-2014 holdout, but is inflated by survivorship. " +
-            "The real 1DIV high-dividend ETF: +3.86% a year vs TDEX +2.55% over 2015-2025, ahead in 2021-2025, behind in 2015-2020 and 2012-2014. " +
-            "Buying 1DIV gets the same tilt without picking stocks.",
+        title = "Top 10 SET50 High-Dividend Stocks",
+        summary = "The 10 highest-yielding large Thai stocks right now. Review once a month.",
+        detail = "How it works: hold up to 10 stocks (~10% of your dividend budget each) and replace any stock that drops out of the Top 10 at your monthly review. " +
+            "Over 2015–2025 this rule returned +7.80%/yr vs TDEX +2.52%/yr (or you can buy the 1DIV ETF for a single-fund alternative).",
         loadingText = "Fetching dividend yields for SET50…",
-        rankedNote = "from SET quotes. A very high yield can mean the price fell because a dividend cut is expected.",
+        rankedNote = "from SET quotes. Tip: check if a very high yield is due to a one-off payout or falling price.",
         list = list, loading = loading, heldSymbols = heldSymbols,
         onRefresh = { viewModel.refreshHighYieldList(force = true) },
         signed = false
     )
-    HighYieldForwardRecord(viewModel)
+    TextButton(
+        onClick = { showTrackRecord = !showTrackRecord },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(if (showTrackRecord) "Hide strategy track record ▲" else "📊 View strategy track record (vs TDEX) ▼")
+    }
+    if (showTrackRecord) {
+        HighYieldForwardRecord(viewModel)
+    }
 }
 
 /** Monthly snapshots of the list measured against TDEX after 1, 3 and 12 months (HighYieldTracker). */
@@ -536,23 +561,23 @@ fun HighYieldRebalanceCard(
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Monthly rebalance plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            WhyNote("Review only. Place orders at your broker, then Record buy.",
-                "Follows the tested rule once a month: sell names that left the list, keep held names as they are, " +
-                "and buy each new name with up to a tenth of the budget. It manages holdings recorded with the Dividend purpose; others are never sold.")
+            Text("Monthly Buy / Sell Calculator", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            WhyNote("Enter your budget below -> place orders in your broker app -> tap Record buy.",
+                "Divides your budget across the Top 10 High-Dividend stocks (10% per stock in 100-share lots). " +
+                "Keeps stocks still in the Top 10, sells Dividend-purpose stocks that dropped out, and buys new entrants.")
             OutlinedTextField(
                 value = budgetText,
                 onValueChange = { budgetText = it },
-                label = { Text("Satellite budget (baht)") },
+                label = { Text("Budget for Dividend Stocks (฿)") },
                 placeholder = { Text(String.format(Locale.ENGLISH, "%,.0f", managedValue)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
             Text(when {
-                    budgetText.isNotBlank() -> "Using ${baht(budget)}."
-                    managedValue > 0.0 -> "Using ${baht(budget)}, the value of your Dividend-purpose holdings."
-                    else -> "No Dividend-purpose holdings yet: enter the amount to invest."
+                    budgetText.isNotBlank() -> "Using ${baht(budget)} total budget (~${baht(budget / 10.0)} per stock)."
+                    managedValue > 0.0 -> "Using ${baht(budget)}, the current value of your Dividend stocks."
+                    else -> "Enter the total baht you want to invest across these 10 dividend stocks (e.g. 50000)."
                 },
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             val ranked = list?.second?.map { it.symbol }
@@ -593,8 +618,8 @@ fun HighYieldRebalanceCard(
                     style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 if (belowOneLot.isNotEmpty()) {
                     val full = plan.fullListBudget
-                    Text("Not bought, a tenth of the budget is below one lot: ${belowOneLot.joinToString { it.symbol }}." +
-                        (if (full != null && budget < full) " All ten need about ${baht(full)}; below that, the 1DIV ETF gives the same tilt in small amounts." else ""),
+                    Text("Skipped (1/10th of budget is less than 100 shares): ${belowOneLot.joinToString { it.symbol }}." +
+                        (if (full != null && budget < full) " Buying all 10 stocks needs ~${baht(full)} total (or buy 1DIV ETF for smaller budgets)." else ""),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

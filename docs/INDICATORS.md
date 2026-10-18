@@ -15,7 +15,8 @@ RSI measures the speed and change of price movements. It ranges from 0 to 100.
 - **Thresholds:**
   - **< 35 (Oversold):** Target BUY zone. The stock is statistically "cheap" and compressed.
   - **< 42 (Potential):** Nearing value zone. High alert for a reversal.
-  - **> 65 (Overbought):** Target SELL zone. The stock is overextended and at risk of a pullback.
+  - **< 62 (Healthy Momentum Entry Ceiling):** Allows confirmed SET breakouts above SMA 50 + Weekly EMA 20 with ADX ≥ 20 to qualify for `BUY` before becoming overextended.
+  - **> 65 (Overbought Zone):** Entry block / overextended zone. For existing Swing holdings at `+1R`, exhaustion `SELL` triggers at **> 72** (or Upper Bollinger Band + RSI > 65) so trend runners can reach `+2R` or trail by ATR.
 
 ### 2. MACD (Moving Average Convergence Divergence) - The Momentum Switch
 MACD tracks the relationship between two moving averages of a stock’s price.
@@ -24,7 +25,7 @@ MACD tracks the relationship between two moving averages of a stock’s price.
 - **MACD Histogram:**
   - **Meaningfully Positive (> 0.1% of last price):** Bullish momentum. The price-relative threshold prevents noise-level crossover flicker around zero.
   - **Negative (< 0):** Bearish momentum. Suggests the trend is moving DOWN.
-- **Role:** Acts as a "gear shift" to confirm RSI signals. The momentum filter also requires RSI in 40–70 to exclude overbought stocks.
+- **Role:** Acts as a "gear shift" to confirm RSI signals. The momentum filter also requires RSI in 40–64.9 to exclude overbought stocks.
 
 ### 3. SMA (Simple Moving Average) - The Trend Guards
 SMAs smooth out price data to identify the direction of the trend.
@@ -101,7 +102,7 @@ For a proposed swing buy, TradingMate checks its planned levels and account limi
 - **Suggested Stop Loss:** Volatility-adjusted stop ($2 \times \text{ATR}\%$, clamped $-3.5\%$ to $-8.0\%$) or fixed tier ($-4.5\%$ SET50 / $-6.5\%$ Mid/Small).
 - **Target:** An observed or saved level is required. The app does not manufacture a $+10\%$ or 2R target to make a proposed plan pass.
 - **Net reward to risk:** Estimated profit at the target after buy and sell fees must meet the user's configured minimum (default 2:1) relative to estimated loss at the stop including those fees. A simple price-distance ratio on an advisor card is indicative only; the buy check uses share count and fees.
-- **Other checks:** Per-trade loss budget, combined ticker and sector exposure, cash reserve, and 100-share board lots. These limits screen proposals, not actual broker fills recorded after execution.
+- **Other checks:** Per-trade loss budget, total open risk cap (`maxOpenExposure`), combined ticker and sector exposure, cash reserve, and 100-share board lots. These limits screen proposals, not actual broker fills recorded after execution.
 
 ### 14. False Breakout Guard (Institutional Flow & Volume)
 Guards against "bull traps" where technical momentum appears positive but lacks institutional backing:
@@ -146,29 +147,30 @@ $$\text{Net Yield on Cost (YoC}_{\text{net}}\text{)} = \left(\frac{\text{Annual 
 
 ## 🧬 The 6-Layer Filter (Stock DNA)
 
-- **Pre-Filter:** Liquidity (daily turnover > ฿5M) **AND** not within 5% of the 52-week low.
-- **Layer 1 — QUAL:** ROE > 15%, NPM > 10%, D/E < 1.5. Unverified 3Y growth is unavailable and is not used as a positive signal.
+- **Pre-Filter:** Liquidity (daily turnover > ฿5M), Freshness (matching stock/benchmark trading session within 7 days), **AND** not within 5% of the 52-week low.
+- **Layer 1 — QUAL (SET-Calibrated):** ROE > 10%, NPM > 5% (null-tolerant), non-financial D/E < 2.0 (null-tolerant; financial sector exempt), and 3Y profit growth ≥ 0% when available.
 - **Layer 2 — VAL:** P/E 0.1–15.0 and P/BV 0.1–1.0.
 - **Layer 3 — DIV:** Dividend yield ≥ 5%.
 - **Layer 4 — MOM:** MACD histogram > 0.1% of price, RSI 40–64.9, and Relative Strength vs SET ≥ 0.
 - **Layer 5 — SUP:** BUY/POTENTIAL signal (incorporates SMA 200 trend context).
-- **Layer 6 — FLOW:** Foreign Fund NVDR net accumulation ($> 0$).
+- **Layer 6 — FLOW:** Foreign Fund NVDR net accumulation ($> 0$) with Relative Strength $\ge -1.0$.
 
 ---
 
-## 🏛️ Fundamental Guardrails (Quality Rules)
+## 🏛️ Fundamental Guardrails (Quality Rules — SET Calibrated)
 
-Before looking at technical signals, TradingMate evaluates the "DNA" of a company. A stock is marked with the **"Solid Financials"** badge or suggested in the **Dividend Advisor** only if it passes these strict safety checks:
+Before looking at technical signals, TradingMate evaluates the "DNA" of a company. A stock passes the **Quality** screen and receives the **"⭐ Quality"** tag if it meets these SET-calibrated checks:
 
-1. **ROE (Return on Equity) > 15%:**
-   - **Why:** We want highly efficient companies that generate superior returns on shareholders' capital.
-2. **Net Profit Margin > 10%:**
-   - **Why:** Ensures the company keeps a healthy portion of its revenue as profit after all expenses.
-3. **Profit Growth (3Y):** Unavailable until financial-data rows can be matched to verified three-year reporting periods. Adjacent-row growth is not a substitute.
-4. **D/E Ratio (Debt to Equity) < 1.5:**
-   - **Why:** Prevents exposure to companies with excessive debt that could be risky during high-interest periods.
+1. **ROE (Return on Equity) > 10%:**
+   - **Why:** Calibrated for the Thai SET (where >15% kept only 13 of 101 watchlist stocks); dividend fundamental review notes still warn below 15%.
+2. **Net Profit Margin > 5% (null-tolerant):**
+   - **Why:** Includes high-efficiency Thai retail, commerce, and hospitality blue chips (`CPALL`, `HMPRO`, `CRC`) while filtering out razor-thin or loss-making margins.
+3. **Profit Growth (3Y) ≥ 0% (null-tolerant):**
+   - **Why:** Requires non-contracting earnings when verified 3-year growth data is present; missing growth data does not disqualify a stock.
+4. **D/E Ratio (Debt to Equity) < 2.0 (non-financials, null-tolerant):**
+   - **Why:** Accommodates capital-intensive Thai telecom, utility, and infrastructure leaders (`ADVANC`, `GULF`, `BEM`) while blocking over-leveraged companies. Banks, finance, and insurance companies are exempt.
 
-> **⭐ Quality Priority:** Stocks that pass these rules are highlighted with a **"⭐ Quality"** tag in all signals and push notifications. These are your "Must Watch" opportunities when they enter a Buy or Potential zone.
+> **⭐ Quality Priority:** Stocks that pass these rules are highlighted with a **"⭐ Quality"** tag in all signals and push notifications. In the Advisor's Research explorer, `Quality` and `Weekly uptrend` are opt-in filter chips by default so you can see all liquid, fresh setups first and narrow down on demand.
 
 ---
 
@@ -178,7 +180,7 @@ The **Dividend Advisor** screen helps you plan for long-term passive income.
 
 - **Passive Income Goal:** You can set a **Target Monthly Dividend** in the app Settings.
 - **Capital Calculation:** The advisor calculates the total capital required to reach your monthly goal (assuming a 5% average yield).
-- **Suggested Stocks:** The advisor suggests stocks from the "Dividend Stars" collection. These are filtered to ensure they have a **positive dividend yield** and pass the **Fundamental Guardrails** mentioned above.
+- **Suggested Stocks:** The advisor ranks the **Top 10 SET50 stocks by dividend yield** (the tested `F5` rule) and provides a monthly rebalance plan alongside your core `TDEX` / `1DIV` DCA schedule.
 - **Progress Tracking:** The app compares your current portfolio's estimated monthly dividends against your target to show your "Goal Progress."
 - **Section 47 bis Tax Shield:** Displays estimated tax credits reclaimable during annual personal income tax filing.
 
@@ -190,8 +192,8 @@ TradingMate categorizes every stock into one of four "Zones" based on technical 
 
 ### 🟢 Buying Zone (Accumulation)
 Stocks here represent the best value-to-risk ratio.
-- **Criteria:** RSI < 35 **OR** (MACD is Bullish **AND** (Price is near Lower Bollinger Band **OR** Price > SMA 50)).
-- **Signal:** *Oversold Accumulation* or *Early Recovery*.
+- **Criteria:** RSI < 35 **OR** (MACD is Bullish **AND** (Price is near Lower Bollinger Band **OR** (Price > SMA 50 **AND** RSI < 62 **AND** ADX ≥ 20))).
+- **Signal:** *Oversold Accumulation*, *Early Recovery*, or *Healthy Momentum*.
 
 ### 🟡 Potential Zone (Watchlist)
 Stocks that are becoming cheap but haven't confirmed a reversal yet.
@@ -200,8 +202,8 @@ Stocks that are becoming cheap but haven't confirmed a reversal yet.
 
 ### 🔴 Selling Zone (Distribution)
 Stocks that are overvalued or have broken their upward trend.
-- **Criteria:** RSI > 65 **OR** Price is near Upper Bollinger Band. For holdings, overbought-style exits apply only after +1R. Bearish MACD below SMA 50 is context (*Trend Weakening* / *Downward Trend*), not a sell.
-- **Signal:** *Overbought*, *Upper Band Resistance*.
+- **Criteria:** For holdings at `+1R`, RSI > 72 (exhaustion) **OR** (Price near Upper Bollinger Band **AND** RSI > 65) **OR** MFI ≥ 80. Bearish MACD below SMA 50 is context (*Trend Weakening* / *Downward Trend*), not a sell.
+- **Signal:** *Overbought*, *Upper Band Resistance*, *Distribution Detected*.
 
 ### ⚪ Neutral Zone
 Stocks with no clear trend or extreme valuation.
@@ -211,7 +213,7 @@ Stocks with no clear trend or extreme valuation.
 
 ## 🛡️ Institutional Risk Management (The Golden Rules)
 
-1. **SELL Overrides BUY:** Even if a stock has great momentum, if it hits RSI 65 or the Upper Bollinger Band, the app triggers a **SELL** warning. Never buy at the peak.
+1. **Let Winners Run to +2R / Trailing Stop:** Once a Swing position reaches `+1R`, the volatility trailing stop ($2.5 \times \text{ATR}\%$) arms automatically, and overbought exits wait until true exhaustion (`RSI > 72` or Upper Bollinger Band + `RSI > 65`) soSET trend runners can reach `+2R`.
 2. **No Early Breakdown Exit:** Losing SMA 50 with negative MACD is a note, not a sell; the saved stop is the exit (the early exit lost money in the 2015-2025 replay). Dividend-purpose holdings follow the tested high-yield rule instead: only a saved stop alerts, and leaving the high-yield top 10 is reviewed monthly.
 3. **Volatility-Adjusted Stop Loss:** The stop is 2× the stock's daily ATR (clamped -3.5% to -8.0%). If ATR is unavailable, fixed tiers apply: -4.5% (SET50) / -6.5% (Mid/Small-Cap). A breach triggers a mandatory **SELL** signal to preserve capital.
 4. **Market Regime Sizing & Dynamic Cash Buffer:** Adapt position sizing and cash reserves based on SET Index health:
@@ -224,6 +226,7 @@ Stocks with no clear trend or extreme valuation.
 8. **Cyclical Sector Quality Shield:** Commodity and cyclical stocks (Energy, Petrochem, Agribusiness, Shipping, Steel) do not pass the growth-dependent shield when verified 3Y growth is unavailable.
 9. **Multi-Timeframe Weekly 20-EMA Filter:** Do not buy daily breakouts if the stock is trending below its weekly 20-EMA.
 10. **Saved Target Rule:** New fixed swing plans alert at their accepted target. Legacy holdings retain older profit rules until their plan is completed.
+11. **Odd-Lot Dust Ignore Rule (`< 100` Shares):** Holdings of `1..99` shares (below 1 SET board lot of 100 shares, e.g. leftover shares from a stock dividend) resolve to `ODD_LOT_HOLD` (`NEUTRAL`) in `HoldingSignal.resolve` and are ignored by Advisor sell alerts, the monthly rebalance calculator (`HighYieldRebalance.plan`), widget alert counts, and background sell notifications.
 
 ---
 
@@ -234,24 +237,23 @@ TradingMate monitors saved stocks with in-app alerts and periodic Android notifi
 ### 1. Push Notifications (Background Monitoring)
 The app schedules a background worker every 30 minutes to monitor stocks in your **Watchlist**.
 - **Market Hours:** Stock scans run while the market is open; time-window reminders are checked separately.
-- **Trigger Conditions:** Signal changes and qualifying active exit conditions can produce a notification. Saved swing plans use their accepted stop and target.
-- **Price Alerts:** Visual indicators for stocks nearing target prices. The proximity threshold can be customized in **Settings**.
+- **Trigger Conditions:** Signal changes and qualifying active exit conditions on full-lot holdings (`≥ 100` shares) can produce a notification. Saved swing plans use their accepted stop and target.
 
 ### 2. In-App Dividend Alerts (XD Dates)
-On the Home screen, the app tracks corporate action dates.
-- **Trigger:** If a stock has an upcoming Ex-Dividend (XD) date within the defined window (default 14 days, customizable in Settings), it will appear in the "Dividend Opportunities" section.
-- **End of Year Option:** You can also choose to show all upcoming XD dates until the end of the current year.
+On the Advisor screen and in background checks, the app tracks corporate action dates.
+- **Trigger:** If a stock has an upcoming Ex-Dividend (XD) date within the defined window (default 14 days, customizable in **Settings**), it triggers an XD notification.
+- **End of Year Option:** You can also choose to alert on all upcoming XD dates until the end of the current year.
 
 ---
 
 ## 💸 Fee Structure (InnovestX)
 
-TradingMate calculates **Net Profit** by accounting for the following fees (approx. 0.32% round-trip):
+TradingMate calculates **Net Profit** per position by accounting for the following fees (approx. 0.32% round-trip):
 
 - **Commission:** 0.15% (Safety estimate).
 - **Market Fee:** 0.007% (Trading + Clearing + Regulatory).
 - **VAT:** 7% on total commissions.
 - **Financial Transaction Tax:** ฿0 (Officially abolished).
-- **Minimum Fee:** 50 THB daily (waived when ATS + E-Statement enabled).
+- **Minimum Fee:** 50 THB daily per full-lot position (waived when ATS + E-Statement is enabled, and not applied to `< 100` share odd-lot positions).
 
 > **Formula:** Net Profit = (Selling Price - Sell Fees) - (Buying Price + Buy Fees)

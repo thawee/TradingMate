@@ -122,6 +122,7 @@ fun PortfolioScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isAtsEnabled by settingsViewModel.isAtsEnabled.collectAsState()
     val maxRiskPerTrade by settingsViewModel.maxRiskPerTrade.collectAsState()
+    val maxOpenExposure by settingsViewModel.maxOpenExposure.collectAsState()
     val minRiskRewardRatio by settingsViewModel.minRiskRewardRatio.collectAsState()
     val maxPortfolioAllocation by settingsViewModel.maxPortfolioAllocation.collectAsState()
     val maxSectorAllocation by settingsViewModel.maxSectorAllocation.collectAsState()
@@ -189,10 +190,15 @@ fun PortfolioScreen(
         if (item.portfolio.buyFees > 0.0) {
             item.portfolio.buyFees
         } else {
-            TechnicalAnalysis.calculateFees(item.portfolio.cost * item.portfolio.quantity, false, isAtsEnabled)
+            val isOddLot = item.portfolio.quantity < apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+            TechnicalAnalysis.calculateFees(item.portfolio.cost * item.portfolio.quantity, false, isAtsEnabled || isOddLot)
         }
     }
-    val sellFees = TechnicalAnalysis.calculateFees(stockValue, true, isAtsEnabled)
+    val sellFees = portfolioItems.sumOf { item ->
+        val price = item.info.lastPrice.takeIf { it > 0.0 } ?: item.portfolio.cost
+        val isOddLot = item.portfolio.quantity < apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+        TechnicalAnalysis.calculateFees(price * item.portfolio.quantity, true, isAtsEnabled || isOddLot)
+    }
     val totalFees = buyFees + sellFees
 
     val grossProfit = stockValue - totalCost
@@ -483,6 +489,7 @@ fun PortfolioScreen(
             cashBalance = cashBalance,
             marketRegime = marketRegime,
             maxRiskPerTradePercent = maxRiskPerTrade,
+            maxOpenExposurePercent = maxOpenExposure,
             minRiskRewardRatio = minRiskRewardRatio,
             maxStockAllocationPercent = maxPortfolioAllocation,
             maxSectorAllocationPercent = maxSectorAllocation,
@@ -835,6 +842,7 @@ fun BuyStockDialog(
     cashBalance: Double = 0.0,
     marketRegime: TechnicalAnalysis.MarketRegime = TechnicalAnalysis.MarketRegime.NEUTRAL,
     maxRiskPerTradePercent: Double = 1.0,
+    maxOpenExposurePercent: Double = Double.POSITIVE_INFINITY,
     minRiskRewardRatio: Double = 2.0,
     maxStockAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SINGLE_STOCK_ALLOCATION_PERCENT,
     maxSectorAllocationPercent: Double = apincer.mobile.tradings.domain.TradingConstants.MAX_SECTOR_ALLOCATION_PERCENT,
@@ -875,10 +883,10 @@ fun BuyStockDialog(
                     val base64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
                     
                     withContext(Dispatchers.IO) {
-                        val db = apincer.mobile.tradings.data.StockDatabase.getDatabase(context)
                         val prefRepo = PreferenceRepository(context)
                         val apiKey = prefRepo.geminiApiKey.first()
-                        val result = GeminiClient.extractTradeScreenshot(base64, apiKey)
+                        val modelId = prefRepo.geminiModel.first()
+                        val result = GeminiClient.extractTradeScreenshot(base64, apiKey, modelId)
                         
                         withContext(Dispatchers.Main) {
                             if (result.isSuccess) {
@@ -951,6 +959,17 @@ fun BuyStockDialog(
         holdings.filter { it.info.sector == sector && it.portfolio.quantity > 0 }
             .sumOf { it.portfolio.cost * it.portfolio.quantity }
     }
+    val existingOpenRisk = holdings.filter {
+        it.portfolio.quantity > 0 && !apincer.mobile.tradings.domain.CoreSatellite.isCore(it.info.symbol) &&
+            it.portfolio.stopLoss > 0.0 && it.portfolio.stopLoss < it.portfolio.cost
+    }.sumOf { item ->
+        val hCost = item.portfolio.cost
+        val hStop = item.portfolio.stopLoss
+        val hQty = item.portfolio.quantity
+        val hBuyFees = if (item.portfolio.buyFees > 0.0) item.portfolio.buyFees else TechnicalAnalysis.calculateFees(hCost * hQty, false, atsEnabled)
+        val hExitFees = TechnicalAnalysis.calculateFees(hStop * hQty, true, atsEnabled)
+        (hCost - hStop) * hQty + hBuyFees + hExitFees
+    }
     val isCoreBuy = apincer.mobile.tradings.domain.CoreSatellite.isCore(symbol)
     val showTradePlan = !(isCoreBuy && initialStock == null)
     val riskResult = if (isCoreBuy) apincer.mobile.tradings.domain.TradeRiskPolicy.evaluateCoreBuy(
@@ -959,11 +978,12 @@ fun BuyStockDialog(
         apincer.mobile.tradings.domain.TradeRiskInput(
             entry, planStop, amount, TechnicalAnalysis.calculateFees(entry * amount, false, atsEnabled),
             accountEquity, cashBalance, existingStockValue, existingSectorValue, atsEnabled,
-            planTarget, planPurpose == "SWING"
+            planTarget, planPurpose == "SWING", existingOpenRisk
         ),
         apincer.mobile.tradings.domain.TradeRiskLimits(
             maxRiskPerTradePercent, maxStockAllocationPercent, maxSectorAllocationPercent,
-            TechnicalAnalysis.getRecommendedCashBufferPercent(marketRegime), minRiskRewardRatio
+            TechnicalAnalysis.getRecommendedCashBufferPercent(marketRegime), minRiskRewardRatio,
+            maxOpenExposurePercent
         )
     )
     val isFormValid = if (initialStock != null) {
@@ -1449,12 +1469,13 @@ fun SellStockDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int, String) -> Unit
 ) {
-    var price by remember(stock.info.symbol) { mutableStateOf(String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice)) }
+    val isOddLotHolding = stock.portfolio.quantity in 1 until apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+    var price by remember(stock.info.symbol) { mutableStateOf(String.format(Locale.ENGLISH, "%.2f", stock.info.lastPrice.takeIf { it > 0.0 } ?: stock.portfolio.cost)) }
     var qty by remember(stock.info.symbol) { mutableStateOf(stock.portfolio.quantity.toString()) }
     var lesson by remember(stock.info.symbol) { mutableStateOf("") }
-    var selectedReason by remember(stock.info.symbol) { mutableStateOf("") }
+    var selectedReason by remember(stock.info.symbol) { mutableStateOf(if (isOddLotHolding) "Odd Lot / Clear 🧹" else "") }
 
-    val exitReasons = listOf("Target Hit 🎯", "Stop Hit 🛡️", "Trailing Stop 📈", "Boredom 😴", "Mistake 🤦", "Fundamental 📜")
+    val exitReasons = listOf("Target Hit 🎯", "Stop Hit 🛡️", "Trailing Stop 📈", "Fundamental 📜", "Odd Lot / Clear 🧹", "Boredom 😴", "Mistake 🤦")
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -1542,7 +1563,8 @@ fun SellStockDialog(
                 val sellQty = qty.toIntOrNull() ?: 0
                 val sellPrice = price.toDoubleOrNull() ?: 0.0
                 
-                val isNegativeExit = selectedReason.contains("Stop Hit") || selectedReason.contains("Mistake") || selectedReason.contains("Boredom") || sellPrice < stock.portfolio.cost
+                val isOddLotClear = isOddLotHolding || selectedReason.contains("Odd Lot")
+                val isNegativeExit = !isOddLotClear && (selectedReason.contains("Stop Hit") || selectedReason.contains("Mistake") || selectedReason.contains("Boredom") || sellPrice < stock.portfolio.cost)
                 val isLessonSufficient = !isNegativeExit || lesson.trim().length >= 10
                 
                 val isValid = sellQty > 0 && sellQty <= stock.portfolio.quantity && sellPrice.isFinite() && sellPrice > 0.0 && selectedReason.isNotBlank() && isLessonSufficient
@@ -1645,15 +1667,21 @@ fun CoreSatelliteCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Core vs Satellite",
+                text = "${pct(targetCorePercent)}/${pct(100.0 - targetCorePercent)} Split: Index ETF vs. Individual Stocks",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Text(
+                text = "Index Core = $coreSymbol (SET50 ETF, bought like a normal stock in your broker app). Individual Stocks = your active picks.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp)
+            )
             if (allocation.investedValue > 0.0) {
                 Spacer(Modifier.height(12.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Core $coreSymbol ${pct(allocation.corePercent)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = barColor)
+                    Text("Index ETF ($coreSymbol): ${pct(allocation.corePercent)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = barColor)
                     Text("Target ${pct(targetCorePercent)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 LinearProgressIndicator(
@@ -1665,14 +1693,14 @@ fun CoreSatelliteCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Satellite (individual stocks) ${pct(allocation.satellitePercent)} · cap ${pct(100.0 - targetCorePercent)}",
+                    "Individual Stocks: ${pct(allocation.satellitePercent)} · Max limit ${pct(100.0 - targetCorePercent)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (allocation.coreValue > 0.0 && isBelowTarget) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "About ${baht(allocation.coreShortfallBaht)} more $coreSymbol reaches your target without selling. Direct new money to the core first.",
+                        "About ${baht(allocation.coreShortfallBaht)} more in $coreSymbol reaches your ${pct(targetCorePercent)} target without selling stocks. Put new money into $coreSymbol first.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -1689,8 +1717,8 @@ fun CoreSatelliteCard(
                 val amount = amountText.toDoubleOrNull()?.takeIf { it > 0.0 }
                 val day = dayText.toIntOrNull()?.takeIf { it in 1..28 }
                 Text(
-                    if (isEditingPlan) "Change the monthly amount for your index core."
-                    else "Start your index core: put a fixed amount into $coreSymbol every month.",
+                    if (isEditingPlan) "Change your monthly savings amount for $coreSymbol."
+                    else "Monthly Auto-Plan: enter how much baht you want to invest in $coreSymbol each month (1 lot = 100 shares, ~฿900).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )

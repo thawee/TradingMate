@@ -358,32 +358,6 @@ fun SettingsScreen(
             }
 
             SectionContent(title = stringResource(R.string.section_price_alerts), icon = Icons.Default.NotificationsActive) {
-                val alertThreshold by settingsViewModel.priceAlertThreshold.collectAsState()
-                var editingThreshold by remember(alertThreshold) { mutableStateOf(alertThreshold.toInt().toString()) }
-
-                OutlinedTextField(
-                    value = editingThreshold,
-                    onValueChange = { 
-                        editingThreshold = it
-                        it.toDoubleOrNull()?.let { percent ->
-                            settingsViewModel.updatePriceAlertThreshold(percent)
-                        }
-                    },
-                    label = { Text(stringResource(R.string.label_alert_threshold_percent)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    suffix = { Text("%") },
-                    shape = RoundedCornerShape(14.dp)
-                )
-                Text(
-                    text = "Proximity threshold percentage for target buy/sell price alerts (e.g. within 10% of target).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp, top = 4.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 val dividendWindow by settingsViewModel.dividendAlertWindow.collectAsState()
                 var editingWindow by remember(dividendWindow) { mutableStateOf(dividendWindow.toString()) }
                 val isEndYear by settingsViewModel.isDividendAlertEndYear.collectAsState()
@@ -671,7 +645,7 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(14.dp)
                 )
                 Text(
-                    text = "Required for the in-app \"Analyze with AI\" button in Smart Advisors. Get a free key from Google AI Studio (aistudio.google.com/apikey). Stored only on this device; sent directly to Google, never to our servers.",
+                    text = "Used for broker screenshot OCR when recording a purchase in Portfolio. Get a free key from Google AI Studio (aistudio.google.com/apikey). Stored only on this device; sent directly to Google, never to our servers.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp)

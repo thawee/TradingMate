@@ -8,7 +8,7 @@ enum class AdvisorFilter(val label: String, val explanation: String) {
     FRESHNESS("Fresh history", "Stock and benchmark dates match and are no more than seven days old."),
     ABOVE_LOW("Above 52w low", "Price at least 5% above its 52-week low; missing history fails."),
     NO_SELL("No SELL signal", "Exclude active SELL signals."),
-    QUALITY("Quality", "ROE above 10%; margin above 10%, growth above 10% and nonfinancial D/E below 1.5 when available."),
+    QUALITY("Quality", "ROE above 10%; margin above 5%, non-negative 3Y profit growth and nonfinancial D/E below 2.0 when available."),
     YIELD("Yield ≥5%", "Reported dividend yield at least 5%."),
     WEEKLY("Weekly uptrend", "Completed weekly trend must be bullish."),
     REGIME("Market context", "In a bearish market, require positive relative strength or qualifying foreign flow."),
@@ -35,7 +35,12 @@ enum class AdvisorFilter(val label: String, val explanation: String) {
             PlaybookMode.DIVIDEND -> listOf(LIQUIDITY, FRESHNESS, ABOVE_LOW, NO_SELL, QUALITY, YIELD)
         }
 
-        fun defaultMask(mode: PlaybookMode): Int = stages(mode).fold(0) { mask, stage -> mask or stage.bit }
+        /** Default Research mask leaves QUALITY and WEEKLY as opt-in chips so actionable SET candidates appear first. */
+        fun defaultMask(mode: PlaybookMode): Int =
+            stages(mode).filter { it != QUALITY && it != WEEKLY }.fold(0) { mask, stage -> mask or stage.bit }
+
+        /** Strict mask with every stage enabled (matches StockDna.isSwingCandidate / full Dividend Stars screen). */
+        fun fullMask(mode: PlaybookMode): Int = stages(mode).fold(0) { mask, stage -> mask or stage.bit }
     }
 }
 

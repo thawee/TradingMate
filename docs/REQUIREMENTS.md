@@ -10,25 +10,25 @@ TradingMate is a high-performance personal trading companion specifically design
 - **Fundamental Metrics:** Must display core financial data including P/E, P/BV, ROE, Net Profit, EPS, and D/E Ratio.
 - **Dividend Tracking:** Must track and display Dividend Yield, upcoming XD dates, and Dividend Per Share.
 - **Technical Indicator Engine:**
-    - **RSI (14):** Speedometer for overbought (>65) and oversold (<35) conditions.
+    - **RSI (14):** Speedometer for oversold (<35), healthy momentum entry (<62), overbought zone (>65), and `+1R` holding exhaustion (>72).
     - **SMA (50/200):** Trend guards for mid-term and long-term market health.
     - **MACD:** Momentum confirmation for early reversals.
     - **Bollinger Bands:** Volatility mapping for undervaluation detection.
-- **Smart Signal Logic:** Generate actionable signals (BUY, SELL, POTENTIAL, NEUTRAL) based on combined technical and fundamental criteria.
+- **Smart Signal Logic:** Generate actionable signals (BUY, SELL, POTENTIAL, NEUTRAL) based on combined technical and fundamental criteria, unified across foreground and background refreshes via `HoldingSignal.resolve`.
 - **Cache-first Refresh:** Show cached data instantly, refresh from API only if stale (>1 hour). Portfolio screen refreshes only portfolio stocks (quantity > 0).
 
-### 2.2 Five-Layer Filter System (Stock DNA)
-A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
+### 2.2 Five-Layer Filter System (Stock DNA — SET Calibrated)
+A multi-layer filter calibrated for the Thai SET to classify stocks into Swing setups or Dividend candidates:
 
-0. **Pre-filter (Liquidity):** Daily turnover (last price × volume) > ฿5,000,000. This screens for liquidity; it cannot ensure a stop alert can be filled at the displayed price.
-1. **Qual (Quality):** Evaluates management efficiency and profitability.
-   - Indicators: ROE > 15%, Net Profit Margin > 10%, D/E Ratio < 1.5. Three-year growth remains unavailable until the source periods are verified.
+0. **Pre-filter (Liquidity, Freshness & 52w Low Guard):** Daily turnover (last price × volume) > ฿5,000,000, stock and SET benchmark sessions matched within 7 days, and price at least 5% above the 52-week low.
+1. **Qual (Quality — SET Calibrated):** Evaluates management efficiency and profitability across Thai sector structures.
+   - Indicators: ROE > 10%, Net Profit Margin > 5% (null-tolerant), non-financial D/E Ratio < 2.0 (null-tolerant; financial sector exempt), and 3Y Profit Growth ≥ 0% when available.
 2. **Val (Value):** Identifies underpriced or fair-value stocks.
    - Indicators: P/E Ratio (0.1 to 15.0) and P/BV (0.1 to 1.0).
 3. **Div (Dividend):** Highlights strong passive income generators.
    - Indicators: Dividend Yield ≥ 5.0%.
 4. **Mom (Momentum):** Detects early trend shifts and positive price momentum.
-   - Indicators: MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise-level crossover flicker), RSI in 40–70 (confirms healthy momentum, excludes overbought).
+   - Indicators: MACD Histogram > 0.1% of last price (price-relative threshold to avoid noise-level crossover flicker), RSI in 40–64.9 (confirms healthy momentum, excludes overbought), and non-negative 63-session Relative Strength vs SET.
 5. **Sup (Support / Setup):** Locates ideal entry zones via signal confirmation.
    - Indicators: BUY or POTENTIAL zone signals (which incorporate SMA 200 trend context checks, avoiding "falling knife" entries in structural downtrends).
 
@@ -43,15 +43,15 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 - **Consolidated Equity:** Calculate and display Total Assets by merging Stock Holdings and Cash Balance.
 - **Transaction Recording:** Allow users to record buy and sell transactions with entry price and quantity.
 - **Accepted Swing Plan:** Persist a versioned entry, stop, supported target, source, time, and exit policy with the holding. Explicitly clearing a target clears the fixed plan. Legacy holdings with no complete plan keep their existing exit behavior.
-- **Proposed Buy Check:** Require a supported target with the configured minimum estimated net reward to risk (default 2:1), stop loss within the configured risk budget, 100-share board lots, combined stock and sector limits, and the cash reserve. Apply the check in the dialog and repository. Permit recording actual broker fills that breach proposal limits while flagging cash reconciliation where needed.
-- **Fee Engine:** Automatically calculate trading fees using the InnovestX structure (Commission 0.15%, Market Fee, VAT). Applies a ฿50/day minimum commission unless ATS + E-Statement is enabled (waived). Financial Transaction Tax (FTT) is ฿0 — officially abolished.
+- **Proposed Buy Check:** Require a supported target with the configured minimum estimated net reward to risk (default 2:1), stop loss within the configured per-trade risk budget and total open portfolio risk cap (`maxOpenExposure`), 100-share board lots, combined stock and sector limits, and the cash reserve. Apply the check in the dialog and repository. Permit recording actual broker fills that breach proposal limits while flagging cash reconciliation where needed.
+- **Fee Engine:** Automatically calculate trading fees per position using the InnovestX structure (Commission 0.15%, Market Fee, VAT). Applies a ฿50/day minimum commission on full-lot positions unless ATS + E-Statement is enabled (waived) or the position is an odd lot (`< 100` shares). Financial Transaction Tax (FTT) is ฿0 — officially abolished.
 - **Profit/Loss Tracking:** Display Gross and Net Profit/Loss in both currency (THB) and percentage.
 - **Cash Management & Audit Ledger:** Maintain cash balance adjustments and a cash audit log across buy/sell/undo operations.
-- **Holding Integrity:** Additional buys retain the accepted plan and accumulate cost and fees. Sales validate remaining quantity inside the transaction; full-sale undo restores the saved plan and fee state. Removing a watchlist item never invents a sale from a cached quote.
+- **Holding Integrity & Odd-Lot Handling:** Additional buys retain the accepted plan and accumulate cost and fees. Sales validate remaining quantity inside the transaction; full-sale undo restores the saved plan and fee state. Removing a watchlist item never invents a sale from a cached quote. Odd-lot holdings (`1..99` shares, below 1 SET board lot) resolve to `ODD_LOT_HOLD` (`NEUTRAL`), are ignored by sell/rebalance alerts, and can be cleared in 1 tap via `Odd Lot / Clear 🧹` in the Sell dialog without requiring a 10-character lesson.
 - **Quantitative Risk Management Suite:**
   - **1-Day 95% Historical Value-at-Risk (VaR):** Real-time empirical quantile estimation of daily downside risk.
   - **Conditional VaR (CVaR / Expected Shortfall):** Average tail loss estimation during extreme market corrections.
-  - **Max Drawdown (MDD) & High-Water Mark (HWM):** All-time peak equity curve tracking and recovery progress meter.
+  - **Max Drawdown (MDD) & High-Water Mark (HWM):** 365-day peak equity curve tracking and recovery progress meter.
   - **Anti-Ruin Fixed Fractional Position Sizing:** Automatically calculates recommended position sizes according to exact stop-loss distance and account risk budget (1.0%–2.0%), rounded to 100-share SET board lots and clamped by the 15% single-stock ceiling.
   - **Concentration Caps:** Enforce a **15% Single-Stock Allocation Limit** and a **30% Sector Allocation Cap** with warning alerts.
   - **63-Day Rolling Portfolio Beta ($\beta$):** Tracks systematic portfolio volatility vs. the SET Index.
@@ -60,10 +60,13 @@ A strict 5-layer filter to classify stocks into Swing Plays or Dividend Stars:
 ### 2.4 Watchlist Management
 - **Multi-source Search:** Enable searching for stocks using both SET and Yahoo Finance data.
 - **SET Collections Import:** Enable one-click import of curated stock groups (SET50, SET100, SETHD, Dividend Stars, Bluechips).
-- **Dynamic Sorting & Filtering:** Sort stocks by Symbol, Change %, or Signal priority (BUY > POTENTIAL > SELL > MONITOR) with direction toggle, search filter, fast scroll index track, and auto-scroll to top on sort change.
+- **Dynamic Sorting & Filtering:** Sort stocks by Symbol (default `A → Z`), Change %, or Signal priority (BUY > POTENTIAL > SELL > MONITOR) with direction toggle, search filter, fast scroll index track, and auto-scroll to top on sort change.
 
-### 2.5 Advisor
-- **Layout (2026-10-03):** The Advisor opens with a Today card (holdings at a saved exit first, then the monthly high-yield review date and names to sell, then the core DCA date, or "No holding needs action today"). Holdings are grouped Act now / At the monthly review / Review only. The Dividend tab shows the high dividend yield list, its forward record, the monthly rebalance plan and upcoming ex-dates for holdings; the Swing tab shows the context notice, the regime banner (Swing buys only) and swing holding exits. Research (the filter explorer) is collapsed at the bottom.
+### 2.5 Advisor (3-Step Guided Flow)
+- **Layout (2026-10-18):**
+  - **Today's Checklist & Step 1 · Check Your Holdings:** Shows holdings at a saved exit first (`🔴 Sell / Stop Reached`), then monthly dividend switches (`🟠 Monthly Switch`), then `🔵 FYI Notes`, or `"All Good Today"`. Core ETFs (`TDEX`/`1DIV`) and odd-lot dust (`< 100` shares) are excluded from satellite rebalance/review alerts.
+  - **Step 2 · Monthly Dividend Plan (Top 10 SET50):** Displays the top 10 SET50 dividend stocks, a collapsible track record vs. TDEX (`📊 View Track Record vs TDEX`), the **Monthly Buy / Sell Calculator**, and **Upcoming Dividend (XD) Dates**.
+  - **Step 3 · Find Stock Ideas (Watchlist Screener):** Open by default with 1-tap **Quick Presets** (`💰 High Yield ≥5%` / `🟢 Ready to Buy`, `⭐ Strict (+Quality)`, `📋 All Watchlist`) and opt-in `Quality` / `Weekly uptrend` chips so actionable SET setups appear immediately.
 - **Removed 2026-10-03:** the Swing 3-step routine, Gemini ranking of swing plans, Dividend Stars, the momentum list and strategy presets (failed or untested rules), and the "Show untested buy lists" setting.
 - **Push Notifications:** Morning exit alerts (10:00–11:00 AM) and afternoon entry reminders (15:30–16:15).
 

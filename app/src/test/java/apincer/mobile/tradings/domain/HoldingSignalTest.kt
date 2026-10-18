@@ -32,6 +32,11 @@ class HoldingSignalTest {
         assertSame(technicalSell, resolve(quantity = 0))
     }
 
+    @Test fun oddLotHoldingReturnsOddLotHoldWithoutSelling() {
+        assertSame(HoldingSignal.ODD_LOT_HOLD, resolve(symbol = "MBK", quantity = 2, purpose = "DIVIDEND", stop = 20.0, price = 19.0))
+        assertSame(HoldingSignal.ODD_LOT_HOLD, resolve(symbol = "MBK", quantity = 99, purpose = "SWING", stop = 20.0, price = 19.0))
+    }
+
     @Test fun fixedPlanComesBeforeDividendHold() {
         val plan = { TradePlan.fixed("ABC", 10.0, 9.0, 12.0, "DIVIDEND", "test", "plan-1", 0L) }
         val s = HoldingSignal.resolve("ABC", 100, "DIVIDEND", 0.0, 12.5, "FIXED_TARGET", plan, technicalSell)

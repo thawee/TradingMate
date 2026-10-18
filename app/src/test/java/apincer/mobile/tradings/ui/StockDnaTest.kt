@@ -213,13 +213,15 @@ class StockDnaTest {
     @Test
     fun qualityIsCalibratedForSet() {
         val base = createStock(nvdrNetVolume = null)
-        fun withInfo(roe: Double, npm: Double, de: Double, sector: String) =
-            base.copy(info = base.info.copy(roe = roe, netProfitMargin = npm, debtToEquity = de, sector = sector))
-        // ROE 12% now qualifies (15% kept only 13 of 101 SET watchlist stocks).
-        assertTrue(StockDna.isQual(withInfo(12.0, 14.0, 0.8, "พาณิชย์")))
+        fun withInfo(roe: Double, npm: Double, de: Double, sector: String, growth3Y: Double? = null) =
+            base.copy(info = base.info.copy(roe = roe, netProfitMargin = npm, debtToEquity = de, sector = sector, profitGrowth3Y = growth3Y))
+        // ROE 12% and retail NPM 6% / telecom D/E 1.8 now qualify under SET calibration.
+        assertTrue(StockDna.isQual(withInfo(12.0, 6.0, 1.8, "พาณิชย์", 2.0)))
         assertFalse(StockDna.isQual(withInfo(9.0, 14.0, 0.8, "พาณิชย์")))
-        // Leverage blocks an ordinary company but not a bank.
-        assertFalse(StockDna.isQual(withInfo(14.0, 20.0, 6.0, "พาณิชย์")))
+        assertFalse(StockDna.isQual(withInfo(12.0, 4.0, 0.8, "พาณิชย์")))
+        assertFalse(StockDna.isQual(withInfo(12.0, 14.0, 0.8, "พาณิชย์", -5.0)))
+        // Leverage >= 2.0 blocks an ordinary company but not a bank.
+        assertFalse(StockDna.isQual(withInfo(14.0, 20.0, 2.2, "พาณิชย์")))
         assertTrue(StockDna.isQual(withInfo(14.0, 20.0, 6.0, "ธนาคาร")))
         assertTrue(StockDna.isFinancialSector("ประกันภัยและประกันชีวิต"))
     }

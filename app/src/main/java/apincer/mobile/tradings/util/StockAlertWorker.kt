@@ -35,6 +35,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val prefRepo = apincer.mobile.tradings.data.PreferenceRepository(applicationContext)
         val atsEnabled = prefRepo.isAtsEnabled.firstOrNull() ?: true
         val entryAlertsEnabled = prefRepo.isEntryAlertsEnabled.firstOrNull() ?: false
+        val dividendAlertWindow = prefRepo.dividendAlertWindow.firstOrNull() ?: 14
+        val isDividendAlertEndYear = prefRepo.isDividendAlertEndYear.firstOrNull() ?: false
         val alertPrefs = applicationContext.getSharedPreferences("trading_mate_alerts", Context.MODE_PRIVATE)
         prefRepo.coreMix.firstOrNull()?.let { (symbol, pct) -> CoreSatellite.configure(symbol, pct) }
         // Holiday checks below depend on the current calendar.
@@ -153,7 +155,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             val monthKey = "high_yield_review_${now.get(java.util.Calendar.YEAR)}_${now.get(java.util.Calendar.MONTH) + 1}"
             if (!alertPrefs.getBoolean(monthKey, false) &&
                 TechnicalAnalysis.getMarketStatus() != apincer.mobile.tradings.domain.MarketStatus.CLOSED &&
-                allStocks.any { it.quantity > 0 && it.tradePurpose == "DIVIDEND" && !CoreSatellite.isCore(it.symbol) }) {
+                allStocks.any { it.quantity >= apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES && it.tradePurpose == "DIVIDEND" && !CoreSatellite.isCore(it.symbol) }) {
                 NotificationHelper.showHighYieldReviewNotification(applicationContext)
                 alertPrefs.edit().putBoolean(monthKey, true).apply()
             }
@@ -163,6 +165,14 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
             Log.d("StockAlertWorker", "No stocks in watchlist. Skipping.")
             return Result.success()
         }
+
+        val isMarketBearish = if (entryAlertsEnabled) {
+            runCatching {
+                val setHistory = SetScraper.fetchSetIndexHistory()
+                TechnicalAnalysis.getMarketRegime(setHistory.map { it.close }) == TechnicalAnalysis.MarketRegime.BEARISH
+            }.getOrDefault(false)
+        } else false
+        val bangkokToday = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Bangkok"))
 
         allStocks.forEach { entity ->
             try {
@@ -215,7 +225,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     userBuyFees = entity.buyFees,
                     atsEnabled = atsEnabled
                 )
-                val explicitStopHit = entity.quantity > 0 && entity.portfolio.stopLoss > 0.0 &&
+                val isFullLot = entity.quantity >= apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+                val explicitStopHit = isFullLot && entity.portfolio.stopLoss > 0.0 &&
                     scraped.lastPrice > 0.0 && scraped.lastPrice <= entity.portfolio.stopLoss
                 val signal = apincer.mobile.tradings.domain.HoldingSignal.resolve(entity.symbol, entity.quantity,
                     entity.tradePurpose, entity.portfolio.stopLoss, scraped.lastPrice, entity.portfolio.exitPolicy,
@@ -232,7 +243,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     signal = signal
                 )
 
-                if (entryAlertsEnabled && isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type, dummyInfo)) {
+                if (entryAlertsEnabled && isSignalShift && shouldNotifyEntrySignal(entity.quantity, signal.type, dummyInfo, isMarketBearish)) {
                     NotificationHelper.showSignalNotification(
                         context = applicationContext,
                         symbol = entity.symbol,
@@ -245,7 +256,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 // only a stop the user saved on it still alerts.
                 val isCoreHolding = CoreSatellite.isCore(entity.symbol)
                 val sellReasonsList = mutableListOf<String>()
-                if (entity.quantity > 0 && signal.type == IndicatorSignal.SELL && (!isCoreHolding || explicitStopHit)) {
+                if (isFullLot && signal.type == IndicatorSignal.SELL && (!isCoreHolding || explicitStopHit)) {
                     val reason = if (entity.portfolio.exitPolicy == "FIXED_TARGET" || explicitStopHit)
                         signal.description else signal.reason
                     reason?.takeIf { it.isNotBlank() }?.let { sellReasonsList.add(it) }
@@ -317,27 +328,26 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     repository.updatePortfolio(entity.portfolio.copy(peakPrice = scraped.lastPrice))
                 }
 
-                // 6. Check for upcoming Ex-Dividend (XD) date alerts (next 7 days)
+                // 6. Check for upcoming Ex-Dividend (XD) date alerts using user-configured window
                 val xdDateStr = scraped.dividendDate
                 if (!xdDateStr.isNullOrEmpty()) {
                     try {
-                        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-                        val xdDate = sdf.parse(xdDateStr)
-                        if (xdDate != null) {
-                            val diffMs = xdDate.time - System.currentTimeMillis()
-                            val diffDays = diffMs / (1000 * 60 * 60 * 24)
-                            
-                            // If XD is in the next 1 to 7 days
-                            if (diffDays >= -1 && diffDays <= 7) {
-                                val key = "xd_alert_${entity.symbol}_$xdDateStr"
-                                if (!alertPrefs.getBoolean(key, false)) {
-                                    NotificationHelper.showXdAlertNotification(
-                                        context = applicationContext,
-                                        symbol = entity.symbol,
-                                        dividendDate = xdDateStr
-                                    )
-                                    alertPrefs.edit().putBoolean(key, true).apply()
-                                }
+                        val xdDate = java.time.LocalDate.parse(xdDateStr.take(10))
+                        val diffDays = java.time.temporal.ChronoUnit.DAYS.between(bangkokToday, xdDate)
+                        val withinWindow = if (isDividendAlertEndYear) {
+                            diffDays >= 0 && xdDate.year == bangkokToday.year
+                        } else {
+                            diffDays in 0..dividendAlertWindow.toLong()
+                        }
+                        if (withinWindow) {
+                            val key = "xd_alert_${entity.symbol}_$xdDateStr"
+                            if (!alertPrefs.getBoolean(key, false)) {
+                                NotificationHelper.showXdAlertNotification(
+                                    context = applicationContext,
+                                    symbol = entity.symbol,
+                                    dividendDate = xdDateStr
+                                )
+                                alertPrefs.edit().putBoolean(key, true).apply()
                             }
                         }
                     } catch (e: java.lang.Exception) {
@@ -348,7 +358,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 // 7. One stop model: the saved stop and the signal engine (volatility trailing stop after +1R,
                 // 2R target, overbought after +1R). Dividend holdings follow HoldingSignal (saved stop only).
                 val isSwingHold = entity.tradePurpose == "SWING"
-                if (!isCoreHolding && entity.quantity > 0 && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
+                if (!isCoreHolding && isFullLot && entity.portfolio.exitPolicy != "FIXED_TARGET" &&
                     isSwingHold && signal.type == IndicatorSignal.SELL) {
                     hasActiveSwingSellAlert = true
                 }
@@ -357,7 +367,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val heldPastStop = entity.portfolio.stopLoss > 0.0 &&
                     alertPrefs.getString(apincer.mobile.tradings.ui.STOP_ACK_PREFIX + entity.symbol.uppercase(), null)
                         ?.toDoubleOrNull() == entity.portfolio.stopLoss
-                if (entity.quantity > 0 && sellReasonsList.isNotEmpty() && !heldPastStop) {
+                if (isFullLot && sellReasonsList.isNotEmpty() && !heldPastStop) {
                     maybeSendSellReminder(
                         prefs = alertPrefs,
                         symbol = entity.symbol,
@@ -394,7 +404,7 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         }
         val cashBalance = repository.cashBalance.firstOrNull()?.balance ?: 0.0
         
-        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now.time)
+        val todayStr = bangkokToday.toString()
         val snapshot = apincer.mobile.tradings.data.PortfolioSnapshotEntity(
             date = todayStr,
             totalValue = totalValue,
@@ -403,9 +413,8 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         )
         repository.insertSnapshot(snapshot)
         
-        // Clean up old snapshots (e.g., older than 30 days)
-        val thirtyDaysAgo = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -30) }
-        val oldDateStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(thirtyDaysAgo.time)
+        // Retain 365 days of daily snapshots so MTM NAV and Peak-to-Trough Max Drawdown preserve annual history
+        val oldDateStr = bangkokToday.minusDays(365).toString()
         repository.deleteOldSnapshots(oldDateStr)
 
         try {
@@ -417,12 +426,17 @@ class StockAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
         return Result.success()
     }
 
-    private fun shouldNotifyEntrySignal(quantity: Int, type: IndicatorSignal, s: apincer.mobile.tradings.ui.StockWatchlistInfo): Boolean {
+    private fun shouldNotifyEntrySignal(
+        quantity: Int,
+        type: IndicatorSignal,
+        s: apincer.mobile.tradings.ui.StockWatchlistInfo,
+        isMarketBearish: Boolean
+    ): Boolean {
         if (quantity > 0) return false
         // STRICT ALERTS: Align perfectly with the Advisor Screen's logic
         
         // STRICT ALERTS: Only notify if it passes the Advisor Screen's VIP gates
-        return apincer.mobile.tradings.ui.StockDna.isQual(s) && apincer.mobile.tradings.ui.StockDna.isSwingCandidate(s, isMarketBearish = false)
+        return apincer.mobile.tradings.ui.StockDna.isQual(s) && apincer.mobile.tradings.ui.StockDna.isSwingCandidate(s, isMarketBearish = isMarketBearish)
     }
 
     private fun maybeSendSellReminder(

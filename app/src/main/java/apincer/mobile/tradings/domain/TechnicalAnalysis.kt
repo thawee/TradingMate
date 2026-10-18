@@ -335,11 +335,11 @@ object TechnicalAnalysis {
         } else {
             false
         }
-        if (!isProtectedDividend && hasProfit && isRsiOverbought) {
+        if (!isProtectedDividend && hasProfit && rsi > TradingConstants.RSI_HOLDING_OVERBOUGHT) {
             return TradeSignal(
                 IndicatorSignal.SELL,
                 "${qualityPrefix}Overbought",
-                "RSI is ${String.format(Locale.ENGLISH,"%.1f", rsi)} (above 65). The stock is overextended and likely to pull back. Consider selling to lock in gains."
+                "RSI is ${String.format(Locale.ENGLISH,"%.1f", rsi)} (above ${TradingConstants.RSI_HOLDING_OVERBOUGHT.toInt()}). The stock is exhausted and likely to pull back. Consider selling to lock in gains."
             )
         }
         if (!isProtectedDividend && hasProfit && (mfi ?: 0.0) >= TradingConstants.MFI_DISTRIBUTION) {
@@ -349,11 +349,11 @@ object TechnicalAnalysis {
                 "Money Flow Index is ${String.format(Locale.ENGLISH,"%.0f", mfi)} (above 80) — heavy volume is flowing OUT at these prices. Smart money is selling into strength; consider locking in gains."
             )
         }
-        if (!isProtectedDividend && hasProfit && isNearUpperBB) {
+        if (!isProtectedDividend && hasProfit && isNearUpperBB && isRsiOverbought) {
             return TradeSignal(
                 IndicatorSignal.SELL,
                 "${qualityPrefix}Upper Band Resistance",
-                "Price is near the upper Bollinger Band — a resistance zone. Stocks often pull back from this level. Consider selling or tightening your stop-loss."
+                "Price is near the upper Bollinger Band with overbought RSI — a resistance zone. Stocks often pull back from this level. Consider selling or tightening your stop-loss."
             )
         }
 
@@ -414,10 +414,9 @@ object TechnicalAnalysis {
             }
         }
 
-        // Uptrend Entry: RSI < 55 gate avoids chasing extended moves late in the trend.
-        // ADX Chop Filter: below 20 there is no trend to follow — momentum crossovers
-        // in a sideways range are whipsaw noise, so require ADX ≥ 20 (null-tolerant).
-        if (isMacdBullish && isPriceAboveSma50 && rsi < 55.0 &&
+        // Uptrend Entry: RSI < 62 gate avoids chasing overextended moves while allowing SET breakouts
+        // that have cleared SMA 50 + Weekly EMA 20 with ADX ≥ 20 (which typically sit at RSI 55–61).
+        if (isMacdBullish && isPriceAboveSma50 && rsi < TradingConstants.RSI_HEALTHY_MOMENTUM_MAX &&
             (adx == null || adx >= TradingConstants.ADX_TREND_CONFIRM)) {
             
             // FALSE BREAKOUT GUARD: Foreign funds heavily dumping (NVDR net selling > ฿5M)
@@ -450,7 +449,7 @@ object TechnicalAnalysis {
             return TradeSignal(
                 IndicatorSignal.BUY,
                 "${qualityPrefix}Healthy Momentum",
-                "Positive momentum confirmed early. The stock is above its short-term average and not yet overextended (RSI < 55)."
+                "Positive momentum confirmed early. The stock is above its short-term average and not yet overextended (RSI < ${TradingConstants.RSI_HEALTHY_MOMENTUM_MAX.toInt()})."
             )
         }
 

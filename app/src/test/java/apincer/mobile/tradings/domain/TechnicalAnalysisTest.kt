@@ -103,8 +103,18 @@ class TechnicalAnalysisTest {
 
     @Test
     fun testOverboughtSellAfterOneR() {
+        // At +1R, RSI 68 holds for the 2R target / trailing stop; RSI > 72 triggers exhaustion Overbought SELL.
+        val holdAt68 = TechnicalAnalysis.getDetailedSignal(
+            rsi = 68.0, macdHist = 0.5, lastPrice = 108.0,
+            sma50 = 100.0, sma200 = 95.0, bb = null,
+            isVolumeSurge = false,
+            userCost = 100.0, userQuantity = 100,
+            tradePurpose = "SWING"
+        )
+        assertTrue(holdAt68.type != IndicatorSignal.SELL)
+
         val signal = TechnicalAnalysis.getDetailedSignal(
-            rsi = 70.0, macdHist = 0.5, lastPrice = 108.0,
+            rsi = 74.0, macdHist = 0.5, lastPrice = 108.0,
             sma50 = 100.0, sma200 = 95.0, bb = null,
             isVolumeSurge = false,
             userCost = 100.0, userQuantity = 100,
@@ -220,9 +230,20 @@ class TechnicalAnalysisTest {
 
     @Test
     fun testHealthyMomentumSkipsExtendedMoves() {
-        // MACD bullish above SMA50 but RSI 60 (extended) → no BUY chase
-        val signal = TechnicalAnalysis.getDetailedSignal(
+        // RSI 60 is within SET breakout range (< 62) -> BUY; RSI 63 (extended) -> no BUY chase
+        val breakout = TechnicalAnalysis.getDetailedSignal(
             rsi = 60.0,
+            macdHist = 0.5,
+            lastPrice = 110.0,
+            sma50 = 100.0,
+            sma200 = 95.0,
+            bb = null,
+            isVolumeSurge = false
+        )
+        assertEquals(IndicatorSignal.BUY, breakout.type)
+
+        val signal = TechnicalAnalysis.getDetailedSignal(
+            rsi = 63.0,
             macdHist = 0.5,
             lastPrice = 110.0,
             sma50 = 100.0,

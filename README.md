@@ -28,26 +28,30 @@ It also covers the practical side of Thai investing:
   - **Concentration Shields**: Strictly enforces a **15% Single-Stock Allocation Limit** and **30% Sector Allocation Cap** (user-configurable in Settings).
 - **Weekly Trend Check:** Daily candles are resampled to a **Weekly 20-EMA**; the **Weekly Bearish Guard** holds back counter-trend swing signals. Untested as an edge.
 - **Thai Dividend Tax Shield (Section 47 bis):** Calculates reclaimable Corporate Income Tax (CIT 20%) credits ($\text{Gross} \times \frac{20}{80}$) and Net Yield-on-Cost ($\text{YoC}_{\text{net}}$) after 10% Withholding Tax.
-- **Advisor:** The Advisor opens with a Today card (holdings at a saved exit first, then the monthly high-yield review date and names to sell, then the core DCA date, or "No holding needs action today"). Holdings are grouped Act now / At the monthly review / Review only. The Dividend tab shows the high dividend yield list, its forward record, the monthly rebalance plan and upcoming ex-dates for holdings; the Swing tab, when enabled, shows the context notice, the regime banner (Swing buys only) and swing holding exits. Research (the filter explorer) is collapsed at the bottom.
-- **High Dividend Yield List and Monthly Rebalance Plan:** The top 10 SET50 stocks by yield, the one stock rule that passed the evidence gate (backtest +7.80% a year vs TDEX +2.52%, inflated by survivorship; the real 1DIV ETF +3.86% vs +2.55%). The rebalance plan turns it into a review-only order list for your Dividend-purpose holdings: sell names that left the list, keep the rest unresized, buy new names with a tenth of the budget in whole lots. It says when the budget is too small to hold all ten and points to 1DIV. A monthly notification reminds you to review it. A forward record saves each month's list with its prices and compares it with TDEX after 1, 3 and 12 months, dividends included; names are fixed when saved, so delistings stay in the record (idea from tradermonty's signal-postmortem).
+- **Advisor (3-Step Guided Flow):**
+  - **Today's Checklist & Step 1 · Check Your Holdings:** Holdings at a saved exit first (`🔴 Sell / Stop Reached`), then monthly dividend switches (`🟠 Monthly Switch`), then `🔵 FYI Notes`, or `"All Good Today"`. Odd-lot dust (`< 100` shares) and Core ETFs (`TDEX`/`1DIV`) do not trigger sell or monthly switch alerts.
+  - **Step 2 · Monthly Dividend Plan (Top 10 SET50):** Shows the top 10 SET50 dividend stocks, a collapsible track record vs. TDEX, the **Monthly Buy / Sell Calculator**, and **Upcoming Dividend (XD) Dates**.
+  - **Step 3 · Find Stock Ideas (Watchlist Screener):** Open by default with 1-tap **Quick Presets** (`💰 High Yield ≥5%` / `🟢 Ready to Buy`, `⭐ Strict (+Quality)`, `📋 All Watchlist`) and customizable filter chips.
+- **High Dividend Yield List and Monthly Rebalance Plan:** The top 10 SET50 stocks by yield, the one stock rule that passed the evidence gate (backtest +7.80% a year vs TDEX +2.52%, inflated by survivorship; the real 1DIV ETF +3.86% vs +2.55%). The rebalance plan turns it into a review-only order list for your full-lot (`≥ 100` share) Dividend-purpose holdings: sell names that left the list, keep the rest unresized, buy new names with a tenth of the budget in whole lots. It says when the budget is too small to hold all ten and points to 1DIV. A monthly notification reminds you to review it. A forward record saves each month's list with its prices and compares it with TDEX after 1, 3 and 12 months, dividends included; names are fixed when saved, so delistings stay in the record (idea from tradermonty's signal-postmortem).
+- **Odd-Lot (`< 100` Share) Dust Handling:** Leftover shares below 1 SET board lot (`1..99` shares, e.g., from a stock dividend) are marked `Odd lot (< 100 shares)`, ignored by sell alerts and the monthly rebalance calculator, exempted from the ฿50 non-ATS minimum commission in P/L, and can be cleared in 1 tap via **`Odd Lot / Clear 🧹`** in the Sell dialog.
 - **Market Pulse:** Watchlist monitoring with multi-factor technical context (Technical Setup, On Watch, Exit Rule). Entry signals carry a "Context, not a buy call" notice; entry alerts are off by default.
-- **Screenshot import:** The Buy dialog can read a broker trade screenshot with Gemini (user-supplied API key).
-- **Saved Swing Plans:** Records an accepted entry, stop, target, and exit policy. Proposed buys are checked against net reward to risk, stop risk, concentration, cash reserve, and SET board lots. Broker fills can still be recorded when they differ from a proposal.
-- **Local Trade Record and Backup:** Saves plan history, trades, fees, cash transactions, dividends, daily portfolio snapshots, and advice events in JSON backups. Older backups import with their available fields.
-- **Consolidated Portfolio:** Professional financial dashboard grouping stock holdings, cash balance, net profit, fee tracking, and sector risk meters in one unified view.
+- **Screenshot import:** The Buy dialog can read a broker trade screenshot with Gemini (`gemini-2.5-flash` default, user-supplied API key).
+- **Saved Swing Plans:** Records an accepted entry, stop, target, and exit policy. Proposed buys are checked against net reward to risk, per-trade and total open stop risk (`maxOpenExposure`), concentration, cash reserve, and SET board lots. Broker fills can still be recorded when they differ from a proposal.
+- **Local Trade Record and Backup:** Saves plan history, trades, fees, cash transactions, dividends, daily portfolio snapshots (365-day retention), and advice events in JSON backups. Older backups import with their available fields.
+- **Consolidated Portfolio:** Professional financial dashboard grouping stock holdings, cash balance, net profit, per-position fee tracking, and sector risk meters in one unified view.
 - **Trend State Chip:** Each stock shows a descriptive state (Uptrend, Downtrend, Overextended, Near Support, Range) from RSI, MACD, SMA 50 and Bollinger Bands. It describes price and never recommends; observed price levels and accepted plans provide stop and target alerts.
-- **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission unless ATS + E-Statement is enabled.
+- **Precise Fee Engine:** Accurate net profit/loss tracking using the InnovestX fee structure (Commission 0.15% + Market Fee + VAT). Applies a ฿50 minimum commission per full-lot position unless ATS + E-Statement is enabled.
 - **Design:** Ambient radial gradient glows, adaptive glassmorphic contrast borders, OpenType `tnum` tabular numbers for zero decimal jitter, Catmull-Rom $C^1$ smooth spline charts, and live directional price tick pulses.
 - **Multi-Source Data Aggregator:** Blends real-time market data from the Stock Exchange of Thailand (SET) with historical coverage and metadata from Yahoo Finance.
 
 ## 🧅 Screening Filters (Research and Swing candidates)
 
-The Research explorer and the Swing candidate check use a few descriptive filters. None is a tested edge; the 0-100 score, its grades and the archetype chips (MOAT, SHIELD, WHALE and others) were removed on 2026-10-08 because they were never backtested.
+The Research explorer and the Swing candidate check use SET-calibrated descriptive filters. None is a tested edge; the 0-100 score, its grades and the archetype chips (MOAT, SHIELD, WHALE and others) were removed on 2026-10-08 because they were never backtested.
 
-- **Pre-filter:** liquid (daily turnover above the minimum) and **not within 5% of the 52-week low**.
-- **Quality:** ROE, net margin and debt-to-equity thresholds (debt-to-equity is not applied to banks, finance and insurers).
+- **Pre-filter:** liquid (daily turnover above ฿5M), fresh session matching the benchmark within 7 days, and **not within 5% of the 52-week low**.
+- **Quality (SET-calibrated, opt-in chip in Screener):** ROE > 10%, net profit margin > 5% (null-tolerant), non-financial debt-to-equity < 2.0 (null-tolerant; banks, finance and insurers exempt), and 3Y profit growth ≥ 0% when available.
 - **Dividend:** yield of at least 5%.
-- **Foreign flow:** NVDR net buying with relative strength not badly lagging the SET.
+- **Foreign flow:** NVDR net buying with relative strength not badly lagging the SET ($\ge -1.0$).
 - **Swing candidate:** passes the pre-filter and quality, has no sell signal, a completed weekly trend that is not bearish, momentum, support or a strong daily move, and a confirmed BUY; in a bearish market it also needs positive foreign flow or relative strength.
 
 ## 📊 Technical Indicators Used
@@ -56,7 +60,8 @@ TradingMate computes these indicators to describe each stock; in the 2015-2025 b
 
 1. **RSI (14 Days) - The Speedometer**
    - **Oversold (< 35):** Target BUY zone.
-   - **Overbought (> 65):** Target SELL zone.
+   - **Healthy Momentum (< 62):** Trend continuation entry zone when price > SMA 50, MACD > 0, and ADX ≥ 20.
+   - **Overbought (> 65 / > 72 on `+1R` holdings):** Target SELL / exhaustion zone.
 2. **MACD (12, 26, 9) - The Momentum Switch**
    - Tracks trend shifts. A positive histogram confirms early reversals.
 3. **SMA 50 & SMA 200 - The Trend Guards**
@@ -92,12 +97,13 @@ TradingMate computes these indicators to describe each stock; in the 2015-2025 b
 
 - **🟢 Buy - Oversold Accumulation:** RSI < 35 while above the long-term SMA 200 (Stoch %K > %D confirmed).
 - **🟢 Buy - Early Recovery:** MACD turns positive near support with volume/MFI confirmation.
-- **🟢 Buy - Healthy Momentum:** Positive MACD, RSI < 55, price above SMA 50, filtered against false breakouts and NVDR selling.
+- **🟢 Buy - Healthy Momentum:** Positive MACD, RSI < 62, ADX ≥ 20, price above SMA 50, filtered against false breakouts and NVDR selling.
 - **⚪ Context - Trend Weakening:** Below SMA 50 with negative MACD is a note, not a sell; the saved stop is the exit. Selling there was the largest loss source in the 2015-2025 SET50 replay. Near an XD date the dip is labelled as the dividend adjustment.
 - **🔴 Sell - Saved Target:** New fixed swing plans alert when the saved target is reached. Legacy holdings retain their earlier profit rules until a plan is completed.
-- **🔴 Sell - R-Multiple Target (legacy holdings):** Holdings without a saved plan take profit at 2R (twice the stop distance). Overbought, MFI and upper-band exits apply only after +1R, and the trailing stop arms at +1R and exits before the trade turns into a loss.
+- **🔴 Sell - R-Multiple Target (legacy holdings):** Holdings without a saved plan take profit at 2R (twice the stop distance). Overbought (`RSI > 72` or Upper Band + `RSI > 65`) and MFI (`≥ 80`) exits apply only after +1R, and the trailing stop arms at +1R and exits before the trade turns into a loss.
 - **🔴 Sell - Stop Loss:** Volatility-adjusted (2× ATR) or -4.5% (SET50) / -6.5% (Mid/Small-Cap).
 - **💰 Dividend-purpose holdings:** Follow the tested high-yield rule: no price, trailing, quality or yield exits. The Advisor lists leaving the high-yield top 10 as the exit (acted on at the monthly review) and shows a dividend cut or suspension (the latest payment more than 10% below the one a year earlier, or none for 13 months), ROE below 15%, yield below 3% and a 20% drawdown as review notes. Only a stop you saved sends a notification.
+- **🧹 Odd-lot holdings (`< 100` shares):** Leftover shares below 1 SET board lot (`1..99` shares) show `Odd lot (< 100 shares)` and are ignored by sell alerts and the monthly rebalance plan.
 - **⏸️ Swing cooldown (advisory):** The Buy dialog warns on a new Swing buy after the last 2 Swing trades closed at a loss (for 24 hours) or when this month's Swing losses reach 8% of equity. Dividend-purpose and core buys are never warned, so the monthly rebalance and DCA are not paused. The thresholds are untested; it warns and never blocks. Adapted from tradermonty's drawdown-circuit-breaker (MIT).
 - **⚠️ SELL PRIORITY:** Selling signals (Overbought/Resistance/Breakdown) ALWAYS override BUY momentum.
 

@@ -15,6 +15,8 @@ object TradingConstants {
     // RSI Thresholds
     const val RSI_OVERSOLD = 35.0
     const val RSI_OVERBOUGHT = 65.0
+    const val RSI_HOLDING_OVERBOUGHT = 72.0    // exhaustion exit for +1R holdings so trend runners can reach 2R
+    const val RSI_HEALTHY_MOMENTUM_MAX = 62.0  // SET breakout entry ceiling above SMA50 + ADX >= 20
     const val RSI_MOMENTUM_MAX = 64.9
     const val RSI_POTENTIAL = 42.0
 
@@ -39,9 +41,12 @@ object TradingConstants {
     
     // Fundamental Thresholds
     const val ROE_MIN_THRESHOLD = 15.0
-    // Quality screen calibrated for SET: ROE above 15% kept 13 of 101 watchlist stocks (SET's typical
-    // ROE is in single digits), so the screen uses 10%. Dividend fundamentals alerts still use 15%.
+    // Quality screen calibrated for SET: ROE > 10%, NPM > 5% (covers retail/commerce leaders),
+    // non-financial D/E < 2.0 (covers telecom/infra/utilities), and non-negative 3Y profit growth.
     const val QUALITY_ROE_MIN = 10.0
+    const val QUALITY_NPM_MIN = 5.0
+    const val QUALITY_DE_MAX = 2.0
+    const val QUALITY_PROFIT_GROWTH_3Y_MIN = 0.0
     const val DIVIDEND_YIELD_ENTRY = 5.0
     const val DIVIDEND_YIELD_PROTECTION = 3.0
 

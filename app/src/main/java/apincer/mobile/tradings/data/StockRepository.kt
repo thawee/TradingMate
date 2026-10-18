@@ -328,6 +328,17 @@ class StockRepository(
                     holdings.filter { it.sector == name }.sumOf { it.quantity * it.cost }
                 }
                 val existingStockValue = holdings.filter { it.symbol == symbol.uppercase() }.sumOf { it.quantity * it.cost }
+                val existingOpenRisk = holdings.filter {
+                    !apincer.mobile.tradings.domain.CoreSatellite.isCore(it.symbol) &&
+                        it.portfolio.stopLoss > 0.0 && it.portfolio.stopLoss < it.cost
+                }.sumOf { item ->
+                    val hCost = item.cost
+                    val hStop = item.portfolio.stopLoss
+                    val hQty = item.quantity
+                    val hBuyFees = if (item.buyFees > 0.0) item.buyFees else apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(hCost * hQty, false, atsEnabled)
+                    val hExitFees = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(hStop * hQty, true, atsEnabled)
+                    (hCost - hStop) * hQty + hBuyFees + hExitFees
+                }
                 val effectiveTarget = existing?.targetPrice?.takeIf { it > 0.0 } ?: targetPrice
                 val effectiveStop = existing?.stopLoss?.takeIf { it > 0.0 } ?: stopLoss
                 val effectivePurpose = existing?.tradePurpose ?: tradePurpose
@@ -335,7 +346,7 @@ class StockRepository(
                     apincer.mobile.tradings.domain.TradeRiskInput(
                         cost, effectiveStop, quantity, buyFees, (current?.balance ?: 0.0) + holdingsValue,
                         current?.balance ?: 0.0, existingStockValue, sectorValue, atsEnabled,
-                        effectiveTarget, effectivePurpose == "SWING"
+                        effectiveTarget, effectivePurpose == "SWING", existingOpenRisk
                     ), riskLimits
                 )
             } else null
@@ -438,7 +449,8 @@ class StockRepository(
                 throw IllegalStateException("Enter a valid sale price and quantity within the holding")
             val totalCostRaw = portfolio.cost * sellQuantity
             val sellValueRaw = sellPrice * sellQuantity
-            val sellFees = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(sellValueRaw, true, atsEnabled)
+            val isOddLot = sellQuantity < apincer.mobile.tradings.domain.HoldingSignal.BOARD_LOT_SHARES
+            val sellFees = apincer.mobile.tradings.domain.TechnicalAnalysis.calculateFees(sellValueRaw, true, atsEnabled || isOddLot)
             val buyFees = if (portfolio.quantity > 0) {
                 (portfolio.buyFees * sellQuantity.toDouble()) / portfolio.quantity
             } else 0.0
